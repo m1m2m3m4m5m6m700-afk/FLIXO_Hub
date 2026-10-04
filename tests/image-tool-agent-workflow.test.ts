@@ -148,3 +148,79 @@ test('cancellation fails closed before image decoding', async () => {
     /Abort|cancel/i,
   );
 });
+
+test('agent confirmation token is one-time and expires', async () => {
+  const originalBitmap = (globalThis as typeof globalThis & { createImageBitmap?: unknown }).createImageBitmap;
+  (globalThis as typeof globalThis & { createImageBitmap?: unknown }).createImageBitmap = async () => ({
+    width: 32,
+    height: 32,
+    close() {},
+  });
+
+  try {
+    const plan = planImageToolIntent('redact image');
+    assert.equal(plan.status, 'PLANNED');
+    assert.ok(plan.plan);
+    const context = {
+      taskId: 'task-replay',
+      taskRevision: 1,
+      documentRevision: 1,
+      documentFingerprint: 'c'.repeat(64),
+      planFingerprint: await fingerprintImageExecutionPlan(plan.plan),
+      catalogFingerprint: TOOL_CATALOG.fingerprint,
+      expiresAt: Date.now() + 60_000,
+    } as const;
+    const token = await createImageExecutionConfirmationToken(
+      plan.toolId!,
+      plan.plan.steps[0].params ?? {},
+      [],
+      context,
+    );
+    const input = new Blob(['image'], { type: 'image/png' });
+
+    await validateCanonicalImageExecutionRequest({
+      toolId: plan.toolId!,
+      inputBlob: input,
+      parameters: plan.plan.steps[0].params ?? {},
+      origin: 'agent',
+      confirmed: true,
+      confirmationToken: token,
+      securityContext: context,
+    });
+
+    await assert.rejects(
+      validateCanonicalImageExecutionRequest({
+        toolId: plan.toolId!,
+        inputBlob: input,
+        parameters: plan.plan.steps[0].params ?? {},
+        origin: 'agent',
+        confirmed: true,
+        confirmationToken: token,
+        securityContext: context,
+      }),
+      /CONFIRMATION_TOKEN_REPLAYED/,
+    );
+
+    const expiredContext = { ...context, taskId: 'task-expired', expiresAt: Date.now() - 1 };
+    const expiredToken = await createImageExecutionConfirmationToken(
+      plan.toolId!,
+      plan.plan.steps[0].params ?? {},
+      [],
+      { ...expiredContext, expiresAt: Date.now() + 60_000 },
+    );
+    await assert.rejects(
+      validateCanonicalImageExecutionRequest({
+        toolId: plan.toolId!,
+        inputBlob: input,
+        parameters: plan.plan.steps[0].params ?? {},
+        origin: 'agent',
+        confirmed: true,
+        confirmationToken: expiredToken,
+        securityContext: expiredContext,
+      }),
+      /CONFIRMATION_EXPIR|CONFIRMATION_TOKEN_EXPIRED|AGENT_CONFIRMATION_EXPIRY_INVALID/,
+    );
+  } finally {
+    (globalThis as typeof globalThis & { createImageBitmap?: unknown }).createImageBitmap = originalBitmap;
+  }
+});
