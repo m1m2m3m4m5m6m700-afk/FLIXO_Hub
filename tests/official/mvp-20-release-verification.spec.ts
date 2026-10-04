@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-const PNG_64X64 = 'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAgElEQVR42u3aUQ2AMAxAwZbgAxkTg76JmQyUFA8LfPWegGa5tH/Lqqpo3BHNAwAAAAAAAAAAAAAAAAAAAAAAANCt8+uB171+ffAzhw0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA9kp/hZ0AAAAAAAAAAAAAAAAAAAAAAAAAgFa9grULeSlM07cAAAAASUVORK5CYII=';
+const PNG_FIXTURE = 'iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAPUlEQVR42mP4z8DwHwwZ/oMBAwOYxQBD/xkaHBT+Kzg0/HdoUPh/IsXoP4OIhs1/Gw2R/ynTTvz/sCXgPwDaSiSJ4dCj1wAAAABJRU5ErkJggg==';
 const MANUAL_TOOL_IDS = [
   'background-remover','image-upscaler','image-cropper','image-compressor','image-converter','image-effects',
   'image-rotate','image-flip-horizontal','image-flip-vertical','image-brightness','image-contrast',
@@ -35,7 +35,7 @@ function fixture() {
   return {
     name: 'flixo-release-fixture.png',
     mimeType: 'image/png',
-    buffer: Buffer.from(PNG_64X64, 'base64'),
+    buffer: Buffer.from(PNG_FIXTURE, 'base64'),
   };
 }
 
@@ -47,10 +47,10 @@ async function executeManual(page: Page, toolId: (typeof MANUAL_TOOL_IDS)[number
   await fileInput.setInputFiles(fixture());
 
   if (toolId === 'image-cropper') {
-    await page.getByRole('textbox', { name: 'Crop width' }).fill('64');
-    await page.getByRole('textbox', { name: 'Crop height' }).fill('64');
-    await page.getByRole('textbox', { name: 'Output width' }).fill('64');
-    await page.getByRole('textbox', { name: 'Output height' }).fill('64');
+    await page.getByRole('textbox', { name: 'Crop width' }).fill('4');
+    await page.getByRole('textbox', { name: 'Crop height' }).fill('4');
+    await page.getByRole('textbox', { name: 'Output width' }).fill('4');
+    await page.getByRole('textbox', { name: 'Output height' }).fill('4');
   }
 
   if (toolId === 'image-compressor') {
@@ -74,6 +74,10 @@ async function executeManual(page: Page, toolId: (typeof MANUAL_TOOL_IDS)[number
 
 async function planAndExecuteAgent(page: Page, toolId: string, prompt: string, language: 'ar' | 'en') {
   await page.goto('/agent', { waitUntil: 'domcontentloaded' });
+  if (language === 'ar') {
+    await expect(page.locator('main')).toHaveAttribute('dir', 'rtl');
+    await expect(page.locator('main')).toHaveAttribute('lang', 'ar');
+  }
   if (language === 'en') await page.getByRole('button', { name: /English/i }).click();
   await page.locator('#agent-prompt').fill(prompt);
   await page.locator('#agent-file').setInputFiles(fixture());
@@ -98,7 +102,7 @@ test.describe('FLIXO 20-tool release verification', () => {
 
   test('agent/background-remover-ar executes only after explicit confirmation and preserves RTL', async ({ page }) => {
     await planAndExecuteAgent(page, 'background-remover', 'إزالة الخلفية', 'ar');
-    await expect(page.locator('main[dir="rtl"]')).toBeVisible();
+    await expect(page.locator('main')).toHaveAttribute('dir', 'rtl');
     await expect(page.locator('html')).toHaveAttribute('lang', 'ar');
   });
 
