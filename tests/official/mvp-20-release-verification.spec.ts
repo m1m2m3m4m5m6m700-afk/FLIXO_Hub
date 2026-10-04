@@ -39,56 +39,58 @@ function fixture() {
   };
 }
 
+async function executeManual(page: Parameters<Parameters<typeof test>[2]>[0]['page'], toolId: (typeof MANUAL_TOOL_IDS)[number]) {
+  await page.goto('/en/' + toolId, { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('h1,h2').filter({ hasText: /./ }).first()).toBeVisible();
+  const fileInput = page.locator('input[type=file]').first();
+  await expect(fileInput).toHaveCount(1);
+  await fileInput.setInputFiles(fixture());
+
+  if (toolId === 'image-compressor') {
+    await page.getByRole('button', { name: /Compress image/i }).click();
+    await expect(page.locator('a[download]').first()).toBeVisible({ timeout: 20_000 });
+  } else if (toolId === 'image-effects') {
+    await page.getByRole('button', { name: /Run tool/i }).click();
+    await expect(page.locator('img[alt]').last()).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByRole('button', { name: /Download/i })).toBeVisible({ timeout: 20_000 });
+  } else {
+    await page.getByRole('button', { name: /Run tool/i }).click();
+    await expect(page.locator('a[download]').first()).toBeVisible({ timeout: 20_000 });
+  }
+}
+
+async function planAndExecuteAgent(page: Parameters<Parameters<typeof test>[2]>[0]['page'], toolId: string, prompt: string, language: 'ar' | 'en') {
+  await page.goto('/agent', { waitUntil: 'domcontentloaded' });
+  if (language === 'en') await page.getByRole('button', { name: /English/i }).click();
+  await page.locator('#agent-prompt').fill(prompt);
+  await page.locator('#agent-file').setInputFiles(fixture());
+  await page.getByRole('button', { name: language === 'ar' ? /إنشاء الخطة/i : /Build plan/i }).click();
+  const plan = page.locator('[aria-label="agent-plan"]');
+  await expect(plan).toContainText(toolId);
+  await expect(page.locator('input[type=checkbox]')).not.toBeChecked();
+  await page.getByRole('button', { name: language === 'ar' ? /تنفيذ/i : /Execute/i }).click({ trial: true });
+  await expect(page.locator('[aria-label="agent-result"]')).toHaveCount(0);
+  await page.locator('input[type=checkbox]').check();
+  await page.getByRole('button', { name: language === 'ar' ? /تنفيذ/i : /Execute/i }).click();
+  await expect(page.locator('[aria-label="agent-result"]')).toBeVisible({ timeout: 20_000 });
+}
+
 test.describe('FLIXO 20-tool release verification', () => {
-  test('20/20 manual workflows execute and expose a verified artifact', async ({ page }) => {
-    for (const toolId of MANUAL_TOOL_IDS) {
-      await page.goto('/en/' + toolId, { waitUntil: 'domcontentloaded' });
-      await expect(page.locator('h1,h2').filter({ hasText: /./ }).first()).toBeVisible();
-      const fileInput = page.locator('input[type=file]').first();
-      await expect(fileInput).toHaveCount(1);
-      await fileInput.setInputFiles(fixture());
+  for (const toolId of MANUAL_TOOL_IDS) {
+    test('manual/' + toolId + ' executes locally and exposes an artifact', async ({ page }) => {
+      await executeManual(page, toolId);
+    });
+  }
 
-      if (toolId === 'image-compressor') {
-        await page.getByRole('button', { name: /Compress image/i }).click();
-        await expect(page.locator('a[download]').first()).toBeVisible({ timeout: 20_000 });
-      } else if (toolId === 'image-effects') {
-        await page.getByRole('button', { name: /Run tool/i }).click();
-        await expect(page.locator('img[alt]').last()).toBeVisible({ timeout: 20_000 });
-        await expect(page.getByRole('button', { name: /Download/i })).toBeVisible({ timeout: 20_000 });
-      } else {
-        await page.getByRole('button', { name: /Run tool/i }).click();
-        await expect(page.locator('a[download]').first()).toBeVisible({ timeout: 20_000 });
-      }
-    }
-  });
-
-  test('20/20 agent workflows execute behind an explicit confirmation gate', async ({ page }) => {
-    await page.goto('/agent', { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('heading', { level: 1 })).toContainText(/وكيل FLIXO|FLIXO Agent/);
+  test('agent/background-remover-ar executes only after explicit confirmation and preserves RTL', async ({ page }) => {
+    await planAndExecuteAgent(page, 'background-remover', 'إزالة الخلفية', 'ar');
     await expect(page.locator('main[dir="rtl"]')).toBeVisible();
-
-    await page.getByRole('textbox', { name: /ماذا تريد|What should/i }).fill('إزالة الخلفية');
-    await page.locator('#agent-file').setInputFiles(fixture());
-    await page.getByRole('button', { name: /إنشاء الخطة/i }).click();
-    await expect(page.locator('[aria-label="agent-plan"]')).toContainText('background-remover');
-    await expect(page.locator('input[type=checkbox]')).not.toBeChecked();
-    await page.getByRole('button', { name: /تنفيذ|Execute/i }).click({ trial: true }).catch(() => undefined);
-    await expect(page.locator('[aria-label="agent-result"]')).toHaveCount(0);
-    await page.locator('input[type=checkbox]').check();
-    await page.getByRole('button', { name: /تنفيذ|Execute/i }).click();
-    await expect(page.locator('[aria-label="agent-result"]')).toBeVisible({ timeout: 20_000 });
-
-    await page.getByRole('button', { name: /English/i }).click();
-    for (const [toolId, prompt] of AGENT_CASES) {
-      await page.locator('#agent-prompt').fill(prompt);
-      await page.locator('#agent-file').setInputFiles(fixture());
-      await page.getByRole('button', { name: /Build plan/i }).click();
-      const plan = page.locator('[aria-label="agent-plan"]');
-      await expect(plan).toContainText(toolId);
-      await expect(page.locator('input[type=checkbox]')).not.toBeChecked();
-      await page.locator('input[type=checkbox]').check();
-      await page.getByRole('button', { name: /Execute/i }).click();
-      await expect(page.locator('[aria-label="agent-result"]')).toBeVisible({ timeout: 20_000 });
-    }
+    await expect(page.locator('html')).toHaveAttribute('lang', 'ar');
   });
+
+  for (const [toolId, prompt] of AGENT_CASES) {
+    test('agent/' + toolId + ' maps to canonical tool and requires confirmation', async ({ page }) => {
+      await planAndExecuteAgent(page, toolId, prompt, 'en');
+    });
+  }
 });
