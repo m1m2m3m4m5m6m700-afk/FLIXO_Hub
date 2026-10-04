@@ -47,7 +47,11 @@ function file(content = 'local-image', type = 'image/png') {
 }
 
 test('agent planner admits exactly twenty executable tools and binds every tool to a local adapter', () => {
-  assert.equal(MVP_EXECUTABLE_TOOL_IDS.length, 20);
+  assert.equal(MVP_EXECUTABLE_TOOL_IDS.length, 24);
+  assert.equal(
+    MVP_EXECUTABLE_TOOL_IDS.filter((id) => id === 'background-remover' || id.startsWith('image-')).length,
+    20,
+  );
   assert.equal(CASES.length, 20);
   for (const [expectedToolId, request] of CASES) {
     assert.equal(MVP_EXECUTABLE_TOOL_IDS.includes(expectedToolId as never), true, expectedToolId);
