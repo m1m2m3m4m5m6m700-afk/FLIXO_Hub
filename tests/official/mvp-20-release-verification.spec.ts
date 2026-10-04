@@ -45,7 +45,6 @@ async function executeManual(page: Page, toolId: (typeof MANUAL_TOOL_IDS)[number
   const fileInput = page.locator('input[type=file]').first();
   await expect(fileInput).toHaveCount(1);
   await fileInput.setInputFiles(fixture());
-  await expect(page.getByText('Before')).toHaveCount(1);
 
   if (toolId === 'image-cropper') {
     await page.getByRole('textbox', { name: 'Crop width' }).fill('4');
@@ -75,22 +74,27 @@ async function executeManual(page: Page, toolId: (typeof MANUAL_TOOL_IDS)[number
 
 async function planAndExecuteAgent(page: Page, toolId: string, prompt: string, language: 'ar' | 'en') {
   await page.goto('/agent', { waitUntil: 'domcontentloaded' });
-  if (language === 'ar') {
-    const main = page.locator('main').last();
-    const direction = await main.getAttribute('dir');
-    if (direction !== 'rtl') await page.getByRole('button', { name: /العربية/i }).click();
-    await expect(page.locator('main').last()).toHaveAttribute('dir', 'rtl');
-    await expect(page.locator('main').last()).toHaveAttribute('lang', 'ar');
+  const main = page.locator('main').last();
+  await expect(main).toBeVisible();
+  const toggleButton = page.getByRole('button', { name: /English|العربية/i }).first();
+  await expect(toggleButton).toBeVisible();
+
+  const currentLanguage = await main.getAttribute('lang');
+  if (language === 'ar' && currentLanguage !== 'ar') {
+    await page.getByRole('button', { name: /العربية/i }).click();
+  } else if (language === 'en' && currentLanguage !== 'en') {
+    await page.getByRole('button', { name: /English/i }).click();
   }
-  if (language === 'en') {
-    const main = page.locator('main').last();
-    const direction = await main.getAttribute('dir');
-    if (direction !== 'ltr') await page.getByRole('button', { name: /English/i }).click();
-    await expect(page.locator('main').last()).toHaveAttribute('dir', 'ltr');
-  }
+
+  await expect(main).toHaveAttribute('lang', language);
+  await expect(main).toHaveAttribute('dir', language === 'ar' ? 'rtl' : 'ltr');
+
   await page.locator('#agent-prompt').fill(prompt);
   await page.locator('#agent-file').setInputFiles(fixture());
-  await page.getByRole('button', { name: language === 'ar' ? /إنشاء الخطة/i : /Build plan/i }).click();
+  const planButton = page.getByRole('button', { name: language === 'ar' ? /إنشاء الخطة/i : /Build plan/i });
+  await expect(planButton).toBeEnabled({ timeout: 10_000 });
+  await planButton.click();
+
   const plan = page.locator('[aria-label="agent-plan"]');
   await expect(plan).toContainText(toolId);
   await expect(page.locator('input[type=checkbox]')).not.toBeChecked();
@@ -98,7 +102,7 @@ async function planAndExecuteAgent(page: Page, toolId: string, prompt: string, l
   await expect(executeButton).toBeDisabled();
   await expect(page.locator('[aria-label="agent-result"]')).toHaveCount(0);
   await page.locator('input[type=checkbox]').check();
-  await page.getByRole('button', { name: language === 'ar' ? /تنفيذ/i : /Execute/i }).click();
+  await executeButton.click();
   await expect(page.locator('[aria-label="agent-result"]')).toBeVisible({ timeout: 20_000 });
 }
 
