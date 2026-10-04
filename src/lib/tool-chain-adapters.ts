@@ -1,4 +1,4 @@
-﻿import { applyBasicImageEffect, convertImage, cropResizeImage, flipImage, hueShiftImage, imageInfo, padImage, pixelateImage, removeBackground, resizeImage, rotateImage } from '../tools/image-toolkit/engine';
+﻿import { applyBasicImageEffect, cropResizeImage, flipImage, hueShiftImage, imageInfo, padImage, pixelateImage, resizeImage, rotateImage } from '../tools/image-toolkit/engine';
 import { executeCanonicalImageTool } from './canonical-image-executor';
 
 export type ChainInput = Readonly<{ blob: Blob; fileName: string }>;
