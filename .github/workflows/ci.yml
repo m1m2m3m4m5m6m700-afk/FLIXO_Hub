@@ -313,7 +313,7 @@ jobs:
           EXPECTED_SHA: ${{ github.sha }}
           PLAYWRIGHT_TEST_BASE_URL: ${{ env.FLIXOAI_PRODUCTION_ORIGIN }}
           PLAYWRIGHT_REUSE_SERVER: "true"
-        run: npm run test:e2e -- --project=chromium tests/official/production-browser-smoke.spec.ts
+        run: npm run test:e2e -- --project=chromium tests/official/production-browser-smoke.spec.ts tests/official/mvp-20-release-verification.spec.ts
 
       - name: Write deployment evidence
         if: always()
