@@ -1,6 +1,6 @@
 import { getCapability, MVP_EXECUTABLE_TOOL_IDS, validateCapabilityParameters } from '../config/manual-capability-definition';
 import { TOOL_CATALOG } from '../config/registry';
-import { executeToolChain, type ChainInput, type ChainOutput } from './tool-chain-adapters';
+import { CANONICAL_IMAGE_TOOL_IDS, createImageExecutionConfirmationToken, executeCanonicalImageTool, type CanonicalImageExecutionReceipt } from './canonical-image-executor';
 import { parseExecutionPlan, type ExecutionPlanContract } from './contracts/ai-plan';
 
 export type AgentPlan = Readonly<ExecutionPlanContract & {
@@ -27,8 +27,19 @@ const DEFAULT_PARAMS: Readonly<Record<string, Record<string, string | number | b
   'image-compressor': { format: 'image/webp' },
   'image-effects': { contrast: 115 },
   'image-resizer': { scale: 1.5 },
-  'image-hue': { degrees: 30 },
-  'image-pixelate': { blockSize: 10 },
+  'image-rotate-flip': { rotation: 90, flipX: false, flipY: false },
+  'image-brightness-contrast': { brightness: 115 },
+  'image-saturation-hue': { saturation: 115 },
+  'image-exposure': { exposure: 1 },
+  'image-highlights-shadows': { highlights: 20 },
+  'image-sharpen': { amount: 110 },
+  'image-blur': { radius: 6 },
+  'image-grayscale-duotone': { intensity: 100 },
+  'image-filters': { preset: 'vivid' },
+  'image-watermark': { text: 'FLIXO' },
+  'image-text-overlay': { text: 'FLIXO' },
+  'image-draw-annotate': { kind: 'arrow' },
+  'image-redaction': { x: 25, y: 25, width: 50, height: 25 },
 });
 
 function normalize(value: string): string {
@@ -143,7 +154,8 @@ function verifyConfirmationReceipt(
   confirmationRecords.delete(receipt.token);
 }
 
-const EN_STOPWORDS = new Set(['a', 'an', 'the', 'this', 'my', 'it', 'to', 'of', 'for', 'please', 'do', 'does', 'did', 'on', 'with', 'and', 'or', 'but', 'make', 'apply', 'change', 'adjust', 'increase', 'decrease', 'convert', 'image', 'images', 'picture', 'pictures', 'photo', 'photos']);
+const EN_STOPWORDS = new Set(['a', 'an', 'the', 'this', 'my', 'it', 'to', 'of', 'for', 'please', 'do', 'does', 'did', 'on', 'with', 'and', 'or', 'but']);
+const INTENT_COVERAGE_CONTEXT = new Set(['a', 'an', 'the', 'this', 'my', 'it', 'to', 'of', 'for', 'please', 'do', 'does', 'did', 'on', 'with', 'and', 'or', 'but', 'make', 'apply', 'change', 'adjust', 'increase', 'decrease', 'convert', 'image', 'images', 'picture', 'pictures', 'photo', 'photos']);
 
 function tokenize(value: string): string[] {
   return normalize(value)
@@ -184,8 +196,8 @@ function findIntent(prompt: string): { toolId: string; intent: string } {
 
   const candidateToolIds = new Set(candidates.map((candidate) => candidate.toolId));
   if (candidateToolIds.size > 1) {
-    const promptTokens = new Set(tokenize(prompt));
-    const winnerTokens = new Set(tokenize(winner.intent));
+    const promptTokens = new Set(tokenize(prompt).filter((token) => !INTENT_COVERAGE_CONTEXT.has(token)));
+    const winnerTokens = new Set(tokenize(winner.intent).filter((token) => !INTENT_COVERAGE_CONTEXT.has(token)));
     const uncoveredTokens = [...promptTokens].filter((token) => !winnerTokens.has(token));
     if (uncoveredTokens.length > 0) {
       throw new Error('Request is ambiguous. Multiple image operations were requested; create separate confirmed plans.');
@@ -250,7 +262,7 @@ export async function executeAgentPlan(
   file: File,
   receipt: AgentConfirmationReceipt | null | undefined,
   signal?: AbortSignal,
-): Promise<ChainOutput> {
+): Promise<Readonly<{ blob: Blob; fileName: string }>> {
   assertLocalImageFile(file);
   if (plan.requiresUserConfirmation !== true) {
     throw new Error('Execution denied: explicit user confirmation is required.');
@@ -274,25 +286,38 @@ export async function executeAgentPlan(
   ) {
     throw new Error('Execution denied by the canonical capability boundary.');
   }
-  const parameters = validateCapabilityParameters(steps[0], validatedPlan.steps[0].params ?? {});
-  const input: ChainInput = Object.freeze({ blob: file, fileName: file.name });
+  if (!CANONICAL_IMAGE_TOOL_IDS.includes(steps[0])) {
+    throw new Error('Execution denied: tool is outside the canonical image executor.');
+  }
+
+  const parameters = validateCapabilityParameters(
+    steps[0],
+    validatedPlan.steps[0].params ?? {},
+  ) as Record<string, string | number | boolean>;
+  const confirmationToken = await createImageExecutionConfirmationToken(
+    steps[0],
+    parameters,
+    [],
+  );
   const deadline = Date.now() + capability.safetyLimits.timeoutMs;
 
-  const output = await withExecutionGuards(
-    executeToolChain(steps, input),
+  const receiptResult: CanonicalImageExecutionReceipt = await withExecutionGuards(
+    executeCanonicalImageTool({
+      toolId: steps[0],
+      inputBlob: file,
+      parameters,
+      origin: 'agent',
+      confirmed: true,
+      confirmationToken,
+      signal,
+    }),
     signal,
     deadline,
   );
   assertNotAborted(signal);
 
-  const verified = await withExecutionGuards(
-    capability.verifier(file, output.blob, parameters),
-    signal,
-    deadline,
-  );
-  assertNotAborted(signal);
-  if (!verified) {
-    throw new Error('Execution failed closed: output verifier rejected the artifact.');
-  }
-  return output;
+  return Object.freeze({
+    blob: receiptResult.outputBlob,
+    fileName: file.name,
+  });
 }
