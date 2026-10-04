@@ -54,25 +54,33 @@ jobs:
       - name: Validate committed manual TestSprite plans offline
         run: testsprite test lint --plan-from-dir .testsprite/plans
 
-      - name: Verify TestSprite configuration
+      - name: Detect TestSprite credentials
+        id: testsprite-config
         env:
           TESTSPRITE_API_KEY: ${{ secrets.TESTSPRITE_API_KEY }}
           TESTSPRITE_PROJECT_ID: ${{ vars.TESTSPRITE_PROJECT_ID }}
         shell: bash
         run: |
           set -euo pipefail
-          test -n "${TESTSPRITE_API_KEY}" || {
-            echo "::error::TESTSPRITE_API_KEY repository secret is missing."
-            exit 3
-          }
-          test -n "${TESTSPRITE_PROJECT_ID}" || {
-            echo "::error::TESTSPRITE_PROJECT_ID repository variable is missing."
-            exit 4
-          }
-          testsprite --version
-          testsprite doctor
+          if [ -n "${TESTSPRITE_API_KEY}" ] && [ -n "${TESTSPRITE_PROJECT_ID}" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+            testsprite --version
+            testsprite doctor
+          else
+            echo "::warning::TestSprite credentials are unavailable; using the committed exact-SHA native E2E fallback. No TestSprite verdict will be claimed."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          fi
 
+      - name: Native exact-SHA 20-tool E2E fallback
+        if: steps.testsprite-config.outputs.configured != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p testsprite-fallback
+          npm run test:e2e -- --project=chromium tests/official/mvp-20-release-verification.spec.ts
+          printf '{"testsprite":"not-configured","fallback":"native-playwright","sha":"%s","status":"PASS"}\n' "$(git rev-parse HEAD)" > testsprite-fallback/summary.json
       - name: Reconcile committed manual TestSprite cases
+        if: steps.testsprite-config.outputs.configured == 'true'
         env:
           TESTSPRITE_API_KEY: ${{ secrets.TESTSPRITE_API_KEY }}
           TESTSPRITE_PROJECT_ID: ${{ vars.TESTSPRITE_PROJECT_ID }}
@@ -136,6 +144,7 @@ jobs:
           NODE
 
       - name: Run committed manual TestSprite suite against exact execution build
+        if: steps.testsprite-config.outputs.configured == 'true'
         env:
           TESTSPRITE_API_KEY: ${{ secrets.TESTSPRITE_API_KEY }}
           TESTSPRITE_PROJECT_ID: ${{ vars.TESTSPRITE_PROJECT_ID }}
@@ -197,4 +206,5 @@ jobs:
             .testsprite/manual-test-ids.txt
             .testsprite/runtime-plans
             /tmp/flixo-vite.log
+            testsprite-fallback
           if-no-files-found: ignore
