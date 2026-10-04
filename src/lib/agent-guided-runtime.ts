@@ -1,6 +1,7 @@
 import { getCapability, MVP_EXECUTABLE_TOOL_IDS, validateCapabilityParameters } from '../config/manual-capability-definition';
 import { TOOL_CATALOG } from '../config/registry';
 import { executeToolChain, type ChainInput, type ChainOutput } from './tool-chain-adapters';
+import { imageInfo } from '../tools/image-toolkit/engine';
 import { parseExecutionPlan, type ExecutionPlanContract } from './contracts/ai-plan';
 
 export type AgentPlan = Readonly<ExecutionPlanContract & {
@@ -52,6 +53,26 @@ function abortError(message: string): Error {
 function assertNotAborted(signal?: AbortSignal): void {
   if (signal?.aborted) throw abortError('Agent execution cancelled.');
 }
+
+function assertAgentInputWithinCapabilityBudget(
+  file: File,
+  capability: {
+    safetyLimits: { maxPixels: number; maxFileSizeBytes: number };
+  },
+): Promise<void> {
+  if (file.size > capability.safetyLimits.maxFileSizeBytes) {
+    throw new Error('Execution denied: input exceeds the canonical capability file-size limit.');
+  }
+  return imageInfo(file).then(({ width, height }) => {
+    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+      throw new Error('Execution denied: image dimensions are invalid.');
+    }
+    if (width * height > capability.safetyLimits.maxPixels) {
+      throw new Error('Execution denied: image dimensions exceed the canonical capability pixel limit.');
+    }
+  });
+}
+
 
 function randomToken(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -273,6 +294,8 @@ export async function executeAgentPlan(
   ) {
     throw new Error('Execution denied by the canonical capability boundary.');
   }
+  await assertAgentInputWithinCapabilityBudget(file, capability);
+  assertNotAborted(signal);
   const parameters = validateCapabilityParameters(steps[0], validatedPlan.steps[0].params ?? {});
   const input: ChainInput = Object.freeze({ blob: file, fileName: file.name });
   const deadline = Date.now() + capability.safetyLimits.timeoutMs;
