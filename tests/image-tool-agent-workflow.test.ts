@@ -44,7 +44,7 @@ test('20/20 agent intent routing reaches every canonical image tool',()=>{
     ['upscale the image','image-upscaler'],
     ['crop the image','image-cropper'],
     ['compress the image','image-compressor'],
-    ['convert the image to webp','image-converter'],
+    ['convert png to webp','image-converter'],
     ['adjust image effects','image-effects'],
     ['resize image dimensions','image-resizer'],
     ['rotate and flip the image','image-rotate-flip'],
