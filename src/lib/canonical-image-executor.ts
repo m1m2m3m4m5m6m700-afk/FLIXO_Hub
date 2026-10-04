@@ -55,10 +55,10 @@ export function assertTargetLayersUnlocked(targetLayerIds:readonly string[]=[],l
   const unknown=targetLayerIds.filter((id)=>!byId.has(id));
   if(unknown.length) throw new Error('TARGET_LAYER_NOT_FOUND:'+unknown.join(','));
 }
-async function assertLocalImageBlob(input:Blob,toolId:string,limit:{maxBytes:number;maxPixels:number}):Promise<void>{
+async function assertLocalImageBlob(input:Blob,toolId:string,limit:{maxFileSizeBytes:number;maxPixels:number}):Promise<void>{
   if(!(input instanceof Blob)) throw new Error('INVALID_LOCAL_BLOB:'+toolId);
   if(!input.type.startsWith('image/')) throw new Error('INVALID_IMAGE_MIME:'+toolId);
-  if(input.size<=0 || input.size>limit.maxBytes) throw new Error('INPUT_SIZE_LIMIT_EXCEEDED:'+toolId);
+  if(input.size<=0 || input.size>limit.maxFileSizeBytes) throw new Error('INPUT_SIZE_LIMIT_EXCEEDED:'+toolId);
   const info=await imageInfo(input);
   if(info.width*info.height>limit.maxPixels) throw new Error('INPUT_PIXEL_LIMIT_EXCEEDED:'+toolId);
 }
@@ -76,7 +76,7 @@ async function verifyOutput(toolId:string,output:Blob,input:Blob,parameters:Reco
   const bytes=new Uint8Array(await output.arrayBuffer());
   const integrity=validateOutputIntegrity(
     output.size,output.type,
-    {toolId,allowedMime:variant.outputMimeTypes,minBytes:variant.minOutputBytes,maxBytes:variant.maxOutputBytes,maxPixels:variant.maxPixels,allowedExtensions:variant.allowedExtensions,signatures:variant.signatures},
+    {toolId,allowedMime:variant.outputMimeTypes,minBytes:variant.minOutputBytes ?? 1,maxBytes:variant.maxOutputBytes ?? 50 * 1024 * 1024,maxPixels:variant.maxPixels ?? 100_000_000,allowedExtensions:variant.allowedExtensions,signatures:variant.signatures},
     info,
     {filename:'flixo-'+toolId+'.'+extensionForMime(output.type),bytes},
   );
@@ -104,7 +104,7 @@ export async function validateCanonicalImageExecutionRequest(request:CanonicalIm
   if(tool.operational.executorId!==request.toolId) throw new Error('EXECUTOR_ID_MISMATCH:'+request.toolId);
   if(tool.operational.outputContractId!==request.toolId) throw new Error('OUTPUT_CONTRACT_ID_MISMATCH:'+request.toolId);
   assertTargetLayersUnlocked(request.targetLayerIds??[],request.layers??[]);
-  const parameters=validateCapabilityParameters(request.toolId,request.parameters??{}) as Record<string,string|number|boolean>;
+  const parameters=validateCapabilityParameters(request.toolId,request.parameters??{}) as unknown as Record<string,string|number|boolean>;
   const confirmationRequired=request.origin==='agent' && capability.safetyContract.requiresUserConfirmationForAgent;
   if(confirmationRequired){
     if(request.confirmed!==true) throw new Error('CONFIRMATION_REQUIRED:'+request.toolId);
