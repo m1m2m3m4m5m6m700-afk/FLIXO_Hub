@@ -15,7 +15,21 @@ export type LocalToolId =
 
 export type ImageInfo = { width: number; height: number };
 
-export function imageInfo(blob: Blob): Promise<ImageInfo> {
+export async function imageInfo(blob: Blob): Promise<ImageInfo> {
+  if (!(blob instanceof Blob)) throw new Error('Image input must be a Blob.');
+  if (typeof createImageBitmap === 'function') {
+    try {
+      const bitmap = await createImageBitmap(blob);
+      try {
+        return { width: bitmap.width, height: bitmap.height };
+      } finally {
+        bitmap.close();
+      }
+    } catch {
+      // Fall through to HTMLImageElement decoding when Image APIs are available.
+    }
+  }
+  if (typeof Image === 'undefined') throw new Error('Image decoding is unavailable in this runtime.');
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(blob);
     const image = new Image();
