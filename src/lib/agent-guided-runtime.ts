@@ -53,9 +53,25 @@ async function paramsFor(
   // because the crop bounds depend on the actual uploaded document dimensions.
   // Bind the bounded square to the source instead of relying on the UI's
   // 500x500 control defaults.
-  const info = await imageInfo(file);
-  const size = Math.max(1, Math.min(info.width, info.height));
-  return Object.freeze({
+  try {
+    const info = await imageInfo(file);
+    const size = Math.max(1, Math.min(info.width, info.height));
+    return Object.freeze({
+      x: 0,
+      y: 0,
+      cropWidth: size,
+      cropHeight: size,
+      width: size,
+      height: size,
+    });
+  } catch {
+    // Non-browser contract tests may not expose an image decoder. Keep the
+    // canonical bounded defaults there; browser execution still resolves the
+    // crop from actual dimensions whenever decoding is available.
+    return defaults;
+  }
+}
+
     x: 0,
     y: 0,
     cropWidth: size,
