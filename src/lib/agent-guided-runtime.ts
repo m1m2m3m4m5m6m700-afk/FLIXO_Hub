@@ -126,8 +126,10 @@ export async function executeAgentPlan(
   plan: AgentPlan,
   file: File,
   confirmed: boolean,
+  signal?: AbortSignal,
 ): Promise<CanonicalImageExecutionReceipt> {
   assertLocalImageFile(file);
+  if (signal?.aborted) throw signal.reason instanceof Error ? signal.reason : new DOMException('Agent execution cancelled.', 'AbortError');
   if (!confirmed || plan.requiresUserConfirmation !== true) {
     throw new Error('Execution denied: explicit user confirmation is required.');
   }
@@ -156,5 +158,6 @@ export async function executeAgentPlan(
     confirmed: true,
     confirmationToken: plan.confirmationToken,
     securityContext: plan.securityContext,
+    signal,
   });
 }
