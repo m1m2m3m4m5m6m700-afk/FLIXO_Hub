@@ -84,7 +84,7 @@ test('agent execution requires a one-time confirmation receipt and rejects forge
   });
   await assert.rejects(
     () => executeAgentPlan(forgedPlan, input, receipt),
-    /confirmation receipt is stale or does not match/i,
+    /different canonical tool catalog/i,
   );
 
   const secondReceipt = confirmAgentPlan(plan, input);
