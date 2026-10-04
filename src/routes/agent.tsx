@@ -67,7 +67,7 @@ export function AgentPage() {
     return '';
   }, [busy, copy.ready, copy.working, plan]);
 
-  const buildPlan = () => {
+  const buildPlan = async () => {
     if (!file) {
       setError(language === 'ar' ? 'اختر صورة أولًا.' : 'Choose an image first.');
       return;
@@ -76,7 +76,7 @@ export function AgentPage() {
       setError('');
       setResult(null);
       setConfirmed(false);
-      setPlan(planAgentRequest(prompt, file));
+      setPlan(await planAgentRequest(prompt, file));
     } catch (caught) {
       setPlan(null);
       setError(caught instanceof Error ? caught.message : copy.error);
