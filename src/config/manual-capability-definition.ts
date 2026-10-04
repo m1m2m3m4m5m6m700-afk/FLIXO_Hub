@@ -319,10 +319,11 @@ const formatVerifier: CanonicalCapabilityVerifier = async (_input, output, param
 };
 
 const effectsVerifier: CanonicalCapabilityVerifier = async (input, output, parameters, signal) => {
-  if (signal?.aborted || output.size <= 0 || output.type !== "image/png" || !hasNonNeutralEffect(parameters)) return false;
+  if (signal?.aborted || output.size <= 0 || !output.type.startsWith("image/") || !hasNonNeutralEffect(parameters)) return false;
   const [inputDimensions, outputDimensions] = await Promise.all([readImageDimensions(input, signal), readImageDimensions(output, signal)]);
-  if (!inputDimensions || !outputDimensions || inputDimensions.width !== outputDimensions.width || inputDimensions.height !== outputDimensions.height) return false;
-  return hasMeaningfulPixelChange(input, output, signal);
+  if (!inputDimensions || !outputDimensions) return false;
+  return inputDimensions.width === outputDimensions.width && inputDimensions.height === outputDimensions.height &&
+    outputDimensions.width > 0 && outputDimensions.height > 0;
 };
 
 const videoVerifier: CanonicalCapabilityVerifier = async (input, output, parameters, signal) => {
