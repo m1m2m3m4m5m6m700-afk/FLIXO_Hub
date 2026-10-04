@@ -33,9 +33,26 @@ export async function assertImageResult(page: Page) {
 }
 
 export async function captureDownload(page: Page) {
-  const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Download now' }).click();
-  return downloadPromise;
+  const downloadLink = page.getByRole('link', { name: /Download image|Download now/i });
+  await expect(downloadLink).toBeVisible();
+
+  const metadata = await downloadLink.evaluate(async (element) => {
+    const link = element as HTMLAnchorElement;
+    const href = link.href;
+    const filename = link.download;
+    if (!filename) throw new Error('Download link is missing a filename.');
+    if (!href.startsWith('blob:')) throw new Error('Download link is not browser-local.');
+    const response = await fetch(href);
+    if (!response.ok) throw new Error(`Download resource fetch failed: ${response.status}`);
+    const blob = await response.blob();
+    if (blob.size <= 0) throw new Error('Download resource is empty.');
+    return { filename, size: blob.size };
+  });
+
+  return {
+    suggestedFilename: () => metadata.filename,
+    size: metadata.size,
+  };
 }
 
 export async function assertDownload(page: Page, pattern: RegExp) {
