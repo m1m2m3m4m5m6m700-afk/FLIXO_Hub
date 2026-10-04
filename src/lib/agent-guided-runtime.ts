@@ -143,7 +143,7 @@ function verifyConfirmationReceipt(
   confirmationRecords.delete(receipt.token);
 }
 
-const EN_STOPWORDS = new Set(['a', 'an', 'the', 'this', 'my', 'to', 'of', 'for', 'please', 'do', 'on', 'with']);
+const EN_STOPWORDS = new Set(['a', 'an', 'the', 'this', 'my', 'it', 'to', 'of', 'for', 'please', 'do', 'does', 'did', 'on', 'with', 'and', 'or', 'but', 'make', 'apply', 'change', 'adjust', 'increase', 'decrease', 'convert', 'image', 'images', 'picture', 'pictures', 'photo', 'photos']);
 
 function tokenize(value: string): string[] {
   return normalize(value)
@@ -181,6 +181,17 @@ function findIntent(prompt: string): { toolId: string; intent: string } {
   if (candidates[1] && candidates[1].score === winner.score && candidates[1].toolId !== winner.toolId) {
     throw new Error('Request is ambiguous. Choose one supported image operation.');
   }
+
+  const candidateToolIds = new Set(candidates.map((candidate) => candidate.toolId));
+  if (candidateToolIds.size > 1) {
+    const promptTokens = new Set(tokenize(prompt));
+    const winnerTokens = new Set(tokenize(winner.intent));
+    const uncoveredTokens = [...promptTokens].filter((token) => !winnerTokens.has(token));
+    if (uncoveredTokens.length > 0) {
+      throw new Error('Request is ambiguous. Multiple image operations were requested; create separate confirmed plans.');
+    }
+  }
+
   return { toolId: winner.toolId, intent: winner.intent };
 }
 
