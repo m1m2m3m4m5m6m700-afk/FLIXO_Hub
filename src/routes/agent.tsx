@@ -1,6 +1,6 @@
 import { createRoute } from '@tanstack/react-router';
 import { rootRoute } from './__root';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { executeAgentPlan, planAgentRequest, type AgentPlan } from '../lib/agent-guided-runtime';
 
@@ -56,6 +56,7 @@ export function AgentPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<{ url: string; fileName: string } | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
   const copy = COPY[language];
   const direction = language === 'ar' ? 'rtl' : 'ltr';
 
@@ -87,11 +88,14 @@ export function AgentPage() {
     setBusy(true);
     setError('');
     try {
-      const output = await executeAgentPlan(plan, file, true);
+      const controller = new AbortController();
+      abortRef.current = controller;
+      const output = await executeAgentPlan(plan, file, true, controller.signal);
       setResult({ url: URL.createObjectURL(output.blob), fileName: output.fileName });
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : copy.error);
     } finally {
+      abortRef.current = null;
       setBusy(false);
     }
   };
@@ -122,7 +126,7 @@ export function AgentPage() {
             <span>{copy.confidence}: {Math.round(plan.confidence * 100)}%</span>
             <span data-testid="agent-plan-status">{statusLabel}</span>
             <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} />{copy.confirm}</label>
-            <button type="button" onClick={runPlan} disabled={!confirmed || busy}>{copy.execute}</button>
+            <button type="button" onClick={() => void runPlan()} disabled={!confirmed || busy}>{copy.execute}</button>{busy && <button type="button" onClick={() => abortRef.current?.abort(new DOMException('Agent execution cancelled.', 'AbortError'))}>{language === 'ar' ? 'إلغاء' : 'Cancel'}</button>}
           </section>
         )}
 
