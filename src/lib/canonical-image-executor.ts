@@ -214,7 +214,6 @@ export async function validateCanonicalImageExecutionRequest(request:CanonicalIm
   if(tool.operational.outputContractId!==request.toolId) throw new Error('OUTPUT_CONTRACT_ID_MISMATCH:'+request.toolId);
   assertTargetLayersUnlocked(request.targetLayerIds??[],request.layers??[]);
   const parameters=validateCapabilityParameters(request.toolId,(request.parameters??{}) as CanonicalCapabilityParameters) as Record<string,string|number|boolean>;
-  await assertLocalImageBlob(request.inputBlob,request.toolId,capability.safetyLimits);
   const confirmationRequired=request.origin==='agent' && capability.safetyContract.requiresUserConfirmationForAgent;
   if(confirmationRequired){
     if(request.confirmed!==true) throw new Error('CONFIRMATION_REQUIRED:'+request.toolId);
@@ -230,6 +229,7 @@ export async function validateCanonicalImageExecutionRequest(request:CanonicalIm
       request.securityContext,
     );
   }
+  await assertLocalImageBlob(request.inputBlob,request.toolId,capability.safetyLimits);
   return {toolId:request.toolId,parameters,confirmationRequired,catalogFingerprint:TOOL_CATALOG.fingerprint};
 }
 export async function executeCanonicalImageTool(request:CanonicalImageExecutionRequest):Promise<CanonicalImageExecutionReceipt>{
