@@ -180,7 +180,6 @@ test('canonical MVP capability verifiers accept measurable valid artifacts and r
 
 
 test('canonical MVP contains exactly twenty executable browser-local capabilities with complete contracts', async () => {
-  const { MVP_EXECUTABLE_TOOL_IDS, CAPABILITY_DEFINITIONS } = await import('../src/config/manual-capability-definition.ts');
   const { CANONICAL_IMAGE_TOOL_IDS } = await import('../src/lib/canonical-image-executor.ts');
   const imageIds = [...CANONICAL_IMAGE_TOOL_IDS];
   assert.equal(imageIds.length, 20);
