@@ -91,7 +91,8 @@ export function AgentPage() {
       const controller = new AbortController();
       abortRef.current = controller;
       const output = await executeAgentPlan(plan, file, true, controller.signal);
-      setResult({ url: URL.createObjectURL(output.blob), fileName: output.fileName });
+      const extension = output.outputMime === 'image/jpeg' ? 'jpg' : output.outputMime === 'image/webp' ? 'webp' : 'png';
+      setResult({ url: URL.createObjectURL(output.outputBlob), fileName: `flixo-${plan.steps[0].toolId}.${extension}` });
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : copy.error);
     } finally {
