@@ -14,6 +14,12 @@ export type CanonicalCapabilityLimits = Readonly<{
   maxFileSizeBytes: number;
   timeoutMs: number;
 }>;
+
+export type CanonicalCapabilitySafetyContract = Readonly<{
+  requiresUserConfirmationForAgent: boolean;
+  allowLockedLayerSelection: false;
+  rawBlobEgress: false;
+}>;
 export type CanonicalCapabilityDefinition = Readonly<{
   id: string;
   title: string;
@@ -28,7 +34,8 @@ export type CanonicalCapabilityDefinition = Readonly<{
   safetyLimits: CanonicalCapabilityLimits;
   verifier: CanonicalCapabilityVerifier;
   requirements: Readonly<{ browser: true; network: false }>;
-  recovery: Readonly<{ maxAttempts: 3; replanOnFailure: false }>;
+  recovery: Readonly<{ maxAttempts: number; replanOnFailure: false }>;
+  safetyContract: CanonicalCapabilitySafetyContract;
   operational: Readonly<{
     lifecycle: "ready";
     execution: "browser-local" | "browser-worker";
@@ -66,6 +73,20 @@ const PARAMETER_SCHEMAS = {
     saturate: z.number().finite().min(0).max(200).optional(),
     grayscale: z.number().finite().min(0).max(100).optional(),
   }).strict(),
+  "image-resizer": z.object({ scale: z.number().finite().positive().min(0.1).max(8).optional(), width: z.number().int().positive().max(4000).optional(), height: z.number().int().positive().max(4000).optional() }).refine(v => v.scale !== undefined || v.width !== undefined || v.height !== undefined, "resize parameters are required").strict(),
+  "image-rotate-flip": z.object({ rotation: z.union([z.literal(0), z.literal(90), z.literal(180), z.literal(270)]).default(90), flipX: z.boolean().default(false), flipY: z.boolean().default(false) }).strict(),
+  "image-brightness-contrast": z.object({ brightness: z.number().finite().min(0).max(200).optional(), contrast: z.number().finite().min(0).max(200).optional() }).refine(v => v.brightness !== undefined || v.contrast !== undefined, "brightness or contrast is required").strict(),
+  "image-saturation-hue": z.object({ saturation: z.number().finite().min(0).max(200).optional(), hue: z.number().finite().min(-360).max(360).optional() }).refine(v => v.saturation !== undefined || v.hue !== undefined, "saturation or hue is required").strict(),
+  "image-exposure": z.object({ exposure: z.number().finite().min(-4).max(4).refine(v => v !== 0, "exposure cannot be neutral") }).strict(),
+  "image-highlights-shadows": z.object({ highlights: z.number().finite().min(-100).max(100).optional(), shadows: z.number().finite().min(-100).max(100).optional() }).refine(v => (v.highlights ?? 0) !== 0 || (v.shadows ?? 0) !== 0, "highlights or shadows must change").strict(),
+  "image-sharpen": z.object({ amount: z.number().finite().min(1).max(200).default(110) }).strict(),
+  "image-blur": z.object({ radius: z.number().finite().min(1).max(32).default(6) }).strict(),
+  "image-grayscale-duotone": z.object({ intensity: z.number().finite().min(1).max(100).default(100), darkColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#111111"), lightColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#f5f5f5") }).strict(),
+  "image-filters": z.object({ preset: z.enum(["vivid","warm","cool","vintage","mono","sepia","cinematic"]) }).strict(),
+  "image-watermark": z.object({ text: z.string().trim().min(1).max(200), x: z.number().finite().min(0).max(100).default(10), y: z.number().finite().min(0).max(100).default(90), fontSize: z.number().int().min(8).max(240).default(32), opacity: z.number().finite().min(0.05).max(1).default(0.65), color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#ffffff") }).strict(),
+  "image-text-overlay": z.object({ text: z.string().trim().min(1).max(500), x: z.number().finite().min(0).max(100).default(50), y: z.number().finite().min(0).max(100).default(50), fontSize: z.number().int().min(8).max(240).default(48), color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#ffffff"), background: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(), backgroundOpacity: z.number().finite().min(0).max(1).default(0.5), align: z.enum(["left","center","right"]).default("center") }).strict(),
+  "image-draw-annotate": z.object({ kind: z.enum(["line","arrow","rect","ellipse"]).default("arrow"), x1: z.number().finite().min(0).max(100).default(10), y1: z.number().finite().min(0).max(100).default(10), x2: z.number().finite().min(0).max(100).default(80), y2: z.number().finite().min(0).max(100).default(80), stroke: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#ff3b30"), strokeWidth: z.number().int().min(1).max(40).default(8) }).strict(),
+  "image-redaction": z.object({ x: z.number().finite().min(0).max(100).default(25), y: z.number().finite().min(0).max(100).default(25), width: z.number().finite().min(1).max(100).default(50), height: z.number().finite().min(1).max(100).default(25), color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#000000") }).strict(),
   "video-trimmer": z.object({
     startSec: z.number().finite().min(0).max(86_400).optional(),
     endSec: z.number().finite().min(0).max(86_400).optional(),
@@ -87,10 +108,7 @@ const PARAMETER_SCHEMAS = {
   }).strict(),
 } as const;
 
-export const MVP_EXECUTABLE_TOOL_IDS = Object.freeze([
-  "background-remover","image-upscaler","image-cropper","image-compressor","image-converter",
-  "image-effects","video-trimmer","video-cropper","video-resizer","video-compressor",
-] as const);
+export const MVP_EXECUTABLE_TOOL_IDS = Object.freeze(["background-remover","image-upscaler","image-cropper","image-compressor","image-converter","image-effects","image-resizer","image-rotate-flip","image-brightness-contrast","image-saturation-hue","image-exposure","image-highlights-shadows","image-sharpen","image-blur","image-grayscale-duotone","image-filters","image-watermark","image-text-overlay","image-draw-annotate","image-redaction","video-trimmer","video-cropper","video-resizer","video-compressor"] as const);
 
 const INTENTS: Record<string, readonly string[]> = {
   "background-remover": ["remove background","transparent background","cut out background","background removal","إزالة الخلفية","خلفية شفافة"],
