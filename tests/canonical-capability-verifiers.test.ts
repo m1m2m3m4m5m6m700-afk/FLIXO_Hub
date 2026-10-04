@@ -142,27 +142,31 @@ test('canonical MVP capability verifiers accept measurable valid artifacts and r
     const converted = new Blob(['converted'], { type: 'image/webp' });
     assert.equal(await definition('image-converter').verifier(input, converted, { format: 'image/webp' }), true);
 
-    for (const id of [
-      'image-rotate',
-      'image-flip-horizontal',
-      'image-flip-vertical',
-      'image-brightness',
-      'image-contrast',
-      'image-saturation',
-      'image-grayscale',
-      'image-invert',
-      'image-sepia',
-      'image-blur',
-      'image-sharpen',
-      'image-resizer',
-      'image-hue',
-      'image-pixelate',
-    ]) {
+    const groupedVerifierCases: ReadonlyArray<readonly [string, { params: Record<string, string | number | boolean>; width: number; height: number }]> = [
+      ['image-resizer', { params: { scale: 1 }, width: 32, height: 32 }],
+      ['image-rotate-flip', { params: { rotation: 90, flipX: false, flipY: false }, width: 32, height: 32 }],
+      ['image-brightness-contrast', { params: { brightness: 120, contrast: 100 }, width: 32, height: 32 }],
+      ['image-saturation-hue', { params: { saturation: 120, hue: 10 }, width: 32, height: 32 }],
+      ['image-exposure', { params: { exposure: 1 }, width: 32, height: 32 }],
+      ['image-highlights-shadows', { params: { highlights: 10, shadows: 10 }, width: 32, height: 32 }],
+      ['image-sharpen', { params: { amount: 110 }, width: 32, height: 32 }],
+      ['image-blur', { params: { radius: 6 }, width: 32, height: 32 }],
+      ['image-grayscale-duotone', { params: { intensity: 100, darkColor: '#111111', lightColor: '#f5f5f5' }, width: 32, height: 32 }],
+      ['image-filters', { params: { preset: 'vivid' }, width: 32, height: 32 }],
+      ['image-watermark', { params: { text: 'FLIXO' }, width: 32, height: 32 }],
+      ['image-text-overlay', { params: { text: 'FLIXO' }, width: 32, height: 32 }],
+      ['image-draw-annotate', { params: { kind: 'arrow' }, width: 32, height: 32 }],
+      ['image-redaction', { params: {}, width: 32, height: 32 }],
+    ] as const;
+
+    for (const [id, config] of groupedVerifierCases) {
       const candidateInput = new Blob(['candidate-input'], { type: 'image/png' });
       const candidateOutput = new Blob(['candidate-output'], { type: 'image/png' });
-      imageDimensions.set(candidateInput, { width: 32, height: 32 });
-      imageDimensions.set(candidateOutput, { width: 32, height: 32 });
-      assert.equal(await definition(id).verifier(candidateInput, candidateOutput, {}), true, id);
+      imageDimensions.set(candidateInput, { width: config.width, height: config.height });
+      imageDimensions.set(candidateOutput, { width: config.width, height: config.height });
+      imageDataRead = 0;
+      const result = await definition(id).verifier(candidateInput, candidateOutput, config.params);
+      assert.equal(result, true, id);
     }
   } finally {
     if (originalCreateImageBitmap === undefined) delete globals.createImageBitmap;
