@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 const PNG_16X16 = 'iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAALklEQVR4nGP8////fwYKABMlmgeHASzoAvKVd/FqeNiuTF0XjBow';
 const MANUAL_TOOL_IDS = [
@@ -39,7 +39,7 @@ function fixture() {
   };
 }
 
-async function executeManual(page: Parameters<Parameters<typeof test>[2]>[0]['page'], toolId: (typeof MANUAL_TOOL_IDS)[number]) {
+async function executeManual(page: Page, toolId: (typeof MANUAL_TOOL_IDS)[number]) {
   await page.goto('/en/' + toolId, { waitUntil: 'domcontentloaded' });
   await expect(page.locator('h1,h2').filter({ hasText: /./ }).first()).toBeVisible();
   const fileInput = page.locator('input[type=file]').first();
@@ -59,7 +59,7 @@ async function executeManual(page: Parameters<Parameters<typeof test>[2]>[0]['pa
   }
 }
 
-async function planAndExecuteAgent(page: Parameters<Parameters<typeof test>[2]>[0]['page'], toolId: string, prompt: string, language: 'ar' | 'en') {
+async function planAndExecuteAgent(page: Page, toolId: string, prompt: string, language: 'ar' | 'en') {
   await page.goto('/agent', { waitUntil: 'domcontentloaded' });
   if (language === 'en') await page.getByRole('button', { name: /English/i }).click();
   await page.locator('#agent-prompt').fill(prompt);
