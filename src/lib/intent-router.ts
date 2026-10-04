@@ -10,7 +10,7 @@ const ALIASES: Record<string, readonly string[]> = {
   'image-compressor': ['compress image', 'compress photo', 'reduce image size', 'ضغط الصورة', 'ضغط الصور'],
   'background-remover': ['remove background', 'background removal', 'transparent background', 'إزالة الخلفية', 'تفريغ الصورة'],
   'image-ocr': ['ocr', 'extract text', 'read text from image', 'نسخ النص من الصورة', 'استخراج النص'],
-  'image-converter': ['convert image', 'png to webp', 'jpg to png', 'image format', 'تحويل الصورة', 'تحويل png'],
+  'image-converter': ['convert image', 'convert image to webp', 'convert this image to webp', 'png to webp', 'jpg to png', 'image format', 'تحويل الصورة', 'تحويل png'],
   'image-upscaler': ['upscale image', 'increase resolution', 'enhance image', 'تكبير الصورة', 'رفع جودة الصورة'],
   'image-cropper': ['crop image', 'crop photo', 'قص الصورة', 'قص الصور'],
   'watermark-adder': ['add watermark', 'watermark image', 'إضافة علامة مائية'],
