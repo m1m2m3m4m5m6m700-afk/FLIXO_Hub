@@ -301,8 +301,8 @@ export async function executeAgentPlan(
   if (validatedPlan.catalogFingerprint !== TOOL_CATALOG.fingerprint) {
     throw new Error('Execution denied: plan is stale relative to the current canonical tool catalog.');
   }
-  verifyConfirmationReceipt(validatedPlan, file, receipt);
   assertNotAborted(signal);
+  verifyConfirmationReceipt(validatedPlan, file, receipt);
 
   const steps = validatedPlan.steps.map((step) => step.toolId);
   if (steps.length !== 1) throw new Error('Agent execution is bounded to one local tool step.');
