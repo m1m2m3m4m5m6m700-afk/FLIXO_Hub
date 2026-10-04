@@ -8,8 +8,18 @@ export type AgentPlan = Readonly<ExecutionPlanContract & {
   matchedIntent: string;
 }>;
 
+export type AgentConfirmationReceipt = Readonly<{
+  token: string;
+}>;
+
+type ConfirmationRecord = Readonly<{
+  planIdentity: string;
+  file: File;
+}>;
+
 const MAX_AGENT_FILE_BYTES = 25 * 1024 * 1024;
 const MAX_PROMPT_CHARS = 2_000;
+const confirmationRecords = new Map<string, ConfirmationRecord>();
 
 const DEFAULT_PARAMS: Readonly<Record<string, Record<string, string | number | boolean>>> = Object.freeze({
   'image-cropper': { aspectRatio: '1:1' },
@@ -34,12 +44,99 @@ function assertLocalImageFile(file: File): void {
   }
 }
 
+function abortError(message: string): Error {
+  if (typeof DOMException === 'function') return new DOMException(message, 'AbortError');
+  return new Error(message);
+}
+
+function assertNotAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) throw abortError('Agent execution cancelled.');
+}
+
+function randomToken(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+    const bytes = new Uint8Array(24);
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+  }
+  throw new Error('Secure confirmation receipt generation is unavailable.');
+}
+
+function executionPlanIdentity(plan: ExecutionPlanContract): string {
+  return JSON.stringify({
+    workflowName: plan.workflowName,
+    confidence: plan.confidence,
+    catalogFingerprint: plan.catalogFingerprint,
+    steps: plan.steps.map((step) => ({
+      toolId: step.toolId,
+      params: step.params ?? {},
+    })),
+  });
+}
+
+function withExecutionGuards<T>(
+  operation: Promise<T>,
+  signal: AbortSignal | undefined,
+  deadline: number,
+): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    let settled = false;
+    const cleanup = () => {
+      if (signal) signal.removeEventListener('abort', onAbort);
+      if (timer !== undefined) clearTimeout(timer);
+    };
+    const finish = (callback: () => void) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      callback();
+    };
+    const onAbort = () => finish(() => reject(abortError('Agent execution cancelled.')));
+    const remainingMs = Math.max(1, deadline - Date.now());
+    const timer = setTimeout(
+      () => finish(() => reject(new Error('Agent execution timed out.'))),
+      remainingMs,
+    );
+
+    if (signal) {
+      if (signal.aborted) {
+        finish(() => reject(abortError('Agent execution cancelled.')));
+        return;
+      }
+      signal.addEventListener('abort', onAbort, { once: true });
+    }
+
+    operation.then(
+      (value) => finish(() => resolve(value)),
+      (error) => finish(() => reject(error)),
+    );
+  });
+}
+
+function verifyConfirmationReceipt(
+  plan: ExecutionPlanContract,
+  file: File,
+  receipt: AgentConfirmationReceipt | null | undefined,
+): void {
+  if (!receipt?.token) {
+    throw new Error('Execution denied: a current confirmation receipt is required.');
+  }
+  const record = confirmationRecords.get(receipt.token);
+  if (!record || record.file !== file || record.planIdentity !== executionPlanIdentity(plan)) {
+    throw new Error('Execution denied: confirmation receipt is stale or does not match this plan and file.');
+  }
+  confirmationRecords.delete(receipt.token);
+}
+
 const EN_STOPWORDS = new Set(['a', 'an', 'the', 'this', 'my', 'to', 'of', 'for', 'please', 'do', 'on', 'with']);
 
 function tokenize(value: string): string[] {
   return normalize(value)
-    .replace(/[^\p{L}\p{N}]+/gu, ' ')
-    .split(/\s+/)
+    .replace(/[^p{L}p{N}]+/gu, ' ')
+    .split(/s+/)
     .filter(Boolean)
     .filter((token) => !EN_STOPWORDS.has(token));
 }
@@ -104,26 +201,73 @@ export function planAgentRequest(prompt: string, file: File): AgentPlan {
   });
 }
 
+export function confirmAgentPlan(
+  plan: AgentPlan,
+  file: File,
+): AgentConfirmationReceipt {
+  assertLocalImageFile(file);
+  if (plan.requiresUserConfirmation !== true) {
+    throw new Error('Confirmation denied: the plan is not confirmation-gated.');
+  }
+  const validatedPlan = parseExecutionPlan(plan);
+  const token = randomToken();
+  confirmationRecords.set(token, Object.freeze({
+    planIdentity: executionPlanIdentity(validatedPlan),
+    file,
+  }));
+  return Object.freeze({ token });
+}
+
+export function revokeAgentConfirmation(receipt: AgentConfirmationReceipt | null | undefined): void {
+  if (receipt?.token) confirmationRecords.delete(receipt.token);
+}
+
 export async function executeAgentPlan(
   plan: AgentPlan,
   file: File,
-  confirmed: boolean,
+  receipt: AgentConfirmationReceipt | null | undefined,
+  signal?: AbortSignal,
 ): Promise<ChainOutput> {
   assertLocalImageFile(file);
-  if (!confirmed || plan.requiresUserConfirmation !== true) {
+  if (plan.requiresUserConfirmation !== true) {
     throw new Error('Execution denied: explicit user confirmation is required.');
   }
 
-  const steps = plan.steps.map((step) => step.toolId);
+  const validatedPlan = parseExecutionPlan(plan);
+  verifyConfirmationReceipt(validatedPlan, file, receipt);
+  assertNotAborted(signal);
+
+  const steps = validatedPlan.steps.map((step) => step.toolId);
   if (steps.length !== 1) throw new Error('Agent execution is bounded to one local tool step.');
 
   const capability = getCapability(steps[0]);
-  if (!capability || capability.state !== 'EXECUTABLE' || capability.requirements.network) {
+  if (
+    !capability ||
+    capability.state !== 'EXECUTABLE' ||
+    capability.executionMode !== 'LOCAL' ||
+    capability.requirements.network ||
+    capability.operational.executorId !== steps[0] ||
+    typeof capability.verifier !== 'function'
+  ) {
     throw new Error('Execution denied by the canonical capability boundary.');
   }
+  const parameters = validateCapabilityParameters(steps[0], validatedPlan.steps[0].params ?? {});
   const input: ChainInput = Object.freeze({ blob: file, fileName: file.name });
-  const output = await executeToolChain(steps, input);
-  const verified = await capability.verifier(file, output.blob, (plan.steps[0].params ?? {}) as Record<string, string | number | boolean>);
+  const deadline = Date.now() + capability.safetyLimits.timeoutMs;
+
+  const output = await withExecutionGuards(
+    executeToolChain(steps, input),
+    signal,
+    deadline,
+  );
+  assertNotAborted(signal);
+
+  const verified = await withExecutionGuards(
+    capability.verifier(file, output.blob, parameters),
+    signal,
+    deadline,
+  );
+  assertNotAborted(signal);
   if (!verified) {
     throw new Error('Execution failed closed: output verifier rejected the artifact.');
   }
