@@ -1,8 +1,15 @@
 import { createRoute } from '@tanstack/react-router';
 import { rootRoute } from './__root';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Link } from '@tanstack/react-router';
-import { executeAgentPlan, planAgentRequest, type AgentPlan } from '../lib/agent-guided-runtime';
+import {
+  confirmAgentPlan,
+  executeAgentPlan,
+  planAgentRequest,
+  revokeAgentConfirmation,
+  type AgentConfirmationReceipt,
+  type AgentPlan,
+} from '../lib/agent-guided-runtime';
 
 const COPY = {
   en: {
@@ -13,6 +20,7 @@ const COPY = {
     file: 'Choose image',
     plan: 'Build plan',
     execute: 'Execute',
+    cancel: 'Cancel',
     working: 'Working…',
     ready: 'Plan ready. Execution is local and requires your confirmation.',
     error: 'Agent error',
@@ -33,6 +41,7 @@ const COPY = {
     file: 'اختر صورة',
     plan: 'إنشاء الخطة',
     execute: 'تنفيذ',
+    cancel: 'إلغاء',
     working: 'جارٍ التنفيذ…',
     ready: 'الخطة جاهزة. التنفيذ محلي ويتطلب تأكيدك.',
     error: 'خطأ الوكيل',
@@ -52,10 +61,12 @@ export function AgentPage() {
   const [prompt, setPrompt] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [plan, setPlan] = useState<AgentPlan | null>(null);
-  const [confirmed, setConfirmed] = useState(false);
+  const [confirmationReceipt, setConfirmationReceipt] = useState<AgentConfirmationReceipt | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<{ url: string; fileName: string } | null>(null);
+  const abortController = useRef<AbortController | null>(null);
+  const resultUrl = useRef<string | null>(null);
   const copy = COPY[language];
   const direction = language === 'ar' ? 'rtl' : 'ltr';
 
@@ -66,6 +77,14 @@ export function AgentPage() {
     return '';
   }, [busy, copy.ready, copy.working, plan]);
 
+  const clearResult = () => {
+    if (resultUrl.current) {
+      URL.revokeObjectURL(resultUrl.current);
+      resultUrl.current = null;
+    }
+    setResult(null);
+  };
+
   const buildPlan = () => {
     if (!file) {
       setError(language === 'ar' ? 'اختر صورة أولًا.' : 'Choose an image first.');
@@ -73,8 +92,9 @@ export function AgentPage() {
     }
     try {
       setError('');
-      setResult(null);
-      setConfirmed(false);
+      clearResult();
+      revokeAgentConfirmation(confirmationReceipt);
+      setConfirmationReceipt(null);
       setPlan(planAgentRequest(prompt, file));
     } catch (caught) {
       setPlan(null);
@@ -82,18 +102,47 @@ export function AgentPage() {
     }
   };
 
-  const runPlan = async () => {
-    if (!plan || !file || !confirmed) return;
-    setBusy(true);
-    setError('');
+  const toggleConfirmation = (checked: boolean) => {
+    revokeAgentConfirmation(confirmationReceipt);
+    setConfirmationReceipt(null);
+    if (!checked || !plan || !file) return;
     try {
-      const output = await executeAgentPlan(plan, file, true);
-      setResult({ url: URL.createObjectURL(output.blob), fileName: output.fileName });
+      setError('');
+      setConfirmationReceipt(confirmAgentPlan(plan, file));
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : copy.error);
-    } finally {
-      setBusy(false);
     }
+  };
+
+  const runPlan = async () => {
+    if (!plan || !file || !confirmationReceipt) return;
+    const controller = new AbortController();
+    abortController.current = controller;
+    setBusy(true);
+    setError('');
+    clearResult();
+    try {
+      const output = await executeAgentPlan(plan, file, confirmationReceipt, controller.signal);
+      if (controller.signal.aborted) return;
+      const url = URL.createObjectURL(output.blob);
+      resultUrl.current = url;
+      setResult({ url, fileName: output.fileName });
+    } catch (caught) {
+      if (controller.signal.aborted || (caught instanceof DOMException && caught.name === 'AbortError')) {
+        setError(language === 'ar' ? 'تم إلغاء التنفيذ.' : 'Execution cancelled.');
+      } else {
+        setError(caught instanceof Error ? caught.message : copy.error);
+      }
+    } finally {
+      abortController.current = null;
+      setBusy(false);
+      revokeAgentConfirmation(confirmationReceipt);
+      setConfirmationReceipt(null);
+    }
+  };
+
+  const cancelExecution = () => {
+    abortController.current?.abort();
   };
 
   return (
@@ -105,15 +154,21 @@ export function AgentPage() {
             <h1>{copy.title}</h1>
             <p style={{ maxWidth: 760, opacity: 0.8 }}>{copy.subtitle}</p>
           </div>
-          <button type="button" onClick={() => setLanguage(language === 'ar' ? 'en' : 'ar')}>{copy.language}</button>
+          <button type="button" data-testid="agent-language-toggle" onClick={() => setLanguage(language === 'ar' ? 'en' : 'ar')}>{copy.language}</button>
         </header>
 
         <section style={{ display: 'grid', gap: 12, padding: 20, border: '1px solid rgba(255,255,255,.12)', borderRadius: 18 }}>
           <label htmlFor="agent-prompt">{copy.prompt}</label>
           <textarea id="agent-prompt" value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder={copy.promptPlaceholder} rows={4} />
           <label htmlFor="agent-file">{copy.file}</label>
-          <input id="agent-file" type="file" accept="image/*" onChange={(event) => { setFile(event.target.files?.[0] ?? null); setPlan(null); setResult(null); setConfirmed(false); }} />
-          <button type="button" onClick={buildPlan} disabled={!prompt.trim() || !file || busy}>{copy.plan}</button>
+          <input id="agent-file" type="file" accept="image/*" onChange={(event) => {
+            revokeAgentConfirmation(confirmationReceipt);
+            setConfirmationReceipt(null);
+            setFile(event.target.files?.[0] ?? null);
+            setPlan(null);
+            clearResult();
+          }} />
+          <button type="button" data-testid="agent-build-plan" onClick={buildPlan} disabled={!prompt.trim() || !file || busy}>{copy.plan}</button>
         </section>
 
         {plan && (
@@ -121,8 +176,14 @@ export function AgentPage() {
             <strong>{copy.tool}: {selectedTool}</strong>
             <span>{copy.confidence}: {Math.round(plan.confidence * 100)}%</span>
             <span data-testid="agent-plan-status">{statusLabel}</span>
-            <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} />{copy.confirm}</label>
-            <button type="button" onClick={runPlan} disabled={!confirmed || busy}>{copy.execute}</button>
+            <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input type="checkbox" data-testid="agent-confirmation" checked={confirmationReceipt !== null} onChange={(event) => toggleConfirmation(event.target.checked)} />
+              {copy.confirm}
+            </label>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button type="button" data-testid="agent-execute" onClick={runPlan} disabled={confirmationReceipt === null || busy}>{copy.execute}</button>
+              {busy && <button type="button" data-testid="agent-cancel" onClick={cancelExecution}>{copy.cancel}</button>}
+            </div>
           </section>
         )}
 
