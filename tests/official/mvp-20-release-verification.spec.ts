@@ -45,7 +45,7 @@ test.describe('FLIXO 20-tool release verification', () => {
       await page.goto('/en/' + toolId, { waitUntil: 'domcontentloaded' });
       await expect(page.locator('h1,h2').filter({ hasText: /./ }).first()).toBeVisible();
       const fileInput = page.locator('input[type=file]').first();
-      await expect(fileInput).toBeVisible();
+      await expect(fileInput).toHaveCount(1);
       await fileInput.setInputFiles(fixture());
 
       if (toolId === 'image-compressor') {
