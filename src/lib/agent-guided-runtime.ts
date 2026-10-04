@@ -9,6 +9,7 @@ import {
 import { planImageToolIntent, type ImageAgentPlan } from './image-agent-workflow';
 import type { ExecutionPlanContract } from './contracts/ai-plan';
 import { TOOL_CATALOG } from '../config/registry';
+import { getDefaultAgentParameters } from '../config/manual-capability-definition';
 
 export type AgentPlan = Readonly<ExecutionPlanContract & {
   requiresUserConfirmation: true;
@@ -20,28 +21,8 @@ export type AgentPlan = Readonly<ExecutionPlanContract & {
 const MAX_AGENT_FILE_BYTES = 25 * 1024 * 1024;
 const MAX_PROMPT_CHARS = 2_000;
 
-const DEFAULT_PARAMS: Readonly<Record<string, Record<string, string | number | boolean>>> = Object.freeze({
-  'background-remover': { tolerance: 32 },
-  'image-upscaler': { scale: 2 },
-  'image-cropper': { aspectRatio: '1:1' },
-  'image-compressor': { format: 'image/webp', quality: 0.8 },
-  'image-converter': { format: 'image/webp' },
-  'image-effects': { contrast: 115 },
-  'image-resizer': { scale: 1.5 },
-  'image-rotate-flip': { rotation: 90, flipX: false, flipY: false },
-  'image-brightness-contrast': { brightness: 115, contrast: 100 },
-  'image-saturation-hue': { saturation: 120, hue: 10 },
-  'image-exposure': { exposure: 1 },
-  'image-highlights-shadows': { highlights: 15, shadows: 15 },
-  'image-sharpen': { amount: 110 },
-  'image-blur': { radius: 6 },
-  'image-grayscale-duotone': { intensity: 100, darkColor: '#111111', lightColor: '#f5f5f5' },
-  'image-filters': { preset: 'vivid' },
-  'image-watermark': { text: 'FLIXO', x: 10, y: 90, fontSize: 32, opacity: 0.65, color: '#ffffff' },
-  'image-text-overlay': { text: 'FLIXO', x: 50, y: 50, fontSize: 48, color: '#ffffff', backgroundOpacity: 0.5, align: 'center' },
-  'image-draw-annotate': { kind: 'arrow', x1: 10, y1: 10, x2: 80, y2: 80, stroke: '#ff3b30', strokeWidth: 8 },
-  'image-redaction': { x: 25, y: 25, width: 50, height: 25, color: '#000000' },
-});
+// Default Agent parameters are sourced from the canonical capability registry.
+
 
 const TASK_COUNTER = { value: 0 };
 
