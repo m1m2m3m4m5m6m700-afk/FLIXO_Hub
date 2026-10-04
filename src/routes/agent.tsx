@@ -1,6 +1,6 @@
 import { createRoute } from '@tanstack/react-router';
 import { rootRoute } from './__root';
-import { useMemo, useRef, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import {
   confirmAgentPlan,
@@ -10,6 +10,7 @@ import {
   type AgentConfirmationReceipt,
   type AgentPlan,
 } from '../lib/agent-guided-runtime';
+import { applyDocumentLocale, localeFromPathname } from '../lib/i18n/runtime-document-locale';
 
 const COPY = {
   en: {
@@ -69,6 +70,20 @@ export function AgentPage() {
   const resultUrl = useRef<string | null>(null);
   const copy = COPY[language];
   const direction = language === 'ar' ? 'rtl' : 'ltr';
+
+  useLayoutEffect(() => {
+    const html = document.documentElement;
+    html.setAttribute('data-flixo-locale-owner', 'agent');
+    html.setAttribute('lang', language);
+    html.setAttribute('dir', direction);
+    html.setAttribute('data-flixo-locale', language);
+    return () => {
+      if (html.getAttribute('data-flixo-locale-owner') === 'agent') {
+        html.removeAttribute('data-flixo-locale-owner');
+        applyDocumentLocale(localeFromPathname(window.location.pathname));
+      }
+    };
+  }, [direction, language]);
 
   const selectedTool = plan?.steps[0]?.toolId ?? '';
   const statusLabel = useMemo(() => {
