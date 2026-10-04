@@ -54,7 +54,6 @@ export type LayerBase = Readonly<{
   parentId: GroupId | null;
   zIndex: number;
   visible: boolean;
-  locked?: boolean;
   opacity: number;
   blendMode: BlendMode;
   transform: Transform;

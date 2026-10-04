@@ -14,12 +14,6 @@ export type CanonicalCapabilityLimits = Readonly<{
   maxFileSizeBytes: number;
   timeoutMs: number;
 }>;
-
-export type CanonicalCapabilitySafetyContract = Readonly<{
-  requiresUserConfirmationForAgent: boolean;
-  allowLockedLayerSelection: false;
-  rawBlobEgress: false;
-}>;
 export type CanonicalCapabilityDefinition = Readonly<{
   id: string;
   title: string;
@@ -34,8 +28,7 @@ export type CanonicalCapabilityDefinition = Readonly<{
   safetyLimits: CanonicalCapabilityLimits;
   verifier: CanonicalCapabilityVerifier;
   requirements: Readonly<{ browser: true; network: false }>;
-  recovery: Readonly<{ maxAttempts: number; replanOnFailure: false }>;
-  safetyContract: CanonicalCapabilitySafetyContract;
+  recovery: Readonly<{ maxAttempts: 3; replanOnFailure: false }>;
   operational: Readonly<{
     lifecycle: "ready";
     execution: "browser-local" | "browser-worker";
@@ -73,20 +66,20 @@ const PARAMETER_SCHEMAS = {
     saturate: z.number().finite().min(0).max(200).optional(),
     grayscale: z.number().finite().min(0).max(100).optional(),
   }).strict(),
-  "image-resizer": z.object({ scale: z.number().finite().positive().min(0.1).max(8).optional(), width: z.number().int().positive().max(4000).optional(), height: z.number().int().positive().max(4000).optional() }).strict().refine(v => v.scale !== undefined || v.width !== undefined || v.height !== undefined, "resize parameters are required"),
-  "image-rotate-flip": z.object({ rotation: z.union([z.literal(0), z.literal(90), z.literal(180), z.literal(270)]).default(90), flipX: z.boolean().default(false), flipY: z.boolean().default(false) }).strict(),
-  "image-brightness-contrast": z.object({ brightness: z.number().finite().min(0).max(200).optional(), contrast: z.number().finite().min(0).max(200).optional() }).strict().refine(v => v.brightness !== undefined || v.contrast !== undefined, "brightness or contrast is required").refine(v => (v.brightness ?? 100) !== 100 || (v.contrast ?? 100) !== 100, "brightness or contrast must change"),
-  "image-saturation-hue": z.object({ saturation: z.number().finite().min(0).max(200).optional(), hue: z.number().finite().min(-360).max(360).optional() }).strict().refine(v => v.saturation !== undefined || v.hue !== undefined, "saturation or hue is required").refine(v => (v.saturation ?? 100) !== 100 || (v.hue ?? 0) !== 0, "saturation or hue must change"),
-  "image-exposure": z.object({ exposure: z.number().finite().min(-4).max(4).refine(v => v !== 0, "exposure cannot be neutral") }).strict(),
-  "image-highlights-shadows": z.object({ highlights: z.number().finite().min(-100).max(100).optional(), shadows: z.number().finite().min(-100).max(100).optional() }).strict().refine(v => (v.highlights ?? 0) !== 0 || (v.shadows ?? 0) !== 0, "highlights or shadows must change"),
-  "image-sharpen": z.object({ amount: z.number().finite().min(1).max(200).default(110) }).strict(),
-  "image-blur": z.object({ radius: z.number().finite().min(1).max(32).default(6) }).strict(),
-  "image-grayscale-duotone": z.object({ intensity: z.number().finite().min(1).max(100).default(100), darkColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#111111"), lightColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#f5f5f5") }).strict(),
-  "image-filters": z.object({ preset: z.enum(["vivid","warm","cool","vintage","mono","sepia","cinematic"]) }).strict(),
-  "image-watermark": z.object({ text: z.string().trim().min(1).max(200), x: z.number().finite().min(0).max(100).default(10), y: z.number().finite().min(0).max(100).default(90), fontSize: z.number().int().min(8).max(240).default(32), opacity: z.number().finite().min(0.05).max(1).default(0.65), color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#ffffff") }).strict(),
-  "image-text-overlay": z.object({ text: z.string().trim().min(1).max(500), x: z.number().finite().min(0).max(100).default(50), y: z.number().finite().min(0).max(100).default(50), fontSize: z.number().int().min(8).max(240).default(48), color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#ffffff"), background: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(), backgroundOpacity: z.number().finite().min(0).max(1).default(0.5), align: z.enum(["left","center","right"]).default("center") }).strict(),
-  "image-draw-annotate": z.object({ kind: z.enum(["line","arrow","rect","ellipse"]).default("arrow"), x1: z.number().finite().min(0).max(100).default(10), y1: z.number().finite().min(0).max(100).default(10), x2: z.number().finite().min(0).max(100).default(80), y2: z.number().finite().min(0).max(100).default(80), stroke: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#ff3b30"), strokeWidth: z.number().int().min(1).max(40).default(8) }).strict(),
-  "image-redaction": z.object({ x: z.number().finite().min(0).max(100).default(25), y: z.number().finite().min(0).max(100).default(25), width: z.number().finite().min(1).max(100).default(50), height: z.number().finite().min(1).max(100).default(25), color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#000000") }).strict(),
+  "image-rotate": z.object({}).strict(),
+  "image-flip-horizontal": z.object({}).strict(),
+  "image-flip-vertical": z.object({}).strict(),
+  "image-brightness": z.object({}).strict(),
+  "image-contrast": z.object({}).strict(),
+  "image-saturation": z.object({}).strict(),
+  "image-grayscale": z.object({}).strict(),
+  "image-invert": z.object({}).strict(),
+  "image-sepia": z.object({}).strict(),
+  "image-blur": z.object({}).strict(),
+  "image-sharpen": z.object({}).strict(),
+  "image-resizer": z.object({ scale: z.number().finite().positive().min(0.1).max(8).optional() }).strict(),
+  "image-hue": z.object({ degrees: z.number().finite().min(-360).max(360).optional() }).strict(),
+  "image-pixelate": z.object({ blockSize: z.number().int().min(2).max(64).optional() }).strict(),
   "video-trimmer": z.object({
     startSec: z.number().finite().min(0).max(86_400).optional(),
     endSec: z.number().finite().min(0).max(86_400).optional(),
@@ -108,7 +101,12 @@ const PARAMETER_SCHEMAS = {
   }).strict(),
 } as const;
 
-export const MVP_EXECUTABLE_TOOL_IDS = Object.freeze(["background-remover","image-upscaler","image-cropper","image-compressor","image-converter","image-effects","image-resizer","image-rotate-flip","image-brightness-contrast","image-saturation-hue","image-exposure","image-highlights-shadows","image-sharpen","image-blur","image-grayscale-duotone","image-filters","image-watermark","image-text-overlay","image-draw-annotate","image-redaction","video-trimmer","video-cropper","video-resizer","video-compressor"] as const);
+export const MVP_EXECUTABLE_TOOL_IDS = Object.freeze([
+  "background-remover","image-upscaler","image-cropper","image-compressor","image-converter",
+  "image-effects","image-rotate","image-flip-horizontal","image-flip-vertical","image-brightness",
+  "image-contrast","image-saturation","image-grayscale","image-invert","image-sepia",
+  "image-blur","image-sharpen","image-resizer","image-hue","image-pixelate",
+] as const);
 
 const INTENTS: Record<string, readonly string[]> = {
   "background-remover": ["remove background","transparent background","cut out background","background removal","إزالة الخلفية","خلفية شفافة"],
@@ -117,20 +115,20 @@ const INTENTS: Record<string, readonly string[]> = {
   "image-compressor": ["compress","smaller","reduce size","file size","lighter","ضغط الصور","تصغير حجم الصورة"],
   "image-converter": ["convert format","jpg to png","png to jpg","webp","change format","تحويل الصيغة","تحويل الصورة"],
   "image-effects": ["brightness","contrast","saturation","grayscale","adjust image","سطوع","تباين","تشبع"],
-  "image-resizer": ["resize image","change image dimensions","resize to","تغيير حجم الصورة","تغيير أبعاد الصورة"],
-  "image-rotate-flip": ["rotate and flip","rotate image","flip image","تدوير وقلب الصورة","تدوير الصورة","قلب الصورة"],
-  "image-brightness-contrast": ["brightness contrast","adjust brightness and contrast","سطوع وتباين","ضبط السطوع والتباين"],
-  "image-saturation-hue": ["saturation hue","adjust saturation and hue","التشبع ودرجة اللون","ضبط التشبع ودرجة اللون"],
-  "image-exposure": ["exposure","adjust exposure","تعريض الصورة","ضبط التعريض"],
-  "image-highlights-shadows": ["highlights shadows","highlights and shadows","الإبرازات والظلال","ضبط الإبرازات والظلال"],
-  "image-sharpen": ["sharpen image","increase sharpness","حدة الصورة","زيادة حدة الصورة"],
-  "image-blur": ["blur image","soften image","ضبابية الصورة","تمويه الصورة"],
-  "image-grayscale-duotone": ["grayscale duotone","duotone","تدرج رمادي","دوتون"],
-  "image-filters": ["photo filters","image filter preset","فلاتر الصور","فلتر الصورة"],
-  "image-watermark": ["add watermark","watermark text","إضافة علامة مائية","علامة مائية"],
-  "image-text-overlay": ["add text to image","text overlay","كتابة على الصورة","إضافة نص للصورة"],
-  "image-draw-annotate": ["draw on image","annotate image","arrow annotation","الرسم على الصورة","التعليق على الصورة"],
-  "image-redaction": ["redact image","censor image","hide sensitive region","تعمية الصورة","طمس بيانات حساسة"],
+  "image-rotate": ["rotate image","turn image","تدوير الصورة"],
+  "image-flip-horizontal": ["flip horizontal","mirror image","قلب أفقي","عكس أفقي"],
+  "image-flip-vertical": ["flip vertical","قلب رأسي","عكس رأسي"],
+  "image-brightness": ["brightness","brighten image","سطوع الصورة","تفتيح الصورة"],
+  "image-contrast": ["contrast","increase contrast","تباين الصورة"],
+  "image-saturation": ["saturation","increase saturation","تشبع الصورة"],
+  "image-grayscale": ["grayscale","black and white","أبيض وأسود","تدرج رمادي"],
+  "image-invert": ["invert colors","negative image","عكس الألوان"],
+  "image-sepia": ["sepia","sepia effect","تأثير سيبيا"],
+  "image-blur": ["blur image","soften image","تمويه الصورة","ضبابية الصورة"],
+  "image-sharpen": ["sharpen image","make image sharper","زيادة حدة الصورة"],
+  "image-resizer": ["resize image","change image dimensions","تغيير حجم الصورة","تغيير أبعاد الصورة"],
+  "image-hue": ["change hue","hue shift","تغيير درجة اللون","إزاحة اللون"],
+  "image-pixelate": ["pixelate image","pixelation","بكسلة الصورة","تحويل الصورة لبكسلات"],
   "video-trimmer": ["trim video","cut video","video trim","اقتطاع الفيديو","اقتطع الفيديو","اقتطع أول","قص أول"],
   "video-cropper": ["crop video","video crop","قص الفيديو من الاطراف","قص الفيديو من الأطراف"],
   "video-resizer": ["resize video","change video resolution","video dimensions","تغيير حجم الفيديو","تغيير دقة الفيديو"],
@@ -144,20 +142,20 @@ const META: Record<string, {title:string;description:string;category:"Images"|"V
   "image-compressor": {title:"Image Compressor",description:"Reduce JPG, PNG, and WebP file size in your browser.",category:"Images",family:"image"},
   "image-converter": {title:"Image Converter",description:"Convert common raster image formats locally.",category:"Images",family:"image"},
   "image-effects": {title:"Image Effects",description:"Apply brightness, contrast, saturation, and grayscale.",category:"Images",family:"image"},
-  "image-resizer": {title:"Image Resizer",description:"Resize images to exact dimensions or a bounded scale.",category:"Images",family:"image"},
-  "image-rotate-flip": {title:"Rotate & Flip",description:"Rotate and flip images locally.",category:"Images",family:"image"},
-  "image-brightness-contrast": {title:"Brightness & Contrast",description:"Adjust brightness and contrast locally.",category:"Images",family:"image"},
-  "image-saturation-hue": {title:"Saturation & Hue",description:"Adjust saturation and hue locally.",category:"Images",family:"image"},
-  "image-exposure": {title:"Exposure",description:"Adjust image exposure locally.",category:"Images",family:"image"},
-  "image-highlights-shadows": {title:"Highlights & Shadows",description:"Adjust image highlights and shadows locally.",category:"Images",family:"image"},
-  "image-sharpen": {title:"Sharpen",description:"Sharpen image detail locally.",category:"Images",family:"image"},
-  "image-blur": {title:"Blur",description:"Blur image detail locally.",category:"Images",family:"image"},
-  "image-grayscale-duotone": {title:"Grayscale & Duotone",description:"Apply grayscale and duotone mapping locally.",category:"Images",family:"image"},
-  "image-filters": {title:"Image Filters",description:"Apply deterministic local image filter presets.",category:"Images",family:"image"},
-  "image-watermark": {title:"Watermark",description:"Add a local text watermark.",category:"Images",family:"image"},
-  "image-text-overlay": {title:"Text Overlay",description:"Place text over an image locally.",category:"Images",family:"image"},
-  "image-draw-annotate": {title:"Draw & Annotate",description:"Draw local annotations on an image.",category:"Images",family:"image"},
-  "image-redaction": {title:"Image Redaction",description:"Permanently cover a selected image region locally.",category:"Images",family:"image"},
+  "image-rotate": {title:"Rotate Image",description:"Rotate an image locally in your browser.",category:"Images",family:"image"},
+  "image-flip-horizontal": {title:"Flip Image Horizontal",description:"Flip an image horizontally in your browser.",category:"Images",family:"image"},
+  "image-flip-vertical": {title:"Flip Image Vertical",description:"Flip an image vertically in your browser.",category:"Images",family:"image"},
+  "image-brightness": {title:"Brightness",description:"Adjust image brightness locally.",category:"Images",family:"image"},
+  "image-contrast": {title:"Contrast",description:"Adjust image contrast locally.",category:"Images",family:"image"},
+  "image-saturation": {title:"Saturation",description:"Adjust image saturation locally.",category:"Images",family:"image"},
+  "image-grayscale": {title:"Grayscale",description:"Convert an image to grayscale locally.",category:"Images",family:"image"},
+  "image-invert": {title:"Invert Colors",description:"Invert image colors locally.",category:"Images",family:"image"},
+  "image-sepia": {title:"Sepia",description:"Apply a sepia effect locally.",category:"Images",family:"image"},
+  "image-blur": {title:"Blur",description:"Apply a local blur effect.",category:"Images",family:"image"},
+  "image-sharpen": {title:"Sharpen",description:"Sharpen an image locally.",category:"Images",family:"image"},
+  "image-resizer": {title:"Resize Image",description:"Resize an image locally with deterministic browser resampling.",category:"Images",family:"image"},
+  "image-hue": {title:"Hue",description:"Shift image hue locally in the browser.",category:"Images",family:"image"},
+  "image-pixelate": {title:"Pixelate Image",description:"Pixelate an image locally without uploading it.",category:"Images",family:"image"},
   "video-trimmer": {title:"Video Trimmer",description:"Trim a video locally in the browser with WebCodecs-compatible playback and MediaRecorder output.",category:"Video",family:"video"},
   "video-cropper": {title:"Video Cropper",description:"Crop a video locally to a deterministic rectangle.",category:"Video",family:"video"},
   "video-resizer": {title:"Video Resizer",description:"Resize a video locally to exact output dimensions.",category:"Video",family:"video"},
@@ -340,61 +338,6 @@ const videoVerifier: CanonicalCapabilityVerifier = async (input, output, paramet
   return outputMeta.duration !== undefined && outputMeta.duration > 0;
 };
 
-
-const imageArtifactVerifier: CanonicalCapabilityVerifier = async (input, output, _parameters, signal) => {
-  if (signal?.aborted || output.size <= 0 || !output.type.startsWith("image/")) return false;
-  const [inputDimensions, outputDimensions] = await Promise.all([readImageDimensions(input, signal), readImageDimensions(output, signal)]);
-  if (!inputDimensions || !outputDimensions || outputDimensions.width <= 0 || outputDimensions.height <= 0) return false;
-  return hasMeaningfulPixelChange(input, output, signal);
-};
-
-const resizerVerifier: CanonicalCapabilityVerifier = async (input, output, parameters, signal) => {
-  if (signal?.aborted || output.size <= 0 || !output.type.startsWith("image/")) return false;
-  const [inputDimensions, outputDimensions] = await Promise.all([readImageDimensions(input, signal), readImageDimensions(output, signal)]);
-  if (!inputDimensions || !outputDimensions) return false;
-  if (parameters.width !== undefined || parameters.height !== undefined) {
-    return outputDimensions.width === Number(parameters.width ?? inputDimensions.width) &&
-      outputDimensions.height === Number(parameters.height ?? inputDimensions.height);
-  }
-  const scale = Number(parameters.scale ?? 1);
-  return outputDimensions.width === Math.max(1, Math.round(inputDimensions.width * scale)) &&
-    outputDimensions.height === Math.max(1, Math.round(inputDimensions.height * scale));
-};
-
-const rotateFlipVerifier: CanonicalCapabilityVerifier = async (input, output, parameters, signal) => {
-  if (signal?.aborted || output.size <= 0 || !output.type.startsWith("image/")) return false;
-  const a = await readImageDimensions(input, signal);
-  const b = await readImageDimensions(output, signal);
-  if (!a || !b) return false;
-  const rotation = Number(parameters.rotation ?? 90);
-  const swapped = rotation === 90 || rotation === 270;
-  return b.width === (swapped ? a.height : a.width) &&
-    b.height === (swapped ? a.width : a.height) &&
-    hasMeaningfulPixelChange(input, output, signal);
-};
-
-const verifierForTarget = (id: string): CanonicalCapabilityVerifier => {
-  switch (id) {
-    case "image-resizer": return resizerVerifier;
-    case "image-rotate-flip": return rotateFlipVerifier;
-    case "image-brightness-contrast":
-    case "image-saturation-hue":
-    case "image-exposure":
-    case "image-highlights-shadows":
-    case "image-sharpen":
-    case "image-blur":
-    case "image-grayscale-duotone":
-    case "image-filters":
-    case "image-watermark":
-    case "image-text-overlay":
-    case "image-draw-annotate":
-    case "image-redaction":
-      return imageArtifactVerifier;
-    default:
-      return defaultVerifier;
-  }
-};
-
 function createCapability(id:(typeof MVP_EXECUTABLE_TOOL_IDS)[number]):CanonicalCapabilityDefinition{
   const meta=META[id];
   const isVideo=id.startsWith("video-");
@@ -402,27 +345,14 @@ function createCapability(id:(typeof MVP_EXECUTABLE_TOOL_IDS)[number]):Canonical
   const safetyLimits=Object.freeze(isVideo
     ? {maxPixels:64_000_000,maxFileSizeBytes:512*1024*1024,timeoutMs:10*60*1000}
     : {maxPixels:16_000_000,maxFileSizeBytes:64*1024*1024,timeoutMs:30_000});
-  const verifier =
-    id==="background-remover" ? backgroundRemovalVerifier :
-    id==="image-upscaler" ? upscalerVerifier :
-    id==="image-cropper" ? cropperVerifier :
-    id==="image-compressor" ? targetSizeVerifier :
-    id==="image-converter" ? formatVerifier :
-    id==="image-effects" ? effectsVerifier :
-    isVideo ? videoVerifier :
-    verifierForTarget(id);
+  const verifier=id==="background-remover"?backgroundRemovalVerifier:id==="image-upscaler"?upscalerVerifier:id==="image-cropper"?cropperVerifier:id==="image-compressor"?targetSizeVerifier:id==="image-converter"?formatVerifier:id==="image-effects"?effectsVerifier:isVideo?videoVerifier:defaultVerifier;
   return Object.freeze({
     id,...meta,state:"EXECUTABLE" as const,executionMode:"LOCAL" as const,execution,
     intents:Object.freeze(INTENTS[id]),
     parameterSchema:PARAMETER_SCHEMAS[id],
     safetyLimits,verifier,
     requirements:Object.freeze({browser:true as const,network:false as const}),
-    recovery:Object.freeze({maxAttempts:1,replanOnFailure:false as const}),
-    safetyContract:Object.freeze({
-      requiresUserConfirmationForAgent: !isVideo,
-      allowLockedLayerSelection: false as const,
-      rawBlobEgress: false as const,
-    }),
+    recovery:Object.freeze({maxAttempts:3 as const,replanOnFailure:false as const}),
     operational:Object.freeze({lifecycle:"ready" as const,execution,contracts:["structural","runtime","artifact"] as const,executorId:id,outputContractId:id}),
   });
 }
