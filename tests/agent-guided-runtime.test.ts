@@ -32,7 +32,7 @@ function imageFile(name = 'fixture.png') {
 }
 
 test('agent planner admits exactly the twenty grouped image capabilities', async () => {
-  assert.equal(MVP_EXECUTABLE_TOOL_IDS.length, 20);
+  assert.equal(CANONICAL_IMAGE_TOOL_IDS.length, 20);
   assert.equal(CASES.length, 20);
   for (const [expectedToolId, prompt] of CASES) {
     const plan = await planAgentRequest(prompt, imageFile());
