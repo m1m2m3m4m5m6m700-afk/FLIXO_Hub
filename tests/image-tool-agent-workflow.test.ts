@@ -7,6 +7,7 @@ import {
   createImageExecutionConfirmationToken,
   validateCanonicalImageExecutionRequest,
   fingerprintImageExecutionPlan,
+  fingerprintImageBlob,
 } from '../src/lib/canonical-image-executor.ts';
 import { planImageToolIntent } from '../src/lib/image-agent-workflow.ts';
 
@@ -165,7 +166,7 @@ test('agent confirmation token is one-time and expires', async () => {
       taskId: 'task-replay',
       taskRevision: 1,
       documentRevision: 1,
-      documentFingerprint: 'c'.repeat(64),
+      documentFingerprint: await fingerprintImageBlob(new Blob(['image'], { type: 'image/png' })),
       planFingerprint: await fingerprintImageExecutionPlan(plan.plan),
       catalogFingerprint: TOOL_CATALOG.fingerprint,
       expiresAt: Date.now() + 60_000,
