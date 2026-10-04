@@ -108,22 +108,22 @@ export function AgentPage() {
           <button type="button" onClick={() => setLanguage(language === 'ar' ? 'en' : 'ar')}>{copy.language}</button>
         </header>
 
-        <section style={{ display: 'grid', gap: 12, padding: 20, border: '1px solid rgba(255,255,255,.12)', borderRadius: 18 }}>
+        <form onSubmit={(event) => { event.preventDefault(); buildPlan(); }} style={{ display: 'grid', gap: 12, padding: 20, border: '1px solid rgba(255,255,255,.12)', borderRadius: 18 }}>
           <label htmlFor="agent-prompt">{copy.prompt}</label>
           <textarea id="agent-prompt" value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder={copy.promptPlaceholder} rows={4} />
           <label htmlFor="agent-file">{copy.file}</label>
           <input id="agent-file" type="file" accept="image/*" onChange={(event) => { setFile(event.target.files?.[0] ?? null); setPlan(null); setResult(null); setConfirmed(false); }} />
-          <button type="button" onClick={buildPlan} disabled={!prompt.trim() || !file || busy}>{copy.plan}</button>
-        </section>
+          <button type="submit" disabled={!prompt.trim() || !file || busy}>{copy.plan}</button>
+        </form>
 
         {plan && (
-          <section aria-label="agent-plan" style={{ display: 'grid', gap: 10, padding: 20, border: '1px solid rgba(255,255,255,.12)', borderRadius: 18 }}>
+          <form onSubmit={(event) => { event.preventDefault(); void runPlan(); }} aria-label="agent-plan" style={{ display: 'grid', gap: 10, padding: 20, border: '1px solid rgba(255,255,255,.12)', borderRadius: 18 }}>
             <strong>{copy.tool}: {selectedTool}</strong>
             <span>{copy.confidence}: {Math.round(plan.confidence * 100)}%</span>
             <span data-testid="agent-plan-status">{statusLabel}</span>
             <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} />{copy.confirm}</label>
-            <button type="button" onClick={runPlan} disabled={!confirmed || busy}>{copy.execute}</button>
-          </section>
+            <button type="submit" disabled={!confirmed || busy}>{copy.execute}</button>
+          </form>
         )}
 
         {error && <p role="alert">{copy.error}: {error}</p>}
