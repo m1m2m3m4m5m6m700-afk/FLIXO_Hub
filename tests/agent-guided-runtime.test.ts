@@ -9,6 +9,13 @@ const {
 const { MVP_EXECUTABLE_TOOL_IDS } = await import('../src/config/manual-capability-definition.ts');
 const { getToolChainAdapter } = await import('../src/lib/tool-chain-adapters.ts');
 const { parseExecutionPlan } = await import('../src/lib/contracts/ai-plan.ts');
+
+const toExecutionPlan = (plan: { workflowName: string; confidence: number; catalogFingerprint: string; steps: readonly { toolId: string; params?: Record<string, string | number | boolean> }[] }) => ({
+  workflowName: plan.workflowName,
+  confidence: plan.confidence,
+  catalogFingerprint: plan.catalogFingerprint,
+  steps: plan.steps.map((step) => ({ toolId: step.toolId, params: step.params ?? {} })),
+});
 const { ImageJob } = await import('../src/image-core/job.ts');
 const { ImageAssetStore } = await import('../src/image-core/asset-store.ts');
 
@@ -88,14 +95,14 @@ test('agent plan parser rejects unknown tools and malformed parameters before ex
   const plan = planAgentRequest('sharpen the image', file());
   assert.throws(
     () => parseExecutionPlan({
-      ...plan,
+      ...toExecutionPlan(plan),
       steps: [{ toolId: 'not-a-real-tool', params: {} }],
     }),
     /not executable or not registered/i,
   );
   assert.throws(
     () => parseExecutionPlan({
-      ...plan,
+      ...toExecutionPlan(plan),
       steps: [{ toolId: 'image-upscaler', params: { scale: -2 } }],
     }),
     /Invalid parameters/i,
@@ -161,4 +168,12 @@ test('agent confirmation receipts are single-consumer under concurrent invocatio
   ]);
   const rejected = executions.filter((item) => item.status === 'rejected');
   assert.ok(rejected.length >= 1);
+});
+
+
+test('agent planner refuses compound requests instead of silently dropping the second intent', () => {
+  assert.throws(
+    () => planAgentRequest('remove the background and resize the image', file()),
+    /ambiguous/i,
+  );
 });
