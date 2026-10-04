@@ -16,6 +16,9 @@ export type LocalToolId =
 export type ImageInfo = { width: number; height: number };
 
 export function imageInfo(blob: Blob): Promise<ImageInfo> {
+  if (typeof Image === 'undefined' || typeof URL?.createObjectURL !== 'function') {
+    return Promise.reject(new Error('IMAGE_DECODER_UNAVAILABLE'));
+  }
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(blob);
     const image = new Image();
