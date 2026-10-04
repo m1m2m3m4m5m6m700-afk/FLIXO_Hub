@@ -33,12 +33,13 @@ function assertLocalImageFile(file: File): void {
   }
 }
 
-function scoreIntent(prompt: string, intent: string): number {
+function scoreIntent(prompt: string, intent: string, toolId: string): number {
   const normalizedPrompt = normalize(prompt);
   const normalizedIntent = normalize(intent);
   if (!normalizedPrompt || !normalizedIntent) return 0;
   if (!normalizedPrompt.includes(normalizedIntent)) return 0;
-  return normalizedIntent.length;
+  const specificityBonus = toolId === 'image-effects' ? -0.5 : 0;
+  return normalizedIntent.length + specificityBonus;
 }
 
 function findIntent(prompt: string): { toolId: string; intent: string } {
@@ -49,7 +50,7 @@ function findIntent(prompt: string): { toolId: string; intent: string } {
       throw new Error('Agent capability boundary rejected an unadmitted tool.');
     }
     for (const intent of capability.intents) {
-      const score = scoreIntent(prompt, intent);
+      const score = scoreIntent(prompt, intent, toolId);
       if (score > 0) candidates.push({ toolId, intent, score });
     }
   }
