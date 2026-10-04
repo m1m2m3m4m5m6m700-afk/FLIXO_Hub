@@ -34,13 +34,24 @@ function assertLocalImageFile(file: File): void {
   }
 }
 
+const EN_STOPWORDS = new Set(['a', 'an', 'the', 'this', 'my', 'to', 'of', 'for', 'please', 'do', 'on', 'with']);
+
+function tokenize(value: string): string[] {
+  return normalize(value)
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .split(/\s+/)
+    .filter(Boolean)
+    .filter((token) => !EN_STOPWORDS.has(token));
+}
+
 function scoreIntent(prompt: string, intent: string, toolId: string): number {
-  const normalizedPrompt = normalize(prompt);
-  const normalizedIntent = normalize(intent);
-  if (!normalizedPrompt || !normalizedIntent) return 0;
-  if (!normalizedPrompt.includes(normalizedIntent)) return 0;
+  const promptTokens = tokenize(prompt);
+  const intentTokens = tokenize(intent);
+  if (!promptTokens.length || !intentTokens.length) return 0;
+  if (!intentTokens.every((token) => promptTokens.includes(token))) return 0;
+  const exactBonus = normalize(prompt).includes(normalize(intent)) ? 4 : 0;
   const specificityBonus = toolId === 'image-effects' ? -0.5 : 0;
-  return normalizedIntent.length + specificityBonus;
+  return intent.length + exactBonus + specificityBonus;
 }
 
 function findIntent(prompt: string): { toolId: string; intent: string } {
