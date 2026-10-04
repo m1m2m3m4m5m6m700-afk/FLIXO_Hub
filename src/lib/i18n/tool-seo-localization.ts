@@ -3,29 +3,22 @@ import { LOCALES, type Locale } from './config';
 export type ToolSeoLocale = Readonly<Record<Locale, string>>;
 
 /** Canonical localized SEO names for image-platform tools only. */
-const NEW_CANONICAL_IMAGE_SEO_LABELS: Readonly<Record<string, Readonly<{ en: string; ar: string }>>> = Object.freeze({
-  'image-rotate-flip': { en: 'Rotate & Flip', ar: 'تدوير وقلب الصور' },
-  'image-brightness-contrast': { en: 'Brightness & Contrast', ar: 'السطوع والتباين' },
-  'image-saturation-hue': { en: 'Saturation & Hue', ar: 'التشبع ودرجة اللون' },
-  'image-exposure': { en: 'Exposure', ar: 'التعريض' },
-  'image-highlights-shadows': { en: 'Highlights & Shadows', ar: 'الإبرازات والظلال' },
-  'image-grayscale-duotone': { en: 'Grayscale & Duotone', ar: 'التدرج الرمادي ودوتون' },
-  'image-filters': { en: 'Image Filters', ar: 'فلاتر الصور' },
-  'image-watermark': { en: 'Watermark', ar: 'علامة مائية' },
-  'image-text-overlay': { en: 'Text Overlay', ar: 'إضافة نص على الصورة' },
-  'image-draw-annotate': { en: 'Draw & Annotate', ar: 'الرسم والتعليق على الصورة' },
-  'image-redaction': { en: 'Image Redaction', ar: 'تعمية الصورة' },
+const NEW_CANONICAL_IMAGE_SEO_LABELS: Readonly<Record<string, ToolSeoLocale>> = Object.freeze({
+  'image-rotate-flip': { en:'Rotate & Flip', ar:'تدوير وقلب الصور', es:'Girar y voltear', fr:'Pivoter et retourner', de:'Drehen & Spiegeln', hi:'छवि घुमाएँ और पलटें', id:'Putar & Balik', it:'Ruota e capovolgi', ja:'回転と反転', ko:'회전 및 뒤집기', ms:'Putar & Balik', nl:'Draaien & Spiegelen', pl:'Obracanie i odbicie', pt:'Girar e espelhar', ru:'Поворот и отражение', sv:'Rotera och spegla', th:'หมุนและพลิกรูปภาพ', tr:'Döndür ve Çevir', uk:'Поворот і віддзеркалення', vi:'Xoay & Lật' },
+  'image-brightness-contrast': { en:'Brightness & Contrast', ar:'السطوع والتباين', es:'Brillo y contraste', fr:'Luminosité et contraste', de:'Helligkeit & Kontrast', hi:'चमक और कंट्रास्ट', id:'Kecerahan & Kontras', it:'Luminosità e contrasto', ja:'明るさとコントラスト', ko:'밝기 및 대비', ms:'Kecerahan & Kontras', nl:'Helderheid & Contrast', pl:'Jasność i kontrast', pt:'Brilho e contraste', ru:'Яркость и контраст', sv:'Ljusstyrka och kontrast', th:'ความสว่างและคอนทราสต์', tr:'Parlaklık ve Kontrast', uk:'Яскравість і контраст', vi:'Độ sáng & Độ tương phản' },
+  'image-saturation-hue': { en:'Saturation & Hue', ar:'التشبع ودرجة اللون', es:'Saturación y tono', fr:'Saturation et teinte', de:'Sättigung & Farbton', hi:'संतृप्ति और ह्यू', id:'Saturasi & Hue', it:'Saturazione e tonalità', ja:'彩度と色相', ko:'채도 및 색조', ms:'Ketepuan & Rona', nl:'Verzadiging & Tint', pl:'Nasycenie i odcień', pt:'Saturação e matiz', ru:'Насыщенность и оттенок', sv:'Mättnad och nyans', th:'ความอิ่มตัวและเฉดสี', tr:'Doygunluk ve Ton', uk:'Насиченість і відтінок', vi:'Độ bão hòa & Sắc độ' },
+  'image-exposure': { en:'Exposure', ar:'التعريض', es:'Exposición', fr:'Exposition', de:'Belichtung', hi:'एक्सपोज़र', id:'Eksposur', it:'Esposizione', ja:'露出', ko:'노출', ms:'Pendedahan', nl:'Belichting', pl:'Ekspozycja', pt:'Exposição', ru:'Экспозиция', sv:'Exponering', th:'ค่าแสง', tr:'Pozlama', uk:'Експозиція', vi:'Phơi sáng' },
+  'image-highlights-shadows': { en:'Highlights & Shadows', ar:'الإبرازات والظلال', es:'Luces y sombras', fr:'Hautes lumières et ombres', de:'Lichter & Schatten', hi:'हाइलाइट और शैडो', id:'Sorotan & Bayangan', it:'Luci e ombre', ja:'ハイライトとシャドウ', ko:'하이라이트 및 그림자', ms:'Sorotan & Bayang', nl:'Lichtpartijen & Schaduwen', pl:'Światła i cienie', pt:'Altas luzes e sombras', ru:'Света и тени', sv:'Högdagrar och skuggor', th:'ไฮไลต์และเงา', tr:'Parlak alanlar ve Gölgeler', uk:'Світлі ділянки й тіні', vi:'Vùng sáng & Bóng' },
+  'image-grayscale-duotone': { en:'Grayscale & Duotone', ar:'التدرج الرمادي ودوتون', es:'Escala de grises y duotono', fr:'Niveaux de gris et duotone', de:'Graustufen & Duotone', hi:'ग्रेस्केल और डुओटोन', id:'Skala Abu-abu & Duotone', it:'Scala di grigi e duotone', ja:'グレースケールとデュオトーン', ko:'그레이스케일 및 듀오톤', ms:'Skala Kelabu & Duoton', nl:'Grijstinten & Duotoon', pl:'Skala szarości i duoton', pt:'Escala de cinza e duotônico', ru:'Градации серого и дуотон', sv:'Gråskala och duoton', th:'โทนสีเทาและดูโอโทน', tr:'Gri Tonlama ve Duotone', uk:'Градації сірого та дуотон', vi:'Thang xám & Duotone' },
+  'image-filters': { en:'Image Filters', ar:'فلاتر الصور', es:'Filtros de imagen', fr:'Filtres d’image', de:'Bildfilter', hi:'इमेज फ़िल्टर', id:'Filter Gambar', it:'Filtri immagine', ja:'画像フィルター', ko:'이미지 필터', ms:'Penapis Imej', nl:'Afbeeldingsfilters', pl:'Filtry obrazu', pt:'Filtros de imagem', ru:'Фильтры изображения', sv:'Bildfilter', th:'ฟิลเตอร์รูปภาพ', tr:'Görsel Filtreleri', uk:'Фільтри зображень', vi:'Bộ lọc ảnh' },
+  'image-watermark': { en:'Watermark', ar:'العلامة المائية', es:'Marca de agua', fr:'Filigrane', de:'Wasserzeichen', hi:'वॉटरमार्क', id:'Tanda Air', it:'Filigrana', ja:'透かし', ko:'워터마크', ms:'Tanda Air', nl:'Watermerk', pl:'Znak wodny', pt:'Marca d’água', ru:'Водяной знак', sv:'Vattenstämpel', th:'ลายน้ำ', tr:'Filigran', uk:'Водяний знак', vi:'Hình mờ' },
+  'image-text-overlay': { en:'Text Overlay', ar:'إضافة نص على الصورة', es:'Superposición de texto', fr:'Superposition de texte', de:'Textüberlagerung', hi:'टेक्स्ट ओवरले', id:'Hamparan Teks', it:'Sovrapposizione testo', ja:'テキストオーバーレイ', ko:'텍스트 오버레이', ms:'Tindanan Teks', nl:'Tekstoverlay', pl:'Nakładka tekstowa', pt:'Sobreposição de texto', ru:'Наложение текста', sv:'Textöverlägg', th:'ซ้อนข้อความ', tr:'Metin Kaplaması', uk:'Накладання тексту', vi:'Lớp phủ văn bản' },
+  'image-draw-annotate': { en:'Draw & Annotate', ar:'الرسم والتعليق على الصورة', es:'Dibujar y anotar', fr:'Dessiner et annoter', de:'Zeichnen & Anmerken', hi:'ड्रॉ और एनोटेट', id:'Gambar & Anotasi', it:'Disegno e annotazione', ja:'描画と注釈', ko:'그리기 및 주석', ms:'Lukis & Anotasi', nl:'Tekenen & Annoteren', pl:'Rysowanie i adnotacje', pt:'Desenho e anotações', ru:'Рисование и аннотации', sv:'Rita och kommentera', th:'วาดและใส่คำอธิบาย', tr:'Çiz ve Açıkla', uk:'Малювання й анотації', vi:'Vẽ & Chú thích' },
+  'image-redaction': { en:'Image Redaction', ar:'تعمية الصورة', es:'Censura de imagen', fr:'Caviardage d’image', de:'Bild-Schwärzung', hi:'इमेज रिडैक्शन', id:'Redaksi Gambar', it:'Oscuramento immagine', ja:'画像の墨消し', ko:'이미지 가리기', ms:'Penyamaran Imej', nl:'Afbeelding redigeren', pl:'Redakcja obrazu', pt:'Redação de imagem', ru:'Редактирование изображения', sv:'Bildmaskering', th:'ปกปิดข้อมูลในภาพ', tr:'Görsel Sansürleme', uk:'Редагування зображення', vi:'Che nội dung ảnh' },
 });
 
 const NEW_CANONICAL_IMAGE_SEO_NAMES: Readonly<Record<string, ToolSeoLocale>> = Object.freeze(
-  Object.fromEntries(
-    Object.entries(NEW_CANONICAL_IMAGE_SEO_LABELS).map(([id, labels]) => [
-      id,
-      Object.freeze(Object.fromEntries(
-        LOCALES.map((locale) => [locale, locale === 'ar' ? labels.ar : labels.en]),
-      )) as ToolSeoLocale,
-    ]),
-  ),
+  Object.fromEntries(Object.entries(NEW_CANONICAL_IMAGE_SEO_LABELS)) as Readonly<Record<string, ToolSeoLocale>>,
 );
 
 export const TOOL_SEO_NAMES: Readonly<Record<string, ToolSeoLocale>> = Object.freeze({
