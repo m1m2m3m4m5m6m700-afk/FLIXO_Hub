@@ -72,6 +72,15 @@ test('agent execution requires a one-time confirmation receipt and rejects forge
     /confirmation receipt is required/i,
   );
 
+  const forgedValidPlan = Object.freeze({
+    ...plan,
+    steps: plan.steps.map((step) => ({ ...step, params: { ...(step.params ?? {}) } })),
+  });
+  assert.throws(
+    () => confirmAgentPlan(forgedValidPlan, input),
+    /plan was not issued by the FLIXO Agent planner/i,
+  );
+
   const receipt = confirmAgentPlan(plan, input);
   const forgedPlan = Object.freeze({
     ...plan,
@@ -79,7 +88,7 @@ test('agent execution requires a one-time confirmation receipt and rejects forge
   });
   await assert.rejects(
     () => executeAgentPlan(forgedPlan, input, receipt),
-    /different canonical tool catalog/i,
+    /different canonical tool catalog|stale relative to the current canonical tool catalog/i,
   );
 
   const secondReceipt = confirmAgentPlan(plan, input);
