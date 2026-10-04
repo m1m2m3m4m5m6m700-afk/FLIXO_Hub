@@ -7,7 +7,7 @@ export type IntentMatch = {
 
 const ALIASES: Record<string, readonly string[]> = {
   'filter-mask': ['live filter', 'camera filter', 'live camera', 'filters', 'filter mask', 'فلتر مباشر', 'فلاتر الكاميرا', 'كاميرا مباشرة'],
-  'image-compressor': ['compress image', 'compress photo', 'reduce image size', 'resize image', 'ضغط الصورة', 'ضغط الصور'],
+  'image-compressor': ['compress image', 'compress photo', 'reduce image size', 'ضغط الصورة', 'ضغط الصور'],
   'background-remover': ['remove background', 'background removal', 'transparent background', 'إزالة الخلفية', 'تفريغ الصورة'],
   'image-ocr': ['ocr', 'extract text', 'read text from image', 'نسخ النص من الصورة', 'استخراج النص'],
   'image-converter': ['convert image', 'png to webp', 'jpg to png', 'image format', 'تحويل الصورة', 'تحويل png'],
@@ -20,7 +20,7 @@ const ALIASES: Record<string, readonly string[]> = {
   'passport-photo-maker': ['passport photo', 'id photo', 'صورة جواز السفر', 'صورة شخصية'],
   'meme-generator': ['make meme', 'meme', 'إنشاء ميم'],
   'collage-maker': ['photo collage', 'make collage', 'كولاج', 'دمج الصور'],
-  'image-effects': ['image effects', 'brightness contrast', 'تأثيرات الصور'],
+  'image-effects': ['image effects', 'photo effects', 'تأثيرات الصور'],
   'image-resizer': ['resize image','change image dimensions','resize to','تغيير حجم الصورة','تغيير أبعاد الصورة'],
   'image-rotate-flip': ['rotate and flip','rotate image','flip image','تدوير وقلب الصورة','تدوير الصورة','قلب الصورة'],
   'image-brightness-contrast': ['brightness contrast','adjust brightness and contrast','سطوع وتباين','ضبط السطوع والتباين'],
@@ -29,8 +29,8 @@ const ALIASES: Record<string, readonly string[]> = {
   'image-highlights-shadows': ['highlights shadows','highlights and shadows','الإبرازات والظلال','ضبط الإبرازات والظلال'],
   'image-sharpen': ['sharpen image','increase sharpness','حدة الصورة','زيادة حدة الصورة'],
   'image-blur': ['blur image','soften image','ضبابية الصورة','تمويه الصورة'],
-  'image-grayscale-duotone': ['grayscale duotone','duotone','تدرج رمادي','دوتون'],
-  'image-filters': ['photo filters','image filter preset','فلاتر الصور','فلتر الصورة'],
+  'image-grayscale-duotone': ['grayscale duotone','duotone','apply duotone','duotone mapping','تدرج رمادي','دوتون'],
+  'image-filters': ['photo filters','image filter preset','use photo filters','فلاتر الصور','فلتر الصورة'],
   'image-watermark': ['add watermark','watermark text','إضافة علامة مائية','علامة مائية'],
   'image-text-overlay': ['add text to image','text overlay','كتابة على الصورة','إضافة نص للصورة'],
   'image-draw-annotate': ['draw on image','annotate image','arrow annotation','الرسم على الصورة','التعليق على الصورة'],
