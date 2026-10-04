@@ -123,7 +123,8 @@ export async function resizeImage(blob: Blob, scale: number, signal?: AbortSigna
 
 export async function convertImage(blob: Blob, type: 'image/png' | 'image/jpeg' | 'image/webp', signal?: AbortSignal): Promise<Blob> {
   throwIfAborted(signal);
-  const image = await loadImage(blob);
+  throwIfAborted(signal);
+  const image = await loadImage(blob, signal);
   const canvas = document.createElement('canvas');
   canvas.width = image.naturalWidth;
   canvas.height = image.naturalHeight;
@@ -160,7 +161,8 @@ export async function cropResizeImage(blob: Blob, crop: { x: number; y: number; 
 
 export async function removeBackground(blob: Blob, tolerance = 42, signal?: AbortSignal): Promise<Blob> {
   throwIfAborted(signal);
-  const image = await loadImage(blob);
+  throwIfAborted(signal);
+  const image = await loadImage(blob, signal);
   const canvas = document.createElement('canvas');
   canvas.width = image.naturalWidth;
   canvas.height = image.naturalHeight;
@@ -241,7 +243,8 @@ function reconstructRegion(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElem
 }
 
 export async function fillRemoveRegion(blob: Blob, region: { x: number; y: number; width: number; height: number }, signal?: AbortSignal): Promise<Blob> {
-  const image = await loadImage(blob);
+  throwIfAborted(signal);
+  const image = await loadImage(blob, signal);
   const canvas = document.createElement('canvas');
   canvas.width = image.naturalWidth;
   canvas.height = image.naturalHeight;
@@ -249,6 +252,7 @@ export async function fillRemoveRegion(blob: Blob, region: { x: number; y: numbe
   if (!ctx) throw new Error('Canvas is unavailable.');
   ctx.drawImage(image, 0, 0);
   reconstructRegion(ctx, canvas, region);
+  throwIfAborted(signal);
   return canvasBlob(canvas, 'image/png');
 }
 
@@ -261,7 +265,8 @@ function escapeXml(value: string) {
 }
 
 export async function rasterToSvg(blob: Blob, columns = 48, signal?: AbortSignal): Promise<Blob> {
-  const image = await loadImage(blob);
+  throwIfAborted(signal);
+  const image = await loadImage(blob, signal);
   const scale = Math.min(1, Math.max(1, columns) / image.naturalWidth);
   const width = Math.max(1, Math.round(image.naturalWidth * scale));
   const height = Math.max(1, Math.round(image.naturalHeight * scale));
@@ -274,6 +279,7 @@ export async function rasterToSvg(blob: Blob, columns = 48, signal?: AbortSignal
   const { data } = ctx.getImageData(0, 0, width, height);
   const rects: string[] = [];
   for (let y = 0; y < height; y += 1) {
+    throwIfAborted(signal);
     let x = 0;
     while (x < width) {
       const index = (y * width + x) * 4;
@@ -295,6 +301,7 @@ export async function rasterToSvg(blob: Blob, columns = 48, signal?: AbortSignal
       x += run;
     }
   }
+  throwIfAborted(signal);
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" shape-rendering="crispEdges"><title>${escapeXml('FLIXO Raster to SVG')}</title>${rects.join('')}</svg>`;
   return new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
 }
@@ -376,6 +383,7 @@ export async function applyBasicImageEffect(blob: Blob, effect: BasicImageEffect
   canvas.height = image.naturalHeight;
   const ctx = canvas.getContext('2d', { willReadFrequently: effect !== 'blur' });
   if (!ctx) throw new Error('Canvas is unavailable.');
+  throwIfAborted(signal);
   const normalized = Math.max(0, Math.min(200, value));
   if (effect === 'blur') {
     ctx.filter = `blur(${Math.max(0, normalized / 20)}px)`;
@@ -393,6 +401,7 @@ export async function applyBasicImageEffect(blob: Blob, effect: BasicImageEffect
     ctx.filter = `sepia(${Math.max(0, Math.min(100, normalized))}%)`;
   }
   ctx.drawImage(image, 0, 0);
+  throwIfAborted(signal);
   if (effect === 'sharpen') {
     sharpenCanvas(ctx, Math.max(0.02, Math.min(0.35, normalized / 1000)));
   }
@@ -400,7 +409,8 @@ export async function applyBasicImageEffect(blob: Blob, effect: BasicImageEffect
 }
 
 export async function rotateImage(blob: Blob, degrees = 90, signal?: AbortSignal) {
-  const image = await loadImage(blob);
+  throwIfAborted(signal);
+  const image = await loadImage(blob, signal);
   const normalized = ((degrees % 360) + 360) % 360;
   const swap = normalized === 90 || normalized === 270;
   const canvas = document.createElement('canvas');
@@ -411,6 +421,7 @@ export async function rotateImage(blob: Blob, degrees = 90, signal?: AbortSignal
   ctx.translate(canvas.width / 2, canvas.height / 2);
   ctx.rotate((normalized * Math.PI) / 180);
   ctx.drawImage(image, -image.naturalWidth / 2, -image.naturalHeight / 2);
+  throwIfAborted(signal);
   return canvasBlob(canvas, 'image/png');
 }
 
@@ -423,6 +434,7 @@ export async function flipImage(blob: Blob, horizontal = true, signal?: AbortSig
   if (!ctx) throw new Error('Canvas is unavailable.');
   ctx.translate(horizontal ? canvas.width : 0, horizontal ? 0 : canvas.height);
   ctx.scale(horizontal ? -1 : 1, horizontal ? 1 : -1);
+  throwIfAborted(signal);
   ctx.drawImage(image, 0, 0);
   return canvasBlob(canvas, 'image/png');
 }
