@@ -10,8 +10,8 @@ export type LocalToolId =
   | 'crop-resize'
   | 'watermark-remover'
   | 'raster-to-svg'
-  | 'image-rotate' | 'image-flip-horizontal' | 'image-flip-vertical' | 'image-brightness' | 'image-contrast' | 'image-saturation' | 'image-grayscale' | 'image-invert' | 'image-sepia' | 'image-blur' | 'image-sharpen' | 'image-resizer' | 'image-hue' | 'image-pixelate' | 'image-padding' | 'image-rounded-corners'
-  | 'image-effects' | 'image-rotate-flip' | 'image-brightness-contrast' | 'image-saturation-hue' | 'image-exposure' | 'image-highlights-shadows' | 'image-grayscale-duotone' | 'image-filters' | 'image-watermark' | 'image-text-overlay' | 'image-draw-annotate' | 'image-redaction';
+  | 'image-effects' | 'image-rotate' | 'image-flip-horizontal' | 'image-flip-vertical' | 'image-brightness' | 'image-contrast' | 'image-saturation' | 'image-grayscale' | 'image-invert' | 'image-sepia' | 'image-blur' | 'image-sharpen' | 'image-resizer' | 'image-hue' | 'image-pixelate' | 'image-padding' | 'image-rounded-corners'
+  | 'image-rotate-flip' | 'image-brightness-contrast' | 'image-saturation-hue' | 'image-exposure' | 'image-highlights-shadows' | 'image-grayscale-duotone' | 'image-filters' | 'image-watermark' | 'image-text-overlay' | 'image-draw-annotate' | 'image-redaction';
 
 export type ImageInfo = { width: number; height: number };
 
