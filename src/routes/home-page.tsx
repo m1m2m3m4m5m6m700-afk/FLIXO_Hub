@@ -67,7 +67,7 @@ export function HomePage({ locale = 'en' as Locale }: { locale?: Locale }) {
       <nav className="home-nav" aria-label={copy.ariaPrimary}>
         <div className="home-container home-nav-inner">
           <Link className="home-brand" to="/" aria-label={copy.ariaHome}>FLIXO Hub</Link>
-          <div className="home-nav-links"><a href="#tools">{locale === 'ar' ? 'أدوات الصور' : copy.nav.tools}</a><Link to="/$locale/$tool" params={{ locale, tool: 'filter-mask' }}>{FILTER_LABELS[locale] ?? copy.nav.categories}</Link></div>
+          <div className="home-nav-links"><a href="#tools">{locale === 'ar' ? 'أدوات الصور' : copy.nav.tools}</a><Link to="/agent">{locale === 'ar' ? 'وكيل FLIXO' : 'FLIXO Agent'}</Link><Link to="/$locale/$tool" params={{ locale, tool: 'filter-mask' }}>{FILTER_LABELS[locale] ?? copy.nav.categories}</Link></div>
           <label className="sr-only" htmlFor="home-language">{copy.nav.switch}</label>
           <select id="home-language" className="home-nav-language" value={locale} aria-label={copy.nav.switch} onChange={(event) => { const nextLocale = event.target.value as Locale; void navigate(nextLocale === 'en' ? { to: '/' } : { to: '/$locale', params: { locale: nextLocale } }); }}>
             {LOCALES.map((code) => <option key={code} value={code}>{LANGUAGE_LABELS[code] ?? code}</option>)}
