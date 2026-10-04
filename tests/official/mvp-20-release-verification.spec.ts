@@ -45,7 +45,7 @@ async function executeManual(page: Page, toolId: (typeof MANUAL_TOOL_IDS)[number
   const fileInput = page.locator('input[type=file]').first();
   await expect(fileInput).toHaveCount(1);
   await fileInput.setInputFiles(fixture());
-  await expect(page.getByText('Before')).toHaveCount(1);
+  await expect(fileInput).toHaveValue(/flixo-release-fixture\.png/);
 
   if (toolId === 'image-cropper') {
     await page.getByRole('textbox', { name: 'Crop width' }).fill('4');
@@ -90,14 +90,14 @@ async function planAndExecuteAgent(page: Page, toolId: string, prompt: string, l
   }
   await page.locator('#agent-prompt').fill(prompt);
   await page.locator('#agent-file').setInputFiles(fixture());
-  await page.getByRole('button', { name: language === 'ar' ? /إنشاء الخطة/i : /Build plan/i }).click();
+  await page.getByTestId('agent-build-plan').click();
   const plan = page.locator('[aria-label="agent-plan"]');
   await expect(plan).toContainText(toolId);
-  await expect(page.locator('input[type=checkbox]')).not.toBeChecked();
-  const executeButton = page.getByRole('button', { name: language === 'ar' ? /تنفيذ/i : /Execute/i });
+  await expect(page.getByTestId('agent-confirmation')).not.toBeChecked();
+  const executeButton = page.getByTestId('agent-execute');
   await expect(executeButton).toBeDisabled();
   await expect(page.locator('[aria-label="agent-result"]')).toHaveCount(0);
-  await page.locator('input[type=checkbox]').check();
+  await page.getByTestId('agent-confirmation').check();
   await page.getByRole('button', { name: language === 'ar' ? /تنفيذ/i : /Execute/i }).click();
   await expect(page.locator('[aria-label="agent-result"]')).toBeVisible({ timeout: 20_000 });
 }
