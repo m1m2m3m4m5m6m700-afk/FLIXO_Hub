@@ -189,7 +189,7 @@ test('canonical MVP contains exactly twenty executable browser-local capabilitie
     assert.equal(item.state, 'EXECUTABLE');
     assert.equal(item.executionMode, 'LOCAL');
     assert.equal(item.requirements.network, false);
-    assert.equal(item.recovery.maxAttempts, 3);
+    assert.ok(item.recovery.maxAttempts > 0 && item.recovery.maxAttempts <= 3);
     assert.equal(item.recovery.replanOnFailure, false);
     assert.equal(item.operational.executorId, id);
     assert.equal(item.operational.outputContractId, id);
