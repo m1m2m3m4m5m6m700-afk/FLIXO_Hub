@@ -45,6 +45,7 @@ async function executeManual(page: Page, toolId: (typeof MANUAL_TOOL_IDS)[number
   const fileInput = page.locator('input[type=file]').first();
   await expect(fileInput).toHaveCount(1);
   await fileInput.setInputFiles(fixture());
+  await expect(page.getByText('Before')).toHaveCount(1);
 
   if (toolId === 'image-cropper') {
     await page.getByRole('textbox', { name: 'Crop width' }).fill('4');
@@ -75,10 +76,18 @@ async function executeManual(page: Page, toolId: (typeof MANUAL_TOOL_IDS)[number
 async function planAndExecuteAgent(page: Page, toolId: string, prompt: string, language: 'ar' | 'en') {
   await page.goto('/agent', { waitUntil: 'domcontentloaded' });
   if (language === 'ar') {
-    await expect(page.locator('main')).toHaveAttribute('dir', 'rtl');
-    await expect(page.locator('main')).toHaveAttribute('lang', 'ar');
+    const main = page.locator('main').last();
+    const direction = await main.getAttribute('dir');
+    if (direction !== 'rtl') await page.getByRole('button', { name: /العربية/i }).click();
+    await expect(page.locator('main').last()).toHaveAttribute('dir', 'rtl');
+    await expect(page.locator('main').last()).toHaveAttribute('lang', 'ar');
   }
-  if (language === 'en') await page.getByRole('button', { name: /English/i }).click();
+  if (language === 'en') {
+    const main = page.locator('main').last();
+    const direction = await main.getAttribute('dir');
+    if (direction !== 'ltr') await page.getByRole('button', { name: /English/i }).click();
+    await expect(page.locator('main').last()).toHaveAttribute('dir', 'ltr');
+  }
   await page.locator('#agent-prompt').fill(prompt);
   await page.locator('#agent-file').setInputFiles(fixture());
   await page.getByRole('button', { name: language === 'ar' ? /إنشاء الخطة/i : /Build plan/i }).click();
