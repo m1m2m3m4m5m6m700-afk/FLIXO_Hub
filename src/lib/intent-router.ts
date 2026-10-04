@@ -59,23 +59,24 @@ const scoreMatch = (query: string, tool: ToolDefinition): number => {
   const normalizedQuery = normalize(query);
   if (!normalizedQuery) return 0;
 
-  const candidates = [tool.id, tool.title, tool.description, ...(ALIASES[tool.id] ?? [])].map(normalize);
+  const candidates = [tool.id, tool.title, tool.description, ...(ALIASES[tool.id] ?? [])].map(normalize).filter(Boolean);
   let score = 0;
-
   for (const candidate of candidates) {
-    if (!candidate) continue;
     if (candidate === normalizedQuery) score = Math.max(score, 100);
     else if (candidate.includes(normalizedQuery)) score = Math.max(score, 85);
     else if (normalizedQuery.includes(candidate)) score = Math.max(score, 75);
-    else {
-      const tokens = normalizedQuery.split(' ').filter((token) => token.length > 1);
-      const stopwords = new Set(['the', 'this', 'that', 'from', 'into', 'with', 'for', 'and', 'to', 'of', 'a', 'an', 'is', 'on', 'in', 'image', 'images', 'photo', 'photos', 'picture', 'pictures', 'tool', 'tools', 'لل', 'من', 'في', 'إلى', 'و', 'مع', 'هذه', 'هذا', 'صورة', 'الصور', 'الصورة']);
-      const meaningful = tokens.filter((token) => !stopwords.has(token));
-      const hits = meaningful.filter((token) => candidate.includes(token)).length;
-      const denominator = meaningful.length || tokens.length;
-      if (hits) score = Math.max(score, Math.round((hits / denominator) * 70));
-    }
   }
+
+  const tokens = normalizedQuery.split(' ').filter((token) => token.length > 1);
+  const stopwords = new Set([
+    'the', 'this', 'that', 'from', 'into', 'with', 'for', 'and', 'to', 'of', 'a', 'an', 'is', 'on', 'in',
+    'image', 'images', 'photo', 'photos', 'picture', 'pictures', 'tool', 'tools',
+    'لل', 'من', 'في', 'إلى', 'و', 'مع', 'هذه', 'هذا', 'صورة', 'الصور', 'الصورة',
+  ]);
+  const meaningful = tokens.filter((token) => !stopwords.has(token));
+  const denominator = meaningful.length || tokens.length;
+  const distinctiveHits = meaningful.filter((token) => candidates.some((candidate) => candidate.includes(token))).length;
+  if (distinctiveHits) score = Math.max(score, Math.round((distinctiveHits / denominator) * 80));
 
   return score;
 };
