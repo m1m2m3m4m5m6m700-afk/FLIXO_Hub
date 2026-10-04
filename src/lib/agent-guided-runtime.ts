@@ -172,6 +172,7 @@ function verifyConfirmationReceipt(
 }
 
 const EN_STOPWORDS = new Set(['a', 'an', 'the', 'this', 'my', 'it', 'to', 'of', 'for', 'please', 'do', 'does', 'did', 'on', 'with', 'and', 'or', 'but']);
+const INTENT_COVERAGE_CONTEXT = new Set(['a', 'an', 'the', 'this', 'my', 'it', 'to', 'of', 'for', 'please', 'do', 'does', 'did', 'on', 'with', 'and', 'or', 'but', 'make', 'apply', 'change', 'adjust', 'increase', 'decrease', 'convert', 'image', 'images', 'picture', 'pictures', 'photo', 'photos']);
 
 function tokenize(value: string): string[] {
   return normalize(value)
