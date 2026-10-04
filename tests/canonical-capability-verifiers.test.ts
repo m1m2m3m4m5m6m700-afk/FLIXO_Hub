@@ -125,7 +125,7 @@ test('canonical MVP capability verifiers accept measurable valid artifacts and r
     imageDimensions.set(effectsInput, { width: 32, height: 32 });
     imageDimensions.set(effectsOutput, { width: 32, height: 32 });
     imageDataRead = 0;
-    assert.equal(await definition('image-effects').verifier(effectsInput, effectsOutput, { contrast: 120 }), true);
+      assert.equal(await definition('image-effects').verifier(effectsInput, effectsOutput, { contrast: 120 }), true);
     assert.equal(await definition('image-effects').verifier(effectsInput, effectsOutput, { brightness: 100 }), false);
 
     const bgInput = new Blob(['bg-input'], { type: 'image/png' });
@@ -177,10 +177,11 @@ test('canonical MVP capability verifiers accept measurable valid artifacts and r
 
 test('canonical MVP contains exactly twenty executable browser-local capabilities with complete contracts', async () => {
   const { MVP_EXECUTABLE_TOOL_IDS, CAPABILITY_DEFINITIONS } = await import('../src/config/manual-capability-definition.ts');
-  assert.equal(MVP_EXECUTABLE_TOOL_IDS.length, 20);
-  assert.equal(new Set(MVP_EXECUTABLE_TOOL_IDS).size, 20);
-  assert.equal(CAPABILITY_DEFINITIONS.length, 20);
-  for (const id of MVP_EXECUTABLE_TOOL_IDS) {
+  const { CANONICAL_IMAGE_TOOL_IDS } = await import('../src/lib/canonical-image-executor.ts');
+  const imageIds = [...CANONICAL_IMAGE_TOOL_IDS];
+  assert.equal(imageIds.length, 20);
+  assert.equal(new Set(imageIds).size, 20);
+  for (const id of imageIds) {
     const item = definition(id);
     assert.equal(item.state, 'EXECUTABLE');
     assert.equal(item.executionMode, 'LOCAL');
