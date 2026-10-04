@@ -10,6 +10,7 @@ import { planImageToolIntent, type ImageAgentPlan } from './image-agent-workflow
 import type { ExecutionPlanContract } from './contracts/ai-plan';
 import { TOOL_CATALOG } from '../config/registry';
 import { getDefaultAgentParameters } from '../config/manual-capability-definition';
+import { imageInfo } from '../tools/image-toolkit/engine';
 
 export type AgentPlan = Readonly<ExecutionPlanContract & {
   requiresUserConfirmation: true;
@@ -22,7 +23,6 @@ const MAX_AGENT_FILE_BYTES = 25 * 1024 * 1024;
 const MAX_PROMPT_CHARS = 2_000;
 
 // Default Agent parameters are sourced from the canonical capability registry.
-
 
 const TASK_COUNTER = { value: 0 };
 
@@ -42,8 +42,27 @@ function nextTaskId(): string {
   return 'flixo-agent-task-' + Date.now().toString(36) + '-' + TASK_COUNTER.value.toString(36);
 }
 
-function paramsFor(toolId: string): Readonly<Record<string, string | number | boolean>> {
-  return getDefaultAgentParameters(toolId);
+async function paramsFor(
+  toolId: string,
+  file: File,
+): Promise<Readonly<Record<string, string | number | boolean>>> {
+  const defaults = getDefaultAgentParameters(toolId);
+  if (toolId !== 'image-cropper') return defaults;
+
+  // A language-level "crop to square" request is resolved at execution time
+  // because the crop bounds depend on the actual uploaded document dimensions.
+  // Bind the bounded square to the source instead of relying on the UI's
+  // 500x500 control defaults.
+  const info = await imageInfo(file);
+  const size = Math.max(1, Math.min(info.width, info.height));
+  return Object.freeze({
+    x: 0,
+    y: 0,
+    cropWidth: size,
+    cropHeight: size,
+    width: size,
+    height: size,
+  });
 }
 
 async function buildSecurityContext(
@@ -79,7 +98,7 @@ export async function planAgentRequest(prompt: string, file: File): Promise<Agen
       : 'No admitted FLIXO capability matches this request.');
   }
 
-  const defaultParams = paramsFor(planned.toolId);
+  const defaultParams = await paramsFor(planned.toolId, file);
   const plan = {
     ...planned.plan,
     steps: [{ toolId: planned.toolId, params: defaultParams }],
