@@ -62,8 +62,30 @@ test('20/20 agent intent routing reaches every canonical image tool',()=>{
     ['redact a region of the image','image-redaction'],
   ] as const;
   assert.equal(cases.length,20);
+  const validParameters: Readonly<Record<string, Readonly<Record<string, string | number | boolean>>>> = {
+    'background-remover': { tolerance: 32 },
+    'image-upscaler': { scale: 2 },
+    'image-cropper': { x: 0, y: 0, cropWidth: 80, cropHeight: 80, width: 80, height: 80 },
+    'image-compressor': { quality: 0.8, format: 'image/webp' },
+    'image-converter': { format: 'image/webp' },
+    'image-effects': { brightness: 115, contrast: 105 },
+    'image-resizer': { scale: 2 },
+    'image-rotate-flip': { rotation: 90, flipX: false, flipY: false },
+    'image-brightness-contrast': { brightness: 115, contrast: 105 },
+    'image-saturation-hue': { saturation: 120, hue: 10 },
+    'image-exposure': { exposure: 1 },
+    'image-highlights-shadows': { highlights: 10, shadows: 10 },
+    'image-sharpen': { amount: 110 },
+    'image-blur': { radius: 6 },
+    'image-grayscale-duotone': { intensity: 100, darkColor: '#111111', lightColor: '#f5f5f5' },
+    'image-filters': { preset: 'vivid' },
+    'image-watermark': { text: 'FLIXO', x: 25, y: 90, fontSize: 32, opacity: 0.65, color: '#ffffff' },
+    'image-text-overlay': { text: 'FLIXO', x: 25, y: 25, fontSize: 32, color: '#ffffff', backgroundOpacity: 0.5, align: 'center' },
+    'image-draw-annotate': { kind: 'arrow', x1: 10, y1: 10, x2: 80, y2: 80, stroke: '#ff3b30', strokeWidth: 8 },
+    'image-redaction': { x: 25, y: 25, width: 50, height: 25, color: '#000000' },
+  };
   for(const [intent,expectedToolId] of cases){
-    const planned=planImageToolIntent(intent,{text:'FLIXO',format:'image/webp',preset:'vivid',x:25,y:25,width:25,height:25,color:'#000000',brightness:115,contrast:105,saturation:120,hue:10,exposure:1,highlights:10,shadows:10,scale:2,rotation:90,flipX:false,flipY:false,cropWidth:100,cropHeight:100,width:100,height:100,quality:0.8});
+    const planned=planImageToolIntent(intent,validParameters[expectedToolId]);
     assert.equal(planned.status,'PLANNED',`Agent did not plan: ${intent}`);
     assert.equal(planned.toolId,expectedToolId,`Wrong agent route for: ${intent}`);
     assert.equal(planned.confirmationRequired,true,`Agent confirmation not required for: ${expectedToolId}`);
