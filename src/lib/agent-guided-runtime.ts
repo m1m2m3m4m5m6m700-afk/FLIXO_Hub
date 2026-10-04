@@ -1,6 +1,7 @@
 import { getCapability, MVP_EXECUTABLE_TOOL_IDS, validateCapabilityParameters } from '../config/manual-capability-definition';
 import { TOOL_CATALOG } from '../config/registry';
 import { CANONICAL_IMAGE_TOOL_IDS, createImageExecutionConfirmationToken, executeCanonicalImageTool, type CanonicalImageExecutionReceipt } from './canonical-image-executor';
+import { imageInfo } from '../tools/image-toolkit/engine';
 import { parseExecutionPlan, type ExecutionPlanContract } from './contracts/ai-plan';
 
 export type AgentPlan = Readonly<ExecutionPlanContract & {
@@ -13,6 +14,7 @@ export type AgentConfirmationReceipt = Readonly<{
 }>;
 
 type ConfirmationRecord = Readonly<{
+  plan: AgentPlan;
   planIdentity: string;
   file: File;
 }>;
@@ -20,6 +22,7 @@ type ConfirmationRecord = Readonly<{
 const MAX_AGENT_FILE_BYTES = 25 * 1024 * 1024;
 const MAX_PROMPT_CHARS = 2_000;
 const confirmationRecords = new Map<string, ConfirmationRecord>();
+const issuedPlans = new WeakMap<object, { planIdentity: string; file: File }>();
 
 const DEFAULT_PARAMS: Readonly<Record<string, Record<string, string | number | boolean>>> = Object.freeze({
   'image-cropper': { aspectRatio: '1:1' },
@@ -63,6 +66,26 @@ function abortError(message: string): Error {
 function assertNotAborted(signal?: AbortSignal): void {
   if (signal?.aborted) throw abortError('Agent execution cancelled.');
 }
+
+function assertAgentInputWithinCapabilityBudget(
+  file: File,
+  capability: {
+    safetyLimits: { maxPixels: number; maxFileSizeBytes: number };
+  },
+): Promise<void> {
+  if (file.size > capability.safetyLimits.maxFileSizeBytes) {
+    throw new Error('Execution denied: input exceeds the canonical capability file-size limit.');
+  }
+  return imageInfo(file).then(({ width, height }) => {
+    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+      throw new Error('Execution denied: image dimensions are invalid.');
+    }
+    if (width * height > capability.safetyLimits.maxPixels) {
+      throw new Error('Execution denied: image dimensions exceed the canonical capability pixel limit.');
+    }
+  });
+}
+
 
 function randomToken(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -148,14 +171,18 @@ function verifyConfirmationReceipt(
     throw new Error('Execution denied: a current confirmation receipt is required.');
   }
   const record = confirmationRecords.get(receipt.token);
-  if (!record || record.file !== file || record.planIdentity !== executionPlanIdentity(plan)) {
+  if (
+    !record ||
+    record.file !== file ||
+    record.plan !== plan ||
+    record.planIdentity !== executionPlanIdentity(plan)
+  ) {
     throw new Error('Execution denied: confirmation receipt is stale or does not match this plan and file.');
   }
   confirmationRecords.delete(receipt.token);
 }
 
 const EN_STOPWORDS = new Set(['a', 'an', 'the', 'this', 'my', 'it', 'to', 'of', 'for', 'please', 'do', 'does', 'did', 'on', 'with', 'and', 'or', 'but']);
-const INTENT_COVERAGE_CONTEXT = new Set(['a', 'an', 'the', 'this', 'my', 'it', 'to', 'of', 'for', 'please', 'do', 'does', 'did', 'on', 'with', 'and', 'or', 'but', 'make', 'apply', 'change', 'adjust', 'increase', 'decrease', 'convert', 'image', 'images', 'picture', 'pictures', 'photo', 'photos']);
 
 function tokenize(value: string): string[] {
   return normalize(value)
@@ -195,13 +222,12 @@ function findIntent(prompt: string): { toolId: string; intent: string } {
   }
 
   const candidateToolIds = new Set(candidates.map((candidate) => candidate.toolId));
-  if (candidateToolIds.size > 1) {
-    const promptTokens = new Set(tokenize(prompt).filter((token) => !INTENT_COVERAGE_CONTEXT.has(token)));
-    const winnerTokens = new Set(tokenize(winner.intent).filter((token) => !INTENT_COVERAGE_CONTEXT.has(token)));
-    const uncoveredTokens = [...promptTokens].filter((token) => !winnerTokens.has(token));
-    if (uncoveredTokens.length > 0) {
-      throw new Error('Request is ambiguous. Multiple image operations were requested; create separate confirmed plans.');
-    }
+  const normalizedPrompt = normalize(prompt);
+  const hasExplicitCompoundConjunction =
+    /(^|\\s)(and|or)(\\s|$)/u.test(normalizedPrompt) ||
+    /(^|\\s)و(\\s|$)/u.test(normalizedPrompt);
+  if (candidateToolIds.size > 1 && hasExplicitCompoundConjunction) {
+    throw new Error('Request is ambiguous. Multiple image operations were requested; create separate confirmed plans.');
   }
 
   return { toolId: winner.toolId, intent: winner.intent };
@@ -229,11 +255,16 @@ export function planAgentRequest(prompt: string, file: File): AgentPlan {
     steps: [{ toolId: matched.toolId, params }],
   });
 
-  return Object.freeze({
+  const agentPlan = Object.freeze({
     ...plan,
     requiresUserConfirmation: true as const,
     matchedIntent: matched.intent,
   });
+  issuedPlans.set(agentPlan, Object.freeze({
+    planIdentity: executionPlanIdentity(plan),
+    file,
+  }));
+  return agentPlan;
 }
 
 export function confirmAgentPlan(
@@ -244,10 +275,19 @@ export function confirmAgentPlan(
   if (plan.requiresUserConfirmation !== true) {
     throw new Error('Confirmation denied: the plan is not confirmation-gated.');
   }
+  const issued = issuedPlans.get(plan);
+  if (!issued || issued.file !== file) {
+    throw new Error('Confirmation denied: plan was not issued by the FLIXO Agent planner for this file.');
+  }
   const validatedPlan = parseValidatedAgentPlan(plan);
+  const identity = executionPlanIdentity(validatedPlan);
+  if (issued.planIdentity !== identity || validatedPlan.catalogFingerprint !== TOOL_CATALOG.fingerprint) {
+    throw new Error('Confirmation denied: plan is stale or does not match the current canonical tool catalog.');
+  }
   const token = randomToken();
   confirmationRecords.set(token, Object.freeze({
-    planIdentity: executionPlanIdentity(validatedPlan),
+    plan,
+    planIdentity: identity,
     file,
   }));
   return Object.freeze({ token });
@@ -269,6 +309,9 @@ export async function executeAgentPlan(
   }
 
   const validatedPlan = parseValidatedAgentPlan(plan);
+  if (validatedPlan.catalogFingerprint !== TOOL_CATALOG.fingerprint) {
+    throw new Error('Execution denied: plan is stale relative to the current canonical tool catalog.');
+  }
   verifyConfirmationReceipt(validatedPlan, file, receipt);
   assertNotAborted(signal);
 
@@ -289,6 +332,9 @@ export async function executeAgentPlan(
   if (!CANONICAL_IMAGE_TOOL_IDS.includes(steps[0])) {
     throw new Error('Execution denied: tool is outside the canonical image executor.');
   }
+
+  await assertAgentInputWithinCapabilityBudget(file, capability);
+  assertNotAborted(signal);
 
   const parameters = validateCapabilityParameters(
     steps[0],
