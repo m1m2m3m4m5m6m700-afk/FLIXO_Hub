@@ -14,6 +14,7 @@ export type AgentConfirmationReceipt = Readonly<{
 }>;
 
 type ConfirmationRecord = Readonly<{
+  plan: AgentPlan;
   planIdentity: string;
   file: File;
 }>;
@@ -21,6 +22,7 @@ type ConfirmationRecord = Readonly<{
 const MAX_AGENT_FILE_BYTES = 25 * 1024 * 1024;
 const MAX_PROMPT_CHARS = 2_000;
 const confirmationRecords = new Map<string, ConfirmationRecord>();
+const issuedPlans = new WeakMap<object, { planIdentity: string; file: File }>();
 
 const DEFAULT_PARAMS: Readonly<Record<string, Record<string, string | number | boolean>>> = Object.freeze({
   'image-cropper': { aspectRatio: '1:1' },
@@ -158,7 +160,12 @@ function verifyConfirmationReceipt(
     throw new Error('Execution denied: a current confirmation receipt is required.');
   }
   const record = confirmationRecords.get(receipt.token);
-  if (!record || record.file !== file || record.planIdentity !== executionPlanIdentity(plan)) {
+  if (
+    !record ||
+    record.file !== file ||
+    record.plan !== plan ||
+    record.planIdentity !== executionPlanIdentity(plan)
+  ) {
     throw new Error('Execution denied: confirmation receipt is stale or does not match this plan and file.');
   }
   confirmationRecords.delete(receipt.token);
@@ -237,11 +244,16 @@ export function planAgentRequest(prompt: string, file: File): AgentPlan {
     steps: [{ toolId: matched.toolId, params }],
   });
 
-  return Object.freeze({
+  const agentPlan = Object.freeze({
     ...plan,
     requiresUserConfirmation: true as const,
     matchedIntent: matched.intent,
   });
+  issuedPlans.set(agentPlan, Object.freeze({
+    planIdentity: executionPlanIdentity(plan),
+    file,
+  }));
+  return agentPlan;
 }
 
 export function confirmAgentPlan(
@@ -252,10 +264,19 @@ export function confirmAgentPlan(
   if (plan.requiresUserConfirmation !== true) {
     throw new Error('Confirmation denied: the plan is not confirmation-gated.');
   }
+  const issued = issuedPlans.get(plan);
+  if (!issued || issued.file !== file) {
+    throw new Error('Confirmation denied: plan was not issued by the FLIXO Agent planner for this file.');
+  }
   const validatedPlan = parseValidatedAgentPlan(plan);
+  const identity = executionPlanIdentity(validatedPlan);
+  if (issued.planIdentity !== identity || validatedPlan.catalogFingerprint !== TOOL_CATALOG.fingerprint) {
+    throw new Error('Confirmation denied: plan is stale or does not match the current canonical tool catalog.');
+  }
   const token = randomToken();
   confirmationRecords.set(token, Object.freeze({
-    planIdentity: executionPlanIdentity(validatedPlan),
+    plan,
+    planIdentity: identity,
     file,
   }));
   return Object.freeze({ token });
