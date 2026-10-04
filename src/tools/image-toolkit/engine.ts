@@ -307,7 +307,8 @@ export async function rasterToSvg(blob: Blob, columns = 48, signal?: AbortSignal
 }
 
 export async function hueShiftImage(blob: Blob, degrees = 30, signal?: AbortSignal): Promise<Blob> {
-  const image = await loadImage(blob);
+  throwIfAborted(signal);
+  const image = await loadImage(blob, signal);
   const canvas = document.createElement('canvas');
   canvas.width = image.naturalWidth;
   canvas.height = image.naturalHeight;
