@@ -1,40 +1,46 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { getToolById } from '../src/config/registry.ts';
+import { CANONICAL_IMAGE_TOOL_IDS } from '../src/lib/canonical-image-executor.ts';
 
-const ADVERSARIAL_SCENARIO_COUNT = 20;
-
-const TARGET_MATRIX = [
-  ['background remover', ['background-remover']],
-  ['upscaler', ['image-upscaler']],
-  ['cropper', ['image-cropper']],
-  ['compressor', ['image-compressor']],
-  ['converter', ['image-converter']],
-  ['effects', ['image-effects']],
-  ['resize', ['image-resizer']],
-  ['rotate/flip', ['image-rotate', 'image-flip-horizontal', 'image-flip-vertical']],
-  ['brightness/contrast', ['image-brightness', 'image-contrast']],
-  ['saturation/hue', ['image-saturation', 'image-hue']],
-  ['exposure', ['image-exposure']],
-  ['highlights/shadows', ['image-highlights', 'image-shadows']],
-  ['sharpen', ['image-sharpen']],
-  ['blur', ['image-blur']],
-  ['grayscale/duotone', ['image-grayscale', 'image-duotone']],
-  ['filters', ['filter-mask']],
-  ['watermark', ['watermark-adder']],
-  ['text overlay', ['text-overlay']],
-  ['draw/annotate', ['draw-annotate']],
-  ['redaction', ['redaction']],
+const EXPECTED_20_TOOL_IDS = [
+  'background-remover',
+  'image-upscaler',
+  'image-cropper',
+  'image-compressor',
+  'image-converter',
+  'image-effects',
+  'image-resizer',
+  'image-rotate-flip',
+  'image-brightness-contrast',
+  'image-saturation-hue',
+  'image-exposure',
+  'image-highlights-shadows',
+  'image-sharpen',
+  'image-blur',
+  'image-grayscale-duotone',
+  'image-filters',
+  'image-watermark',
+  'image-text-overlay',
+  'image-draw-annotate',
+  'image-redaction',
 ] as const;
 
-for (const [category, toolIds] of TARGET_MATRIX) {
-  test(`red-team 20-tool gate: ${category}`, () => {
-    const states = toolIds.map((id) => [id, getToolById(id)?.capability.state ?? 'MISSING'] as const);
-    const failures = states.filter(([, state]) => state !== 'EXECUTABLE');
-    assert.deepEqual(
-      failures,
-      [],
-      `Target requires ${ADVERSARIAL_SCENARIO_COUNT} adversarial scenarios per tool; every mapped capability must be canonical EXECUTABLE. Observed: ${JSON.stringify(states)}`,
-    );
-  });
-}
+test('red-team 20-tool gate: canonical image surface is exactly 20 executable tools', () => {
+  assert.deepEqual(CANONICAL_IMAGE_TOOL_IDS, EXPECTED_20_TOOL_IDS);
+
+  for (const id of EXPECTED_20_TOOL_IDS) {
+    const tool = getToolById(id);
+    assert.ok(tool, `Missing canonical tool: ${id}`);
+    assert.equal(tool?.capability.state, 'EXECUTABLE', `Tool is not executable: ${id}`);
+    assert.equal(tool?.executionMode, 'LOCAL', `Tool is not local: ${id}`);
+    assert.equal(tool?.requirements.network, false, `Tool permits network execution: ${id}`);
+    assert.equal(tool?.operational.executorId, id, `Executor is not canonical: ${id}`);
+    assert.equal(tool?.operational.outputContractId, id, `Output contract is not canonical: ${id}`);
+    assert.equal(tool?.capability.safetyContract.requiresUserConfirmationForAgent, true, `Agent confirmation is not enforced: ${id}`);
+    assert.equal(tool?.capability.safetyContract.allowLockedLayerSelection, false, `Locked-layer guard is weakened: ${id}`);
+    assert.equal(tool?.capability.safetyContract.rawBlobEgress, false, `Raw Blob egress is enabled: ${id}`);
+    assert.equal(tool?.capability.recovery.maxAttempts, 1, `Retry budget is not bounded: ${id}`);
+    assert.equal(tool?.capability.recovery.replanOnFailure, false, `Unexpected semantic replan enabled: ${id}`);
+  }
+});
