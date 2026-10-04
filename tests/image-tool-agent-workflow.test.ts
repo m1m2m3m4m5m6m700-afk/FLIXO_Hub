@@ -38,6 +38,39 @@ test('agent confirmation is mandatory and parameter-bound',async()=>{
   await assert.rejects(()=>validateCanonicalImageExecutionRequest({toolId:'image-brightness-contrast',inputBlob:input,parameters:{brightness:120,contrast:100},origin:'agent',confirmed:true,confirmationToken:token}),/CONFIRMATION_TOKEN_INVALID/);
 });
 
+test('20/20 agent intent routing reaches every canonical image tool',()=>{
+  const cases=[
+    ['remove the background','background-remover'],
+    ['upscale the image','image-upscaler'],
+    ['crop the image','image-cropper'],
+    ['compress the image','image-compressor'],
+    ['convert the image to webp','image-converter'],
+    ['adjust image effects','image-effects'],
+    ['resize image dimensions','image-resizer'],
+    ['rotate and flip the image','image-rotate-flip'],
+    ['adjust brightness and contrast','image-brightness-contrast'],
+    ['adjust saturation and hue','image-saturation-hue'],
+    ['adjust exposure','image-exposure'],
+    ['adjust highlights and shadows','image-highlights-shadows'],
+    ['sharpen the image','image-sharpen'],
+    ['blur the image','image-blur'],
+    ['apply grayscale and duotone','image-grayscale-duotone'],
+    ['apply an image filter preset','image-filters'],
+    ['add a watermark to the image','image-watermark'],
+    ['place text overlay on the image','image-text-overlay'],
+    ['draw an arrow and annotate the image','image-draw-annotate'],
+    ['redact a region of the image','image-redaction'],
+  ] as const;
+  assert.equal(cases.length,20);
+  for(const [intent,expectedToolId] of cases){
+    const planned=planImageToolIntent(intent,{text:'FLIXO',format:'image/webp',preset:'vivid',x:25,y:25,width:25,height:25,color:'#000000',brightness:115,contrast:105,saturation:120,hue:10,exposure:1,highlights:10,shadows:10,scale:2,rotation:90,flipX:false,flipY:false,cropWidth:100,cropHeight:100,width:100,height:100,quality:0.8});
+    assert.equal(planned.status,'PLANNED',`Agent did not plan: ${intent}`);
+    assert.equal(planned.toolId,expectedToolId,`Wrong agent route for: ${intent}`);
+    assert.equal(planned.confirmationRequired,true,`Agent confirmation not required for: ${expectedToolId}`);
+    assert.ok(planned.plan?.catalogFingerprint,`Missing catalog fingerprint for: ${expectedToolId}`);
+  }
+});
+
 test('router maps English and Arabic intents to canonical image tools',()=>{
   assert.equal(planImageToolIntent('add a watermark to the image',{text:'FLIXO'}).toolId,'image-watermark');
   assert.equal(planImageToolIntent('تعمية الصورة').toolId,'image-redaction');
