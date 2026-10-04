@@ -73,9 +73,18 @@ const scoreMatch = (query: string, tool: ToolDefinition): number => {
       const tokens = normalizedQuery.split(' ').filter((token) => token.length > 1);
       const stopwords = new Set(['the', 'this', 'that', 'from', 'into', 'with', 'for', 'and', 'to', 'of', 'a', 'an', 'is', 'on', 'in', 'لل', 'من', 'في', 'إلى', 'و', 'مع', 'هذه', 'هذا']);
       const meaningful = tokens.filter((token) => !stopwords.has(token));
+      const candidateTokens = candidate.split(/\s+/).filter((token) => token.length > 1);
+      const candidateMeaningful = candidateTokens.filter((token) => !stopwords.has(token));
       const hits = meaningful.filter((token) => candidate.includes(token)).length;
-      const denominator = meaningful.length || tokens.length;
-      if (hits) score = Math.max(score, Math.round((hits / denominator) * 70));
+      const queryCoverage = hits / (meaningful.length || tokens.length);
+      const candidateCoverage = hits / (candidateMeaningful.length || candidateTokens.length || 1);
+      const specificity = Math.min(20, (candidateMeaningful.length || candidateTokens.length) * 4);
+      if (hits) {
+        score = Math.max(
+          score,
+          Math.min(99, Math.round(25 + queryCoverage * 35 + candidateCoverage * 30 + specificity)),
+        );
+      }
     }
   }
 
