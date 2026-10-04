@@ -1,3 +1,5 @@
+import { createRoute } from '@tanstack/react-router';
+import { rootRoute } from './__root';
 import { useMemo, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { executeAgentPlan, planAgentRequest, type AgentPlan } from '../lib/agent-guided-runtime';
@@ -139,3 +141,9 @@ export function AgentPage() {
     </main>
   );
 }
+
+export const agentRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/agent',
+  component: AgentPage,
+});
