@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-const PNG_FIXTURE = 'iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAPUlEQVR42mP4z8DwHwwZ/oMBAwOYxQBD/xkaHBT+Kzg0/HdoUPh/IsXoP4OIhs1/Gw2R/ynTTvz/sCXgPwDaSiSJ4dCj1wAAAABJRU5ErkJggg==';
+import { PNG, assertImageResult, captureDownload } from '../helpers/image-tool-fixture';
 const MANUAL_TOOL_IDS = [
   'background-remover','image-upscaler','image-cropper','image-compressor','image-converter','image-effects',
   'image-resizer','image-rotate-flip','image-brightness-contrast','image-saturation-hue','image-exposure',
@@ -32,11 +32,7 @@ const AGENT_CASES = [
 ] as const;
 
 function fixture() {
-  return {
-    name: 'flixo-release-fixture.png',
-    mimeType: 'image/png',
-    buffer: Buffer.from(PNG_FIXTURE, 'base64'),
-  };
+  return { name: 'flixo-release-fixture.png', mimeType: 'image/png', buffer: PNG };
 }
 
 async function executeManual(page: Page, toolId: (typeof MANUAL_TOOL_IDS)[number]) {
@@ -58,7 +54,9 @@ async function executeManual(page: Page, toolId: (typeof MANUAL_TOOL_IDS)[number
     : page.getByRole('button', { name: /Run tool/i });
   await expect(runButton).toBeEnabled({ timeout: 10_000 });
   await runButton.click();
-  await expect(page.locator('a[download]').first()).toBeVisible({ timeout: 20_000 });
+  await assertImageResult(page);
+  const download = await captureDownload(page);
+  expect(download.suggestedFilename()).toMatch(/\.png$|\.webp$|\.jpg$|\.jpeg$/i);
 }
 
 async function planAndExecuteAgent(page: Page, toolId: string, prompt: string, language: 'ar' | 'en') {
@@ -73,14 +71,14 @@ async function planAndExecuteAgent(page: Page, toolId: string, prompt: string, l
   await expect(main).toHaveAttribute('lang', language);
   await page.locator('#agent-prompt').fill(prompt);
   await page.locator('#agent-file').setInputFiles(fixture());
-  const buildButton = page.locator('main').last().locator('section').first().getByRole('button').first();
+  const buildButton = page.getByRole('button', { name: language === 'ar' ? /إنشاء الخطة/i : /Build plan/i });
   await expect(buildButton).toBeEnabled({ timeout: 10_000 });
   await buildButton.click();
   const plan = page.locator('[aria-label="agent-plan"]');
   await expect(plan).toContainText(toolId);
   const confirmation = plan.locator('input[type=checkbox]');
   await expect(confirmation).not.toBeChecked();
-  const executeButton = plan.getByRole('button').first();
+  const executeButton = plan.getByRole('button', { name: language === 'ar' ? /تنفيذ/i : /Execute/i });
   await expect(executeButton).toBeDisabled();
   await expect(page.locator('[aria-label="agent-result"]')).toHaveCount(0);
   await confirmation.check();
