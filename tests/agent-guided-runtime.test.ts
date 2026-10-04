@@ -149,3 +149,16 @@ test('ImageJob verifier absence fails closed', async () => {
     /verification failed.*verifier is required/i,
   );
 });
+
+test('agent confirmation receipts are single-consumer under concurrent invocation', async () => {
+  const input = file();
+  const plan = planAgentRequest('sharpen the image', input);
+  const receipt = confirmAgentPlan(plan, input);
+  const controller = new AbortController();
+  const executions = await Promise.allSettled([
+    executeAgentPlan(plan, input, receipt, controller.signal),
+    executeAgentPlan(plan, input, receipt, controller.signal),
+  ]);
+  const rejected = executions.filter((item) => item.status === 'rejected');
+  assert.ok(rejected.length >= 1);
+});
