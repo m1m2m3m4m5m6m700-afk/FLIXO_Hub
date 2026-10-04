@@ -179,6 +179,7 @@ export function ImageToolPage({ toolId }: Props) {
       case 'background-remover': return { tolerance: Number(tolerance) || 42 };
       case 'image-upscaler': return { scale: Number(scale) };
       case 'image-converter': return { format: outputFormat };
+      case 'image-effects': return { brightness: Number(advanced.brightness), contrast: Number(advanced.contrast) };
       case 'image-resizer': return { scale: Number(scale) };
       case 'image-rotate-flip': return { rotation: Number(advanced.rotation), flipX: advanced.flipX, flipY: advanced.flipY };
       case 'image-brightness-contrast': return { brightness: Number(advanced.brightness), contrast: Number(advanced.contrast) };
