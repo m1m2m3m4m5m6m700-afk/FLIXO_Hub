@@ -437,6 +437,34 @@ export function getCapability(id: string) {
   return getCanonicalCapabilityDefinition(id);
 }
 
+export function getDefaultAgentParameters(id: string): Record<string, string | number | boolean> {
+  const defaults: Record<string, Record<string, string | number | boolean>> = {
+    "background-remover": { tolerance: 42 },
+    "image-upscaler": { scale: 2 },
+    "image-cropper": { aspectRatio: "1:1" },
+    "image-compressor": { format: "image/webp" },
+    "image-converter": { format: "image/webp" },
+    "image-effects": { contrast: 115 },
+    "image-resizer": { scale: 1.5 },
+    "image-rotate-flip": { rotation: 90, flipX: false, flipY: false },
+    "image-brightness-contrast": { brightness: 115 },
+    "image-saturation-hue": { saturation: 115 },
+    "image-exposure": { exposure: 1 },
+    "image-highlights-shadows": { highlights: 20 },
+    "image-sharpen": { amount: 110 },
+    "image-blur": { radius: 6 },
+    "image-grayscale-duotone": { intensity: 100 },
+    "image-filters": { preset: "vivid" },
+    "image-watermark": { text: "FLIXO" },
+    "image-text-overlay": { text: "FLIXO" },
+    "image-draw-annotate": { kind: "arrow" },
+    "image-redaction": { x: 25, y: 25, width: 50, height: 25 },
+  };
+  const parameters = defaults[id];
+  if (!parameters) throw new Error("Unknown canonical image capability: " + id);
+  return validateCapabilityParameters(id, { ...parameters });
+}
+
 export function validateCapabilityParameters(id: string, parameters: CanonicalCapabilityParameters) {
   const definition = getCanonicalCapabilityDefinition(id);
   if (!definition) throw new Error(`Unknown manual capability: ${id}`);
