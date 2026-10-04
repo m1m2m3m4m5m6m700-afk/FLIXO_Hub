@@ -73,7 +73,7 @@ test('agent confirmation token helper binds validated effective parameters',asyn
   const input = new Blob(['input'], { type: 'image/png' });
   const securityContext = await securityContextFor(planned.plan!, input);
   const token=await confirmationTokenForImageAgentPlan(planned.plan!,[],{},securityContext);
-  assert.match(token, /^[a-f0-9]{32}\\.\\d+\\.[a-f0-9]{64}$/);
+  assert.match(token, /^[a-f0-9]{32}\.\d+\.[a-f0-9]{64}$/);
 });
 
 test('unknown tools and locked layers fail closed',async()=>{
