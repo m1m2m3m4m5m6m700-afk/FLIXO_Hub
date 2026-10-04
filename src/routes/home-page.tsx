@@ -9,6 +9,7 @@ import { localizeToolCategory, localizeToolDescription } from '@/lib/i18n/tool-l
 import type { HomeCopy } from '../data/home-locales';
 import type { Locale } from '@/lib/i18n';
 import type { ToolDefinition } from '../config/canonical-tool-definition';
+import { SmartCommandPalette } from '../components/SmartCommandPalette';
 
 type ToolCardProps = Readonly<{
   id: string;
@@ -41,6 +42,18 @@ export function HomePage({ locale = 'en' as Locale }: { locale?: Locale }) {
   const [copy, setCopy] = useState<HomeCopy | null>(null);
   const [query, setQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [smartIntentOpen, setSmartIntentOpen] = useState(false);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setSmartIntentOpen(true);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -81,8 +94,9 @@ export function HomePage({ locale = 'en' as Locale }: { locale?: Locale }) {
         <section className="home-search-panel" aria-label={copy.ariaFindTool}>
           <label className="sr-only" htmlFor="tool-search">{copy.searchLabel}</label>
           <div className="home-search-wrap"><span className="home-search-icon" aria-hidden="true">⌕</span><input id="tool-search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={copy.searchPlaceholder} autoComplete="off" /></div>
-          <div className="quick-tags" aria-label={copy.popular}>{copy.quickTags.map((tag) => <button key={tag} type="button" onClick={() => setQuery(tag)}>{tag}</button>)}</div>
+          <div className="quick-tags" aria-label={copy.popular}>{copy.quickTags.map((tag) => <button key={tag} type="button" onClick={() => setQuery(tag)}>{tag}</button>)}<button type="button" className="primary-button" onClick={() => setSmartIntentOpen(true)}>{copy.smartPalette}</button></div>
         </section>
+        {smartIntentOpen && <SmartCommandPalette onClose={() => setSmartIntentOpen(false)} />}
         <section className="home-trust-grid" id="privacy" aria-label={copy.ariaTrust}>{copy.trust.map(([title, text]) => <div key={title}><strong>{title}</strong><span>{text}</span></div>)}</section>
         <section id="tools" className="home-tools-section" aria-labelledby="tools-title">
           <div className="section-heading"><div><span className="image-tool-eyebrow">{copy.toolbox}</span><h2 id="tools-title">{copy.toolboxTitle}</h2></div><span className="tool-count">{filteredTools.length} {copy.ready}</span></div>
