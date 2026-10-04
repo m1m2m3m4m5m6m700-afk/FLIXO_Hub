@@ -1,6 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-
-const PNG_FIXTURE = 'iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAPUlEQVR42mP4z8DwHwwZ/oMBAwOYxQBD/xkaHBT+Kzg0/HdoUPh/IsXoP4OIhs1/Gw2R/ynTTvz/sCXgPwDaSiSJ4dCj1wAAAABJRU5ErkJggg==';
+import { PNG } from '../helpers/image-tool-fixture';
 const MANUAL_TOOL_IDS = [
   'background-remover','image-upscaler','image-cropper','image-compressor','image-converter','image-effects',
   'image-resizer','image-rotate-flip','image-brightness-contrast','image-saturation-hue','image-exposure',
@@ -35,7 +34,7 @@ function fixture() {
   return {
     name: 'flixo-release-fixture.png',
     mimeType: 'image/png',
-    buffer: Buffer.from(PNG_FIXTURE, 'base64'),
+    buffer: PNG,
   };
 }
 
