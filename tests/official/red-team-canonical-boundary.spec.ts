@@ -19,7 +19,7 @@ test("red-team browser gate rejects a non-executable persisted chain before imag
     );
   });
 
-  await page.goto("/en/image-rotate");
+  await page.goto("/en/image-converter");
   const panel = page.getByRole("complementary", { name: "Tool chaining workspace" });
   await panel.getByRole("button", { name: "Open" }).click();
 
