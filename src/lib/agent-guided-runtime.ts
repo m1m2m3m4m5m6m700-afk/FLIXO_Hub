@@ -298,6 +298,9 @@ export async function executeAgentPlan(
   }
 
   const validatedPlan = parseValidatedAgentPlan(plan);
+  if (validatedPlan.catalogFingerprint !== TOOL_CATALOG.fingerprint) {
+    throw new Error('Execution denied: plan is stale relative to the current canonical tool catalog.');
+  }
   verifyConfirmationReceipt(validatedPlan, file, receipt);
   assertNotAborted(signal);
 
