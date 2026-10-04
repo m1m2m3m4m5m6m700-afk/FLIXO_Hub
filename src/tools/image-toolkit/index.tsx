@@ -10,6 +10,7 @@ import { LOCALE_METADATA, isLocale } from '../../lib/i18n';
 import { getToolSeo } from '../../lib/seo/tool-seo';
 import { getAuthoritativeToolSeoName } from '../../config/tool-seo-name-resolver';
 import type { LocalToolId } from './engine';
+import { CANONICAL_IMAGE_TOOL_IDS, executeCanonicalImageTool } from '../../lib/canonical-image-executor';
 
 const DEFINITIONS: Record<Exclude<LocalToolId, 'ai-image-generator' | 'image-compressor'>, { title: string; description: string; accept: string }> = {
   'background-remover': { title: 'Background Remover', description: 'Remove connected, uniform backgrounds locally in your browser with edge-aware flood fill.', accept: 'image/png,image/jpeg,image/webp,image/svg+xml' },
@@ -32,6 +33,17 @@ const DEFINITIONS: Record<Exclude<LocalToolId, 'ai-image-generator' | 'image-com
   'image-blur': { title: 'Blur', description: 'Apply a local blur effect.', accept: 'image/png,image/jpeg,image/webp' },
   'image-sharpen': { title: 'Sharpen', description: 'Sharpen an image locally.', accept: 'image/png,image/jpeg,image/webp' },
   'image-resizer': { title: 'Resize Image', description: 'Resize an image locally with deterministic browser resampling.', accept: 'image/png,image/jpeg,image/webp' },
+    'image-rotate-flip': { title: 'Rotate & Flip', description: 'Rotate and flip images locally.', accept: 'image/png,image/jpeg,image/webp' },
+  'image-brightness-contrast': { title: 'Brightness & Contrast', description: 'Adjust brightness and contrast locally.', accept: 'image/png,image/jpeg,image/webp' },
+  'image-saturation-hue': { title: 'Saturation & Hue', description: 'Adjust saturation and hue locally.', accept: 'image/png,image/jpeg,image/webp' },
+  'image-exposure': { title: 'Exposure', description: 'Adjust image exposure locally.', accept: 'image/png,image/jpeg,image/webp' },
+  'image-highlights-shadows': { title: 'Highlights & Shadows', description: 'Adjust highlights and shadows locally.', accept: 'image/png,image/jpeg,image/webp' },
+  'image-grayscale-duotone': { title: 'Grayscale & Duotone', description: 'Convert an image to grayscale or a duotone palette locally.', accept: 'image/png,image/jpeg,image/webp' },
+  'image-filters': { title: 'Image Filters', description: 'Apply deterministic local filter presets.', accept: 'image/png,image/jpeg,image/webp' },
+  'image-watermark': { title: 'Image Watermark', description: 'Add a text watermark locally.', accept: 'image/png,image/jpeg,image/webp' },
+  'image-text-overlay': { title: 'Text Overlay', description: 'Place text over an image locally.', accept: 'image/png,image/jpeg,image/webp' },
+  'image-draw-annotate': { title: 'Draw & Annotate', description: 'Draw deterministic annotations locally.', accept: 'image/png,image/jpeg,image/webp' },
+  'image-redaction': { title: 'Image Redaction', description: 'Permanently cover a selected region locally.', accept: 'image/png,image/jpeg,image/webp' },
   'image-hue': { title: 'Hue', description: 'Shift image hue locally in the browser.', accept: 'image/png,image/jpeg,image/webp' },
   'image-pixelate': { title: 'Pixelate Image', description: 'Pixelate an image locally without uploading it.', accept: 'image/png,image/jpeg,image/webp' },
   'image-padding': { title: 'Image Padding', description: 'Add transparent padding around an image locally.', accept: 'image/png,image/jpeg,image/webp' },
@@ -141,12 +153,54 @@ export function ImageToolPage({ toolId }: Props) {
   const [prompt, setPrompt] = useState('');
   const [outputFormat, setOutputFormat] = useState<'image/png' | 'image/jpeg' | 'image/webp'>('image/webp');
   const [scale, setScale] = useState('2'); const [tolerance, setTolerance] = useState('42'); const [columns, setColumns] = useState('48');
+  const [advanced, setAdvanced] = useState({
+    rotation: '90', flipX: false, flipY: false,
+    brightness: '110', contrast: '110', saturation: '110', hue: '0',
+    exposure: '1', highlights: '15', shadows: '15', sharpen: '110', blur: '6',
+    duotoneIntensity: '100', darkColor: '#111111', lightColor: '#f5f5f5',
+    filter: 'vivid', watermark: 'FLIXO', text: 'FLIXO',
+    x: '50', y: '50', width: '50', height: '25', fontSize: '48',
+    x1: '10', y1: '10', x2: '80', y2: '80', stroke: '#ff3b30', strokeWidth: '8',
+    watermarkX: '10', watermarkY: '90', watermarkFontSize: '32', watermarkOpacity: '0.65', watermarkColor: '#ffffff',
+    background: '', backgroundOpacity: '0.5', align: 'center', annotationKind: 'arrow',
+  });
   const [cropX, setCropX] = useState('0'); const [cropY, setCropY] = useState('0'); const [cropW, setCropW] = useState('500'); const [cropH, setCropH] = useState('500'); const [outW, setOutW] = useState('500'); const [outH, setOutH] = useState('500');
   const [busy, setBusy] = useState(false); const [error, setError] = useState(''); const [result, setResult] = useState<Result | null>(null);
   const objectUrlRef = useRef<string | undefined>(undefined);
 
   useEffect(() => () => { if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current); }, []);
   const replaceResult = (next: Result | null) => { if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current); objectUrlRef.current = next?.objectUrl; setResult(next); };
+
+  const isCanonicalImageTool = (candidate: LocalToolId): candidate is LocalToolId =>
+    CANONICAL_IMAGE_TOOL_IDS.includes(candidate);
+
+  const canonicalParameters = (): Record<string, string | number | boolean> => {
+    switch (toolId) {
+      case 'background-remover': return { tolerance: Number(tolerance) || 42 };
+      case 'image-upscaler': return { scale: Number(scale) };
+      case 'image-converter': return { format: outputFormat };
+      case 'image-resizer': return { scale: Number(scale) };
+      case 'image-rotate-flip': return { rotation: Number(advanced.rotation), flipX: advanced.flipX, flipY: advanced.flipY };
+      case 'image-brightness-contrast': return { brightness: Number(advanced.brightness), contrast: Number(advanced.contrast) };
+      case 'image-saturation-hue': return { saturation: Number(advanced.saturation), hue: Number(advanced.hue) };
+      case 'image-exposure': return { exposure: Number(advanced.exposure) };
+      case 'image-highlights-shadows': return { highlights: Number(advanced.highlights), shadows: Number(advanced.shadows) };
+      case 'image-sharpen': return { amount: Number(advanced.sharpen) };
+      case 'image-blur': return { radius: Number(advanced.blur) };
+      case 'image-grayscale-duotone': return { intensity: Number(advanced.duotoneIntensity), darkColor: advanced.darkColor, lightColor: advanced.lightColor };
+      case 'image-filters': return { preset: advanced.filter };
+      case 'image-watermark': return { text: advanced.watermark, x: Number(advanced.watermarkX), y: Number(advanced.watermarkY), fontSize: Number(advanced.watermarkFontSize), opacity: Number(advanced.watermarkOpacity), color: advanced.watermarkColor };
+      case 'image-text-overlay': {
+        const params: Record<string, string | number | boolean> = { text: advanced.text, x: Number(advanced.x), y: Number(advanced.y), fontSize: Number(advanced.fontSize), color: '#ffffff', backgroundOpacity: Number(advanced.backgroundOpacity), align: advanced.align };
+        if (advanced.background) params.background = advanced.background;
+        return params;
+      }
+      case 'image-draw-annotate': return { kind: advanced.annotationKind, x1: Number(advanced.x1), y1: Number(advanced.y1), x2: Number(advanced.x2), y2: Number(advanced.y2), stroke: advanced.stroke, strokeWidth: Number(advanced.strokeWidth) };
+      case 'image-redaction': return { x: Number(advanced.x), y: Number(advanced.y), width: Number(advanced.width), height: Number(advanced.height), color: '#000000' };
+      default: return {};
+    }
+  };
+
 
   const run = async () => {
     setBusy(true); setError(''); replaceResult(null);
@@ -163,7 +217,14 @@ export function ImageToolPage({ toolId }: Props) {
       if (!file) throw new Error(ui.chooseImageFirst);
       await validateSharedImageInput(file, toolId);
       let blob: Blob; let fileName = baseName(file.name); let info: Result['info'];
-      if (toolId === 'background-remover') { blob = await removeBackground(file, Number(tolerance) || 42); fileName += '-no-background.png'; }
+      if (isCanonicalImageTool(toolId)) {
+        const parameters = canonicalParameters();
+        const receipt = await executeCanonicalImageTool({ toolId, inputBlob: file, parameters, origin: 'manual' });
+        blob = receipt.outputBlob;
+        info = await imageInfo(blob);
+        const extension = blob.type === 'image/jpeg' ? 'jpg' : blob.type === 'image/webp' ? 'webp' : 'png';
+        fileName = baseName(file.name) + '-flixo.' + extension;
+      } else if (toolId === 'background-remover') { blob = await removeBackground(file, Number(tolerance) || 42); fileName += '-no-background.png'; }
       else if (toolId === 'image-upscaler') { const factor = Number(scale); blob = await resizeImage(file, factor); fileName += `-upscaled-${factor}x.png`; }
       else if (toolId === 'image-converter') { blob = await convertImage(file, outputFormat); info = await imageInfo(blob); assertImageConverterOutputIntegrity(blob, info); fileName += outputFormat === 'image/jpeg' ? '.jpg' : outputFormat === 'image/png' ? '.png' : '.webp'; }
       else if (toolId === 'image-to-text') { const prepared = await preprocessForOcr(file); const ocr = await recognizeWithOcrWorker(prepared, 'eng+ara'); replaceResult(await createResult(new Blob([ocr.text], { type: 'text/plain;charset=utf-8' }), `${baseName(file.name)}.txt`, undefined, ocr.text)); return; }
@@ -181,7 +242,7 @@ export function ImageToolPage({ toolId }: Props) {
       else if (toolId === 'image-sepia') { blob = await applyBasicImageEffect(file, 'sepia', 100); fileName += '-sepia.png'; }
       else if (toolId === 'image-blur') { blob = await applyBasicImageEffect(file, 'blur', 80); fileName += '-blur.png'; }
       else if (toolId === 'image-sharpen') { blob = await applyBasicImageEffect(file, 'sharpen', 110); fileName += '-sharpen.png'; }
-      else if (toolId === 'image-resizer') { const factor = Number(scale); if (!Number.isFinite(factor) || factor < 0.1 || factor > 8) throw new Error('Scale must be between 0.1 and 8.'); blob = await resizeImage(file, factor); fileName += `-resized-${factor}x.png`; }
+      else if (toolId === 'image-resizer') { throw new Error('UNREACHABLE_CANONICAL_IMAGE_TOOL'); }
       else if (toolId === 'image-hue') { blob = await hueShiftImage(file, 30); fileName += '-hue.png'; }
       else if (toolId === 'image-pixelate') { blob = await pixelateImage(file, 10); fileName += '-pixelated.png'; }
       else if (toolId === 'image-padding') { blob = await padImage(file, 24); fileName += '-padded.png'; }
@@ -206,6 +267,56 @@ export function ImageToolPage({ toolId }: Props) {
             {(toolId === 'image-upscaler' || toolId === 'image-resizer') && <label><span>{ui.scale}</span><input aria-label={ui.scale} inputMode="decimal" value={scale} onChange={(event) => setScale(event.target.value)} /></label>}
             {toolId === 'background-remover' && <label><span>{ui.backgroundTolerance}</span><input aria-label={ui.backgroundTolerance} inputMode="numeric" value={tolerance} onChange={(event) => setTolerance(event.target.value)} /></label>}
             {toolId === 'raster-to-svg' && <label><span>{ui.svgColumns}</span><input aria-label={ui.svgColumns} inputMode="numeric" value={columns} onChange={(event) => setColumns(event.target.value)} /></label>}
+            {toolId === 'image-rotate-flip' && <div className="control-grid">
+              <label><span>Rotation</span><select aria-label="Rotation" value={advanced.rotation} onChange={(event) => setAdvanced((value) => ({ ...value, rotation: event.target.value }))}><option value="0">0°</option><option value="90">90°</option><option value="180">180°</option><option value="270">270°</option></select></label>
+              <label><span><input type="checkbox" checked={advanced.flipX} onChange={(event) => setAdvanced((value) => ({ ...value, flipX: event.target.checked }))} /> Flip horizontal</span></label>
+              <label><span><input type="checkbox" checked={advanced.flipY} onChange={(event) => setAdvanced((value) => ({ ...value, flipY: event.target.checked }))} /> Flip vertical</span></label>
+            </div>}
+            {toolId === 'image-brightness-contrast' && <div className="control-grid">
+              <label><span>Brightness</span><input aria-label="Brightness" type="range" min="1" max="200" value={advanced.brightness} onChange={(e) => setAdvanced((v) => ({ ...v, brightness: e.target.value }))} /></label>
+              <label><span>Contrast</span><input aria-label="Contrast" type="range" min="1" max="200" value={advanced.contrast} onChange={(e) => setAdvanced((v) => ({ ...v, contrast: e.target.value }))} /></label>
+            </div>}
+            {toolId === 'image-saturation-hue' && <div className="control-grid">
+              <label><span>Saturation</span><input aria-label="Saturation" type="range" min="0" max="200" value={advanced.saturation} onChange={(e) => setAdvanced((v) => ({ ...v, saturation: e.target.value }))} /></label>
+              <label><span>Hue</span><input aria-label="Hue" type="range" min="-360" max="360" value={advanced.hue} onChange={(e) => setAdvanced((v) => ({ ...v, hue: e.target.value }))} /></label>
+            </div>}
+            {toolId === 'image-exposure' && <label><span>Exposure</span><input aria-label="Exposure" type="range" min="-4" max="4" step="0.25" value={advanced.exposure} onChange={(e) => setAdvanced((v) => ({ ...v, exposure: e.target.value }))} /></label>}
+            {toolId === 'image-highlights-shadows' && <div className="control-grid">
+              <label><span>Highlights</span><input aria-label="Highlights" type="range" min="-100" max="100" value={advanced.highlights} onChange={(e) => setAdvanced((v) => ({ ...v, highlights: e.target.value }))} /></label>
+              <label><span>Shadows</span><input aria-label="Shadows" type="range" min="-100" max="100" value={advanced.shadows} onChange={(e) => setAdvanced((v) => ({ ...v, shadows: e.target.value }))} /></label>
+            </div>}
+            {toolId === 'image-sharpen' && <label><span>Sharpen amount</span><input aria-label="Sharpen amount" type="range" min="1" max="200" value={advanced.sharpen} onChange={(e) => setAdvanced((v) => ({ ...v, sharpen: e.target.value }))} /></label>}
+            {toolId === 'image-blur' && <label><span>Blur radius</span><input aria-label="Blur radius" type="range" min="1" max="32" value={advanced.blur} onChange={(e) => setAdvanced((v) => ({ ...v, blur: e.target.value }))} /></label>}
+            {toolId === 'image-grayscale-duotone' && <div className="control-grid">
+              <label><span>Intensity</span><input aria-label="Intensity" type="range" min="1" max="100" value={advanced.duotoneIntensity} onChange={(e) => setAdvanced((v) => ({ ...v, duotoneIntensity: e.target.value }))} /></label>
+              <label><span>Dark color</span><input aria-label="Dark color" value={advanced.darkColor} onChange={(e) => setAdvanced((v) => ({ ...v, darkColor: e.target.value }))} /></label>
+              <label><span>Light color</span><input aria-label="Light color" value={advanced.lightColor} onChange={(e) => setAdvanced((v) => ({ ...v, lightColor: e.target.value }))} /></label>
+            </div>}
+            {toolId === 'image-filters' && <label><span>Filter</span><select aria-label="Filter" value={advanced.filter} onChange={(e) => setAdvanced((v) => ({ ...v, filter: e.target.value }))}><option value="vivid">Vivid</option><option value="warm">Warm</option><option value="cool">Cool</option><option value="vintage">Vintage</option><option value="mono">Mono</option><option value="sepia">Sepia</option><option value="cinematic">Cinematic</option></select></label>}
+            {toolId === 'image-watermark' && <div className="control-grid">
+              <label><span>Watermark text</span><input aria-label="Watermark text" value={advanced.watermark} onChange={(e) => setAdvanced((v) => ({ ...v, watermark: e.target.value }))} /></label>
+              <label><span>X %</span><input aria-label="Watermark X" inputMode="numeric" value={advanced.watermarkX} onChange={(e) => setAdvanced((v) => ({ ...v, watermarkX: e.target.value }))} /></label>
+              <label><span>Y %</span><input aria-label="Watermark Y" inputMode="numeric" value={advanced.watermarkY} onChange={(e) => setAdvanced((v) => ({ ...v, watermarkY: e.target.value }))} /></label>
+            </div>}
+            {toolId === 'image-text-overlay' && <div className="control-grid">
+              <label><span>Text</span><input aria-label="Overlay text" value={advanced.text} onChange={(e) => setAdvanced((v) => ({ ...v, text: e.target.value }))} /></label>
+              <label><span>X %</span><input aria-label="Overlay X" value={advanced.x} onChange={(e) => setAdvanced((v) => ({ ...v, x: e.target.value }))} /></label>
+              <label><span>Y %</span><input aria-label="Overlay Y" value={advanced.y} onChange={(e) => setAdvanced((v) => ({ ...v, y: e.target.value }))} /></label>
+              <label><span>Font size</span><input aria-label="Overlay font size" value={advanced.fontSize} onChange={(e) => setAdvanced((v) => ({ ...v, fontSize: e.target.value }))} /></label>
+            </div>}
+            {toolId === 'image-draw-annotate' && <div className="control-grid">
+              <label><span>Kind</span><select aria-label="Annotation kind" value={advanced.annotationKind} onChange={(e) => setAdvanced((v) => ({ ...v, annotationKind: e.target.value }))}><option value="arrow">Arrow</option><option value="line">Line</option><option value="rect">Rectangle</option><option value="ellipse">Ellipse</option></select></label>
+              <label><span>X1 %</span><input aria-label="X1" value={advanced.x1} onChange={(e) => setAdvanced((v) => ({ ...v, x1: e.target.value }))} /></label>
+              <label><span>Y1 %</span><input aria-label="Y1" value={advanced.y1} onChange={(e) => setAdvanced((v) => ({ ...v, y1: e.target.value }))} /></label>
+              <label><span>X2 %</span><input aria-label="X2" value={advanced.x2} onChange={(e) => setAdvanced((v) => ({ ...v, x2: e.target.value }))} /></label>
+              <label><span>Y2 %</span><input aria-label="Y2" value={advanced.y2} onChange={(e) => setAdvanced((v) => ({ ...v, y2: e.target.value }))} /></label>
+            </div>}
+            {toolId === 'image-redaction' && <div className="control-grid">
+              <label><span>X %</span><input aria-label="Redaction X" value={advanced.x} onChange={(e) => setAdvanced((v) => ({ ...v, x: e.target.value }))} /></label>
+              <label><span>Y %</span><input aria-label="Redaction Y" value={advanced.y} onChange={(e) => setAdvanced((v) => ({ ...v, y: e.target.value }))} /></label>
+              <label><span>Width %</span><input aria-label="Redaction width" value={advanced.width} onChange={(e) => setAdvanced((v) => ({ ...v, width: e.target.value }))} /></label>
+              <label><span>Height %</span><input aria-label="Redaction height" value={advanced.height} onChange={(e) => setAdvanced((v) => ({ ...v, height: e.target.value }))} /></label>
+            </div>}
             {['object-remover', 'watermark-remover', 'crop-resize'].includes(toolId) && <div className="control-grid">{([ [ui.x, cropX, setCropX, 'object-x'], [ui.y, cropY, setCropY, 'object-y'], [ui.width, cropW, setCropW, 'object-width'], [ui.height, cropH, setCropH, 'object-height'] ] as const).map(([labelText, value, setter, testId]) => <label key={testId}><span>{labelText}</span><input data-testid={testId} aria-label={labelText} inputMode="numeric" value={value} onChange={(event) => setter(event.target.value)} /></label>)}{toolId === 'crop-resize' && <><label><span>{ui.outputWidth}</span><input aria-label={ui.outputWidth} inputMode="numeric" value={outW} onChange={(event) => setOutW(event.target.value)} /></label><label><span>{ui.outputHeight}</span><input aria-label={ui.outputHeight} inputMode="numeric" value={outH} onChange={(event) => setOutH(event.target.value)} /></label></>}</div>}
             <div className="button-row"><button className="primary-button" disabled={busy || (!file && !isGenerator)} onClick={() => void run()}>{busy ? ui.processing : isGenerator ? ui.generate : ui.run}</button></div>
             {error && <p role="alert" className="error-box">{error}</p>}
