@@ -32,6 +32,7 @@ const DEFINITIONS: Record<Exclude<LocalToolId, 'ai-image-generator' | 'image-com
   'image-sepia': { title: 'Sepia', description: 'Apply a sepia effect locally.', accept: 'image/png,image/jpeg,image/webp' },
   'image-blur': { title: 'Blur', description: 'Apply a local blur effect.', accept: 'image/png,image/jpeg,image/webp' },
   'image-sharpen': { title: 'Sharpen', description: 'Sharpen an image locally.', accept: 'image/png,image/jpeg,image/webp' },
+  'image-effects': { title: 'Image Effects', description: 'Adjust common image effects locally in your browser.', accept: 'image/png,image/jpeg,image/webp' },
   'image-resizer': { title: 'Resize Image', description: 'Resize an image locally with deterministic browser resampling.', accept: 'image/png,image/jpeg,image/webp' },
     'image-rotate-flip': { title: 'Rotate & Flip', description: 'Rotate and flip images locally.', accept: 'image/png,image/jpeg,image/webp' },
   'image-brightness-contrast': { title: 'Brightness & Contrast', description: 'Adjust brightness and contrast locally.', accept: 'image/png,image/jpeg,image/webp' },
