@@ -147,7 +147,7 @@ const EN_STOPWORDS = new Set(['a', 'an', 'the', 'this', 'my', 'to', 'of', 'for',
 
 function tokenize(value: string): string[] {
   return normalize(value)
-    .replace(/[^p{L}p{N}]+/gu, ' ')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .split(/s+/)
     .filter(Boolean)
     .filter((token) => !EN_STOPWORDS.has(token));
