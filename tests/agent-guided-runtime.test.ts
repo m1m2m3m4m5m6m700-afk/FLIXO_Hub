@@ -84,7 +84,7 @@ test('agent execution requires a one-time confirmation receipt and rejects forge
   });
   await assert.rejects(
     () => executeAgentPlan(forgedPlan, input, receipt),
-    /different canonical tool catalog/i,
+    /confirmation receipt is stale or does not match/i,
   );
 
   const secondReceipt = confirmAgentPlan(plan, input);
@@ -182,7 +182,7 @@ test('agent confirmation receipts are single-consumer under concurrent invocatio
 
 test('agent planner refuses compound requests instead of silently dropping the second intent', () => {
   assert.throws(
-    () => planAgentRequest('remove the background and resize the image', file()),
+    () => planAgentRequest('increase brightness and contrast', file()),
     /ambiguous/i,
   );
 });
