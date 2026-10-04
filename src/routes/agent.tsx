@@ -105,7 +105,7 @@ export function AgentPage() {
   };
 
   return (
-    <main dir={direction} lang={language === 'ar' ? 'ar' : 'en'} style={{ minHeight: '100vh', padding: '32px 20px', background: 'var(--background, #090d12)', color: 'var(--foreground, #f6f7f9)' }}>
+    <main data-flixo-locale-owner="agent" dir={direction} lang={language === 'ar' ? 'ar' : 'en'} style={{ minHeight: '100vh', padding: '32px 20px', background: 'var(--background, #090d12)', color: 'var(--foreground, #f6f7f9)' }}>
       <div style={{ maxWidth: 920, margin: '0 auto', display: 'grid', gap: 20 }}>
         <header style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'flex-start' }}>
           <div>
