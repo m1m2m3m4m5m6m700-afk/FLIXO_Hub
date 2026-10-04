@@ -67,7 +67,7 @@ export function AgentPage() {
     return '';
   }, [busy, copy.ready, copy.working, plan]);
 
-  const buildPlan = () => {
+  const buildPlan = async () => {
     if (!file) {
       setError(language === 'ar' ? 'اختر صورة أولًا.' : 'Choose an image first.');
       return;
@@ -76,7 +76,7 @@ export function AgentPage() {
       setError('');
       setResult(null);
       setConfirmed(false);
-      setPlan(planAgentRequest(prompt, file));
+      setPlan(await planAgentRequest(prompt, file));
     } catch (caught) {
       setPlan(null);
       setError(caught instanceof Error ? caught.message : copy.error);
@@ -117,7 +117,7 @@ export function AgentPage() {
           <textarea id="agent-prompt" value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder={copy.promptPlaceholder} rows={4} />
           <label htmlFor="agent-file">{copy.file}</label>
           <input id="agent-file" type="file" accept="image/*" onChange={(event) => { setFile(event.target.files?.[0] ?? null); setPlan(null); setResult(null); setConfirmed(false); }} />
-          <button type="button" onClick={buildPlan} disabled={!prompt.trim() || !file || busy}>{copy.plan}</button>
+          <button type="button" onClick={() => void buildPlan()} disabled={!prompt.trim() || !file || busy}>{copy.plan}</button>
         </section>
 
         {plan && (
