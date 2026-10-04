@@ -73,12 +73,12 @@ const PARAMETER_SCHEMAS = {
     saturate: z.number().finite().min(0).max(200).optional(),
     grayscale: z.number().finite().min(0).max(100).optional(),
   }).strict(),
-  "image-resizer": z.object({ scale: z.number().finite().positive().min(0.1).max(8).optional(), width: z.number().int().positive().max(4000).optional(), height: z.number().int().positive().max(4000).optional() }).refine(v => v.scale !== undefined || v.width !== undefined || v.height !== undefined, "resize parameters are required").strict(),
+  "image-resizer": z.object({ scale: z.number().finite().positive().min(0.1).max(8).optional(), width: z.number().int().positive().max(4000).optional(), height: z.number().int().positive().max(4000).optional() }).strict().refine(v => v.scale !== undefined || v.width !== undefined || v.height !== undefined, "resize parameters are required"),
   "image-rotate-flip": z.object({ rotation: z.union([z.literal(0), z.literal(90), z.literal(180), z.literal(270)]).default(90), flipX: z.boolean().default(false), flipY: z.boolean().default(false) }).strict(),
-  "image-brightness-contrast": z.object({ brightness: z.number().finite().min(0).max(200).optional(), contrast: z.number().finite().min(0).max(200).optional() }).refine(v => v.brightness !== undefined || v.contrast !== undefined, "brightness or contrast is required").refine(v => (v.brightness ?? 100) !== 100 || (v.contrast ?? 100) !== 100, "brightness or contrast must change").strict(),
-  "image-saturation-hue": z.object({ saturation: z.number().finite().min(0).max(200).optional(), hue: z.number().finite().min(-360).max(360).optional() }).refine(v => v.saturation !== undefined || v.hue !== undefined, "saturation or hue is required").refine(v => (v.saturation ?? 100) !== 100 || (v.hue ?? 0) !== 0, "saturation or hue must change").strict(),
+  "image-brightness-contrast": z.object({ brightness: z.number().finite().min(0).max(200).optional(), contrast: z.number().finite().min(0).max(200).optional() }).strict().refine(v => v.brightness !== undefined || v.contrast !== undefined, "brightness or contrast is required").refine(v => (v.brightness ?? 100) !== 100 || (v.contrast ?? 100) !== 100, "brightness or contrast must change"),
+  "image-saturation-hue": z.object({ saturation: z.number().finite().min(0).max(200).optional(), hue: z.number().finite().min(-360).max(360).optional() }).strict().refine(v => v.saturation !== undefined || v.hue !== undefined, "saturation or hue is required").refine(v => (v.saturation ?? 100) !== 100 || (v.hue ?? 0) !== 0, "saturation or hue must change"),
   "image-exposure": z.object({ exposure: z.number().finite().min(-4).max(4).refine(v => v !== 0, "exposure cannot be neutral") }).strict(),
-  "image-highlights-shadows": z.object({ highlights: z.number().finite().min(-100).max(100).optional(), shadows: z.number().finite().min(-100).max(100).optional() }).refine(v => (v.highlights ?? 0) !== 0 || (v.shadows ?? 0) !== 0, "highlights or shadows must change").strict(),
+  "image-highlights-shadows": z.object({ highlights: z.number().finite().min(-100).max(100).optional(), shadows: z.number().finite().min(-100).max(100).optional() }).strict().refine(v => (v.highlights ?? 0) !== 0 || (v.shadows ?? 0) !== 0, "highlights or shadows must change"),
   "image-sharpen": z.object({ amount: z.number().finite().min(1).max(200).default(110) }).strict(),
   "image-blur": z.object({ radius: z.number().finite().min(1).max(32).default(6) }).strict(),
   "image-grayscale-duotone": z.object({ intensity: z.number().finite().min(1).max(100).default(100), darkColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#111111"), lightColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#f5f5f5") }).strict(),
@@ -312,6 +312,61 @@ const videoVerifier: CanonicalCapabilityVerifier = async (input, output, paramet
   return outputMeta.duration !== undefined && outputMeta.duration > 0;
 };
 
+
+const imageArtifactVerifier: CanonicalCapabilityVerifier = async (input, output, _parameters, signal) => {
+  if (signal?.aborted || output.size <= 0 || !output.type.startsWith("image/")) return false;
+  const [inputDimensions, outputDimensions] = await Promise.all([readImageDimensions(input, signal), readImageDimensions(output, signal)]);
+  if (!inputDimensions || !outputDimensions || outputDimensions.width <= 0 || outputDimensions.height <= 0) return false;
+  return hasMeaningfulPixelChange(input, output, signal);
+};
+
+const resizerVerifier: CanonicalCapabilityVerifier = async (input, output, parameters, signal) => {
+  if (signal?.aborted || output.size <= 0 || !output.type.startsWith("image/")) return false;
+  const [inputDimensions, outputDimensions] = await Promise.all([readImageDimensions(input, signal), readImageDimensions(output, signal)]);
+  if (!inputDimensions || !outputDimensions) return false;
+  if (parameters.width !== undefined || parameters.height !== undefined) {
+    return outputDimensions.width === Number(parameters.width ?? inputDimensions.width) &&
+      outputDimensions.height === Number(parameters.height ?? inputDimensions.height);
+  }
+  const scale = Number(parameters.scale ?? 1);
+  return outputDimensions.width === Math.max(1, Math.round(inputDimensions.width * scale)) &&
+    outputDimensions.height === Math.max(1, Math.round(inputDimensions.height * scale));
+};
+
+const rotateFlipVerifier: CanonicalCapabilityVerifier = async (input, output, parameters, signal) => {
+  if (signal?.aborted || output.size <= 0 || !output.type.startsWith("image/")) return false;
+  const a = await readImageDimensions(input, signal);
+  const b = await readImageDimensions(output, signal);
+  if (!a || !b) return false;
+  const rotation = Number(parameters.rotation ?? 90);
+  const swapped = rotation === 90 || rotation === 270;
+  return b.width === (swapped ? a.height : a.width) &&
+    b.height === (swapped ? a.width : a.height) &&
+    hasMeaningfulPixelChange(input, output, signal);
+};
+
+const verifierForTarget = (id: string): CanonicalCapabilityVerifier => {
+  switch (id) {
+    case "image-resizer": return resizerVerifier;
+    case "image-rotate-flip": return rotateFlipVerifier;
+    case "image-brightness-contrast":
+    case "image-saturation-hue":
+    case "image-exposure":
+    case "image-highlights-shadows":
+    case "image-sharpen":
+    case "image-blur":
+    case "image-grayscale-duotone":
+    case "image-filters":
+    case "image-watermark":
+    case "image-text-overlay":
+    case "image-draw-annotate":
+    case "image-redaction":
+      return imageArtifactVerifier;
+    default:
+      return defaultVerifier;
+  }
+};
+
 function createCapability(id:(typeof MVP_EXECUTABLE_TOOL_IDS)[number]):CanonicalCapabilityDefinition{
   const meta=META[id];
   const isVideo=id.startsWith("video-");
@@ -319,14 +374,27 @@ function createCapability(id:(typeof MVP_EXECUTABLE_TOOL_IDS)[number]):Canonical
   const safetyLimits=Object.freeze(isVideo
     ? {maxPixels:64_000_000,maxFileSizeBytes:512*1024*1024,timeoutMs:10*60*1000}
     : {maxPixels:16_000_000,maxFileSizeBytes:64*1024*1024,timeoutMs:30_000});
-  const verifier=id==="background-remover"?backgroundRemovalVerifier:id==="image-upscaler"?upscalerVerifier:id==="image-cropper"?cropperVerifier:id==="image-compressor"?targetSizeVerifier:id==="image-converter"?formatVerifier:id==="image-effects"?effectsVerifier:isVideo?videoVerifier:defaultVerifier;
+  const verifier =
+    id==="background-remover" ? backgroundRemovalVerifier :
+    id==="image-upscaler" ? upscalerVerifier :
+    id==="image-cropper" ? cropperVerifier :
+    id==="image-compressor" ? targetSizeVerifier :
+    id==="image-converter" ? formatVerifier :
+    id==="image-effects" ? effectsVerifier :
+    isVideo ? videoVerifier :
+    verifierForTarget(id);
   return Object.freeze({
     id,...meta,state:"EXECUTABLE" as const,executionMode:"LOCAL" as const,execution,
     intents:Object.freeze(INTENTS[id]),
     parameterSchema:PARAMETER_SCHEMAS[id],
     safetyLimits,verifier,
     requirements:Object.freeze({browser:true as const,network:false as const}),
-    recovery:Object.freeze({maxAttempts:3 as const,replanOnFailure:false as const}),
+    recovery:Object.freeze({maxAttempts:1,replanOnFailure:false as const}),
+    safetyContract:Object.freeze({
+      requiresUserConfirmationForAgent: !isVideo,
+      allowLockedLayerSelection: false as const,
+      rawBlobEgress: false as const,
+    }),
     operational:Object.freeze({lifecycle:"ready" as const,execution,contracts:["structural","runtime","artifact"] as const,executorId:id,outputContractId:id}),
   });
 }
