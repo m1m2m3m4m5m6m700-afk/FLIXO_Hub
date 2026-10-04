@@ -62,16 +62,25 @@ const scoreMatch = (query: string, tool: ToolDefinition): number => {
   const normalizedQuery = normalize(query);
   if (!normalizedQuery) return 0;
 
-  const candidates = [tool.id, tool.title, tool.description, ...(ALIASES[tool.id] ?? [])].map(normalize);
+  const candidates = [
+    { value: tool.id, priority: 0 },
+    { value: tool.title, priority: 1 },
+    ...tool.capability.intents.map((value) => ({ value, priority: 3 })),
+    ...(ALIASES[tool.id] ?? []).map((value) => ({ value, priority: 2 })),
+    { value: tool.description, priority: 0 },
+  ].map((entry) => ({ value: normalize(entry.value), priority: entry.priority }));
+
   let score = 0;
 
-  for (const candidate of candidates) {
+  for (const { value: candidate, priority } of candidates) {
     if (!candidate) continue;
     const candidateTokenCount = lexicalTokens(candidate).length;
     const specificityBonus = Math.min(20, candidateTokenCount * 3);
-    if (candidate === normalizedQuery) score = Math.max(score, 100 + specificityBonus);
-    else if (candidate.includes(normalizedQuery)) score = Math.max(score, 85 + specificityBonus);
-    else if (normalizedQuery.includes(candidate)) score = Math.max(score, 70 + specificityBonus);
+    const priorityBonus = priority * 3;
+
+    if (candidate === normalizedQuery) score = Math.max(score, 100 + specificityBonus + priorityBonus);
+    else if (candidate.includes(normalizedQuery)) score = Math.max(score, 85 + specificityBonus + priorityBonus);
+    else if (normalizedQuery.includes(candidate)) score = Math.max(score, 70 + specificityBonus + priorityBonus);
     else {
       const tokens = lexicalTokens(normalizedQuery).filter((token) => token.length > 1);
       const stopwords = new Set(['the', 'this', 'that', 'from', 'into', 'with', 'for', 'and', 'to', 'of', 'a', 'an', 'is', 'on', 'in', 'لل', 'من', 'في', 'إلى', 'و', 'مع', 'هذه', 'هذا']);
@@ -85,13 +94,13 @@ const scoreMatch = (query: string, tool: ToolDefinition): number => {
       if (hits) {
         score = Math.max(
           score,
-          Math.min(99, Math.round(25 + queryCoverage * 35 + candidateCoverage * 30 + specificity)),
+          Math.min(99, Math.round(25 + queryCoverage * 35 + candidateCoverage * 30 + specificity + priorityBonus)),
         );
       }
     }
   }
 
-  return score;
+  return Math.min(100, score);
 };
 
 export const findToolIntent = (query: string, tools: readonly ToolDefinition[]): IntentMatch[] =>
