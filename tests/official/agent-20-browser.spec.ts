@@ -107,6 +107,16 @@ test('Agent mobile Arabic viewport has no horizontal overflow', async ({ page })
 });
 
 test('Agent exposes cancellation and prevents post-cancel result', async ({ page }) => {
+  // Force the async canvas export to remain pending long enough to exercise the
+  // actual AbortController path instead of racing a very fast local operation.
+  await page.addInitScript(() => {
+    const originalToBlob = HTMLCanvasElement.prototype.toBlob;
+    HTMLCanvasElement.prototype.toBlob = function delayedToBlob(callback, type, quality) {
+      return originalToBlob.call(this, (blob) => {
+        window.setTimeout(() => callback(blob), 750);
+      }, type, quality);
+    };
+  });
   await page.goto('/agent', { waitUntil: 'domcontentloaded' });
   await page.locator('#agent-prompt').fill('blur image');
   await page.locator('#agent-file').setInputFiles({
