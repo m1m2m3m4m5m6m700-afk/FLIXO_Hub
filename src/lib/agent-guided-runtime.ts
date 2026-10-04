@@ -116,6 +116,18 @@ function withExecutionGuards<T>(
   });
 }
 
+function parseValidatedAgentPlan(plan: AgentPlan): ExecutionPlanContract {
+  return parseExecutionPlan({
+    workflowName: plan.workflowName,
+    confidence: plan.confidence,
+    catalogFingerprint: plan.catalogFingerprint,
+    steps: plan.steps.map((step) => ({
+      toolId: step.toolId,
+      params: step.params ?? {},
+    })),
+  });
+}
+
 function verifyConfirmationReceipt(
   plan: ExecutionPlanContract,
   file: File,
@@ -209,7 +221,7 @@ export function confirmAgentPlan(
   if (plan.requiresUserConfirmation !== true) {
     throw new Error('Confirmation denied: the plan is not confirmation-gated.');
   }
-  const validatedPlan = parseExecutionPlan(plan);
+  const validatedPlan = parseValidatedAgentPlan(plan);
   const token = randomToken();
   confirmationRecords.set(token, Object.freeze({
     planIdentity: executionPlanIdentity(validatedPlan),
@@ -233,7 +245,7 @@ export async function executeAgentPlan(
     throw new Error('Execution denied: explicit user confirmation is required.');
   }
 
-  const validatedPlan = parseExecutionPlan(plan);
+  const validatedPlan = parseValidatedAgentPlan(plan);
   verifyConfirmationReceipt(validatedPlan, file, receipt);
   assertNotAborted(signal);
 
