@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 const { planAgentRequest, executeAgentPlan } = await import('../src/lib/agent-guided-runtime.ts');
+const { CANONICAL_IMAGE_TOOL_IDS } = await import('../src/lib/canonical-image-executor.ts');
 
 const CASES: ReadonlyArray<readonly [string,string]> = [
   ['background-remover','remove the background'],
