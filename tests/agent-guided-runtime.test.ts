@@ -11,7 +11,7 @@ const CASES: ReadonlyArray<readonly [string, string]> = [
   ['image-cropper', 'crop this image to square'],
   ['image-compressor', 'compress my image'],
   ['image-converter', 'convert this image to webp'],
-  ['image-effects', 'increase contrast'],
+  ['image-effects', 'adjust image effects'],
   ['image-rotate', 'rotate the image'],
   ['image-flip-horizontal', 'flip horizontal'],
   ['image-flip-vertical', 'flip vertical'],
