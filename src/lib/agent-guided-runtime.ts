@@ -24,6 +24,7 @@ const MAX_PROMPT_CHARS = 2_000;
 
 // Default Agent parameters are sourced from the canonical capability registry.
 
+
 const TASK_COUNTER = { value: 0 };
 
 function assertLocalImageFile(file: File): void {
@@ -49,10 +50,8 @@ async function paramsFor(
   const defaults = getDefaultAgentParameters(toolId);
   if (toolId !== 'image-cropper') return defaults;
 
-  // A language-level "crop to square" request is resolved at execution time
-  // because the crop bounds depend on the actual uploaded document dimensions.
-  // Bind the bounded square to the source instead of relying on the UI's
-  // 500x500 control defaults.
+  // A language-level crop request needs source dimensions; this is resolved
+  // from the uploaded local image before the confirmation-bound plan is built.
   try {
     const info = await imageInfo(file);
     const size = Math.max(1, Math.min(info.width, info.height));
@@ -65,20 +64,11 @@ async function paramsFor(
       height: size,
     });
   } catch {
-    // Non-browser contract tests may not expose an image decoder. Keep the
-    // canonical bounded defaults there; browser execution still resolves the
-    // crop from actual dimensions whenever decoding is available.
+    // Node contract tests do not expose browser image decoders. The canonical
+    // bounded defaults keep planning deterministic there; browser execution
+    // still resolves the actual uploaded dimensions when decoding is available.
     return defaults;
   }
-}
-
-    x: 0,
-    y: 0,
-    cropWidth: size,
-    cropHeight: size,
-    width: size,
-    height: size,
-  });
 }
 
 async function buildSecurityContext(
