@@ -31,11 +31,55 @@ test('unknown tools and locked layers fail closed',async()=>{
   assert.throws(()=>assertTargetLayersUnlocked(['missing'],[{id:'layer-1',locked:false}]),/TARGET_LAYER_NOT_FOUND/);
 });
 
-test('agent confirmation is mandatory and parameter-bound',async()=>{
+test('agent confirmation is mandatory, task-state-bound, and parameter-bound',async()=>{
   const input=new Blob(['image'],{type:'image/png'});
-  const token=await createImageExecutionConfirmationToken('image-brightness-contrast',{brightness:115,contrast:100},[]);
-  await assert.rejects(()=>validateCanonicalImageExecutionRequest({toolId:'image-brightness-contrast',inputBlob:input,parameters:{brightness:115,contrast:100},origin:'agent'}),/CONFIRMATION_REQUIRED/);
-  await assert.rejects(()=>validateCanonicalImageExecutionRequest({toolId:'image-brightness-contrast',inputBlob:input,parameters:{brightness:120,contrast:100},origin:'agent',confirmed:true,confirmationToken:token}),/CONFIRMATION_TOKEN_INVALID/);
+  const securityContext={
+    taskId:'task-1',
+    taskRevision:4,
+    documentRevision:9,
+    planFingerprint:'a'.repeat(64),
+    catalogFingerprint:TOOL_CATALOG.fingerprint,
+    expiresAt:Date.now()+60_000,
+  } as const;
+  const token=await createImageExecutionConfirmationToken(
+    'image-brightness-contrast',
+    {brightness:115,contrast:100},
+    [],
+    securityContext,
+  );
+  await assert.rejects(
+    ()=>validateCanonicalImageExecutionRequest({
+      toolId:'image-brightness-contrast',
+      inputBlob:input,
+      parameters:{brightness:115,contrast:100},
+      origin:'agent',
+    }),
+    /CONFIRMATION_REQUIRED/,
+  );
+  await assert.rejects(
+    ()=>validateCanonicalImageExecutionRequest({
+      toolId:'image-brightness-contrast',
+      inputBlob:input,
+      parameters:{brightness:120,contrast:100},
+      origin:'agent',
+      confirmed:true,
+      confirmationToken:token,
+      securityContext,
+    }),
+    /CONFIRMATION_TOKEN_INVALID/,
+  );
+  await assert.rejects(
+    ()=>validateCanonicalImageExecutionRequest({
+      toolId:'image-brightness-contrast',
+      inputBlob:input,
+      parameters:{brightness:115,contrast:100},
+      origin:'agent',
+      confirmed:true,
+      confirmationToken:token,
+      securityContext:{...securityContext,documentRevision:10},
+    }),
+    /CONFIRMATION_TOKEN_INVALID/,
+  );
 });
 
 test('20/20 agent intent routing reaches every canonical image tool',()=>{
@@ -117,4 +161,41 @@ test('raw blob is not part of the agent plan contract',()=>{
   const serialized=JSON.stringify(planned.plan);
   assert.equal(serialized.includes('Blob'),false);
   assert.equal(serialized.includes('ArrayBuffer'),false);
+});
+
+test('confirmation tokens are unique and structurally one-time',async()=>{
+  const context={
+    taskId:'task-unique',
+    taskRevision:1,
+    documentRevision:1,
+    planFingerprint:'b'.repeat(64),
+    catalogFingerprint:TOOL_CATALOG.fingerprint,
+    expiresAt:Date.now()+60_000,
+  } as const;
+  const a=await createImageExecutionConfirmationToken('image-redaction',{x:25,y:25,width:50,height:25,color:'#000000'},[],context);
+  const b=await createImageExecutionConfirmationToken('image-redaction',{x:25,y:25,width:50,height:25,color:'#000000'},[],context);
+  assert.notEqual(a,b);
+  assert.equal(a.split('.').length,3);
+  assert.equal(b.split('.').length,3);
+});
+
+test('agent execution helpers require a security context before issuing or consuming confirmation',async()=>{
+  const planned=planImageToolIntent('redact image',{x:25,y:25,width:50,height:25,color:'#000000'});
+  assert.equal(planned.status,'PLANNED');
+  assert.ok(planned.plan);
+  await assert.rejects(
+    import('../src/lib/image-agent-workflow.ts').then(({executeImageAgentPlan}) =>
+      executeImageAgentPlan(
+        planned.plan!,
+        new Blob(['image'],{type:'image/png'}),
+        {},
+        [],
+        [],
+        false,
+        undefined,
+        undefined,
+      ),
+    ),
+    /AGENT_SECURITY_CONTEXT_REQUIRED/,
+  );
 });
