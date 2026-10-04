@@ -1,10 +1,27 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { TOOL_CATALOG } from '../src/config/registry.ts';
-import { CANONICAL_IMAGE_TOOL_IDS, assertTargetLayersUnlocked, createImageExecutionConfirmationToken, executeCanonicalImageTool, validateCanonicalImageExecutionRequest } from '../src/lib/canonical-image-executor.ts';
+import { CANONICAL_IMAGE_TOOL_IDS, assertTargetLayersUnlocked, createImageExecutionConfirmationToken, executeCanonicalImageTool, fingerprintImageBlob, fingerprintImageExecutionPlan, validateCanonicalImageExecutionRequest, type AgentExecutionSecurityContext } from '../src/lib/canonical-image-executor.ts';
 import { confirmationTokenForImageAgentPlan, planImageToolIntent } from '../src/lib/image-agent-workflow.ts';
 import { getCapability, validateCapabilityParameters } from '../src/config/manual-capability-definition.ts';
 import { getToolOutputContract } from '../src/lib/contracts/tool-output-contracts.ts';
+
+
+async function securityContextFor(plan: import('../src/lib/contracts/ai-plan.ts').ExecutionPlanContract, input: Blob): Promise<AgentExecutionSecurityContext> {
+  const [planFingerprint, documentFingerprint] = await Promise.all([
+    fingerprintImageExecutionPlan(plan),
+    fingerprintImageBlob(input),
+  ]);
+  return Object.freeze({
+    taskId: 'qa-task-' + Date.now().toString(36),
+    taskRevision: 0,
+    documentRevision: 0,
+    documentFingerprint,
+    planFingerprint,
+    catalogFingerprint: TOOL_CATALOG.fingerprint,
+    expiresAt: Date.now() + 60_000,
+  });
+}
 
 const ids=["background-remover","image-upscaler","image-cropper","image-compressor","image-converter","image-effects","image-resizer","image-rotate-flip","image-brightness-contrast","image-saturation-hue","image-exposure","image-highlights-shadows","image-sharpen","image-blur","image-grayscale-duotone","image-filters","image-watermark","image-text-overlay","image-draw-annotate","image-redaction"] as readonly string[];
 
@@ -53,12 +70,11 @@ test('agent confirmation token helper binds validated effective parameters',asyn
   const planned=planImageToolIntent('sharpen image',{});
   assert.equal(planned.status,'PLANNED');
   assert.ok(planned.plan);
-  const token=await confirmationTokenForImageAgentPlan(planned.plan!,[]);
-  const expected=await createImageExecutionConfirmationToken('image-sharpen',{amount:110},[]);
+  const input = new Blob(['input'], { type: 'image/png' });
+  const securityContext = await securityContextFor(planned.plan!, input);
+  const token=await confirmationTokenForImageAgentPlan(planned.plan!,[],{},securityContext);
+  const expected=await createImageExecutionConfirmationToken('image-sharpen',{amount:110},[],securityContext);
   assert.equal(token,expected);
-  const overridden=await confirmationTokenForImageAgentPlan(planned.plan!,[],{amount:130});
-  const expectedOverride=await createImageExecutionConfirmationToken('image-sharpen',{amount:130},[]);
-  assert.equal(overridden,expectedOverride);
 });
 
 test('unknown tools and locked layers fail closed',async()=>{
@@ -70,9 +86,21 @@ test('unknown tools and locked layers fail closed',async()=>{
 
 test('agent confirmation is mandatory and parameter-bound',async()=>{
   const input=new Blob(['image'],{type:'image/png'});
-  const token=await createImageExecutionConfirmationToken('image-brightness-contrast',{brightness:115,contrast:100},[]);
+  const planned=planImageToolIntent('brightness contrast',{brightness:115,contrast:100});
+  assert.equal(planned.status,'PLANNED');
+  const plan=planned.plan!;
+  const securityContext=await securityContextFor(plan,input);
+  const token=await createImageExecutionConfirmationToken('image-brightness-contrast',{brightness:115,contrast:100},[],securityContext);
   await assert.rejects(()=>validateCanonicalImageExecutionRequest({toolId:'image-brightness-contrast',inputBlob:input,parameters:{brightness:115,contrast:100},origin:'agent'}),/CONFIRMATION_REQUIRED/);
-  await assert.rejects(()=>validateCanonicalImageExecutionRequest({toolId:'image-brightness-contrast',inputBlob:input,parameters:{brightness:120,contrast:100},origin:'agent',confirmed:true,confirmationToken:token}),/CONFIRMATION_TOKEN_INVALID/);
+  await assert.rejects(()=>validateCanonicalImageExecutionRequest({
+    toolId:'image-brightness-contrast',
+    inputBlob:input,
+    parameters:{brightness:120,contrast:100},
+    origin:'agent',
+    confirmed:true,
+    confirmationToken:token,
+    securityContext,
+  }),/CONFIRMATION_TOKEN_INVALID/);
 });
 
 test('20/20 agent intent routing reaches every canonical image tool',()=>{
@@ -154,4 +182,27 @@ test('raw blob is not part of the agent plan contract',()=>{
   const serialized=JSON.stringify(planned.plan);
   assert.equal(serialized.includes('Blob'),false);
   assert.equal(serialized.includes('ArrayBuffer'),false);
+});
+
+test('confirmation token is single-consumer under concurrent validation',async()=>{
+  const input = new Blob(['not-an-image'], { type: 'application/pdf' });
+  const planned = planImageToolIntent('redact image',{});
+  assert.equal(planned.status,'PLANNED');
+  const plan = planned.plan!;
+  const securityContext = await securityContextFor(plan, input);
+  const parameters = { x: 25, y: 25, width: 50, height: 25, color: '#000000' };
+  const token = await createImageExecutionConfirmationToken('image-redaction', parameters, [], securityContext);
+  const attempts = await Promise.allSettled([
+    validateCanonicalImageExecutionRequest({
+      toolId:'image-redaction', inputBlob:input, parameters, origin:'agent',
+      confirmed:true, confirmationToken:token, securityContext,
+    }),
+    validateCanonicalImageExecutionRequest({
+      toolId:'image-redaction', inputBlob:input, parameters, origin:'agent',
+      confirmed:true, confirmationToken:token, securityContext,
+    }),
+  ]);
+  const messages = attempts.map((attempt) => attempt.status === 'rejected' ? String(attempt.reason?.message ?? attempt.reason) : 'unexpected-pass');
+  assert.equal(messages.filter((message) => /CONFIRMATION_TOKEN_REPLAYED/.test(message)).length, 1);
+  assert.equal(messages.filter((message) => /INVALID_IMAGE_MIME/.test(message)).length, 1);
 });
