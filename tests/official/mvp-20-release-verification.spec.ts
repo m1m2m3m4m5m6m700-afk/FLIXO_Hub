@@ -14,7 +14,7 @@ const AGENT_CASES = [
   ['image-cropper', 'crop this image to square'],
   ['image-compressor', 'compress my image'],
   ['image-converter', 'convert this image to webp'],
-  ['image-effects', 'increase brightness and contrast'],
+  ['image-effects', 'adjust image effects'],
   ['image-resizer', 'resize the image'],
   ['image-rotate-flip', 'rotate and flip the image'],
   ['image-brightness-contrast', 'increase brightness and contrast'],
