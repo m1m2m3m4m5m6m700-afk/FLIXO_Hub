@@ -76,6 +76,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          npx playwright install --with-deps chromium
           mkdir -p testsprite-fallback
           PLAYWRIGHT_REUSE_SERVER=true npm run test:e2e -- --project=chromium tests/official/mvp-20-release-verification.spec.ts
           printf '{"testsprite":"not-configured","fallback":"native-playwright","sha":"%s","status":"PASS"}\n' "$(git rev-parse HEAD)" > testsprite-fallback/summary.json
