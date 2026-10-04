@@ -12,6 +12,7 @@ import { parseExecutionPlan } from '../src/lib/contracts/ai-plan.ts';
 const PNG = new Blob(['not-a-real-image'], { type: 'image/png' });
 const PDF = new Blob(['pdf'], { type: 'application/pdf' });
 const EMPTY = new Blob([], { type: 'image/png' });
+const OVERSIZED = new Blob([new Uint8Array(64 * 1024 * 1024 + 1)], { type: 'image/png' });
 
 const VALID: Record<string, Record<string, string | number | boolean>> = {
   'background-remover': { tolerance: 32 },
@@ -182,9 +183,8 @@ for (const id of CANONICAL_IMAGE_TOOL_IDS) {
   });
 
   test(id + ' — oversized file fails before decode', async () => {
-    const oversized = new Blob([new Uint8Array(64 * 1024 * 1024 + 1)], { type: 'image/png' });
     await assert.rejects(
-      validateCanonicalImageExecutionRequest({ toolId: id, inputBlob: oversized, parameters: VALID[id], origin: 'manual' }),
+      validateCanonicalImageExecutionRequest({ toolId: id, inputBlob: OVERSIZED, parameters: VALID[id], origin: 'manual' }),
       /INPUT_SIZE_LIMIT_EXCEEDED/,
     );
   });
