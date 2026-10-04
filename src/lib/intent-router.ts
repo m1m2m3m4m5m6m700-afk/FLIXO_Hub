@@ -67,7 +67,7 @@ const scoreMatch = (query: string, tool: ToolDefinition): number => {
     { value: tool.title, priority: 1 },
     ...tool.capability.intents.map((value) => ({ value, priority: 3 })),
     ...(ALIASES[tool.id] ?? []).map((value) => ({ value, priority: 2 })),
-    { value: tool.description, priority: 0 },
+    { value: tool.description, priority: -8 },
   ].map((entry) => ({ value: normalize(entry.value), priority: entry.priority }));
 
   let score = 0;
