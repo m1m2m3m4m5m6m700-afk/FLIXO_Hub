@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 const { planAgentRequest, executeAgentPlan } = await import('../src/lib/agent-guided-runtime.ts');
-const { MVP_EXECUTABLE_TOOL_IDS } = await import('../src/config/manual-capability-definition.ts');
 
 const CASES: ReadonlyArray<readonly [string,string]> = [
   ['background-remover','remove the background'],
