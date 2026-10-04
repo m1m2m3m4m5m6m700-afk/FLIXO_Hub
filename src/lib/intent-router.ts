@@ -64,9 +64,11 @@ const scoreMatch = (query: string, tool: ToolDefinition): number => {
 
   for (const candidate of candidates) {
     if (!candidate) continue;
-    if (candidate === normalizedQuery) score = Math.max(score, 100);
-    else if (candidate.includes(normalizedQuery)) score = Math.max(score, 85);
-    else if (normalizedQuery.includes(candidate)) score = Math.max(score, 75);
+    const candidateTokenCount = candidate.split(/\s+/).filter(Boolean).length;
+    const specificityBonus = Math.min(20, candidateTokenCount * 3);
+    if (candidate === normalizedQuery) score = Math.max(score, 100 + specificityBonus);
+    else if (candidate.includes(normalizedQuery)) score = Math.max(score, 85 + specificityBonus);
+    else if (normalizedQuery.includes(candidate)) score = Math.max(score, 70 + specificityBonus);
     else {
       const tokens = normalizedQuery.split(' ').filter((token) => token.length > 1);
       const stopwords = new Set(['the', 'this', 'that', 'from', 'into', 'with', 'for', 'and', 'to', 'of', 'a', 'an', 'is', 'on', 'in', 'لل', 'من', 'في', 'إلى', 'و', 'مع', 'هذه', 'هذا']);
