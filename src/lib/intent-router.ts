@@ -69,7 +69,7 @@ const scoreMatch = (query: string, tool: ToolDefinition): number => {
     else if (normalizedQuery.includes(candidate)) score = Math.max(score, 75);
     else {
       const tokens = normalizedQuery.split(' ').filter((token) => token.length > 1);
-      const stopwords = new Set(['the', 'this', 'that', 'from', 'into', 'with', 'for', 'and', 'to', 'of', 'a', 'an', 'is', 'on', 'in', 'لل', 'من', 'في', 'إلى', 'و', 'مع', 'هذه', 'هذا']);
+      const stopwords = new Set(['the', 'this', 'that', 'from', 'into', 'with', 'for', 'and', 'to', 'of', 'a', 'an', 'is', 'on', 'in', 'image', 'images', 'photo', 'photos', 'picture', 'pictures', 'tool', 'tools', 'لل', 'من', 'في', 'إلى', 'و', 'مع', 'هذه', 'هذا', 'صورة', 'الصور', 'الصورة']);
       const meaningful = tokens.filter((token) => !stopwords.has(token));
       const hits = meaningful.filter((token) => candidate.includes(token)).length;
       const denominator = meaningful.length || tokens.length;
