@@ -219,6 +219,15 @@ function findIntent(prompt: string): { toolId: string; intent: string } {
     throw new Error('Request is ambiguous. Multiple image operations were requested; create separate confirmed plans.');
   }
 
+  if (candidateToolIds.size > 1) {
+    const promptTokens = new Set(tokenize(prompt).filter((token) => !INTENT_COVERAGE_CONTEXT.has(token)));
+    const winnerTokens = new Set(tokenize(winner.intent).filter((token) => !INTENT_COVERAGE_CONTEXT.has(token)));
+    const uncoveredTokens = [...promptTokens].filter((token) => !winnerTokens.has(token));
+    if (uncoveredTokens.length > 0) {
+      throw new Error('Request is ambiguous. Multiple image operations were requested; create separate confirmed plans.');
+    }
+  }
+
   return { toolId: winner.toolId, intent: winner.intent };
 }
 
