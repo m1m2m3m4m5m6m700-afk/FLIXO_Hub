@@ -170,3 +170,24 @@ test('canonical MVP capability verifiers accept measurable valid artifacts and r
     URL.revokeObjectURL = originalRevokeObjectURL;
   }
 });
+
+
+test('canonical MVP contains exactly twenty executable browser-local capabilities with complete contracts', async () => {
+  const { MVP_EXECUTABLE_TOOL_IDS, CAPABILITY_DEFINITIONS } = await import('../src/config/manual-capability-definition.ts');
+  assert.equal(MVP_EXECUTABLE_TOOL_IDS.length, 20);
+  assert.equal(new Set(MVP_EXECUTABLE_TOOL_IDS).size, 20);
+  assert.equal(CAPABILITY_DEFINITIONS.length, 20);
+  for (const id of MVP_EXECUTABLE_TOOL_IDS) {
+    const item = definition(id);
+    assert.equal(item.state, 'EXECUTABLE');
+    assert.equal(item.executionMode, 'LOCAL');
+    assert.equal(item.requirements.network, false);
+    assert.equal(item.recovery.maxAttempts, 3);
+    assert.equal(item.recovery.replanOnFailure, false);
+    assert.equal(item.operational.executorId, id);
+    assert.equal(item.operational.outputContractId, id);
+    assert.ok(item.intents.length > 0);
+    assert.ok(item.parameterSchema);
+    assert.ok(item.verifier);
+  }
+});
