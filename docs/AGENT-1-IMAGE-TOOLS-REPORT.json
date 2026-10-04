@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 1,
+  "agent": "AGENT-1",
+  "scope": "20 browser-local image tools",
+  "repository": "m1m2m3m4m5m6m700-afk/FLIXO_Hub",
+  "baseBranch": "execution",
+  "workBranch": "agent-1/image-tools-20-20261004",
+  "implementationCommit": null,
+  "targetTools": [
+    {
+      "id": "background-remover",
+      "status": "IMPLEMENTED",
+      "testStatus": "PENDING_CI"
+    },
+    {
+      "id": "image-upscaler",
+      "status": "IMPLEMENTED",
+      "testStatus": "PENDING_CI"
+    },
+    {
+      "id": "image-cropper",
+      "status": "IMPLEMENTED",
+      "testStatus": "PENDING_CI"
+    },
+    {
+      "id": "image-compressor",
+      "status": "IMPLEMENTED",
+      "testStatus": "PENDING_CI"
+    },
+    {
+      "id": "image-converter",
+      "status": "IMPLEMENTED",
+      "testStatus": "PENDING_CI"
+    },
+    {
+      "id": "image-effects",
+      "status": "IMPLEMENTED",
+      "testStatus": "PENDING_CI"
+    },
+    {
+      "id": "image-resizer",
+      "status": "IMPLEMENTED",
+      "testStatus": "PENDING_CI"
+    },
+    {
+      "id": "image-rotate-flip",
+      "status": "IMPLEMENTED",
+      "testStatus": "PENDING_CI"
+    },
+    {
+      "id": "image-brightness-contrast",
+      "status": "IMPLEMENTED",
+      "testStatus": "PENDING_CI"
+    },
+    {
+      "id": "image-saturation-hue",
+      "status": "IMPLEMENTED",
+      "testStatus": "PENDING_CI"
+    },
+    {
+      "id": "image-exposure",
+      "status": "IMPLEMENTED",
+      "testStatus": "PENDING_CI"
+    },
+    {
+      "id": "image-highlights-shadows",
+      "status": "IMPLEMENTED",
+      "testStatus": "PENDING_CI"
+    },
+    {
+      "id": "image-sharpen",
+      "status": "IMPLEMENTED",
+      "testStatus": "PENDING_CI"
+    },
+    {
+      "id": "image-blur",
+      "status": "IMPLEMENTED",
+      "testStatus": "PENDING_CI"
+    },
+    {
+      "id": "image-grayscale-duotone",
+      "status": "IMPLEMENTED",
+      "testStatus": "PENDING_CI"
+    },
+    {
+      "id": "image-filters",
+      "status": "IMPLEMENTED",
+      "testStatus": "PENDING_CI"
+    },
+    {
+      "id": "image-watermark",
+      "status": "IMPLEMENTED",
+      "testStatus": "PENDING_CI"
+    },
+    {
+      "id": "image-text-overlay",
+      "status": "IMPLEMENTED",
+      "testStatus": "PENDING_CI"
+    },
+    {
+      "id": "image-draw-annotate",
+      "status": "IMPLEMENTED",
+      "testStatus": "PENDING_CI"
+    },
+    {
+      "id": "image-redaction",
+      "status": "IMPLEMENTED",
+      "testStatus": "PENDING_CI"
+    }
+  ],
+  "safetyGates": {
+    "lockedLayers": "ENFORCED",
+    "agentConfirmation": "ENFORCED",
+    "cancellation": "ENFORCED",
+    "boundedRetry": "ENFORCED",
+    "rawBlobEgress": "LOCAL_ONLY",
+    "unknownToolExecution": "FAIL_CLOSED"
+  },
+  "tests": {
+    "localExecution": "UNAVAILABLE_NO_LOCAL_WORKTREE",
+    "ci": "PENDING",
+    "browserE2E": "PENDING"
+  },
+  "knownBlockers": [
+    "main branch required checks are not currently enforced",
+    "AGENTS.md and docs/MVP-SCOPE-FREEZE.md were absent at baseline"
+  ]
+}
