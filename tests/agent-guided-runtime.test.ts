@@ -10,7 +10,7 @@ const { MVP_EXECUTABLE_TOOL_IDS } = await import('../src/config/manual-capabilit
 const { getToolChainAdapter } = await import('../src/lib/tool-chain-adapters.ts');
 const { parseExecutionPlan } = await import('../src/lib/contracts/ai-plan.ts');
 const { ImageJob } = await import('../src/image-core/job.ts');
-const { InMemoryImageAssetStore } = await import('../src/image-core/asset-store.ts');
+const { ImageAssetStore } = await import('../src/image-core/asset-store.ts');
 
 const CASES: ReadonlyArray<readonly [string, string]> = [
   ['background-remover', 'remove the background'],
@@ -127,7 +127,7 @@ test('agent execution rejects corrupted image bytes instead of returning a resul
 });
 
 test('ImageJob verifier absence fails closed', async () => {
-  const assetStore = new InMemoryImageAssetStore();
+  const assetStore = new ImageAssetStore();
   const inputAssetId = assetStore.put({
     blob: new Blob(['input'], { type: 'image/png' }),
     width: 1,
