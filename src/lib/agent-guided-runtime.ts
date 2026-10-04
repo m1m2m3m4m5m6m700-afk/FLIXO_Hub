@@ -224,8 +224,8 @@ function findIntent(prompt: string): { toolId: string; intent: string } {
   const candidateToolIds = new Set(candidates.map((candidate) => candidate.toolId));
   const normalizedPrompt = normalize(prompt);
   const hasExplicitCompoundConjunction =
-    /(^|\\s)(and|or)(\\s|$)/u.test(normalizedPrompt) ||
-    /(^|\\s)و(\\s|$)/u.test(normalizedPrompt);
+    /(^|\s)(and|or)(\s|$)/u.test(normalizedPrompt) ||
+    /(^|\s)و(\s|$)/u.test(normalizedPrompt);
   if (candidateToolIds.size > 1 && hasExplicitCompoundConjunction) {
     throw new Error('Request is ambiguous. Multiple image operations were requested; create separate confirmed plans.');
   }
@@ -308,6 +308,7 @@ export async function executeAgentPlan(
     throw new Error('Execution denied: explicit user confirmation is required.');
   }
 
+  assertNotAborted(signal);
   const validatedPlan = parseValidatedAgentPlan(plan);
   if (validatedPlan.catalogFingerprint !== TOOL_CATALOG.fingerprint) {
     throw new Error('Execution denied: plan is stale relative to the current canonical tool catalog.');
