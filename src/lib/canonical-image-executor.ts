@@ -1,5 +1,5 @@
 import { getToolById, TOOL_CATALOG } from '../config/registry.ts';
-import { getCapability, validateCapabilityParameters } from '../config/manual-capability-definition.ts';
+import { getCapability, validateCapabilityParameters, type CanonicalCapabilityParameters } from '../config/manual-capability-definition.ts';
 import { getToolOutputContract } from './contracts/tool-output-contracts.ts';
 import { validateOutputIntegrity } from './contracts/output-integrity.ts';
 import { executeCanonicalImageEngine, imageInfo } from '../tools/image-toolkit/engine.ts';
@@ -104,7 +104,7 @@ export async function validateCanonicalImageExecutionRequest(request:CanonicalIm
   if(tool.operational.executorId!==request.toolId) throw new Error('EXECUTOR_ID_MISMATCH:'+request.toolId);
   if(tool.operational.outputContractId!==request.toolId) throw new Error('OUTPUT_CONTRACT_ID_MISMATCH:'+request.toolId);
   assertTargetLayersUnlocked(request.targetLayerIds??[],request.layers??[]);
-  const parameters=validateCapabilityParameters(request.toolId,request.parameters??{}) as unknown as Record<string,string|number|boolean>;
+  const parameters=validateCapabilityParameters(request.toolId,(request.parameters??{}) as CanonicalCapabilityParameters) as Record<string,string|number|boolean>;
   const confirmationRequired=request.origin==='agent' && capability.safetyContract.requiresUserConfirmationForAgent;
   if(confirmationRequired){
     if(request.confirmed!==true) throw new Error('CONFIRMATION_REQUIRED:'+request.toolId);
