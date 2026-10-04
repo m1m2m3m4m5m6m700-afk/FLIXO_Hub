@@ -20,7 +20,7 @@ const ALIASES: Record<string, readonly string[]> = {
   'passport-photo-maker': ['passport photo', 'id photo', 'صورة جواز السفر', 'صورة شخصية'],
   'meme-generator': ['make meme', 'meme', 'إنشاء ميم'],
   'collage-maker': ['photo collage', 'make collage', 'كولاج', 'دمج الصور'],
-  'image-effects': ['image effects', 'brightness contrast', 'تأثيرات الصور'],
+  'image-effects': ['image effects', 'photo effects', 'تأثيرات الصور'],
   'image-resizer': ['resize image','change image dimensions','resize to','تغيير حجم الصورة','تغيير أبعاد الصورة'],
   'image-rotate-flip': ['rotate and flip','rotate image','flip image','تدوير وقلب الصورة','تدوير الصورة','قلب الصورة'],
   'image-brightness-contrast': ['brightness contrast','adjust brightness and contrast','سطوع وتباين','ضبط السطوع والتباين'],
