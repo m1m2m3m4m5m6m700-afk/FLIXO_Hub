@@ -2,25 +2,18 @@ Audit baseline: execution `653e84d508bfc1d95f0c1547a2e973b277cd1680` and main `2
 
 ## Current registry
 - 43 tool definitions are currently present in `src/config/canonical-tool-definition.ts`.
-- 10 are in the frozen canonical executable MVP set.
-- 42 are marked ready by the current static-route generator; the five Wave 1 image tools below are explicitly classified `EXPERIMENTAL` and remain outside the frozen MVP executable set.
+- 20 are in the currently authorized canonical executable release set for this certification.
+- 42 are marked ready by the current static-route generator; 20 image capabilities are admitted to the release set and additional ready/plannable capabilities remain outside this 20-tool certification scope.
 - `TOOL_REGISTRY` is the canonical registry and `TOOL_CATALOG` is derived from it.
 - `src/config/tools.ts` remains a compatibility surface; it is not a second source of definitions.
 
 ## Current registered IDs
 filter-mask, image-compressor, background-remover, image-upscaler, image-converter, object-remover, watermark-remover, image-cropper, image-to-svg, image-ocr, background-blur, passport-photo-maker, watermark-adder, meme-generator, collage-maker, image-effects, exif-cleaner, svg-optimizer, mockup-generator, seed, pix, ai-image-generator, photo-colorizer, video-trimmer, video-cropper, video-resizer, video-compressor, image-resizer, image-hue, image-pixelate, image-padding, image-rounded-corners.
 
-## Current executable MVP IDs
-background-remover, image-upscaler, image-cropper, image-compressor, image-converter, image-effects, video-trimmer, video-cropper, video-resizer, video-compressor.
+## Current certified executable release IDs
+background-remover, image-upscaler, image-cropper, image-compressor, image-converter, image-effects, image-rotate, image-flip-horizontal, image-flip-vertical, image-brightness, image-contrast, image-saturation, image-grayscale, image-invert, image-sepia, image-blur, image-sharpen, image-resizer, image-hue, image-pixelate.
 
-## Wave 1 experimental admission
-- image-resizer
-- image-hue
-- image-pixelate
-- image-padding
-- image-rounded-corners
-Each has a browser-local executor path, parameter schema, intent phrases, localized SEO identity for all 20 canonical locales, and Chromium functional evidence (5/5 PASS). G4 localization/SEO verification passes 44/44 locally, including these new routes.
-These tools are not promoted into the frozen MVP executable set and are not represented as autonomous agents.
+The release set is browser-local, canonical, schema-bound, verifier-bound, and adapter-bound. Five additional image routes (`image-padding`, `image-rounded-corners`, and other non-release capabilities) remain outside the 20-tool certification scope unless separately admitted.
 
 ## Localization baseline
 The repository declares 20 canonical locales:
