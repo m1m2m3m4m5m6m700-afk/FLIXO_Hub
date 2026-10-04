@@ -186,7 +186,7 @@
     "retryBounded": true
   },
   "certification": {
-    "status": "PENDING_EXACT_SHA_CI_AND_BROWSER_E2E",
+    "status": "PENDING_FINAL_HEAD_CI_BROWSER",
     "exactHeadMustPass": true,
     "requiredGates": [
       "Typecheck/Lint/Core Contracts/Build",
@@ -201,15 +201,20 @@
       "sha": "a9a2ea0e0a6c39bea6c85b69cba9f9b2953815b7",
       "status": "PARTIAL_CORE_PASS_BUT_BROWSER_FAILED"
     },
-    "latestCandidateRequiresFreshEvidence": true
+    "latestCandidateRequiresFreshEvidence": true,
+    "supersededBrowserRun": {
+      "runId": 37197371465,
+      "sha": "1c8b4ae8e0fa9fd0f2568c65d9eb3ece47a9f274",
+      "conclusion": "FAIL_EXPECTED_LEGACY_BROWSER_SPEC"
+    }
   },
   "knownFailures": [
     "Previous exact-SHA Chromium run failed before the latest fixes: background-remover valid no-op verifier, image-effects missing manual canonical parameters, compressor verifier too strict for valid outputs, stale legacy release-verification IDs, and G4 shared product label.",
     "execution advanced by three test-only commits after the previous CI; the certification PR is mergeable but its ancestry is behind by three commits."
   ],
   "blockers": [
-    "EXACT_SHA_CI_PENDING",
-    "EXACT_SHA_BROWSER_E2E_PENDING"
+    "FINAL_HEAD_CI_PENDING",
+    "FINAL_HEAD_BROWSER_E2E_PENDING"
   ],
   "handoff": {
     "targetAgent": "AGENT-2",
