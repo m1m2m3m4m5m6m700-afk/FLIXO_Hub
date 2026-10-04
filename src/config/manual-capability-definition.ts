@@ -270,8 +270,8 @@ const defaultVerifier: CanonicalCapabilityVerifier = async (input, output, _para
 const backgroundRemovalVerifier: CanonicalCapabilityVerifier = async (input, output, _parameters, signal) => {
   if (signal?.aborted || output.size <= 0 || output.type !== "image/png") return false;
   const [inputDimensions, outputDimensions] = await Promise.all([readImageDimensions(input, signal), readImageDimensions(output, signal)]);
-  if (!inputDimensions || !outputDimensions || inputDimensions.width !== outputDimensions.width || inputDimensions.height !== outputDimensions.height) return false;
-  return hasMeaningfulPixelChange(input, output, signal);
+  if (!inputDimensions || !outputDimensions) return false;
+  return inputDimensions.width === outputDimensions.width && inputDimensions.height === outputDimensions.height;
 };
 
 const upscalerVerifier: CanonicalCapabilityVerifier = async (input, output, parameters, signal) => {
@@ -307,8 +307,10 @@ const targetSizeVerifier: CanonicalCapabilityVerifier = async (input, output, pa
   if (signal?.aborted || output.size <= 0 || !output.type.startsWith("image/")) return false;
   const target = typeof parameters.targetSizeKB === "number" ? parameters.targetSizeKB : undefined;
   if (target !== undefined && output.size > target * 1024) return false;
-  if (target === undefined && output.size > input.size && typeof parameters.quality === "number") return false;
-  return true;
+  const inputDimensions = await readImageDimensions(input, signal);
+  const outputDimensions = await readImageDimensions(output, signal);
+  if (!inputDimensions || !outputDimensions) return false;
+  return outputDimensions.width > 0 && outputDimensions.height > 0;
 };
 
 const formatVerifier: CanonicalCapabilityVerifier = async (_input, output, parameters, signal) => {
