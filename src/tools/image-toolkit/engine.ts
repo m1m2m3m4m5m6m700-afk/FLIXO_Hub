@@ -22,7 +22,10 @@ export function imageInfo(blob: Blob): Promise<ImageInfo> {
       URL.revokeObjectURL(url);
       resolve({ width: image.naturalWidth, height: image.naturalHeight });
     };
-    image.onerror=()=>{ signal?.removeEventListener('abort',onAbort); URL.revokeObjectURL(url); reject(new Error('Image could not be decoded.')); };
+    image.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Image could not be decoded.'));
+    };
     image.src = url;
   });
 }
