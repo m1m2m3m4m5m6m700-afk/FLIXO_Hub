@@ -124,5 +124,10 @@
   "knownBlockers": [
     "main branch required checks are not currently enforced",
     "AGENTS.md and docs/MVP-SCOPE-FREEZE.md were absent at baseline"
-  ]
+  ],
+  "releaseCommanderNote": {
+    "scope": "release",
+    "trackedHead": "dea54872468288a1e6860c0d049134ede88ba2f5",
+    "rule": "Do not certify from stale SHA evidence; certify only the exact final tested and released SHA."
+  }
 }
