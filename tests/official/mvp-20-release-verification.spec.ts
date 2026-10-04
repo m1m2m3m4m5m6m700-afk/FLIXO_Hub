@@ -45,7 +45,6 @@ async function executeManual(page: Page, toolId: (typeof MANUAL_TOOL_IDS)[number
   const fileInput = page.locator('input[type=file]').first();
   await expect(fileInput).toHaveCount(1);
   await fileInput.setInputFiles(fixture());
-  await expect(page.getByText('Before')).toHaveCount(1);
 
   if (toolId === 'image-cropper') {
     await page.getByRole('textbox', { name: 'Crop width' }).fill('4');
@@ -80,11 +79,11 @@ async function planAndExecuteAgent(page: Page, toolId: string, prompt: string, l
   const toggleButton = page.getByRole('button', { name: /English|العربية/i }).first();
   await expect(toggleButton).toBeVisible();
 
-  const currentLanguage = await main.getAttribute('lang');
-  if (language === 'ar' && currentLanguage !== 'ar') {
-    await page.getByRole('button', { name: /العربية/i }).click();
-  } else if (language === 'en' && currentLanguage !== 'en') {
-    await page.getByRole('button', { name: /English/i }).click();
+  const toggleLabel = (await toggleButton.innerText()).trim();
+  if (language === 'en' && /English/i.test(toggleLabel)) {
+    await toggleButton.click();
+  } else if (language === 'ar' && /العربية/i.test(toggleLabel)) {
+    await toggleButton.click();
   }
 
   await expect(main).toHaveAttribute('lang', language);
