@@ -172,7 +172,7 @@ export function ImageToolPage({ toolId }: Props) {
   const replaceResult = (next: Result | null) => { if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current); objectUrlRef.current = next?.objectUrl; setResult(next); };
 
   const isCanonicalImageTool = (candidate: LocalToolId): candidate is LocalToolId =>
-    CANONICAL_IMAGE_TOOL_IDS.includes(candidate) && candidate !== 'image-cropper' && candidate !== 'image-compressor' && candidate !== 'image-effects';
+    CANONICAL_IMAGE_TOOL_IDS.includes(candidate);
 
   const canonicalParameters = (): Record<string, string | number | boolean> => {
     switch (toolId) {
@@ -190,7 +190,11 @@ export function ImageToolPage({ toolId }: Props) {
       case 'image-grayscale-duotone': return { intensity: Number(advanced.duotoneIntensity), darkColor: advanced.darkColor, lightColor: advanced.lightColor };
       case 'image-filters': return { preset: advanced.filter };
       case 'image-watermark': return { text: advanced.watermark, x: Number(advanced.watermarkX), y: Number(advanced.watermarkY), fontSize: Number(advanced.watermarkFontSize), opacity: Number(advanced.watermarkOpacity), color: advanced.watermarkColor };
-      case 'image-text-overlay': return { text: advanced.text, x: Number(advanced.x), y: Number(advanced.y), fontSize: Number(advanced.fontSize), color: '#ffffff', ...(advanced.background ? { background: advanced.background } : {}), backgroundOpacity: Number(advanced.backgroundOpacity), align: advanced.align };
+      case 'image-text-overlay': {
+        const params: Record<string, string | number | boolean> = { text: advanced.text, x: Number(advanced.x), y: Number(advanced.y), fontSize: Number(advanced.fontSize), color: '#ffffff', backgroundOpacity: Number(advanced.backgroundOpacity), align: advanced.align };
+        if (advanced.background) params.background = advanced.background;
+        return params;
+      }
       case 'image-draw-annotate': return { kind: advanced.annotationKind, x1: Number(advanced.x1), y1: Number(advanced.y1), x2: Number(advanced.x2), y2: Number(advanced.y2), stroke: advanced.stroke, strokeWidth: Number(advanced.strokeWidth) };
       case 'image-redaction': return { x: Number(advanced.x), y: Number(advanced.y), width: Number(advanced.width), height: Number(advanced.height), color: '#000000' };
       default: return {};
