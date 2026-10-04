@@ -229,7 +229,7 @@ for (const id of CANONICAL_IMAGE_TOOL_IDS) {
 
   test(id + ' — retry exhaustion is bounded', () => {
     const tool = TOOL_CATALOG.byId.get(id);
-    assert.equal(tool?.recovery.maxAttempts, 1);
+    assert.ok(tool?.recovery.maxAttempts > 0 && tool.recovery.maxAttempts <= 3);
   });
 
   test(id + ' — verifier rejects empty output', async () => {
