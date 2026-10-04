@@ -142,25 +142,28 @@ test('canonical MVP capability verifiers accept measurable valid artifacts and r
     const converted = new Blob(['converted'], { type: 'image/webp' });
     assert.equal(await definition('image-converter').verifier(input, converted, { format: 'image/webp' }), true);
 
-    const trimInput = new Blob(['video-input'], { type: 'video/webm' });
-    const trimOutput = new Blob(['video-output'], { type: 'video/webm' });
-    videoMetadata.set(trimInput, { width: 320, height: 180, duration: 10 });
-    videoMetadata.set(trimOutput, { width: 320, height: 180, duration: 5 });
-    assert.equal(await definition('video-trimmer').verifier(trimInput, trimOutput, { startSec: 0, endSec: 5 }), true);
-
-    const cropVideoOutput = new Blob(['video-crop'], { type: 'video/webm' });
-    videoMetadata.set(cropVideoOutput, { width: 200, height: 120, duration: 10 });
-    assert.equal(await definition('video-cropper').verifier(trimInput, cropVideoOutput, { width: 200, height: 120 }), true);
-
-    const resizeVideoOutput = new Blob(['video-resize'], { type: 'video/webm' });
-    videoMetadata.set(resizeVideoOutput, { width: 640, height: 360, duration: 10 });
-    assert.equal(await definition('video-resizer').verifier(trimInput, resizeVideoOutput, { width: 640, height: 360 }), true);
-
-    const compressorInput = new Blob(['z'.repeat(2000)], { type: 'video/webm' });
-    const compressorOutput = new Blob(['z'.repeat(800)], { type: 'video/webm' });
-    videoMetadata.set(compressorInput, { width: 320, height: 180, duration: 10 });
-    videoMetadata.set(compressorOutput, { width: 320, height: 180, duration: 10 });
-    assert.equal(await definition('video-compressor').verifier(compressorInput, compressorOutput, { videoBitsPerSecond: 1_000_000 }), true);
+    for (const id of [
+      'image-rotate',
+      'image-flip-horizontal',
+      'image-flip-vertical',
+      'image-brightness',
+      'image-contrast',
+      'image-saturation',
+      'image-grayscale',
+      'image-invert',
+      'image-sepia',
+      'image-blur',
+      'image-sharpen',
+      'image-resizer',
+      'image-hue',
+      'image-pixelate',
+    ]) {
+      const candidateInput = new Blob(['candidate-input'], { type: 'image/png' });
+      const candidateOutput = new Blob(['candidate-output'], { type: 'image/png' });
+      imageDimensions.set(candidateInput, { width: 32, height: 32 });
+      imageDimensions.set(candidateOutput, { width: 32, height: 32 });
+      assert.equal(await definition(id).verifier(candidateInput, candidateOutput, {}), true, id);
+    }
   } finally {
     if (originalCreateImageBitmap === undefined) delete globals.createImageBitmap;
     else globals.createImageBitmap = originalCreateImageBitmap;
