@@ -41,7 +41,7 @@ export interface ImageSelection {
 export interface ImageLayer {
   id: string;
   type: ImageLayerType;
-  locked: boolean;
+  locked?: boolean;
   name: string;
   visible: boolean;
   opacity: number;
