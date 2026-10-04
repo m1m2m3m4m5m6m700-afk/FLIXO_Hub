@@ -181,7 +181,7 @@ for (const toolId of CANONICAL_IMAGE_TOOL_IDS) {
         parameters: VALID[toolId],
         origin: 'manual',
       }),
-      /Image could not be decoded|Image input must be|Image decoding is unavailable|not be decoded/i,
+      /IMAGE_DECODER_UNAVAILABLE|Image could not be decoded|Image input must be|Image decoding is unavailable|not be decoded/i,
     );
   });
 
