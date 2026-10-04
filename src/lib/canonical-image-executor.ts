@@ -7,6 +7,15 @@ import { executeCanonicalImageEngine, imageInfo } from '../tools/image-toolkit/e
 export const CANONICAL_IMAGE_TOOL_IDS = Object.freeze(["background-remover","image-upscaler","image-cropper","image-compressor","image-converter","image-effects","image-resizer","image-rotate-flip","image-brightness-contrast","image-saturation-hue","image-exposure","image-highlights-shadows","image-sharpen","image-blur","image-grayscale-duotone","image-filters","image-watermark","image-text-overlay","image-draw-annotate","image-redaction"]) as readonly string[];
 export type ImageExecutionOrigin = 'manual' | 'agent';
 export type ImageExecutionLayer = Readonly<{ id: string; locked: boolean }>;
+export type AgentExecutionSecurityContext = Readonly<{
+  taskId: string;
+  taskRevision: number;
+  documentRevision: number;
+  documentFingerprint: string;
+  planFingerprint: string;
+  catalogFingerprint: string;
+  expiresAt: number;
+}>;
 export type CanonicalImageExecutionRequest = Readonly<{
   toolId: string;
   inputBlob: Blob;
@@ -14,6 +23,7 @@ export type CanonicalImageExecutionRequest = Readonly<{
   origin: ImageExecutionOrigin;
   confirmed?: boolean;
   confirmationToken?: string;
+  securityContext?: AgentExecutionSecurityContext;
   targetLayerIds?: readonly string[];
   layers?: readonly ImageExecutionLayer[];
   signal?: AbortSignal;
@@ -44,8 +54,121 @@ async function sha256(value: string): Promise<string> {
   const digest=await globalThis.crypto.subtle.digest('SHA-256',new TextEncoder().encode(value));
   return Array.from(new Uint8Array(digest),(b)=>b.toString(16).padStart(2,'0')).join('');
 }
-export async function createImageExecutionConfirmationToken(toolId:string,parameters:Readonly<Record<string,unknown>>={},targetLayerIds:readonly string[]=[]):Promise<string>{
-  return sha256(JSON.stringify(canonicalSort({toolId,parameters,targetLayerIds:[...targetLayerIds].sort()})));
+
+async function sha256Bytes(value: ArrayBuffer): Promise<string> {
+  if(!globalThis.crypto?.subtle) throw new Error('CONFIRMATION_CRYPTO_UNAVAILABLE');
+  const digest=await globalThis.crypto.subtle.digest('SHA-256',value);
+  return Array.from(new Uint8Array(digest),(b)=>b.toString(16).padStart(2,'0')).join('');
+}
+
+function randomNonce(): string {
+  if (!globalThis.crypto?.getRandomValues) throw new Error('CONFIRMATION_CRYPTO_UNAVAILABLE');
+  const bytes = new Uint8Array(16);
+  globalThis.crypto.getRandomValues(bytes);
+  return Array.from(bytes,(b)=>b.toString(16).padStart(2,'0')).join('');
+}
+
+function assertSecurityContext(context: AgentExecutionSecurityContext): void {
+  if (!context.taskId.trim()) throw new Error('AGENT_TASK_ID_REQUIRED');
+  if (!Number.isInteger(context.taskRevision) || context.taskRevision < 0) throw new Error('AGENT_TASK_REVISION_INVALID');
+  if (!Number.isInteger(context.documentRevision) || context.documentRevision < 0) throw new Error('AGENT_DOCUMENT_REVISION_INVALID');
+  if (!/^[a-f0-9]{64}$/.test(context.documentFingerprint)) throw new Error('AGENT_DOCUMENT_FINGERPRINT_INVALID');
+  if (!/^[a-f0-9]{64}$/.test(context.planFingerprint)) throw new Error('AGENT_PLAN_FINGERPRINT_INVALID');
+  if (!/^[a-f0-9]{64}$/.test(context.catalogFingerprint)) throw new Error('AGENT_CATALOG_FINGERPRINT_INVALID');
+  if (!Number.isFinite(context.expiresAt) || context.expiresAt <= Date.now() || context.expiresAt > Date.now() + 5 * 60_000) {
+    throw new Error('AGENT_CONFIRMATION_EXPIRY_INVALID');
+  }
+}
+
+const consumedConfirmationTokens = new Set<string>();
+const reservedConfirmationTokens = new Set<string>();
+const MAX_CONSUMED_TOKENS = 4096;
+
+export async function createImageExecutionConfirmationToken(
+  toolId:string,
+  parameters:Readonly<Record<string,unknown>>={},
+  targetLayerIds:readonly string[]=[],
+  securityContext?: AgentExecutionSecurityContext,
+):Promise<string>{
+  if (!securityContext) throw new Error('AGENT_SECURITY_CONTEXT_REQUIRED');
+  assertSecurityContext(securityContext);
+  const nonce = randomNonce();
+  const payload = canonicalSort({
+    version: 2,
+    nonce,
+    toolId,
+    parameters,
+    targetLayerIds:[...targetLayerIds].sort(),
+    taskId:securityContext.taskId,
+    taskRevision:securityContext.taskRevision,
+    documentRevision:securityContext.documentRevision,
+    documentFingerprint:securityContext.documentFingerprint,
+    planFingerprint:securityContext.planFingerprint,
+    catalogFingerprint:securityContext.catalogFingerprint,
+    expiresAt:securityContext.expiresAt,
+  });
+  const digest = await sha256(JSON.stringify(payload));
+  return `${nonce}.${securityContext.expiresAt}.${digest}`;
+}
+
+async function consumeAndValidateConfirmationToken(
+  token: string,
+  toolId: string,
+  parameters: CanonicalCapabilityParameters,
+  targetLayerIds: readonly string[],
+  securityContext: AgentExecutionSecurityContext,
+): Promise<void> {
+  assertSecurityContext(securityContext);
+  if (consumedConfirmationTokens.has(token) || reservedConfirmationTokens.has(token)) {
+    throw new Error('CONFIRMATION_TOKEN_REPLAYED');
+  }
+  const parts = token.split('.');
+  if (parts.length !== 3 || !/^[a-f0-9]{32}$/.test(parts[0]) || !/^\d+$/.test(parts[1]) || !/^[a-f0-9]{64}$/.test(parts[2])) {
+    throw new Error('CONFIRMATION_TOKEN_INVALID');
+  }
+  const expiresAt = Number(parts[1]);
+  if (expiresAt !== securityContext.expiresAt || expiresAt <= Date.now()) {
+    throw new Error('CONFIRMATION_TOKEN_EXPIRED');
+  }
+
+  reservedConfirmationTokens.add(token);
+  try {
+    const payload = canonicalSort({
+      version: 2,
+      nonce: parts[0],
+      toolId,
+      parameters,
+      targetLayerIds: [...targetLayerIds].sort(),
+      taskId: securityContext.taskId,
+      taskRevision: securityContext.taskRevision,
+      documentRevision: securityContext.documentRevision,
+      documentFingerprint: securityContext.documentFingerprint,
+      planFingerprint: securityContext.planFingerprint,
+      catalogFingerprint: securityContext.catalogFingerprint,
+      expiresAt,
+    });
+    const expected = await sha256(JSON.stringify(payload));
+    if (parts[2] !== expected) throw new Error('CONFIRMATION_TOKEN_INVALID');
+
+    reservedConfirmationTokens.delete(token);
+    consumedConfirmationTokens.add(token);
+    if (consumedConfirmationTokens.size > MAX_CONSUMED_TOKENS) {
+      const oldest = consumedConfirmationTokens.values().next().value;
+      if (typeof oldest === 'string') consumedConfirmationTokens.delete(oldest);
+    }
+  } catch (error) {
+    reservedConfirmationTokens.delete(token);
+    throw error;
+  }
+}
+
+export async function fingerprintImageExecutionPlan(plan: unknown): Promise<string> {
+  return sha256(JSON.stringify(canonicalSort(plan)));
+}
+
+export async function fingerprintImageBlob(blob: Blob): Promise<string> {
+  if (!(blob instanceof Blob)) throw new Error('AGENT_DOCUMENT_FINGERPRINT_INPUT_INVALID');
+  return sha256Bytes(await blob.arrayBuffer());
 }
 export function assertTargetLayersUnlocked(targetLayerIds:readonly string[]=[],layers:readonly ImageExecutionLayer[]=[]):void{
   if(!targetLayerIds.length) return;
@@ -108,8 +231,17 @@ export async function validateCanonicalImageExecutionRequest(request:CanonicalIm
   const confirmationRequired=request.origin==='agent' && capability.safetyContract.requiresUserConfirmationForAgent;
   if(confirmationRequired){
     if(request.confirmed!==true) throw new Error('CONFIRMATION_REQUIRED:'+request.toolId);
-    const expected=await createImageExecutionConfirmationToken(request.toolId,parameters,request.targetLayerIds??[]);
-    if(request.confirmationToken!==expected) throw new Error('CONFIRMATION_TOKEN_INVALID:'+request.toolId);
+    if(!request.securityContext) throw new Error('AGENT_SECURITY_CONTEXT_REQUIRED:'+request.toolId);
+    if(request.securityContext.catalogFingerprint !== TOOL_CATALOG.fingerprint) throw new Error('AGENT_CATALOG_STATE_CHANGED:'+request.toolId);
+    const currentDocumentFingerprint = await fingerprintImageBlob(request.inputBlob);
+    if(currentDocumentFingerprint !== request.securityContext.documentFingerprint) throw new Error('AGENT_DOCUMENT_STATE_CHANGED:'+request.toolId);
+    await consumeAndValidateConfirmationToken(
+      request.confirmationToken ?? '',
+      request.toolId,
+      parameters,
+      request.targetLayerIds ?? [],
+      request.securityContext,
+    );
   }
   await assertLocalImageBlob(request.inputBlob,request.toolId,capability.safetyLimits);
   return {toolId:request.toolId,parameters,confirmationRequired,catalogFingerprint:TOOL_CATALOG.fingerprint};
