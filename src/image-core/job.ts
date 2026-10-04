@@ -91,7 +91,7 @@ export class ImageJob {
     }
     const input = this.assetStore.require(result.inputAssetId);
     const output = this.assetStore.require(result.outputAssetId);
-    if (!this.verifier) return { valid: true, failures: [] };
+    if (!this.verifier) return { valid: false, failures: ['image job verifier is required'] };
     return normalizeVerification(await this.verifier(input, output, this.parameters));
   }
 
