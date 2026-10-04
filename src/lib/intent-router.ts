@@ -55,6 +55,9 @@ const normalize = (value: string): string =>
     .replace(/\s+/g, ' ')
     .trim();
 
+const lexicalTokens = (value: string): string[] =>
+  value.match(/[\p{L}\p{N}]+/gu) ?? [];
+
 const scoreMatch = (query: string, tool: ToolDefinition): number => {
   const normalizedQuery = normalize(query);
   if (!normalizedQuery) return 0;
@@ -64,16 +67,16 @@ const scoreMatch = (query: string, tool: ToolDefinition): number => {
 
   for (const candidate of candidates) {
     if (!candidate) continue;
-    const candidateTokenCount = candidate.split(/\s+/).filter(Boolean).length;
+    const candidateTokenCount = lexicalTokens(candidate).length;
     const specificityBonus = Math.min(20, candidateTokenCount * 3);
     if (candidate === normalizedQuery) score = Math.max(score, 100 + specificityBonus);
     else if (candidate.includes(normalizedQuery)) score = Math.max(score, 85 + specificityBonus);
     else if (normalizedQuery.includes(candidate)) score = Math.max(score, 70 + specificityBonus);
     else {
-      const tokens = normalizedQuery.split(' ').filter((token) => token.length > 1);
+      const tokens = lexicalTokens(normalizedQuery).filter((token) => token.length > 1);
       const stopwords = new Set(['the', 'this', 'that', 'from', 'into', 'with', 'for', 'and', 'to', 'of', 'a', 'an', 'is', 'on', 'in', 'لل', 'من', 'في', 'إلى', 'و', 'مع', 'هذه', 'هذا']);
       const meaningful = tokens.filter((token) => !stopwords.has(token));
-      const candidateTokens = candidate.split(/\s+/).filter((token) => token.length > 1);
+      const candidateTokens = lexicalTokens(candidate).filter((token) => token.length > 1);
       const candidateMeaningful = candidateTokens.filter((token) => !stopwords.has(token));
       const hits = meaningful.filter((token) => candidate.includes(token)).length;
       const queryCoverage = hits / (meaningful.length || tokens.length);
