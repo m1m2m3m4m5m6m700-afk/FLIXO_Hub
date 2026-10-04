@@ -1,8 +1,33 @@
-import type { Locale } from './config';
+import { LOCALES, type Locale } from './config';
 
 export type ToolSeoLocale = Readonly<Record<Locale, string>>;
 
 /** Canonical localized SEO names for image-platform tools only. */
+const NEW_CANONICAL_IMAGE_SEO_LABELS: Readonly<Record<string, Readonly<{ en: string; ar: string }>>> = Object.freeze({
+  'image-rotate-flip': { en: 'Rotate & Flip', ar: 'تدوير وقلب الصور' },
+  'image-brightness-contrast': { en: 'Brightness & Contrast', ar: 'السطوع والتباين' },
+  'image-saturation-hue': { en: 'Saturation & Hue', ar: 'التشبع ودرجة اللون' },
+  'image-exposure': { en: 'Exposure', ar: 'التعريض' },
+  'image-highlights-shadows': { en: 'Highlights & Shadows', ar: 'الإبرازات والظلال' },
+  'image-grayscale-duotone': { en: 'Grayscale & Duotone', ar: 'التدرج الرمادي ودوتون' },
+  'image-filters': { en: 'Image Filters', ar: 'فلاتر الصور' },
+  'image-watermark': { en: 'Watermark', ar: 'علامة مائية' },
+  'image-text-overlay': { en: 'Text Overlay', ar: 'إضافة نص على الصورة' },
+  'image-draw-annotate': { en: 'Draw & Annotate', ar: 'الرسم والتعليق على الصورة' },
+  'image-redaction': { en: 'Image Redaction', ar: 'تعمية الصورة' },
+});
+
+const NEW_CANONICAL_IMAGE_SEO_NAMES: Readonly<Record<string, ToolSeoLocale>> = Object.freeze(
+  Object.fromEntries(
+    Object.entries(NEW_CANONICAL_IMAGE_SEO_LABELS).map(([id, labels]) => [
+      id,
+      Object.freeze(Object.fromEntries(
+        LOCALES.map((locale) => [locale, locale === 'ar' ? labels.ar : labels.en]),
+      )) as ToolSeoLocale,
+    ]),
+  ),
+);
+
 export const TOOL_SEO_NAMES: Readonly<Record<string, ToolSeoLocale>> = Object.freeze({
   'filter-mask': Object.freeze({ en:'Filter Mask', ar:'قناع الفلاتر', es:'Máscara de filtros', fr:'Masque de filtres', de:'Filtermaske', hi:'फ़िल्टर मास्क', id:'Masker filter', it:'Maschera filtro', ja:'フィルターマスク', ko:'필터 마스크', ms:'Topeng penapis', nl:'Filtermasker', pl:'Maska filtrów', pt:'Máscara de filtros', ru:'Маска фильтров', sv:'Filtermask', th:'มาสก์ฟิลเตอร์', tr:'Filtre maskesi', uk:'Маска фільтрів', vi:'Mặt nạ bộ lọc' }),
   'image-compressor': Object.freeze({ en:'Image Compressor', ar:'ضاغط الصور', es:'Compresor de imágenes', fr:"Compresseur d’images", de:'Bildkompressor', hi:'इमेज कंप्रेसर', id:'Kompresor Gambar', it:'Compressore di immagini', ja:'画像圧縮', ko:'이미지 압축기', ms:'Pemampat Imej', nl:'Afbeeldingscompressor', pl:'Kompresor obrazów', pt:'Compressor de Imagens', ru:'Компрессор изображений', sv:'Bildkompressor', th:'เครื่องมือบีบอัดรูปภาพ', tr:'Görsel sıkıştırıcı', uk:'Компресор зображень', vi:'Trình nén ảnh' }),
@@ -47,6 +72,7 @@ export const TOOL_SEO_NAMES: Readonly<Record<string, ToolSeoLocale>> = Object.fr
   'image-pixelate': Object.freeze({ en:'Pixelate Image', ar:'بكسلة الصورة', es:'Pixelar imagen', fr:'Pixelliser l’image', de:'Bild pixeln', hi:'इमेज पिक्सेलेट करें', id:'Pikselkan Gambar', it:'Pixelizza immagine', ja:'画像をピクセル化', ko:'이미지 픽셀화', ms:'Pikselkan Imej', nl:'Afbeelding pixeleren', pl:'Pikselizacja obrazu', pt:'Pixelizar Imagem', ru:'Пикселизация изображения', sv:'Pixelera bild', th:'ทำภาพพิกเซล', tr:'Görseli pikselleştir', uk:'Пікселізація зображення', vi:'Pixel hóa ảnh' }),
   'image-padding': Object.freeze({ en:'Image Padding', ar:'هوامش الصورة', es:'Margen de imagen', fr:'Marge de l’image', de:'Bildinnenabstand', hi:'इमेज पैडिंग', id:'Padding Gambar', it:'Bordo immagine', ja:'画像パディング', ko:'이미지 여백', ms:'Jidar Imej', nl:'Afbeeldingsmarge', pl:'Margines obrazu', pt:'Margem da Imagem', ru:'Поля изображения', sv:'Bildmarginal', th:'ขอบรูปภาพ', tr:'Görsel dolgusu', uk:'Відступи зображення', vi:'Khoảng đệm ảnh' }),
   'image-rounded-corners': Object.freeze({ en:'Rounded Corners', ar:'زوايا مستديرة', es:'Esquinas redondeadas', fr:'Coins arrondis', de:'Abgerundete Ecken', hi:'गोल कोने', id:'Sudut Membulat', it:'Angoli arrotondati', ja:'角を丸くする', ko:'둥근 모서리', ms:'Sudut Bulat', nl:'Afgeronde hoeken', pl:'Zaokrąglone rogi', pt:'Cantos Arredondados', ru:'Скруглённые углы', sv:'Rundade hörn', th:'มุมโค้งมน', tr:'Yuvarlatılmış köşeler', uk:'Заокруглені кути', vi:'Bo góc tròn' }),
+  ...NEW_CANONICAL_IMAGE_SEO_NAMES,
 });
 
 export function getToolSeoName(toolId: string, locale: Locale): string | undefined {
