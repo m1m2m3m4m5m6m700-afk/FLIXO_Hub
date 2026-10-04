@@ -43,9 +43,7 @@ function nextTaskId(): string {
 }
 
 function paramsFor(toolId: string): Readonly<Record<string, string | number | boolean>> {
-  const params = DEFAULT_PARAMS[toolId];
-  if (!params) return Object.freeze({});
-  return Object.freeze({ ...params });
+  return getDefaultAgentParameters(toolId);
 }
 
 async function buildSecurityContext(
