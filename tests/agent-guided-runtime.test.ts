@@ -39,7 +39,7 @@ test('agent planner admits exactly the twenty grouped image capabilities', async
     try {
       plan = await planAgentRequest(prompt, imageFile());
     } catch (error) {
-      throw new Error(`planner failed for "${prompt}" expected="${expectedToolId}": ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(`planner failed for "${prompt}" expected="${expectedToolId}": ${error instanceof Error ? error.message : String(error)}`, { cause: error });
     }
     assert.equal(plan.steps.length, 1);
     assert.equal(plan.steps[0].toolId, expectedToolId);
