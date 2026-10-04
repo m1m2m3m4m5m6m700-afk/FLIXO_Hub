@@ -73,9 +73,6 @@ export async function executeImageAgentPlan(
   const step=validated.steps[0];
   const mergedParameters = { ...step.params, ...primitiveParameters(parametersOverride) };
   const secureContext = await secureContextForPlan(validated, securityContext);
-  if (securityContext.planFingerprint !== undefined) {
-    throw new Error('AGENT_PLAN_FINGERPRINT_MUST_BE_RUNTIME_BOUND');
-  }
   return executeCanonicalImageTool({
     toolId:step.toolId,
     inputBlob,
