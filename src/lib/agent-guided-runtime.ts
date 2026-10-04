@@ -19,7 +19,6 @@ export type AgentPlan = Readonly<ExecutionPlanContract & {
 
 const MAX_AGENT_FILE_BYTES = 25 * 1024 * 1024;
 const MAX_PROMPT_CHARS = 2_000;
-const TASK_COUNTER = { value: 0 };
 
 const DEFAULT_PARAMS: Readonly<Record<string, Record<string, string | number | boolean>>> = Object.freeze({
   'background-remover': { tolerance: 32 },
@@ -44,6 +43,8 @@ const DEFAULT_PARAMS: Readonly<Record<string, Record<string, string | number | b
   'image-redaction': { x: 25, y: 25, width: 50, height: 25, color: '#000000' },
 });
 
+const TASK_COUNTER = { value: 0 };
+
 function assertLocalImageFile(file: File): void {
   if (!(file instanceof File)) throw new Error('Agent Guided Workflow requires a local File.');
   if (file.size <= 0 || file.size > MAX_AGENT_FILE_BYTES) {
@@ -61,10 +62,15 @@ function nextTaskId(): string {
 }
 
 function paramsFor(toolId: string): Readonly<Record<string, string | number | boolean>> {
-  return Object.freeze({ ...(DEFAULT_PARAMS[toolId] ?? {}) });
+  const params = DEFAULT_PARAMS[toolId];
+  if (!params) return Object.freeze({});
+  return Object.freeze({ ...params });
 }
 
-async function buildSecurityContext(plan: ExecutionPlanContract, file: File): Promise<AgentExecutionSecurityContext> {
+async function buildSecurityContext(
+  plan: ExecutionPlanContract,
+  file: File,
+): Promise<AgentExecutionSecurityContext> {
   const [planFingerprint, documentFingerprint] = await Promise.all([
     fingerprintImageExecutionPlan(plan),
     fingerprintImageBlob(file),
@@ -87,7 +93,7 @@ export async function planAgentRequest(prompt: string, file: File): Promise<Agen
     throw new Error('Prompt must contain between 1 and 2,000 characters.');
   }
 
-  const planned: ImageAgentPlan = planImageToolIntent(trimmed);
+  const planned: ImageAgentPlan = planImageToolIntent(trimmed, {});
   if (planned.status !== 'PLANNED' || !planned.plan || !planned.toolId) {
     throw new Error(planned.status === 'AMBIGUOUS'
       ? 'Request is ambiguous. Choose one supported image operation.'
@@ -95,10 +101,10 @@ export async function planAgentRequest(prompt: string, file: File): Promise<Agen
   }
 
   const defaultParams = paramsFor(planned.toolId);
-  const plan = Object.freeze({
+  const plan = {
     ...planned.plan,
     steps: [{ toolId: planned.toolId, params: defaultParams }],
-  });
+  };
   const securityContext = await buildSecurityContext(plan, file);
   const confirmationToken = await createImageExecutionConfirmationToken(
     planned.toolId,
@@ -120,13 +126,11 @@ export async function executeAgentPlan(
   plan: AgentPlan,
   file: File,
   confirmed: boolean,
-  signal?: AbortSignal,
 ): Promise<CanonicalImageExecutionReceipt> {
   assertLocalImageFile(file);
   if (!confirmed || plan.requiresUserConfirmation !== true) {
     throw new Error('Execution denied: explicit user confirmation is required.');
   }
-  if (signal?.aborted) throw signal.reason instanceof Error ? signal.reason : new DOMException('Agent execution cancelled.', 'AbortError');
   if (plan.catalogFingerprint !== TOOL_CATALOG.fingerprint) {
     throw new Error('Execution denied: canonical tool catalog changed after planning.');
   }
@@ -152,6 +156,5 @@ export async function executeAgentPlan(
     confirmed: true,
     confirmationToken: plan.confirmationToken,
     securityContext: plan.securityContext,
-    signal,
   });
 }
