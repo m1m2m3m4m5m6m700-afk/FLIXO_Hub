@@ -35,7 +35,12 @@ test('agent planner admits exactly the twenty grouped image capabilities', async
   assert.equal(CANONICAL_IMAGE_TOOL_IDS.length, 20);
   assert.equal(CASES.length, 20);
   for (const [expectedToolId, prompt] of CASES) {
-    const plan = await planAgentRequest(prompt, imageFile());
+    let plan;
+    try {
+      plan = await planAgentRequest(prompt, imageFile());
+    } catch (error) {
+      throw new Error(`planner failed for "${prompt}" expected="${expectedToolId}": ${error instanceof Error ? error.message : String(error)}`);
+    }
     assert.equal(plan.steps.length, 1);
     assert.equal(plan.steps[0].toolId, expectedToolId);
     assert.equal(plan.requiresUserConfirmation, true);
