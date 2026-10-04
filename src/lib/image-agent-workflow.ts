@@ -1,4 +1,5 @@
 import { TOOL_CATALOG } from '../config/registry.ts';
+import { getDefaultAgentParameters } from '../config/manual-capability-definition.ts';
 import { findToolIntent } from './intent-router.ts';
 import { MAX_PLAN_STEPS, parseExecutionPlan, type ExecutionPlanContract } from './contracts/ai-plan.ts';
 import {
@@ -37,11 +38,12 @@ export function planImageToolIntent(intent:string,parameters:Readonly<Record<str
   if(!matches.length) return Object.freeze({status:'NEEDS_INPUT'});
   const best=matches[0];
   if(matches[1]&&matches[1].score>=best.score-5) return Object.freeze({status:'AMBIGUOUS'});
+  const resolvedParameters = Object.keys(parameters).length > 0 ? primitiveParameters(parameters) : getDefaultAgentParameters(best.tool.id);
   const plan=Object.freeze({
     workflowName:'flixo-image-tool',
     confidence:Math.min(1,best.score/100),
     catalogFingerprint:TOOL_CATALOG.fingerprint,
-    steps:[{toolId:best.tool.id,params:primitiveParameters(parameters)}],
+    steps:[{toolId:best.tool.id,params:resolvedParameters}],
   });
   parseExecutionPlan(plan);
   return Object.freeze({status:'PLANNED',plan,toolId:best.tool.id,confirmationRequired:true});
