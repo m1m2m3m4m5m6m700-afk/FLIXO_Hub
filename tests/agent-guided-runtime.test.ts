@@ -6,8 +6,7 @@ const {
   executeAgentPlan,
   planAgentRequest,
 } = await import('../src/lib/agent-guided-runtime.ts');
-const { MVP_EXECUTABLE_TOOL_IDS } = await import('../src/config/manual-capability-definition.ts');
-const { getToolChainAdapter } = await import('../src/lib/tool-chain-adapters.ts');
+const { getCapability, MVP_EXECUTABLE_TOOL_IDS } = await import('../src/config/manual-capability-definition.ts');
 const { parseExecutionPlan } = await import('../src/lib/contracts/ai-plan.ts');
 
 const toExecutionPlan = (plan: { workflowName: string; confidence: number; catalogFingerprint: string; steps: readonly { toolId: string; params?: Record<string, string | number | boolean> }[] }) => ({
@@ -55,7 +54,10 @@ test('agent planner admits exactly twenty executable tools and binds every tool 
   assert.equal(CASES.length, 20);
   for (const [expectedToolId, request] of CASES) {
     assert.equal(MVP_EXECUTABLE_TOOL_IDS.includes(expectedToolId as never), true, expectedToolId);
-    assert.equal(typeof getToolChainAdapter(expectedToolId), 'function', expectedToolId);
+    const capability = getCapability(expectedToolId);
+    assert.equal(capability?.state, 'EXECUTABLE', expectedToolId);
+    assert.equal(capability?.executionMode, 'LOCAL', expectedToolId);
+    assert.equal(capability?.operational.executorId, expectedToolId, expectedToolId);
     const plan = planAgentRequest(request, file());
     assert.equal(plan.steps.length, 1);
     assert.equal(plan.steps[0].toolId, expectedToolId);
