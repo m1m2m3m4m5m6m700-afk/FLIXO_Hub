@@ -2,6 +2,7 @@ import type { Locale } from './config';
 import { isLocale, LOCALE_METADATA } from './config';
 
 const LOCALE_PATH_RE = /^\/([^/]+)(?:\/|$)/u;
+const AGENT_LOCALE_OWNER_ATTRIBUTE = 'data-flixo-locale-owner';
 
 export function localeFromPathname(pathname: string): Locale {
   const candidate = pathname.match(LOCALE_PATH_RE)?.[1] ?? 'en';
@@ -12,6 +13,10 @@ export function localeFromPathname(pathname: string): Locale {
  * Canonical and only application-owned writer for document-level locale state.
  * Runtime locale values are validated and resolved through LOCALE_METADATA
  * before any DOM mutation is allowed.
+ *
+ * The language-neutral Agent workspace owns its own locale toggle because
+ * /agent is intentionally not encoded as /ar/agent or /en/agent. Its main
+ * element is therefore excluded from path-derived main-locale synchronization.
  */
 export function applyDocumentLocale(locale: Locale): void {
   if (typeof document === 'undefined') return;
@@ -34,7 +39,7 @@ export function applyDocumentLocale(locale: Locale): void {
     html.setAttribute('data-flixo-locale', locale);
   }
 
-  document.querySelectorAll<HTMLElement>('main').forEach((main) => {
+  document.querySelectorAll<HTMLElement>(`main:not([${AGENT_LOCALE_OWNER_ATTRIBUTE}])`).forEach((main) => {
     if (main.getAttribute('lang') !== languageTag) {
       main.setAttribute('lang', languageTag);
     }
