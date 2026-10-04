@@ -5,13 +5,13 @@
   "scope": "20 canonical browser-local image tools",
   "repository": "m1m2m3m4m5m6m700-afk/FLIXO_Hub",
   "baseBranch": "execution",
-  "workBranch": "agent-1/image-tools-20-certification-20261004",
+  "workBranch": "agent-1/image-tools-20-certification-final-20261004",
   "pullRequest": {
-    "number": 1010,
-    "url": "https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/pull/1010",
+    "number": 1011,
+    "url": "https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/pull/1011",
     "state": "OPEN"
   },
-  "candidateHeadSha": "0a9d2675f2c30db44ae7a588c59058892b1a358f",
+  "candidateHeadSha": "dbcda152abb5cbb485d5c4f11ad41e83fb88ac92",
   "tools": {
     "background-remover": {
       "implementationStatus": "IMPLEMENTED",
@@ -193,7 +193,8 @@
       "Chromium Browser Smoke",
       "Trust Gate",
       "Promotion Proof"
-    ]
+    ],
+    "candidateLane": "PR-1011"
   },
   "evidence": {
     "priorVerifiedCoreRun": {
