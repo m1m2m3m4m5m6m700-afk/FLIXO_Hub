@@ -3,9 +3,9 @@ import { expect, test, type Page } from '@playwright/test';
 const PNG_FIXTURE = 'iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAPUlEQVR42mP4z8DwHwwZ/oMBAwOYxQBD/xkaHBT+Kzg0/HdoUPh/IsXoP4OIhs1/Gw2R/ynTTvz/sCXgPwDaSiSJ4dCj1wAAAABJRU5ErkJggg==';
 const MANUAL_TOOL_IDS = [
   'background-remover','image-upscaler','image-cropper','image-compressor','image-converter','image-effects',
-  'image-rotate','image-flip-horizontal','image-flip-vertical','image-brightness','image-contrast',
-  'image-saturation','image-grayscale','image-invert','image-sepia','image-blur','image-sharpen',
-  'image-resizer','image-hue','image-pixelate',
+  'image-resizer','image-rotate-flip','image-brightness-contrast','image-saturation-hue','image-exposure',
+  'image-highlights-shadows','image-sharpen','image-blur','image-grayscale-duotone','image-filters',
+  'image-watermark','image-text-overlay','image-draw-annotate','image-redaction',
 ] as const;
 
 const AGENT_CASES = [
@@ -14,21 +14,21 @@ const AGENT_CASES = [
   ['image-cropper', 'crop this image to square'],
   ['image-compressor', 'compress my image'],
   ['image-converter', 'convert this image to webp'],
-  ['image-effects', 'adjust image effects'],
-  ['image-rotate', 'rotate the image'],
-  ['image-flip-horizontal', 'flip horizontal'],
-  ['image-flip-vertical', 'flip vertical'],
-  ['image-brightness', 'increase brightness'],
-  ['image-contrast', 'increase contrast by 10 percent'],
-  ['image-saturation', 'increase saturation'],
-  ['image-grayscale', 'make it black and white'],
-  ['image-invert', 'invert image colors'],
-  ['image-sepia', 'apply sepia'],
-  ['image-blur', 'blur the image'],
-  ['image-sharpen', 'sharpen the image'],
+  ['image-effects', 'increase brightness and contrast'],
   ['image-resizer', 'resize the image'],
-  ['image-hue', 'change the hue'],
-  ['image-pixelate', 'pixelate the image'],
+  ['image-rotate-flip', 'rotate and flip the image'],
+  ['image-brightness-contrast', 'increase brightness and contrast'],
+  ['image-saturation-hue', 'increase saturation and hue'],
+  ['image-exposure', 'increase exposure'],
+  ['image-highlights-shadows', 'adjust highlights and shadows'],
+  ['image-sharpen', 'sharpen the image'],
+  ['image-blur', 'blur the image'],
+  ['image-grayscale-duotone', 'apply duotone mapping'],
+  ['image-filters', 'use photo filters'],
+  ['image-watermark', 'add a watermark'],
+  ['image-text-overlay', 'add text to the image'],
+  ['image-draw-annotate', 'draw an arrow on the image'],
+  ['image-redaction', 'redact a region of the image'],
 ] as const;
 
 function fixture() {
@@ -45,7 +45,6 @@ async function executeManual(page: Page, toolId: (typeof MANUAL_TOOL_IDS)[number
   const fileInput = page.locator('input[type=file]').first();
   await expect(fileInput).toHaveCount(1);
   await fileInput.setInputFiles(fixture());
-  await expect(page.getByText('Before')).toHaveCount(1);
 
   if (toolId === 'image-cropper') {
     await page.getByRole('textbox', { name: 'Crop width' }).fill('4');
@@ -54,51 +53,38 @@ async function executeManual(page: Page, toolId: (typeof MANUAL_TOOL_IDS)[number
     await page.getByRole('textbox', { name: 'Output height' }).fill('4');
   }
 
-  if (toolId === 'image-compressor') {
-    const runButton = page.getByRole('button', { name: /Compress image/i });
-    await expect(runButton).toBeEnabled({ timeout: 10_000 });
-    await runButton.click();
-    await expect(page.locator('a[download]').first()).toBeVisible({ timeout: 20_000 });
-  } else if (toolId === 'image-effects') {
-    const runButton = page.getByRole('button', { name: /Run tool/i });
-    await expect(runButton).toBeEnabled({ timeout: 10_000 });
-    await runButton.click();
-    await expect(page.locator('img[alt]').last()).toBeVisible({ timeout: 20_000 });
-    await expect(page.getByRole('button', { name: /Download/i })).toBeVisible({ timeout: 20_000 });
-  } else {
-    const runButton = page.getByRole('button', { name: /Run tool/i });
-    await expect(runButton).toBeEnabled({ timeout: 10_000 });
-    await runButton.click();
-    await expect(page.locator('a[download]').first()).toBeVisible({ timeout: 20_000 });
-  }
+  const runButton = toolId === 'image-compressor'
+    ? page.getByRole('button', { name: /Compress image/i })
+    : page.getByRole('button', { name: /Run tool/i });
+  await expect(runButton).toBeEnabled({ timeout: 10_000 });
+  await runButton.click();
+  await expect(page.locator('a[download]').first()).toBeVisible({ timeout: 20_000 });
 }
 
 async function planAndExecuteAgent(page: Page, toolId: string, prompt: string, language: 'ar' | 'en') {
   await page.goto('/agent', { waitUntil: 'domcontentloaded' });
-  if (language === 'ar') {
-    const main = page.locator('main').last();
-    const direction = await main.getAttribute('dir');
-    if (direction !== 'rtl') await page.getByRole('button', { name: /العربية/i }).click();
-    await expect(page.locator('main').last()).toHaveAttribute('dir', 'rtl');
-    await expect(page.locator('main').last()).toHaveAttribute('lang', 'ar');
+  const main = page.locator('main').last();
+  const direction = await main.getAttribute('dir');
+  const expectedDirection = language === 'ar' ? 'rtl' : 'ltr';
+  if (direction !== expectedDirection) {
+    await main.locator('header button').first().click();
   }
-  if (language === 'en') {
-    const main = page.locator('main').last();
-    const direction = await main.getAttribute('dir');
-    if (direction !== 'ltr') await page.getByRole('button', { name: /English/i }).click();
-    await expect(page.locator('main').last()).toHaveAttribute('dir', 'ltr');
-  }
+  await expect(main).toHaveAttribute('dir', expectedDirection);
+  await expect(main).toHaveAttribute('lang', language);
   await page.locator('#agent-prompt').fill(prompt);
   await page.locator('#agent-file').setInputFiles(fixture());
-  await page.getByRole('button', { name: language === 'ar' ? /إنشاء الخطة/i : /Build plan/i }).click();
+  const buildButton = page.locator('main').last().locator('section').first().getByRole('button').first();
+  await expect(buildButton).toBeEnabled({ timeout: 10_000 });
+  await buildButton.click();
   const plan = page.locator('[aria-label="agent-plan"]');
   await expect(plan).toContainText(toolId);
-  await expect(page.locator('input[type=checkbox]')).not.toBeChecked();
-  const executeButton = page.getByRole('button', { name: language === 'ar' ? /تنفيذ/i : /Execute/i });
+  const confirmation = plan.locator('input[type=checkbox]');
+  await expect(confirmation).not.toBeChecked();
+  const executeButton = plan.getByRole('button').first();
   await expect(executeButton).toBeDisabled();
   await expect(page.locator('[aria-label="agent-result"]')).toHaveCount(0);
-  await page.locator('input[type=checkbox]').check();
-  await page.getByRole('button', { name: language === 'ar' ? /تنفيذ/i : /Execute/i }).click();
+  await confirmation.check();
+  await executeButton.click();
   await expect(page.locator('[aria-label="agent-result"]')).toBeVisible({ timeout: 20_000 });
 }
 

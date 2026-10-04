@@ -1,0 +1,223 @@
+{
+  "schemaVersion": 3,
+  "agent": "AGENT-1",
+  "role": "BUILDER",
+  "scope": "20 canonical browser-local image tools",
+  "repository": "m1m2m3m4m5m6m700-afk/FLIXO_Hub",
+  "baseBranch": "execution",
+  "workBranch": "agent-1/image-tools-20-certification-20261004",
+  "pullRequest": {
+    "number": 1010,
+    "url": "https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/pull/1010",
+    "state": "OPEN"
+  },
+  "candidateHeadSha": "0a9d2675f2c30db44ae7a588c59058892b1a358f",
+  "tools": {
+    "background-remover": {
+      "implementationStatus": "IMPLEMENTED",
+      "registry": "CANONICAL",
+      "manualPath": "CANONICAL_EXECUTOR",
+      "agentPath": "PLANNER->CANONICAL_EXECUTOR",
+      "verifier": "PRESENT",
+      "status": "PENDING_EXACT_SHA_CI"
+    },
+    "image-upscaler": {
+      "implementationStatus": "IMPLEMENTED",
+      "registry": "CANONICAL",
+      "manualPath": "CANONICAL_EXECUTOR",
+      "agentPath": "PLANNER->CANONICAL_EXECUTOR",
+      "verifier": "PRESENT",
+      "status": "PENDING_EXACT_SHA_CI"
+    },
+    "image-cropper": {
+      "implementationStatus": "IMPLEMENTED",
+      "registry": "CANONICAL",
+      "manualPath": "CANONICAL_EXECUTOR",
+      "agentPath": "PLANNER->CANONICAL_EXECUTOR",
+      "verifier": "PRESENT",
+      "status": "PENDING_EXACT_SHA_CI"
+    },
+    "image-compressor": {
+      "implementationStatus": "IMPLEMENTED",
+      "registry": "CANONICAL",
+      "manualPath": "CANONICAL_EXECUTOR",
+      "agentPath": "PLANNER->CANONICAL_EXECUTOR",
+      "verifier": "PRESENT",
+      "status": "PENDING_EXACT_SHA_CI"
+    },
+    "image-converter": {
+      "implementationStatus": "IMPLEMENTED",
+      "registry": "CANONICAL",
+      "manualPath": "CANONICAL_EXECUTOR",
+      "agentPath": "PLANNER->CANONICAL_EXECUTOR",
+      "verifier": "PRESENT",
+      "status": "PENDING_EXACT_SHA_CI"
+    },
+    "image-effects": {
+      "implementationStatus": "IMPLEMENTED",
+      "registry": "CANONICAL",
+      "manualPath": "CANONICAL_EXECUTOR",
+      "agentPath": "PLANNER->CANONICAL_EXECUTOR",
+      "verifier": "PRESENT",
+      "status": "PENDING_EXACT_SHA_CI"
+    },
+    "image-resizer": {
+      "implementationStatus": "IMPLEMENTED",
+      "registry": "CANONICAL",
+      "manualPath": "CANONICAL_EXECUTOR",
+      "agentPath": "PLANNER->CANONICAL_EXECUTOR",
+      "verifier": "PRESENT",
+      "status": "PENDING_EXACT_SHA_CI"
+    },
+    "image-rotate-flip": {
+      "implementationStatus": "IMPLEMENTED",
+      "registry": "CANONICAL",
+      "manualPath": "CANONICAL_EXECUTOR",
+      "agentPath": "PLANNER->CANONICAL_EXECUTOR",
+      "verifier": "PRESENT",
+      "status": "PENDING_EXACT_SHA_CI"
+    },
+    "image-brightness-contrast": {
+      "implementationStatus": "IMPLEMENTED",
+      "registry": "CANONICAL",
+      "manualPath": "CANONICAL_EXECUTOR",
+      "agentPath": "PLANNER->CANONICAL_EXECUTOR",
+      "verifier": "PRESENT",
+      "status": "PENDING_EXACT_SHA_CI"
+    },
+    "image-saturation-hue": {
+      "implementationStatus": "IMPLEMENTED",
+      "registry": "CANONICAL",
+      "manualPath": "CANONICAL_EXECUTOR",
+      "agentPath": "PLANNER->CANONICAL_EXECUTOR",
+      "verifier": "PRESENT",
+      "status": "PENDING_EXACT_SHA_CI"
+    },
+    "image-exposure": {
+      "implementationStatus": "IMPLEMENTED",
+      "registry": "CANONICAL",
+      "manualPath": "CANONICAL_EXECUTOR",
+      "agentPath": "PLANNER->CANONICAL_EXECUTOR",
+      "verifier": "PRESENT",
+      "status": "PENDING_EXACT_SHA_CI"
+    },
+    "image-highlights-shadows": {
+      "implementationStatus": "IMPLEMENTED",
+      "registry": "CANONICAL",
+      "manualPath": "CANONICAL_EXECUTOR",
+      "agentPath": "PLANNER->CANONICAL_EXECUTOR",
+      "verifier": "PRESENT",
+      "status": "PENDING_EXACT_SHA_CI"
+    },
+    "image-sharpen": {
+      "implementationStatus": "IMPLEMENTED",
+      "registry": "CANONICAL",
+      "manualPath": "CANONICAL_EXECUTOR",
+      "agentPath": "PLANNER->CANONICAL_EXECUTOR",
+      "verifier": "PRESENT",
+      "status": "PENDING_EXACT_SHA_CI"
+    },
+    "image-blur": {
+      "implementationStatus": "IMPLEMENTED",
+      "registry": "CANONICAL",
+      "manualPath": "CANONICAL_EXECUTOR",
+      "agentPath": "PLANNER->CANONICAL_EXECUTOR",
+      "verifier": "PRESENT",
+      "status": "PENDING_EXACT_SHA_CI"
+    },
+    "image-grayscale-duotone": {
+      "implementationStatus": "IMPLEMENTED",
+      "registry": "CANONICAL",
+      "manualPath": "CANONICAL_EXECUTOR",
+      "agentPath": "PLANNER->CANONICAL_EXECUTOR",
+      "verifier": "PRESENT",
+      "status": "PENDING_EXACT_SHA_CI"
+    },
+    "image-filters": {
+      "implementationStatus": "IMPLEMENTED",
+      "registry": "CANONICAL",
+      "manualPath": "CANONICAL_EXECUTOR",
+      "agentPath": "PLANNER->CANONICAL_EXECUTOR",
+      "verifier": "PRESENT",
+      "status": "PENDING_EXACT_SHA_CI"
+    },
+    "image-watermark": {
+      "implementationStatus": "IMPLEMENTED",
+      "registry": "CANONICAL",
+      "manualPath": "CANONICAL_EXECUTOR",
+      "agentPath": "PLANNER->CANONICAL_EXECUTOR",
+      "verifier": "PRESENT",
+      "status": "PENDING_EXACT_SHA_CI"
+    },
+    "image-text-overlay": {
+      "implementationStatus": "IMPLEMENTED",
+      "registry": "CANONICAL",
+      "manualPath": "CANONICAL_EXECUTOR",
+      "agentPath": "PLANNER->CANONICAL_EXECUTOR",
+      "verifier": "PRESENT",
+      "status": "PENDING_EXACT_SHA_CI"
+    },
+    "image-draw-annotate": {
+      "implementationStatus": "IMPLEMENTED",
+      "registry": "CANONICAL",
+      "manualPath": "CANONICAL_EXECUTOR",
+      "agentPath": "PLANNER->CANONICAL_EXECUTOR",
+      "verifier": "PRESENT",
+      "status": "PENDING_EXACT_SHA_CI"
+    },
+    "image-redaction": {
+      "implementationStatus": "IMPLEMENTED",
+      "registry": "CANONICAL",
+      "manualPath": "CANONICAL_EXECUTOR",
+      "agentPath": "PLANNER->CANONICAL_EXECUTOR",
+      "verifier": "PRESENT",
+      "status": "PENDING_EXACT_SHA_CI"
+    }
+  },
+  "architecture": {
+    "singleCanonicalRegistry": true,
+    "canonicalExecutor": true,
+    "independentVerifierGate": true,
+    "agentConfirmationGate": true,
+    "lockedLayerTargetingBlocked": true,
+    "rawBlobEgressBlocked": true,
+    "browserLocalNoNetwork": true,
+    "cancellationAndTimeoutBounded": true,
+    "retryBounded": true
+  },
+  "certification": {
+    "status": "PENDING_FINAL_HEAD_CI_BROWSER",
+    "exactHeadMustPass": true,
+    "requiredGates": [
+      "Typecheck/Lint/Core Contracts/Build",
+      "Chromium Browser Smoke",
+      "Trust Gate",
+      "Promotion Proof"
+    ]
+  },
+  "evidence": {
+    "priorVerifiedCoreRun": {
+      "runId": 37194954607,
+      "sha": "a9a2ea0e0a6c39bea6c85b69cba9f9b2953815b7",
+      "status": "PARTIAL_CORE_PASS_BUT_BROWSER_FAILED"
+    },
+    "latestCandidateRequiresFreshEvidence": true,
+    "supersededBrowserRun": {
+      "runId": 37197371465,
+      "sha": "1c8b4ae8e0fa9fd0f2568c65d9eb3ece47a9f274",
+      "conclusion": "FAIL_EXPECTED_LEGACY_BROWSER_SPEC"
+    }
+  },
+  "knownFailures": [
+    "Previous exact-SHA Chromium run failed before the latest fixes: background-remover valid no-op verifier, image-effects missing manual canonical parameters, compressor verifier too strict for valid outputs, stale legacy release-verification IDs, and G4 shared product label.",
+    "execution advanced by three test-only commits after the previous CI; the certification PR is mergeable but its ancestry is behind by three commits."
+  ],
+  "blockers": [
+    "FINAL_HEAD_CI_PENDING",
+    "FINAL_HEAD_BROWSER_E2E_PENDING"
+  ],
+  "handoff": {
+    "targetAgent": "AGENT-2",
+    "state": "READY_FOR_HANDOFF_AFTER_CERTIFICATION"
+  }
+}
