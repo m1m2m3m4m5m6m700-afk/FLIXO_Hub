@@ -59,7 +59,7 @@ test('agent execution fails closed without explicit confirmation', async () => {
 
 test('agent execution rejects a changed document before canonical execution', async () => {
   const plan = await planAgentRequest('sharpen image', imageFile());
-  const changedFile = imageFile('different.png');
+  const changedFile = new File(['changed-image'], 'different.png', { type: 'image/png' });
   await assert.rejects(
     () => executeAgentPlan(plan, changedFile, true),
     /AGENT_DOCUMENT_STATE_CHANGED|plan changed after confirmation|Execution denied/i,
