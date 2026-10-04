@@ -172,7 +172,6 @@ function verifyConfirmationReceipt(
 }
 
 const EN_STOPWORDS = new Set(['a', 'an', 'the', 'this', 'my', 'it', 'to', 'of', 'for', 'please', 'do', 'does', 'did', 'on', 'with', 'and', 'or', 'but']);
-const INTENT_COVERAGE_CONTEXT = new Set(['a', 'an', 'the', 'this', 'my', 'it', 'to', 'of', 'for', 'please', 'do', 'does', 'did', 'on', 'with', 'and', 'or', 'but', 'make', 'apply', 'change', 'adjust', 'increase', 'decrease', 'convert', 'image', 'images', 'picture', 'pictures', 'photo', 'photos']);
 
 function tokenize(value: string): string[] {
   return normalize(value)
@@ -218,15 +217,6 @@ function findIntent(prompt: string): { toolId: string; intent: string } {
     /(^|\\s)و(\\s|$)/u.test(normalizedPrompt);
   if (candidateToolIds.size > 1 && hasExplicitCompoundConjunction) {
     throw new Error('Request is ambiguous. Multiple image operations were requested; create separate confirmed plans.');
-  }
-
-  if (candidateToolIds.size > 1) {
-    const promptTokens = new Set(tokenize(prompt).filter((token) => !INTENT_COVERAGE_CONTEXT.has(token)));
-    const winnerTokens = new Set(tokenize(winner.intent).filter((token) => !INTENT_COVERAGE_CONTEXT.has(token)));
-    const uncoveredTokens = [...promptTokens].filter((token) => !winnerTokens.has(token));
-    if (uncoveredTokens.length > 0) {
-      throw new Error('Request is ambiguous. Multiple image operations were requested; create separate confirmed plans.');
-    }
   }
 
   return { toolId: winner.toolId, intent: winner.intent };
