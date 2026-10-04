@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { getToolDefinition } from '../src/config/registry.ts';
+import { getToolById } from '../src/config/registry.ts';
 
 const ADVERSARIAL_SCENARIO_COUNT = 20;
 
@@ -29,7 +29,7 @@ const TARGET_MATRIX = [
 
 for (const [category, toolIds] of TARGET_MATRIX) {
   test(`red-team 20-tool gate: ${category}`, () => {
-    const states = toolIds.map((id) => [id, getToolDefinition(id)?.capability.state ?? 'MISSING'] as const);
+    const states = toolIds.map((id) => [id, getToolById(id)?.capability.state ?? 'MISSING'] as const);
     const failures = states.filter(([, state]) => state !== 'EXECUTABLE');
     assert.deepEqual(
       failures,
