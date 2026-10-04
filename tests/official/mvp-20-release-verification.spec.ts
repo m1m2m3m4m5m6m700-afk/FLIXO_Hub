@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-const PNG_16X16 = 'iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAALklEQVR4nGP8////fwYKABMlmgeHASzoAvKVd/FqeNiuTF0XjBow';
+const PNG_64X64 = 'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAgElEQVR42u3aUQ2AMAxAwZbgAxkTg76JmQyUFA8LfPWegGa5tH/Lqqpo3BHNAwAAAAAAAAAAAAAAAAAAAAAAANCt8+uB171+ffAzhw0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA9kp/hZ0AAAAAAAAAAAAAAAAAAAAAAAAAgFa9grULeSlM07cAAAAASUVORK5CYII=';
 const MANUAL_TOOL_IDS = [
   'background-remover','image-upscaler','image-cropper','image-compressor','image-converter','image-effects',
   'image-rotate','image-flip-horizontal','image-flip-vertical','image-brightness','image-contrast',
@@ -35,7 +35,7 @@ function fixture() {
   return {
     name: 'flixo-release-fixture.png',
     mimeType: 'image/png',
-    buffer: Buffer.from(PNG_16X16, 'base64'),
+    buffer: Buffer.from(PNG_64X64, 'base64'),
   };
 }
 
@@ -46,15 +46,28 @@ async function executeManual(page: Page, toolId: (typeof MANUAL_TOOL_IDS)[number
   await expect(fileInput).toHaveCount(1);
   await fileInput.setInputFiles(fixture());
 
+  if (toolId === 'image-cropper') {
+    await page.getByRole('textbox', { name: 'Crop width' }).fill('64');
+    await page.getByRole('textbox', { name: 'Crop height' }).fill('64');
+    await page.getByRole('textbox', { name: 'Output width' }).fill('64');
+    await page.getByRole('textbox', { name: 'Output height' }).fill('64');
+  }
+
   if (toolId === 'image-compressor') {
-    await page.getByRole('button', { name: /Compress image/i }).click();
+    const runButton = page.getByRole('button', { name: /Compress image/i });
+    await expect(runButton).toBeEnabled({ timeout: 10_000 });
+    await runButton.click();
     await expect(page.locator('a[download]').first()).toBeVisible({ timeout: 20_000 });
   } else if (toolId === 'image-effects') {
-    await page.getByRole('button', { name: /Run tool/i }).click();
+    const runButton = page.getByRole('button', { name: /Run tool/i });
+    await expect(runButton).toBeEnabled({ timeout: 10_000 });
+    await runButton.click();
     await expect(page.locator('img[alt]').last()).toBeVisible({ timeout: 20_000 });
     await expect(page.getByRole('button', { name: /Download/i })).toBeVisible({ timeout: 20_000 });
   } else {
-    await page.getByRole('button', { name: /Run tool/i }).click();
+    const runButton = page.getByRole('button', { name: /Run tool/i });
+    await expect(runButton).toBeEnabled({ timeout: 10_000 });
+    await runButton.click();
     await expect(page.locator('a[download]').first()).toBeVisible({ timeout: 20_000 });
   }
 }
@@ -68,7 +81,8 @@ async function planAndExecuteAgent(page: Page, toolId: string, prompt: string, l
   const plan = page.locator('[aria-label="agent-plan"]');
   await expect(plan).toContainText(toolId);
   await expect(page.locator('input[type=checkbox]')).not.toBeChecked();
-  await page.getByRole('button', { name: language === 'ar' ? /تنفيذ/i : /Execute/i }).click({ trial: true });
+  const executeButton = page.getByRole('button', { name: language === 'ar' ? /تنفيذ/i : /Execute/i });
+  await expect(executeButton).toBeDisabled();
   await expect(page.locator('[aria-label="agent-result"]')).toHaveCount(0);
   await page.locator('input[type=checkbox]').check();
   await page.getByRole('button', { name: language === 'ar' ? /تنفيذ/i : /Execute/i }).click();
