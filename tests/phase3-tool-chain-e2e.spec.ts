@@ -3,7 +3,7 @@ import { expect, test } from './fixtures/universal-runtime-evidence';
 const ONE_BY_ONE_PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
 
 test.describe('Phase 3 local tool chaining', () => {
-  test('executes a stored image pipeline and exposes the local result', async ({ page }) => {
+  test('executes a stored canonical image pipeline and exposes the local result', async ({ page }) => {
     await page.addInitScript(() => {
       localStorage.setItem(
         'flixo:tool-chain:v1',
@@ -31,7 +31,8 @@ test.describe('Phase 3 local tool chaining', () => {
     await expect(panel.getByText(/Output ready:/)).toBeVisible({ timeout: 15_000 });
     await expect(panel.getByRole('link', { name: 'Download result' })).toHaveAttribute('download', /-2x\.png$/);
   });
-  test('executes newly added browser-local image transforms', async ({ page }) => {
+
+  test('rejects a persisted plan that targets a non-executable capability', async ({ page }) => {
     await page.addInitScript(() => {
       localStorage.setItem(
         'flixo:tool-chain:v1',
@@ -42,18 +43,21 @@ test.describe('Phase 3 local tool chaining', () => {
         ]),
       );
     });
+
     await page.goto('/en/image-rotate');
     const panel = page.getByRole('complementary', { name: 'Tool chaining workspace' });
     await expect(panel).toBeVisible();
     await panel.getByRole('button', { name: 'Open' }).click();
     await expect(panel.getByText('3/8 steps')).toBeVisible();
+
     await panel.locator('input[type=file]').setInputFiles({
       name: 'fixture.png',
       mimeType: 'image/png',
       buffer: Buffer.from(ONE_BY_ONE_PNG, 'base64'),
     });
+
     await panel.getByRole('button', { name: 'Run chain locally' }).click();
-    await expect(panel.getByText(/Output ready:/)).toBeVisible({ timeout: 15_000 });
-    await expect(panel.getByRole('link', { name: 'Download result' })).toHaveAttribute('download', /-grayscale.png$/);
+    await expect(panel.getByRole('alert')).toContainText(/not executable in the canonical registry/i);
+    await expect(panel.getByText(/Output ready:/)).toHaveCount(0);
   });
 });
