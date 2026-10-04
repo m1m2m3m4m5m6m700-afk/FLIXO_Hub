@@ -72,7 +72,8 @@ async function planAndExecuteAgent(page: Page, toolId: string, prompt: string, l
   await expect(main).toHaveAttribute('lang', language);
   await page.locator('#agent-prompt').fill(prompt);
   await page.locator('#agent-file').setInputFiles(fixture());
-  const buildButton = page.locator('main').last().locator('section').first().getByRole('button').first();
+  const buildButton = page.getByRole('button', { name: /Build plan/i });
+  await expect(buildButton).toBeVisible({ timeout: 10_000 });
   await expect(buildButton).toBeEnabled({ timeout: 10_000 });
   await buildButton.click();
   const plan = page.locator('[aria-label="agent-plan"]');
