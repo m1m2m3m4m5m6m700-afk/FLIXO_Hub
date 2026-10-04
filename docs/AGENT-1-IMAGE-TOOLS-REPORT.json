@@ -11,7 +11,7 @@
     "url": "https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/pull/1010",
     "state": "OPEN"
   },
-  "candidateHeadSha": "0a9d2675f2c30db44ae7a588c59058892b1a358f",
+  "candidateHeadSha": "c6341d7507e6a7aad922f97bddc4d57c1713f1d3",
   "tools": {
     "background-remover": {
       "implementationStatus": "IMPLEMENTED",
@@ -197,20 +197,26 @@
   },
   "evidence": {
     "priorVerifiedCoreRun": {
-      "runId": 37194954607,
-      "sha": "a9a2ea0e0a6c39bea6c85b69cba9f9b2953815b7",
-      "status": "PARTIAL_CORE_PASS_BUT_BROWSER_FAILED"
+      "runId": 37202358394,
+      "sha": "19ca4f22b31625b5b1d65f5df65234930d13865a",
+      "status": "CORE_PASS_BROWSER_FAILED"
     },
-    "latestCandidateRequiresFreshEvidence": true,
-    "supersededBrowserRun": {
-      "runId": 37197371465,
-      "sha": "1c8b4ae8e0fa9fd0f2568c65d9eb3ece47a9f274",
-      "conclusion": "FAIL_EXPECTED_LEGACY_BROWSER_SPEC"
-    }
+    "browserFailureObserved": {
+      "runId": 37202358394,
+      "sha": "19ca4f22b31625b5b1d65f5df65234930d13865a",
+      "passed": 86,
+      "failed": 42,
+      "rootCauses": [
+        "image-effects shared UI encoded a blank canvas before canonical execution",
+        "release test asserted locale/layout-dependent Before label",
+        "agent release test raced React hydration/language toggle"
+      ]
+    },
+    "latestCandidateRequiresFreshEvidence": true
   },
   "knownFailures": [
-    "Previous exact-SHA Chromium run failed before the latest fixes: background-remover valid no-op verifier, image-effects missing manual canonical parameters, compressor verifier too strict for valid outputs, stale legacy release-verification IDs, and G4 shared product label.",
-    "execution advanced by three test-only commits after the previous CI; the certification PR is mergeable but its ancestry is behind by three commits."
+    "Prior exact-SHA browser run failed on the image-effects UI path and brittle release assertions; source/test fixes are now synchronized onto the certification branch.",
+    "The certification branch remains three commits behind execution by ancestry; overlapping execution test changes were preserved and the PR must still pass exact-SHA promotion policy."
   ],
   "blockers": [
     "FINAL_HEAD_CI_PENDING",
