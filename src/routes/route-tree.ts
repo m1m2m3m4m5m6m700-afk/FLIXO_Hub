@@ -6,5 +6,6 @@ import { adminControlPlaneRoute } from './admin-control-plane';
 import { adminControlPlaneLoginRoute } from './admin-control-plane-login';
 import { toolsRoute } from './tools';
 import { arToolsRoute } from './ar-tools';
+import { agentRoute } from './agent';
 
-export const routeChildren = [indexRoute, arIndexRoute, localizedHomeRoute, toolsRoute, arToolsRoute, localizedToolRoute, adminControlPlaneLoginRoute, adminControlPlaneRoute] as const;
+export const routeChildren = [indexRoute, arIndexRoute, localizedHomeRoute, toolsRoute, arToolsRoute, localizedToolRoute, agentRoute, adminControlPlaneLoginRoute, adminControlPlaneRoute] as const;
