@@ -63,6 +63,7 @@ export function BrowserImageTool({ mode, title, accept = 'image/*', multi = fals
       else if (mode === 'watermark-adder') { ctx.drawImage(image, 0, 0, width, height); ctx.save(); ctx.globalAlpha = 0.45; ctx.fillStyle = '#fff'; ctx.font = `700 ${Math.max(24, Math.round(width / 18))}px sans-serif`; ctx.textAlign = 'right'; ctx.rotate(-Math.PI / 12); ctx.fillText(text, width - 30, height / 2); ctx.restore(); }
       else if (mode === 'meme-generator') { ctx.drawImage(image, 0, 0, width, height); ctx.font = `900 ${Math.max(32, Math.round(width / 10))}px Impact, sans-serif`; ctx.textAlign = 'center'; ctx.lineWidth = 8; ctx.strokeStyle = '#000'; ctx.fillStyle = '#fff'; ctx.strokeText(top, width / 2, 60); ctx.fillText(top, width / 2, 60); ctx.strokeText(bottom, width / 2, height - 30); ctx.fillText(bottom, width / 2, height - 30); }
       else if (mode === 'image-effects') {
+        ctx.drawImage(image, 0, 0, width, height);
         const baseBlob = await new Promise<Blob>((resolve, reject) => canvas.toBlob((value) => value ? resolve(value) : reject(new Error('Could not prepare image.')), 'image/png'));
         const receipt = await executeCanonicalImageTool({ toolId: 'image-effects', inputBlob: baseBlob, parameters: effect, origin: 'manual' });
         const output = receipt.outputBlob;
