@@ -32,8 +32,8 @@ export type ImageAgentPlan=Readonly<{
 export type ImageAgentSecurityContext = Omit<AgentExecutionSecurityContext, 'planFingerprint' | 'catalogFingerprint'>;
 
 export function planImageToolIntent(intent:string,parameters:Readonly<Record<string,unknown>>={}):ImageAgentPlan{
-  const matches=findToolIntent(intent,TOOL_CATALOG.ready)
-    .filter((match)=>imageIdSet.has(match.tool.id)&&match.tool.capability.state==='EXECUTABLE');
+  const targetTools = TOOL_CATALOG.ready.filter((tool) => imageIdSet.has(tool.id) && tool.capability.state === 'EXECUTABLE');
+  const matches=findToolIntent(intent, targetTools);
   if(!matches.length) return Object.freeze({status:'NEEDS_INPUT'});
   const best=matches[0];
   if(matches[1]&&matches[1].score>=best.score-5) return Object.freeze({status:'AMBIGUOUS'});
