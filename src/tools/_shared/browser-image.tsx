@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { recordToolPerformance } from '../../lib/diagnostics/performance';
 import { validateFileSafety } from '../../lib/contracts/file-safety';
 import { assertExifCleanerOutputIntegrity } from '../exif-cleaner/output-integrity';
 import { validateSvgOutput } from '../image-to-svg/output-integrity';
