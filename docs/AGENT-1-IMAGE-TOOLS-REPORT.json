@@ -225,5 +225,8 @@
   "handoff": {
     "targetAgent": "AGENT-2",
     "state": "READY_FOR_HANDOFF_AFTER_CERTIFICATION"
-  }
+  },
+  "workflowTriggerAttempt": 1,
+  "lastTriggerAction": "synchronize",
+  "lastKnownHeadBeforeTrigger": "c91a5a25cdae05d87361609c5432c2cea1fac9fc"
 }
