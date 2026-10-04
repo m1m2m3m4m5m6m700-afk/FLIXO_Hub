@@ -1,4 +1,4 @@
-import { LOCALES, type Locale } from './config';
+import type { Locale } from './config';
 
 export type ToolSeoLocale = Readonly<Record<Locale, string>>;
 
