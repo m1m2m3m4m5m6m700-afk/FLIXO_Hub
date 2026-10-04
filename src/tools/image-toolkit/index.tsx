@@ -190,7 +190,7 @@ export function ImageToolPage({ toolId }: Props) {
       case 'image-grayscale-duotone': return { intensity: Number(advanced.duotoneIntensity), darkColor: advanced.darkColor, lightColor: advanced.lightColor };
       case 'image-filters': return { preset: advanced.filter };
       case 'image-watermark': return { text: advanced.watermark, x: Number(advanced.watermarkX), y: Number(advanced.watermarkY), fontSize: Number(advanced.watermarkFontSize), opacity: Number(advanced.watermarkOpacity), color: advanced.watermarkColor };
-      case 'image-text-overlay': return { text: advanced.text, x: Number(advanced.x), y: Number(advanced.y), fontSize: Number(advanced.fontSize), color: '#ffffff', background: advanced.background || undefined, backgroundOpacity: Number(advanced.backgroundOpacity), align: advanced.align };
+      case 'image-text-overlay': return { text: advanced.text, x: Number(advanced.x), y: Number(advanced.y), fontSize: Number(advanced.fontSize), color: '#ffffff', ...(advanced.background ? { background: advanced.background } : {}), backgroundOpacity: Number(advanced.backgroundOpacity), align: advanced.align };
       case 'image-draw-annotate': return { kind: advanced.annotationKind, x1: Number(advanced.x1), y1: Number(advanced.y1), x2: Number(advanced.x2), y2: Number(advanced.y2), stroke: advanced.stroke, strokeWidth: Number(advanced.strokeWidth) };
       case 'image-redaction': return { x: Number(advanced.x), y: Number(advanced.y), width: Number(advanced.width), height: Number(advanced.height), color: '#000000' };
       default: return {};
