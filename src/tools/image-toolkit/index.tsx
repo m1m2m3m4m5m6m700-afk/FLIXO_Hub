@@ -16,6 +16,7 @@ const DEFINITIONS: Record<Exclude<LocalToolId, 'ai-image-generator' | 'image-com
   'background-remover': { title: 'Background Remover', description: 'Remove connected, uniform backgrounds locally in your browser with edge-aware flood fill.', accept: 'image/png,image/jpeg,image/webp,image/svg+xml' },
   'image-upscaler': { title: 'Image Upscaler', description: 'Increase image dimensions with high-quality browser resampling and controlled sharpening.', accept: 'image/png,image/jpeg,image/webp' },
   'image-converter': { title: 'Image Converter', description: 'Convert images between PNG, JPG, and WebP without uploading them.', accept: 'image/png,image/jpeg,image/webp' },
+  'image-effects': { title: 'Image Effects', description: 'Adjust brightness and contrast locally in your browser.', accept: 'image/png,image/jpeg,image/webp' },
   'image-to-text': { title: 'Image to Text OCR', description: 'Extract visible text from an image in your browser with OCR preprocessing.', accept: 'image/png,image/jpeg,image/webp' },
   'object-remover': { title: 'Object Remover', description: 'Reconstruct a selected rectangular object region from surrounding pixels locally.', accept: 'image/png,image/jpeg,image/webp' },
   'crop-resize': { title: 'Crop & Resize', description: 'Crop an image and export it at exact dimensions.', accept: 'image/png,image/jpeg,image/webp' },
