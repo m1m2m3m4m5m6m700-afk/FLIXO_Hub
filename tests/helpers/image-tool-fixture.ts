@@ -34,7 +34,9 @@ export async function assertImageResult(page: Page) {
 
 export async function captureDownload(page: Page) {
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Download now' }).click();
+  const downloadLink = page.getByRole('link', { name: /Download image|Download now/i });
+  await expect(downloadLink).toBeVisible();
+  await downloadLink.click();
   return downloadPromise;
 }
 
