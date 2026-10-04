@@ -25,6 +25,17 @@ const replaceLayer = (document: Document, layerId: LayerId, transform: (layer: L
   return cloneDocument({ ...document, layers });
 };
 
+const assertLockedLayersUnchanged = (current: Document, next: Document): void => {
+  const nextById = new Map(next.layers.map((layer) => [layer.id, layer]));
+  for (const layer of current.layers) {
+    if (!layer.locked) continue;
+    const nextLayer = nextById.get(layer.id);
+    if (!nextLayer || JSON.stringify(layer) !== JSON.stringify(nextLayer)) {
+      throw new Error('LOCKED_LAYER_MUTATION');
+    }
+  }
+};
+
 const makeCommand = (
   id: string,
   label: string,
@@ -64,6 +75,7 @@ class TransactionalHistory {
     const current = this.document;
     const next = operation.command.execute({ document: current });
     validateDocument(next);
+    assertLockedLayersUnchanged(current, next);
     const nextVersion = this.version + 1;
     const nodeId = operation.id;
     if (this.nodes.has(nodeId)) throw new Error('DUPLICATE_OPERATION_ID');
