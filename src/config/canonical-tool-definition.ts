@@ -65,6 +65,7 @@ export type ToolDefinition = Readonly<{
   verifier: CapabilityVerifier;
   requirements: ToolRequirements;
   recovery: ToolRecoveryPolicy;
+  safetyContract: Readonly<{ requiresUserConfirmationForAgent: boolean; allowLockedLayerSelection: false; rawBlobEgress: false }>;
   operational: ToolOperationalProfile;
   localization: Readonly<{ titleKey: string; descriptionKey: string }>;
   seo: Readonly<{ title: string; description: string; robots: 'index,follow,max-image-preview:large' }>;
@@ -261,6 +262,7 @@ export function toToolDefinition(tool: ToolConfig): ToolDefinition {
   });
   const requirements: ToolRequirements = canonicalCapability?.requirements ?? Object.freeze({ browser: true, network: executionMode === 'CLOUD' });
   const recovery: ToolRecoveryPolicy = canonicalCapability?.recovery ?? Object.freeze({ maxAttempts: capabilityState === 'EXECUTABLE' ? 3 : 0, replanOnFailure: false });
+  const safetyContract = canonicalCapability?.safetyContract ?? Object.freeze({ requiresUserConfirmationForAgent: false, allowLockedLayerSelection: false as const, rawBlobEgress: false as const });
   return Object.freeze({
     id: tool.id,
     family: tool.family ?? 'image',
@@ -279,6 +281,7 @@ export function toToolDefinition(tool: ToolConfig): ToolDefinition {
     verifier,
     requirements,
     recovery,
+    safetyContract,
     operational,
     localization: Object.freeze({ titleKey: `tool.${tool.id}.title`, descriptionKey: `tool.${tool.id}.description` }),
     seo: Object.freeze({ title: `${tool.title} | FLIXO`, description: tool.description, robots: 'index,follow,max-image-preview:large' as const }),
