@@ -24,14 +24,16 @@ export function applyDocumentLocale(locale: Locale): void {
 
   if (!languageTag.trim()) return;
 
-  if (html.getAttribute('lang') !== languageTag) {
-    html.setAttribute('lang', languageTag);
-  }
-  if (html.getAttribute('dir') !== direction) {
-    html.setAttribute('dir', direction);
-  }
-  if (html.getAttribute('data-flixo-locale') !== locale) {
-    html.setAttribute('data-flixo-locale', locale);
+  if (html.getAttribute('data-flixo-locale-owner') !== 'agent') {
+    if (html.getAttribute('lang') !== languageTag) {
+      html.setAttribute('lang', languageTag);
+    }
+    if (html.getAttribute('dir') !== direction) {
+      html.setAttribute('dir', direction);
+    }
+    if (html.getAttribute('data-flixo-locale') !== locale) {
+      html.setAttribute('data-flixo-locale', locale);
+    }
   }
 
   document.querySelectorAll<HTMLElement>('main').forEach((main) => {
