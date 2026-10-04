@@ -65,7 +65,7 @@ export type ToolDefinition = Readonly<{
   verifier: CapabilityVerifier;
   requirements: ToolRequirements;
   recovery: ToolRecoveryPolicy;
-  safetyContract: Readonly<{ requiresUserConfirmationForAgent: boolean; allowLockedLayerSelection: false; rawBlobEgress: false }>;
+  safetyContract: Readonly<{ requiresUserConfirmationForAgent: boolean; allowLockedLayerSelection: false; rawBlobEgress: false; }>;
   operational: ToolOperationalProfile;
   localization: Readonly<{ titleKey: string; descriptionKey: string }>;
   seo: Readonly<{ title: string; description: string; robots: 'index,follow,max-image-preview:large' }>;
@@ -88,6 +88,17 @@ const IMAGE_TOOL_CONFIGS: readonly ToolSource[] = Object.freeze([
   { id: 'meme-generator', title: 'Meme Generator', path: '/en/meme-generator', description: 'Create top-and-bottom captioned memes.', category: 'Images', isReady: true, component: lazy(() => import('@/tools/meme-generator')) },
   { id: 'collage-maker', title: 'Collage Maker', path: '/en/collage-maker', description: 'Combine multiple images into a collage.', category: 'Images', isReady: true, component: lazy(() => import('@/tools/collage-maker')) },
   { id: 'image-effects', title: 'Image Effects', path: '/en/image-effects', description: 'Apply brightness, contrast, saturation, and grayscale.', category: 'Images', isReady: true, component: lazy(() => import('@/tools/image-effects')) },
+  { id: 'image-rotate-flip', title: 'Rotate & Flip', path: '/en/image-rotate-flip', description: 'Rotate and flip images locally.', category: 'Images', isReady: true, component: createImageToolkitComponent('image-rotate-flip') },
+  { id: 'image-brightness-contrast', title: 'Brightness & Contrast', path: '/en/image-brightness-contrast', description: 'Adjust image brightness and contrast locally.', category: 'Images', isReady: true, component: createImageToolkitComponent('image-brightness-contrast') },
+  { id: 'image-saturation-hue', title: 'Saturation & Hue', path: '/en/image-saturation-hue', description: 'Adjust image saturation and hue locally.', category: 'Images', isReady: true, component: createImageToolkitComponent('image-saturation-hue') },
+  { id: 'image-exposure', title: 'Exposure', path: '/en/image-exposure', description: 'Adjust image exposure locally.', category: 'Images', isReady: true, component: createImageToolkitComponent('image-exposure') },
+  { id: 'image-highlights-shadows', title: 'Highlights & Shadows', path: '/en/image-highlights-shadows', description: 'Recover or deepen highlights and shadows locally.', category: 'Images', isReady: true, component: createImageToolkitComponent('image-highlights-shadows') },
+  { id: 'image-grayscale-duotone', title: 'Grayscale & Duotone', path: '/en/image-grayscale-duotone', description: 'Convert images to grayscale or a two-tone palette locally.', category: 'Images', isReady: true, component: createImageToolkitComponent('image-grayscale-duotone') },
+  { id: 'image-filters', title: 'Image Filters', path: '/en/image-filters', description: 'Apply deterministic local filter presets.', category: 'Images', isReady: true, component: createImageToolkitComponent('image-filters') },
+  { id: 'image-watermark', title: 'Watermark', path: '/en/image-watermark', description: 'Add a local text watermark without uploading the image.', category: 'Images', isReady: true, component: createImageToolkitComponent('image-watermark') },
+  { id: 'image-text-overlay', title: 'Text Overlay', path: '/en/image-text-overlay', description: 'Place text directly on an image locally.', category: 'Images', isReady: true, component: createImageToolkitComponent('image-text-overlay') },
+  { id: 'image-draw-annotate', title: 'Draw & Annotate', path: '/en/image-draw-annotate', description: 'Draw simple annotations locally on an image.', category: 'Images', isReady: true, component: createImageToolkitComponent('image-draw-annotate') },
+  { id: 'image-redaction', title: 'Image Redaction', path: '/en/image-redaction', description: 'Permanently cover a selected image region locally.', category: 'Images', isReady: true, component: createImageToolkitComponent('image-redaction') },
   { id: 'exif-cleaner', title: 'EXIF Cleaner', path: '/en/exif-cleaner', description: 'Strip metadata by browser re-encoding.', category: 'Images', isReady: true, component: lazy(() => import('@/tools/exif-cleaner')) },
   { id: 'svg-optimizer', title: 'SVG Optimizer', path: '/en/svg-optimizer', description: 'Minify SVG comments and whitespace.', category: 'Images', isReady: true, component: lazy(() => import('@/tools/svg-optimizer')) },
   { id: 'mockup-generator', title: 'Mockup Generator', path: '/en/mockup-generator', description: 'Place images inside a simple device mockup.', category: 'Images', isReady: true, component: lazy(() => import('@/tools/mockup-generator')) },
@@ -122,6 +133,7 @@ const DEFAULT_MAX_FILE_SIZE_BYTES = 64 * 1024 * 1024;
 const DEFAULT_TIMEOUT_MS = 30_000;
 const MIME_TYPES = ['image/webp', 'image/jpeg', 'image/png'] as const;
 const COMMON_PARAMETERS = z.record(z.string().max(64), z.union([z.string(), z.number().finite(), z.boolean()]));
+const DEFAULT_SAFETY_CONTRACT = Object.freeze({ requiresUserConfirmationForAgent: false, allowLockedLayerSelection: false as const, rawBlobEgress: false as const });
 
 const PARAMETER_SCHEMAS: Readonly<Record<string, ZodType>> = {
   'background-remover': z.object({ tolerance: z.number().finite().min(0).max(255).optional() }).strict(),
@@ -261,8 +273,8 @@ export function toToolDefinition(tool: ToolConfig): ToolDefinition {
     outputContractId: tool.isReady ? tool.id : null,
   });
   const requirements: ToolRequirements = canonicalCapability?.requirements ?? Object.freeze({ browser: true, network: executionMode === 'CLOUD' });
-  const recovery: ToolRecoveryPolicy = canonicalCapability?.recovery ?? Object.freeze({ maxAttempts: capabilityState === 'EXECUTABLE' ? 3 : 0, replanOnFailure: false });
-  const safetyContract = canonicalCapability?.safetyContract ?? Object.freeze({ requiresUserConfirmationForAgent: false, allowLockedLayerSelection: false as const, rawBlobEgress: false as const });
+  const recovery: ToolRecoveryPolicy = canonicalCapability?.recovery ?? Object.freeze({ maxAttempts: capabilityState === 'EXECUTABLE' ? 1 : 0, replanOnFailure: false });
+  const safetyContract = canonicalCapability?.safetyContract ?? DEFAULT_SAFETY_CONTRACT;
   return Object.freeze({
     id: tool.id,
     family: tool.family ?? 'image',
