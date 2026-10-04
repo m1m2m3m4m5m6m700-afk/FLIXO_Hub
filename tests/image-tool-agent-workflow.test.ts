@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { TOOL_CATALOG } from '../src/config/registry.ts';
-import { CANONICAL_IMAGE_TOOL_IDS, assertTargetLayersUnlocked, createImageExecutionConfirmationToken, validateCanonicalImageExecutionRequest } from '../src/lib/canonical-image-executor.ts';
+import { CANONICAL_IMAGE_TOOL_IDS, assertTargetLayersUnlocked, createImageExecutionConfirmationToken, executeCanonicalImageTool, validateCanonicalImageExecutionRequest } from '../src/lib/canonical-image-executor.ts';
 import { planImageToolIntent } from '../src/lib/image-agent-workflow.ts';
 
 const ids=["background-remover","image-upscaler","image-cropper","image-compressor","image-converter","image-effects","image-resizer","image-rotate-flip","image-brightness-contrast","image-saturation-hue","image-exposure","image-highlights-shadows","image-sharpen","image-blur","image-grayscale-duotone","image-filters","image-watermark","image-text-overlay","image-draw-annotate","image-redaction"] as readonly string[];
@@ -20,6 +20,7 @@ test('canonical registry contains all 20 requested image tools',()=>{
     assert.equal(tool?.safetyContract.allowLockedLayerSelection,false);
     assert.equal(tool?.safetyContract.rawBlobEgress,false);
     assert.equal(tool?.safetyContract.requiresUserConfirmationForAgent,true);
+    assert.equal(tool?.recovery.maxAttempts,1);
   }
 });
 
@@ -41,6 +42,18 @@ test('router maps English and Arabic intents to canonical image tools',()=>{
   assert.equal(planImageToolIntent('add a watermark to the image',{text:'FLIXO'}).toolId,'image-watermark');
   assert.equal(planImageToolIntent('تعمية الصورة').toolId,'image-redaction');
   assert.equal(planImageToolIntent('زيادة حدة الصورة').toolId,'image-sharpen');
+});
+
+test('cancellation fails closed before image decoding',async()=>{
+  const controller=new AbortController();
+  controller.abort(new DOMException('cancelled','AbortError'));
+  await assert.rejects(()=>executeCanonicalImageTool({
+    toolId:'image-redaction',
+    inputBlob:new Blob(['not-decoded'],{type:'image/png'}),
+    parameters:{x:25,y:25,width:50,height:25,color:'#000000'},
+    origin:'manual',
+    signal:controller.signal,
+  }),/Abort|cancel/i);
 });
 
 test('raw blob is not part of the agent plan contract',()=>{
