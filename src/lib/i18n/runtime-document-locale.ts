@@ -29,14 +29,19 @@ export function applyDocumentLocale(locale: Locale): void {
 
   if (!languageTag.trim()) return;
 
-  if (html.getAttribute('lang') !== languageTag) {
-    html.setAttribute('lang', languageTag);
-  }
-  if (html.getAttribute('dir') !== direction) {
-    html.setAttribute('dir', direction);
-  }
-  if (html.getAttribute('data-flixo-locale') !== locale) {
-    html.setAttribute('data-flixo-locale', locale);
+  const agentOwnsDocumentLocale =
+    html.getAttribute(AGENT_LOCALE_OWNER_ATTRIBUTE) === 'agent';
+
+  if (!agentOwnsDocumentLocale) {
+    if (html.getAttribute('lang') !== languageTag) {
+      html.setAttribute('lang', languageTag);
+    }
+    if (html.getAttribute('dir') !== direction) {
+      html.setAttribute('dir', direction);
+    }
+    if (html.getAttribute('data-flixo-locale') !== locale) {
+      html.setAttribute('data-flixo-locale', locale);
+    }
   }
 
   document.querySelectorAll<HTMLElement>(`main:not([${AGENT_LOCALE_OWNER_ATTRIBUTE}])`).forEach((main) => {
