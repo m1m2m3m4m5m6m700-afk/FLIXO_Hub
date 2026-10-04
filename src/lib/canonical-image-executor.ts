@@ -97,6 +97,7 @@ async function executeWithDeadline(request:CanonicalImageExecutionRequest,parame
 export async function validateCanonicalImageExecutionRequest(request:CanonicalImageExecutionRequest):Promise<{toolId:string;parameters:Record<string,string|number|boolean>;confirmationRequired:boolean;catalogFingerprint:string}>{
   const tool=getToolById(request.toolId);
   if(!tool || !CANONICAL_IMAGE_TOOL_IDS.includes(request.toolId)) throw new Error('UNKNOWN_TOOL:'+request.toolId);
+  if (request.signal?.aborted) throw request.signal.reason instanceof Error ? request.signal.reason : new DOMException('Image execution cancelled.','AbortError');
   const capability=getCapability(request.toolId);
   if(!capability || capability.state!=='EXECUTABLE') throw new Error('CAPABILITY_NOT_EXECUTABLE:'+request.toolId);
   if(tool.executionMode!=='LOCAL' || tool.requirements.network) throw new Error('NON_LOCAL_TOOL_REJECTED:'+request.toolId);
