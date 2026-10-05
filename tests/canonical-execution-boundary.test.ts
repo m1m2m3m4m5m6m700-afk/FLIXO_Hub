@@ -45,3 +45,69 @@ test('canonical chain is bounded and fail-closed', async () => {
     /between 1 and 4/i,
   );
 });
+
+
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+test('active MVP UI paths do not expose a direct engine execution bypass', () => {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+  const source = (relativePath: string) => readFileSync(resolve(root, relativePath), 'utf8');
+
+  assert.match(
+    source('src/tools/image-converter/index.tsx'),
+    /executeCanonicalTool\('image-converter'/u,
+  );
+  assert.doesNotMatch(
+    source('src/tools/image-converter/index.tsx'),
+    /image-toolkit\/engine/u,
+  );
+
+  assert.match(
+    source('src/tools/image-cropper/index.tsx'),
+    /executeCanonicalTool\('image-cropper'/u,
+  );
+  assert.doesNotMatch(
+    source('src/tools/image-cropper/index.tsx'),
+    /image-toolkit\/engine/u,
+  );
+
+  assert.match(
+    source('src/tools/image-compressor/index.tsx'),
+    /executeCanonicalTool\('image-compressor'/u,
+  );
+  assert.doesNotMatch(
+    source('src/tools/image-compressor/index.tsx'),
+    /compressImage\(/u,
+  );
+
+  const imageToolkit = source('src/tools/image-toolkit/index.tsx');
+  assert.match(imageToolkit, /executeCanonicalTool\('background-remover'/u);
+  assert.match(imageToolkit, /executeCanonicalTool\('image-upscaler'/u);
+  assert.doesNotMatch(imageToolkit, /removeBackground\(/u);
+  assert.doesNotMatch(imageToolkit, /resizeImage\(/u);
+
+  const imageEffects = source('src/tools/_shared/browser-image.tsx');
+  assert.match(imageEffects, /executeCanonicalTool\('image-effects'/u);
+  assert.doesNotMatch(imageEffects, /runImageEffectsWorker\(/u);
+
+  assert.match(
+    source('src/tools/video-local/index.tsx'),
+    /executeCanonicalTool\(id/u,
+  );
+  assert.doesNotMatch(
+    source('src/tools/video-local/index.tsx'),
+    /video-executor/u,
+  );
+
+  const chainAdapters = source('src/lib/tool-chain-adapters.ts');
+  assert.match(chainAdapters, /executeCanonicalTool/u);
+  assert.doesNotMatch(chainAdapters, /\.\.\/tools\//u);
+  assert.doesNotMatch(chainAdapters, /\.\/video\//u);
+
+  assert.equal(
+    existsSync(resolve(root, 'src/lib/video/video-tool-executors.ts')),
+    false,
+  );
+});
