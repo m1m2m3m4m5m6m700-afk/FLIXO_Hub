@@ -308,7 +308,6 @@ export async function executeAgentPlan(
     throw new Error('Execution denied: explicit user confirmation is required.');
   }
 
-  assertNotAborted(signal);
   const validatedPlan = parseValidatedAgentPlan(plan);
   if (validatedPlan.catalogFingerprint !== TOOL_CATALOG.fingerprint) {
     throw new Error('Execution denied: plan is stale relative to the current canonical tool catalog.');
