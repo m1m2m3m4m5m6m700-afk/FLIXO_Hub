@@ -120,8 +120,8 @@ function reconcile({ capsule, targetSha, cwd = process.cwd(), patchFile = null, 
     // git diff omits untracked files. Record intent-to-add so new files created by
     // three-way application remain part of the portable reconciled patch.
     if (status) runGit(['add', '--intent-to-add', '--', '.'], cwd);
-    const reconciledPatch = runGit(['diff', '--binary', '--full-index', '--'], cwd, true);
-    const paths = runGit(['diff', '--name-only', '--'], cwd);
+    const reconciledPatch = runGit(['diff', '--binary', '--full-index', targetSha, '--'], cwd, true);
+    const paths = runGit(['diff', '--name-only', targetSha, '--'], cwd);
     const reconciled = {
       protocolVersion: PROTOCOL,
       sourceSha: capsule.sourceSha,
@@ -139,7 +139,7 @@ function reconcile({ capsule, targetSha, cwd = process.cwd(), patchFile = null, 
     return reconciled;
   } finally {
     if (existsSync(patchPath) && patchFile === null) {
-      if (!preserveWorktree) runGit(['checkout', '--', '.'], cwd);
+      if (!preserveWorktree) runGit(['reset', '--hard', targetSha], cwd);
       rmSync(patchPath, { force: true });
     }
   }
