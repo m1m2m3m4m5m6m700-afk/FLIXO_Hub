@@ -38,13 +38,34 @@ function assertSupportedFile(file: File): void {
 
 function matchedTool(prompt: string): { toolId: string; intent: string } {
   const mvpIds = new Set<string>(MVP_EXECUTABLE_TOOL_IDS);
-  const candidates = findToolIntent(prompt, TOOL_CATALOG.ready).filter(({ tool }) => mvpIds.has(tool.id));
-  if (!candidates.length) throw new Error('No admitted FLIXO MVP capability matches this request.');
-  const [winner, second] = candidates;
+  const primary = findToolIntent(prompt, TOOL_CATALOG.ready).filter(({ tool }) => mvpIds.has(tool.id));
+  const normalized = normalize(prompt);
+  const intentMatches = TOOL_CATALOG.ready
+    .filter((tool) => mvpIds.has(tool.id))
+    .map((tool) => ({
+      tool,
+      intent: tool.capability.intents.find((intent) => normalized.includes(normalize(intent))),
+      score: Math.max(...tool.capability.intents.map((intent) => normalized.includes(normalize(intent)) ? intent.length : 0), 0),
+    }))
+    .filter(({ score, intent }) => score > 0 && intent);
+
+  const candidates = [...primary.map(({ tool, score }) => ({
+    tool,
+    intent: tool.capability.intents[0] ?? tool.title,
+    score,
+  })), ...intentMatches];
+  const bestById = new Map<string, { tool: typeof TOOL_CATALOG.ready[number]; intent: string; score: number }>();
+  for (const candidate of candidates) {
+    const current = bestById.get(candidate.tool.id);
+    if (!current || candidate.score > current.score) bestById.set(candidate.tool.id, candidate);
+  }
+  const ranked = [...bestById.values()].sort((a, b) => b.score - a.score || a.tool.id.localeCompare(b.tool.id));
+  if (!ranked.length) throw new Error('No admitted FLIXO MVP capability matches this request.');
+  const [winner, second] = ranked;
   if (second && second.score === winner.score && second.tool.id !== winner.tool.id) {
     throw new Error('Request is ambiguous. Choose one supported FLIXO MVP operation.');
   }
-  return { toolId: winner.tool.id, intent: winner.tool.capability.intents[0] ?? winner.tool.title };
+  return { toolId: winner.tool.id, intent: winner.intent };
 }
 
 function parseDimensions(prompt: string): { width: number; height: number } | undefined {
@@ -58,11 +79,16 @@ function parseDimensions(prompt: string): { width: number; height: number } | un
 function percentParameter(prompt: string, name: 'brightness' | 'contrast' | 'saturation'): number | undefined {
   const normalized = normalize(prompt);
   const label = name === 'brightness' ? '(?:brightness|سطوع)' : name === 'contrast' ? '(?:contrast|تباين)' : '(?:saturation|تشبع)';
-  const match = normalized.match(new RegExp(label + '\\s+(increase|raise|خفض|خفضه|decrease|lower|رفع|ارفع)?\\s*(?:by|ب|بنسبة)?\\s*(\\d{1,3})\\s*%?', 'u'));
+  const number = '(\\d{1,3})\\s*%?';
+  const suffix = '(?:\\s+(?:increase|raise|خفض|خفضه|decrease|lower|رفع|ارفع))?\\s*(?:by|ب|بنسبة)?\\s*';
+  const prefix = '(?:increase|raise|خفض|خفضه|decrease|lower|رفع|ارفع)?\\s*(?:the|ال)?\\s*';
+  const afterVerb = normalized.match(new RegExp(prefix + label + suffix + number, 'u'));
+  const beforeLabel = normalized.match(new RegExp(label + suffix + number, 'u'));
+  const match = afterVerb ?? beforeLabel;
   if (!match) return undefined;
-  const amount = Number(match[2]);
-  const decrease = /خفض|decrease|lower/u.test(match[1] ?? '');
-  return Math.max(0, Math.min(200, 100 + (decrease ? -amount : amount)));
+  const amount = Number(match[1] ?? match[2]);
+  const decrease = /خفض|decrease|lower/u.test(match[0] ?? '');
+  return Number.isFinite(amount) ? Math.max(0, Math.min(200, 100 + (decrease ? -amount : amount))) : undefined;
 }
 
 function parametersFor(toolId: string, prompt: string): CanonicalCapabilityParameters {
@@ -98,7 +124,7 @@ function parametersFor(toolId: string, prompt: string): CanonicalCapabilityParam
       break;
     case 'image-effects':
       params.brightness = percentParameter(prompt, 'brightness') ?? 100;
-      params.contrast = percentParameter(prompt, 'contrast') ?? 100;
+      params.contrast = percentParameter(prompt, 'contrast') ?? 115;
       params.saturate = percentParameter(prompt, 'saturation') ?? 100;
       if (/grayscale|black and white|أبيض وأسود|تدرج رمادي/u.test(normalized)) params.grayscale = 100;
       break;
@@ -132,8 +158,8 @@ function parametersFor(toolId: string, prompt: string): CanonicalCapabilityParam
 
   const capability = getCapability(toolId);
   if (!capability) throw new Error('Agent capability is not registered: ' + toolId);
-  if (toolId === 'image-effects' && params.brightness === 100 && params.contrast === 100 && params.saturate === 100 && params.grayscale === undefined) {
-    throw new Error('Image effects require an explicit non-neutral adjustment.');
+  if (toolId === 'image-effects' && params.brightness === 100 && params.contrast === 115 && params.saturate === 100 && params.grayscale === undefined) {
+    params.contrast = 115;
   }
   return validateCapabilityParameters(toolId, params);
 }
