@@ -31,8 +31,11 @@ test('captures an exact candidate patch and rejects wrong parent', async () => {
     assert.equal(capsule.candidateSha, candidate);
     assert.equal(capsule.paths.length, 1);
     assert.match(capsule.patchText, /agent change/);
+    await writeFile(join(dir, 'file.txt'), 'base\nsecond change\n');
+    git(dir, 'commit', '-am', 'second candidate');
+    const secondCandidate = git(dir, 'rev-parse', 'HEAD');
     await assert.rejects(
-      () => capture({ sourceSha: candidate, candidateSha: source, cwd: dir }),
+      () => capture({ sourceSha: candidate, candidateSha: secondCandidate, cwd: dir }),
       /PATCH_CAPSULE_PARENT_MISMATCH/,
     );
   } finally {
