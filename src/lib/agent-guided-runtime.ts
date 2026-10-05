@@ -226,7 +226,11 @@ function findIntent(prompt: string): { toolId: string; intent: string } {
   const hasExplicitCompoundConjunction =
     /(^|\s)(and|or)(\s|$)/u.test(normalizedPrompt) ||
     /(^|\s)و(\s|$)/u.test(normalizedPrompt);
-  if (candidateToolIds.size > 1 && hasExplicitCompoundConjunction) {
+  const winnerIntentIsExplicitCompound =
+    hasExplicitCompoundConjunction &&
+    normalize(winner.intent).split(/\s+/u).filter(Boolean).length >= 2 &&
+    normalizedPrompt.includes(normalize(winner.intent));
+  if (candidateToolIds.size > 1 && hasExplicitCompoundConjunction && !winnerIntentIsExplicitCompound) {
     throw new Error('Request is ambiguous. Multiple image operations were requested; create separate confirmed plans.');
   }
 
