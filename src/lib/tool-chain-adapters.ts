@@ -88,20 +88,3 @@ export const TOOL_CHAIN_ADAPTERS: Readonly<Record<string, ToolChainAdapterDefini
 
 export const getToolChainAdapter = (toolId: string): ToolChainAdapter | undefined => TOOL_CHAIN_ADAPTERS[toolId]?.execute;
 
-export async function executeToolChain(
-  steps: readonly (string | ToolChainStep)[],
-  input: ChainInput,
-  onStep?: (completed: number, total: number, toolId: string) => void,
-): Promise<ChainOutput> {
-  let current = input;
-  for (let index = 0; index < steps.length; index += 1) {
-    const step = steps[index];
-    const toolId = typeof step === 'string' ? step : step.toolId;
-    const parameters = typeof step === 'string' ? undefined : step.params;
-    const definition = TOOL_CHAIN_ADAPTERS[toolId];
-    if (!definition) throw new Error('Tool "' + toolId + '" has no local chain adapter yet.');
-    onStep?.(index, steps.length, toolId);
-    current = await definition.execute(current, parameters);
-  }
-  return current;
-}
