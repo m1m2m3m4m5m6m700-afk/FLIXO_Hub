@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import test from 'node:test';
 
 test('controller publication contract is execution-only, non-force, and controller-gated', async () => {
@@ -31,7 +31,10 @@ test('controller publication contract is execution-only, non-force, and controll
 
 
 test('controller recovery state contract remains recoverable after ACCEPTED', async () => {
-  const migration = await readFile(new URL('../../supabase/migrations/20261005095500_patch-capsule-publication-recovery.sql', import.meta.url), 'utf8');
+  const migrationNames = await readdir(new URL('../../supabase/migrations/', import.meta.url));
+  const migrationName = migrationNames.find((name) => name.endsWith('_patch-capsule-publication-recovery.sql'));
+  assert.ok(migrationName, 'publication recovery migration must exist');
+  const migration = await readFile(new URL('../../supabase/migrations/' + migrationName, import.meta.url), 'utf8');
   assert.ok(migration.includes("'CONFLICT','ACCEPTED'"));
   assert.ok(migration.includes("candidate_sha=p_consolidated_commit_sha"));
   assert.ok(migration.includes("p_current_sha=p_consolidated_commit_sha"));
