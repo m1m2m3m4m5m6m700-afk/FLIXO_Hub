@@ -2,7 +2,7 @@
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
-import { readFile, writeFile, rm } from 'node:fs/promises';
+import { writeFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { reconcile, verify } from './patch-capsule.mjs';
 
@@ -198,32 +198,54 @@ function verifyWorktree(worktree) {
   execFileSync('npm', ['run', 'build'], { cwd: worktree, encoding: 'utf8', stdio: 'inherit' });
 }
 
-async function publish(queueId, worktree, targetSha, message, allowedPaths) {
-  const before = await liveHead();
-  if (before !== targetSha) {
-    throw new Error(`CONTROLLER_CAS_CONFLICT:${before}!=${targetSha}`);
-  }
-
-  const statusLines = git(['status', '--short'], worktree).split('\\n').filter(Boolean);
+function createCandidateCommit(worktree, targetSha, message, allowedPaths) {
+  const statusLines = git(['status', '--short'], worktree).split('\n').filter(Boolean);
   if (statusLines.length === 0) throw new Error('CONTROLLER_NO_RECONCILED_CHANGES');
   const allowed = new Set(allowedPaths);
-  for (const line of statusLines) {
-    const path = line.slice(3).trim().replace(/^\"|\"$/g, '');
-    if (!allowed.has(path)) throw new Error(`CONTROLLER_OUT_OF_SCOPE_CHANGE:${path}`);
-  }
   if (!allowed.size) throw new Error('CONTROLLER_ALLOWED_PATHS_EMPTY');
+  for (const line of statusLines) {
+    const path = line.slice(3).trim().replace(/^"|"$/g, '');
+    if (!allowed.has(path)) throw new Error('CONTROLLER_OUT_OF_SCOPE_CHANGE:' + path);
+  }
   git(['add', '--', ...[...allowed]], worktree);
   const staged = git(['diff', '--cached', '--name-only'], worktree);
   if (!staged) throw new Error('CONTROLLER_EMPTY_STAGED_DIFF');
-
-  const commitMessage = message?.trim() || `repair(controller): reconcile patch capsule ${queueId}`;
+  const commitMessage = message?.trim() || 'repair(controller): reconcile patch capsule';
   git(['commit', '-m', commitMessage], worktree);
-  const candidate = git(['rev-parse', 'HEAD'], worktree);
+  const candidateSha = git(['rev-parse', 'HEAD'], worktree);
+  const parentSha = git(['rev-parse', 'HEAD^'], worktree);
+  if (parentSha !== targetSha) {
+    throw new Error('CONTROLLER_PARENT_MISMATCH:' + parentSha + '!=' + targetSha);
+  }
+  return { candidateSha, parentSha, staged };
+}
+
+async function acceptCandidate(queueId, currentSha, validationReport) {
+  if (!validationReport || validationReport.validationStatus !== 'PASS' || validationReport.decision !== null) {
+    throw new Error('CONTROLLER_ACCEPT_REQUIRES_VALIDATION_ONLY');
+  }
+  return rpc('flix_controller_push_queue_controller_decide', {
+    p_queue_id: queueId,
+    p_controller_agent: CONTROLLER,
+    p_decision: 'ACCEPTED',
+    p_reason: 'Exact current execution head validated by canonical controller.',
+    p_current_sha: currentSha,
+    p_validation_report: validationReport,
+  });
+}
+
+async function publish(queueId, worktree, targetSha, candidateSha) {
+  const before = await liveHead();
+  if (before !== targetSha) {
+    throw new Error('CONTROLLER_CAS_CONFLICT:' + before + '!=' + targetSha);
+  }
+  const localHead = git(['rev-parse', 'HEAD'], worktree);
+  if (localHead !== candidateSha) throw new Error('CONTROLLER_CANDIDATE_HEAD_MISMATCH:' + localHead + '!=' + candidateSha);
   const parent = git(['rev-parse', 'HEAD^'], worktree);
-  if (parent !== targetSha) throw new Error(`CONTROLLER_PARENT_MISMATCH:${parent}!=${targetSha}`);
+  if (parent !== targetSha) throw new Error('CONTROLLER_PARENT_MISMATCH:' + parent + '!=' + targetSha);
 
   try {
-    execFileSync('git', ['push', '--porcelain', 'origin', `HEAD:refs/heads/${BRANCH}`], {
+    execFileSync('git', ['push', '--porcelain', 'origin', 'HEAD:refs/heads/' + BRANCH], {
       cwd: worktree,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -231,20 +253,20 @@ async function publish(queueId, worktree, targetSha, message, allowedPaths) {
   } catch (error) {
     const detail = String(error?.stderr ?? error?.message ?? error).slice(0, 2000);
     const now = await liveHead().catch(() => '');
-    throw new Error(`CONTROLLER_CAS_PUSH_CONFLICT:${now || 'UNKNOWN'}:${detail}`);
+    throw new Error('CONTROLLER_CAS_PUSH_CONFLICT:' + (now || 'UNKNOWN') + ':' + detail, { cause: error });
   }
 
   const after = await liveHead();
-  if (after !== candidate) throw new Error(`CONTROLLER_POST_PUSH_HEAD_MISMATCH:${after}!=${candidate}`);
+  if (after !== candidateSha) throw new Error('CONTROLLER_POST_PUSH_HEAD_MISMATCH:' + after + '!=' + candidateSha);
 
   await rpc('flix_controller_push_queue_mark_consolidated', {
     p_queue_ids: [queueId],
     p_controller_agent: CONTROLLER,
     p_current_sha: targetSha,
-    p_consolidated_commit_sha: candidate,
+    p_consolidated_commit_sha: candidateSha,
   });
 
-  return { candidateSha: candidate, parentSha: parent, liveSha: after, staged };
+  return { candidateSha, parentSha: parent, liveSha: after };
 }
 
 async function main() {
@@ -308,8 +330,8 @@ async function main() {
     if (output) await writeFile(output, JSON.stringify(record, null, 2) + '\n', 'utf8');
     console.log(JSON.stringify(record, null, 2));
   } finally {
-    try { git(['worktree', 'remove', '--force', worktree]); } catch {}
-    try { await rm(root, { recursive: true, force: true }); } catch {}
+    try { git(['worktree', 'remove', '--force', worktree]); } catch { /* best-effort worktree cleanup */ }
+    try { await rm(root, { recursive: true, force: true }); } catch { /* best-effort temp cleanup */ }
   }
 }
 
