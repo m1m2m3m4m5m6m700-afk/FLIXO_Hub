@@ -27,7 +27,7 @@ const issuedPlans = new WeakMap<object, { planIdentity: string; file: File }>();
 const DEFAULT_PARAMS: Readonly<Record<string, Record<string, string | number | boolean>>> = Object.freeze({
   'image-cropper': { aspectRatio: '1:1' },
   'image-converter': { format: 'image/webp' },
-  'image-compressor': { format: 'image/webp' },
+  'image-compressor': { format: 'image/webp', quality: 0.8 },
   'image-effects': { contrast: 115 },
   'image-resizer': { scale: 1.5 },
   'image-hue': { degrees: 30 },
