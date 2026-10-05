@@ -4,7 +4,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
 import { readFile, writeFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
-import { capture, reconcile, verify } from './patch-capsule.mjs';
+import { reconcile, verify } from './patch-capsule.mjs';
 
 const REPOSITORY = 'm1m2m3m4m5m6m700-afk/FLIXO_Hub';
 const BRANCH = 'execution';
@@ -71,6 +71,13 @@ async function getQueue(queueId) {
   return row;
 }
 
+function refreshExecutionRef() {
+  execFileSync('git', ['fetch', '--no-tags', 'origin', `+refs/heads/${BRANCH}:refs/remotes/origin/${BRANCH}`], {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+}
+
 async function liveHead() {
   const output = execFileSync('git', ['ls-remote', 'origin', `refs/heads/${BRANCH}`], { encoding: 'utf8' }).trim();
   const sha = output.split(/\s+/)[0] ?? '';
@@ -96,6 +103,32 @@ function assertControllerContext() {
 
 async function reconcileQueue(queueId, worktree) {
   const row = await getQueue(queueId);
+  const currentBeforeReconcile = await liveHead();
+
+  // Crash recovery: ACCEPTED + exact candidate at live head means the push succeeded
+  // but consolidation bookkeeping did not. Finalize the durable record without
+  // reapplying the patch.
+  if (row.status === 'ACCEPTED' && currentBeforeReconcile === row.candidate_sha) {
+    await rpc('flix_controller_push_queue_mark_consolidated', {
+      p_queue_ids: [queueId],
+      p_controller_agent: CONTROLLER,
+      p_current_sha: currentBeforeReconcile,
+      p_consolidated_commit_sha: row.candidate_sha,
+    });
+    return {
+      row,
+      current: currentBeforeReconcile,
+      recoveredPublication: true,
+      result: {
+        paths: Array.isArray(row.paths) ? row.paths : [],
+        patchText: row.reconciled_patch_text ?? row.patch_text ?? '',
+        patchSha256: row.reconciled_patch_sha256 ?? row.patch_sha256,
+        status: 'ALREADY_PUBLISHED_RECOVERY',
+      },
+    };
+  }
+
+  refreshExecutionRef();
   const current = await liveHead();
   const capsule = {
     protocolVersion: 'FLIXO-PATCH-CAPSULE-v1',
@@ -128,7 +161,7 @@ async function reconcileQueue(queueId, worktree) {
   }
 }
 
-async function persistReconciliation(queueId, row, current, result) {
+async function persistReconciliation(queueId, row, current, result, candidateSha) {
   if (stablePatchHash(result.patchText) !== result.patchSha256) {
     throw new Error('CONTROLLER_RECONCILED_PATCH_HASH_MISMATCH');
   }
@@ -142,12 +175,14 @@ async function persistReconciliation(queueId, row, current, result) {
     patchSha256: result.patchSha256,
     originalPatchSha256: row.patch_sha256,
     paths: result.paths,
+    decision: null,
+    candidateSha,
   };
   await rpc('flix_controller_push_queue_reconcile', {
     p_queue_id: queueId,
     p_controller_agent: CONTROLLER,
     p_current_sha: current,
-    p_reconciled_candidate_sha: row.candidate_sha,
+    p_reconciled_candidate_sha: candidateSha,
     p_reconciled_patch_sha256: result.patchSha256,
     p_reconciled_patch_text: result.patchText,
     p_validation_report: validationReport,
@@ -223,16 +258,39 @@ async function main() {
   const message = arg('--message');
 
   try {
-    const { row, current, result } = await reconcileQueue(queueId, worktree);
-    const validation = await persistReconciliation(queueId, row, current, result);
+    const { row, current, result, recoveredPublication } = await reconcileQueue(queueId, worktree);
 
-    // Fresh verification must happen in this worktree before publish. The workflow owns
-    // those deterministic checks; this script will publish only after the caller supplies
-    // an explicit PASS marker from the canonical verification lane.
-      verifyWorktree(worktree);
+    if (recoveredPublication) {
+      const record = {
+        protocolVersion: 'FLIXO-PATCH-CAPSULE-v1',
+        queueId,
+        sourceSha: row.target_sha,
+        targetSha: current,
+        recovery: 'ALREADY_PUBLISHED_RECOVERY',
+        publication: { candidateSha: row.candidate_sha, parentSha: row.parent_sha, liveSha: current },
+      };
+      if (output) await writeFile(output, JSON.stringify(record, null, 2) + '\n', 'utf8');
+      console.log(JSON.stringify(record, null, 2));
+      return;
+    }
+
+    verifyWorktree(worktree);
+    const candidateCommit = createCandidateCommit(
+      worktree,
+      current,
+      message,
+      result.paths.length ? result.paths : row.paths,
+    );
+    const beforePersist = await liveHead();
+    if (beforePersist !== current) {
+      throw new Error(`CONTROLLER_CAS_CONFLICT_BEFORE_PERSIST:${beforePersist}!=${current}`);
+    }
+    const validation = await persistReconciliation(queueId, row, current, result, candidateCommit.candidateSha);
+    await acceptCandidate(queueId, current, validation);
+
     let publication;
     try {
-      publication = await publish(queueId, worktree, current, message, result.paths.length ? result.paths : row.paths);
+      publication = await publish(queueId, worktree, current, candidateCommit.candidateSha);
     } catch (error) {
       const reason = String(error?.message ?? error).slice(0, 1800);
       if (/CONTROLLER_CAS_(?:CONFLICT|PUSH_CONFLICT)/.test(reason)) {
