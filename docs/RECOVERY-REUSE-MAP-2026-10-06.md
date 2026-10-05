@@ -1,4 +1,4 @@
-# FLIXO Hub — Historical Recovery Reuse Map
+﻿# FLIXO Hub â€” Historical Recovery Reuse Map
 
 Date: 2026-10-06
 
@@ -85,3 +85,11 @@ Future recovery work must prefer extending the existing canonical contracts and 
 ## Verification state
 
 The branch is intentionally not certified by this document. Exact-head CI, security, build, browser, and deployment evidence must be observed on the final candidate SHA before promotion.
+## P1/P2 archaeology references
+
+- P0 baseline: docs/RECOVERY-BASELINE-2026-10-06.md
+- P1 complete historical inventory: docs/RECOVERY-INVENTORY-2026-10-06.md
+- Machine-readable inventory: docs/RECOVERY-INVENTORY-2026-10-06.csv
+- P2 dependency archaeology: docs/RECOVERY-ARCHAEOLOGY-2026-10-06.md
+
+P1/P2 established 384 historically deleted recovery-domain paths with exact deletion/source SHA provenance. No new direct RESTORE candidate is approved at this stage; runtime recovery remains governed by the current canonical registry and canonical executor.
