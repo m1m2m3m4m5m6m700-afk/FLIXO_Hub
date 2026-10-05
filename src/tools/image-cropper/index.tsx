@@ -4,7 +4,8 @@ import { ImageJob } from '../../image-core/job';
 import { getToolDefinition } from '../../config/canonical-tool-definition';
 import { validateUploadBoundary } from '../../lib/contracts/upload-boundary';
 import { validateOutputIntegrity } from '../../lib/contracts/output-integrity';
-import { cropResizeImage } from '../image-toolkit/engine';
+import { imageInfo } from '../image-toolkit/engine';
+import { executeCanonicalImageTool } from '../../lib/canonical-image-executor';
 import { imageCropperIntegritySpec } from './output-integrity';
 import { localizeToolUiValue } from '../../lib/i18n/tool-ui-runtime-completeness';
 
@@ -80,8 +81,21 @@ function ImageCropperTool({ locale }: { locale?: string }) {
           assetStore,
           parameters: next,
           processor: async (input) => {
-            const blob = await cropResizeImage(input.blob, { x: next.x, y: next.y, width: next.cropWidth, height: next.cropHeight }, { width: next.width, height: next.height });
-            return { blob, width: next.width, height: next.height, name: 'flixo-cropped.png' };
+            const receipt = await executeCanonicalImageTool({
+              toolId: 'image-cropper',
+              inputBlob: input.blob,
+              parameters: {
+                x: next.x,
+                y: next.y,
+                cropWidth: next.cropWidth,
+                cropHeight: next.cropHeight,
+                width: next.width,
+                height: next.height,
+              },
+              origin: 'manual',
+            });
+            const info = await imageInfo(receipt.outputBlob);
+            return { blob: receipt.outputBlob, width: info.width, height: info.height, name: 'flixo-cropped.png' };
           },
           verifier: async (_input, output, params) => {
             const nextParameters = params as Parameters;
