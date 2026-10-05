@@ -177,7 +177,8 @@ test('canonical MVP capability verifiers accept measurable valid artifacts and r
       const candidateInput = new Blob(['candidate-input'], { type: 'image/png' });
       const candidateOutput = new Blob(['candidate-output'], { type: 'image/png' });
       imageDimensions.set(candidateInput, { width: 32, height: 32 });
-      imageDimensions.set(candidateOutput, { width: 32, height: 32 });
+      const outputDimensions = id === 'image-resizer' ? { width: 48, height: 48 } : { width: 32, height: 32 };
+      imageDimensions.set(candidateOutput, outputDimensions);
       currentVerificationInput = candidateInput;
       assert.equal(await definition(id).verifier(candidateInput, candidateOutput, {}), true, id);
       assert.equal(await definition(id).verifier(candidateInput, candidateInput, {}), false, id + ':neutral-output');
