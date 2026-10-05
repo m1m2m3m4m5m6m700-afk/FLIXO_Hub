@@ -20,16 +20,16 @@ const stringParam = (parameters: ChainParameters | undefined, key: string, fallb
 };
 
 export const TOOL_CHAIN_ADAPTERS: Readonly<Record<string, ToolChainAdapterDefinition>> = Object.freeze({
-  'image-converter': Object.freeze({ execute: async ({ blob, fileName }: ChainInput, parameters) => {
+  'image-converter': Object.freeze({ execute: async ({ blob, fileName }: ChainInput, parameters?: ChainParameters) => {
     const format = stringParam(parameters, 'format', 'image/webp') as 'image/png' | 'image/jpeg' | 'image/webp';
     return { blob: await convertImage(blob, format), fileName: baseName(fileName) + (format === 'image/jpeg' ? '.jpg' : format === 'image/png' ? '.png' : '.webp') };
   } }),
-  'image-upscaler': Object.freeze({ execute: async ({ blob, fileName }: ChainInput, parameters) => {
+  'image-upscaler': Object.freeze({ execute: async ({ blob, fileName }: ChainInput, parameters?: ChainParameters) => {
     const scale = numberParam(parameters, 'scale', 2);
     return { blob: await resizeImage(blob, scale), fileName: baseName(fileName) + `-${scale}x.png` };
   } }),
-  'background-remover': Object.freeze({ execute: async ({ blob, fileName }: ChainInput, parameters) => ({ blob: await removeBackground(blob, numberParam(parameters, 'tolerance', 42)), fileName: baseName(fileName) + '-no-background.png' }) }),
-  'image-cropper': Object.freeze({ execute: async ({ blob, fileName }: ChainInput, parameters) => {
+  'background-remover': Object.freeze({ execute: async ({ blob, fileName }: ChainInput, parameters?: ChainParameters) => ({ blob: await removeBackground(blob, numberParam(parameters, 'tolerance', 42)), fileName: baseName(fileName) + '-no-background.png' }) }),
+  'image-cropper': Object.freeze({ execute: async ({ blob, fileName }: ChainInput, parameters?: ChainParameters) => {
     const info = await imageInfo(blob);
     const ratio = stringParam(parameters, 'aspectRatio', '1:1').split(':').map(Number);
     const ratioValue = ratio[1] > 0 ? ratio[0] / ratio[1] : 1;
@@ -40,7 +40,7 @@ export const TOOL_CHAIN_ADAPTERS: Readonly<Record<string, ToolChainAdapterDefini
     const cropHeight = ratioValue >= 1 ? height : Math.min(info.height, Math.max(1, Math.round(width / ratioValue)));
     return { blob: await cropResizeImage(blob, { x: Math.floor((info.width - cropWidth) / 2), y: Math.floor((info.height - cropHeight) / 2), width: cropWidth, height: cropHeight }, { width: cropWidth, height: cropHeight }), fileName: baseName(fileName) + '-cropped.png' };
   } }),
-  'image-compressor': Object.freeze({ execute: async ({ blob, fileName }: ChainInput, parameters) => {
+  'image-compressor': Object.freeze({ execute: async ({ blob, fileName }: ChainInput, parameters?: ChainParameters) => {
     const format = stringParam(parameters, 'format', 'image/webp') as 'image/png' | 'image/jpeg' | 'image/webp';
     const quality = numberParam(parameters, 'quality', 0.8);
     const targetSizeKB = parameters?.targetSizeKB;
@@ -55,7 +55,7 @@ export const TOOL_CHAIN_ADAPTERS: Readonly<Record<string, ToolChainAdapterDefini
     });
     return { blob: result.blob, fileName: baseName(fileName) + '-compressed' + (format === 'image/jpeg' ? '.jpg' : format === 'image/png' ? '.png' : '.webp') };
   } }),
-  'image-effects': Object.freeze({ execute: async ({ blob, fileName }: ChainInput, parameters) => {
+  'image-effects': Object.freeze({ execute: async ({ blob, fileName }: ChainInput, parameters?: ChainParameters) => {
     const brightness = numberParam(parameters, 'brightness', 100);
     const contrast = numberParam(parameters, 'contrast', 100);
     const saturation = numberParam(parameters, 'saturate', 100);
@@ -77,12 +77,12 @@ export const TOOL_CHAIN_ADAPTERS: Readonly<Record<string, ToolChainAdapterDefini
   'image-sepia': Object.freeze({ execute: async ({ blob, fileName }: ChainInput) => ({ blob: await applyBasicImageEffect(blob, 'sepia', 100), fileName: baseName(fileName) + '-sepia.png' }) }),
   'image-blur': Object.freeze({ execute: async ({ blob, fileName }: ChainInput) => ({ blob: await applyBasicImageEffect(blob, 'blur', 80), fileName: baseName(fileName) + '-blur.png' }) }),
   'image-sharpen': Object.freeze({ execute: async ({ blob, fileName }: ChainInput) => ({ blob: await applyBasicImageEffect(blob, 'sharpen', 110), fileName: baseName(fileName) + '-sharpen.png' }) }),
-  'image-resizer': Object.freeze({ execute: async ({ blob, fileName }: ChainInput, parameters) => {
+  'image-resizer': Object.freeze({ execute: async ({ blob, fileName }: ChainInput, parameters?: ChainParameters) => {
     const scale = numberParam(parameters, 'scale', 1.5);
     return { blob: await resizeImage(blob, scale), fileName: baseName(fileName) + `-resized-${scale}x.png` };
   } }),
-  'image-hue': Object.freeze({ execute: async ({ blob, fileName }: ChainInput, parameters) => ({ blob: await hueShiftImage(blob, numberParam(parameters, 'degrees', 30)), fileName: baseName(fileName) + '-hue.png' }) }),
-  'image-pixelate': Object.freeze({ execute: async ({ blob, fileName }: ChainInput, parameters) => ({ blob: await pixelateImage(blob, numberParam(parameters, 'blockSize', 10)), fileName: baseName(fileName) + '-pixelated.png' }) }),
+  'image-hue': Object.freeze({ execute: async ({ blob, fileName }: ChainInput, parameters?: ChainParameters) => ({ blob: await hueShiftImage(blob, numberParam(parameters, 'degrees', 30)), fileName: baseName(fileName) + '-hue.png' }) }),
+  'image-pixelate': Object.freeze({ execute: async ({ blob, fileName }: ChainInput, parameters?: ChainParameters) => ({ blob: await pixelateImage(blob, numberParam(parameters, 'blockSize', 10)), fileName: baseName(fileName) + '-pixelated.png' }) }),
   'image-padding': Object.freeze({ execute: async ({ blob, fileName }: ChainInput) => ({ blob: await padImage(blob, 24), fileName: baseName(fileName) + '-padded.png' }) }),
 });
 
