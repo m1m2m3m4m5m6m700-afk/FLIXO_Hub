@@ -22,13 +22,18 @@ test('canonical MVP capability verifiers accept measurable valid artifacts and r
   const imageDimensions = new WeakMap<Blob, { width: number; height: number }>();
   const urlBlobs = new Map<string, Blob>();
   const videoMetadata = new WeakMap<Blob, { width: number; height: number; duration: number }>();
-  let imageDataRead = 0;
+  const bitmapSources = new WeakMap<object, Blob>();
+  let activeBitmap: object | null = null;
 
-  globals.createImageBitmap = async (blob: Blob) => ({
-    width: imageDimensions.get(blob)?.width ?? 1,
-    height: imageDimensions.get(blob)?.height ?? 1,
-    close() {},
-  });
+  globals.createImageBitmap = async (blob: Blob) => {
+    const bitmap = {
+      width: imageDimensions.get(blob)?.width ?? 1,
+      height: imageDimensions.get(blob)?.height ?? 1,
+      close() {},
+    };
+    bitmapSources.set(bitmap, blob);
+    return bitmap;
+  };
 
   URL.createObjectURL = ((blob: Blob) => {
     const url = 'blob:test-' + String(urlBlobs.size + 1);
@@ -40,17 +45,28 @@ test('canonical MVP capability verifiers accept measurable valid artifacts and r
     urlBlobs.delete(url);
   }) as typeof URL.revokeObjectURL;
 
+  let currentVerificationInput: Blob | null = null;
   const canvasContext = {
     clearRect() {},
-    drawImage() {},
+    drawImage(bitmap: object) {
+      activeBitmap = bitmap;
+    },
     getImageData() {
-      imageDataRead += 1;
       const data = new Uint8ClampedArray(32 * 32 * 4);
-      if (imageDataRead % 2 === 0) {
+      const source = activeBitmap ? bitmapSources.get(activeBitmap) : undefined;
+      const marker = source?.text ? undefined : undefined;
+      if (source && source === currentVerificationInput) {
         for (let index = 0; index < data.length; index += 4) {
-          data[index] = 255;
-          data[index + 1] = 0;
-          data[index + 2] = 0;
+          data[index] = 16;
+          data[index + 1] = 32;
+          data[index + 2] = 64;
+          data[index + 3] = 255;
+        }
+      } else {
+        for (let index = 0; index < data.length; index += 4) {
+          data[index] = 220;
+          data[index + 1] = 160;
+          data[index + 2] = 80;
           data[index + 3] = 255;
         }
       }
@@ -113,6 +129,7 @@ test('canonical MVP capability verifiers accept measurable valid artifacts and r
   try {
     const input = new Blob(['input'], { type: 'image/png' });
     const output = new Blob(['output'], { type: 'image/png' });
+    currentVerificationInput = input;
     imageDimensions.set(input, { width: 100, height: 50 });
     imageDimensions.set(output, { width: 200, height: 100 });
     assert.equal(await definition('image-upscaler').verifier(input, output, { scale: 2 }), true);
@@ -162,7 +179,9 @@ test('canonical MVP capability verifiers accept measurable valid artifacts and r
       const candidateOutput = new Blob(['candidate-output'], { type: 'image/png' });
       imageDimensions.set(candidateInput, { width: 32, height: 32 });
       imageDimensions.set(candidateOutput, { width: 32, height: 32 });
+      currentVerificationInput = candidateInput;
       assert.equal(await definition(id).verifier(candidateInput, candidateOutput, {}), true, id);
+      assert.equal(await definition(id).verifier(candidateInput, candidateInput, {}), false, id + ':neutral-output');
     }
   } finally {
     if (originalCreateImageBitmap === undefined) delete globals.createImageBitmap;
