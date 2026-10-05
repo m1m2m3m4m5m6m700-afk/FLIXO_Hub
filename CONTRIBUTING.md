@@ -11,6 +11,18 @@ The repository uses two operational branches only:
 
 Promotion is exclusively `execution → main`. Historical refs are not execution paths.
 
+### Moving execution HEAD and agent work
+
+The live `execution` HEAD may move while an agent is preparing a repair.
+
+- A stale candidate must not retain certification authority.
+- Agent work may be preserved as a durable Patch Capsule in the trusted control plane.
+- Patch Capsules are reconciled onto the current `execution` HEAD before publication.
+- Publication is serialized through the deterministic `assistantController` lane.
+- Publication is non-force and fast-forward only; a moved head causes retry/reconciliation, never overwrite.
+- No temporary or third development branch is permitted.
+- The Patch Capsule workflow is documented in `docs/AGENT-PATCH-CAPSULE-AND-CAS.md`.
+
 ## Delivery lifecycle
 
 `Implement → Verify → Certify → Freeze → Promote`
