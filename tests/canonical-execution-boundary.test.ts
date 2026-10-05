@@ -1,5 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { executeCanonicalChain, executeCanonicalTool } from '../src/lib/execution/canonical-executor.ts';
 import { MVP_EXECUTABLE_TOOL_IDS } from '../src/config/manual-capability-definition.ts';
@@ -47,10 +50,6 @@ test('canonical chain is bounded and fail-closed', async () => {
 });
 
 
-import { existsSync, readFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
 test('active MVP UI paths do not expose a direct engine execution bypass', () => {
   const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
   const source = (relativePath: string) => readFileSync(resolve(root, relativePath), 'utf8');
@@ -87,6 +86,8 @@ test('active MVP UI paths do not expose a direct engine execution bypass', () =>
   assert.match(imageToolkit, /executeCanonicalTool\('image-upscaler'/u);
   assert.doesNotMatch(imageToolkit, /removeBackground\(/u);
   assert.doesNotMatch(imageToolkit, /resizeImage\(/u);
+  assert.match(imageToolkit, /executeCanonicalTool\('image-converter'/u);
+  assert.doesNotMatch(imageToolkit, /convertImage\(/u);
 
   const imageEffects = source('src/tools/_shared/browser-image.tsx');
   assert.match(imageEffects, /executeCanonicalTool\('image-effects'/u);

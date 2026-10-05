@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from '@tanstack/react-router';
-import { applyBasicImageEffect, convertImage, cropResizeImage, flipImage, imageInfo, rasterToSvg, rotateImage, watermarkRemove, fillRemoveRegion } from './engine';
+import { applyBasicImageEffect, cropResizeImage, flipImage, imageInfo, rasterToSvg, rotateImage, watermarkRemove, fillRemoveRegion } from './engine';
 import { executeCanonicalTool } from '../../lib/execution/canonical-executor';
 import { recognizeWithOcrWorker } from './ocr-worker-client';
 import { assertImageCropperOutputIntegrity } from '../image-cropper/output-integrity';
-import { assertImageConverterOutputIntegrity } from '../image-converter/output-integrity';
 import { validateFileSafety } from '../../lib/contracts/file-safety';
 import { validateUploadBoundary } from '../../lib/contracts/upload-boundary';
 import { LOCALE_METADATA, isLocale } from '../../lib/i18n';
@@ -161,7 +160,7 @@ export function ImageToolPage({ toolId }: Props) {
       let blob: Blob; let fileName = baseName(file.name); let info: Result['info'];
       if (toolId === 'background-remover') { const output = await executeCanonicalTool('background-remover', { blob: file, fileName: file.name }, { tolerance: Number(tolerance) || 42 }); blob = output.blob; fileName = output.fileName; }
       else if (toolId === 'image-upscaler') { const factor = Number(scale); const output = await executeCanonicalTool('image-upscaler', { blob: file, fileName: file.name }, { scale: factor }); blob = output.blob; fileName = output.fileName; }
-      else if (toolId === 'image-converter') { blob = await convertImage(file, outputFormat); info = await imageInfo(blob); assertImageConverterOutputIntegrity(blob, info); fileName += outputFormat === 'image/jpeg' ? '.jpg' : outputFormat === 'image/png' ? '.png' : '.webp'; }
+      else if (toolId === 'image-converter') { const output = await executeCanonicalTool('image-converter', { blob: file, fileName: file.name }, { format: outputFormat }); blob = output.blob; fileName = output.fileName; info = await imageInfo(blob); }
       else if (toolId === 'image-to-text') { const prepared = await preprocessForOcr(file); const ocr = await recognizeWithOcrWorker(prepared, 'eng+ara'); replaceResult(await createResult(new Blob([ocr.text], { type: 'text/plain;charset=utf-8' }), `${baseName(file.name)}.txt`, undefined, ocr.text)); return; }
       else if (toolId === 'object-remover') { blob = await fillRemoveRegion(file, { x: Number(cropX), y: Number(cropY), width: Number(cropW), height: Number(cropH) }); fileName += '-object-removed.png'; }
       else if (toolId === 'watermark-remover') { blob = await watermarkRemove(file, { x: Number(cropX), y: Number(cropY), width: Number(cropW), height: Number(cropH) }); fileName += '-watermark-removed.png'; }
