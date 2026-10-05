@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useLocation } from '@tanstack/react-router';
 import { executeCanonicalTool } from '@/lib/execution/canonical-executor';
+import type { CanonicalCapabilityParameters } from '@/config/manual-capability-definition';
 
 export function VideoLocalTool() {
   const [file, setFile] = useState<File | null>(null);
@@ -13,7 +14,7 @@ export function VideoLocalTool() {
     if (!file) return;
     setBusy(true);
     try {
-      const parameters = id === 'video-trimmer'
+      const parameters: CanonicalCapabilityParameters = id === 'video-trimmer'
         ? {}
         : id === 'video-compressor'
           ? { videoBitsPerSecond: 2_500_000 }
