@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
 
 const REPOSITORY = 'm1m2m3m4m5m6m700-afk/FLIXO_Hub';
 const BRANCH = 'execution';
@@ -192,6 +193,7 @@ const value = (flag) => {
   return index >= 0 ? args[index + 1] : null;
 };
 
+if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
 if (!command) usage();
 
 if (command === 'capture') {
@@ -231,6 +233,7 @@ if (command === 'capture') {
   process.stdout.write(JSON.stringify(result, null, 2) + '\n');
 } else {
   usage();
+}
 }
 
 export { capture, verify, reconcile, persistCapsule };
