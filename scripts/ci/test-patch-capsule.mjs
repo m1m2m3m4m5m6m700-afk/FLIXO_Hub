@@ -31,7 +31,7 @@ test('captures an exact candidate patch and rejects wrong parent', async () => {
     assert.equal(capsule.candidateSha, candidate);
     assert.equal(capsule.paths.length, 1);
     assert.match(capsule.patchText, /agent change/);
-    await assert.rejects(
+    assert.throws(
       () => capture({ sourceSha: candidate, candidateSha: candidate, cwd: dir }),
       /PATCH_CAPSULE_PARENT_MISMATCH/,
     );
