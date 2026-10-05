@@ -1,2 +1,4 @@
 [functions.flixo-council-runtime]
+# Disabled because this function authenticates GitHub OIDC/account bearer tokens internally.
+# Keep its custom authentication fail-closed; do not treat this as anonymous access.
 verify_jwt = false
