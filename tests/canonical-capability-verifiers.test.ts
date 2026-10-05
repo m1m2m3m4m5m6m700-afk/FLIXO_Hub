@@ -140,6 +140,7 @@ test('canonical MVP capability verifiers accept measurable valid artifacts and r
     const effectsOutput = new Blob(['effects-output'], { type: 'image/png' });
     imageDimensions.set(effectsInput, { width: 32, height: 32 });
     imageDimensions.set(effectsOutput, { width: 32, height: 32 });
+    currentVerificationInput = effectsInput;
     assert.equal(await definition('image-effects').verifier(effectsInput, effectsOutput, { contrast: 120 }), true);
     assert.equal(await definition('image-effects').verifier(effectsInput, effectsOutput, { brightness: 100 }), false);
 
