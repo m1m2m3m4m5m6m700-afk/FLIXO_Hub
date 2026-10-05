@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://flexoai.vercel.app/sitemap.xml
+Sitemap: https://flixoai.m1m2m3m4m5m6m700.workers.dev/sitemap.xml
