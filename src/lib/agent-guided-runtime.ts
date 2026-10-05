@@ -315,6 +315,7 @@ export async function executeAgentPlan(
   }
   // The confirmation receipt is bound to the exact AgentPlan object issued to the UI.
   // Validate the normalized plan separately, but consume the receipt against the original plan object.
+  // Consume the one-time confirmation before honoring cancellation so an aborted attempt cannot replay it.
   verifyConfirmationReceipt(plan, file, receipt);
   assertNotAborted(signal);
 
