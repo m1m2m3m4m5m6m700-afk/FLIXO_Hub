@@ -36,5 +36,5 @@ test('controller recovery state contract remains recoverable after ACCEPTED', as
   assert.ok(migration.includes("candidate_sha=p_consolidated_commit_sha"));
   assert.ok(migration.includes("p_current_sha=p_consolidated_commit_sha"));
   assert.ok(migration.includes("status='ACCEPTED'"));
-  assert.ok(migration.includes("jsonb_typeof(current_report -> 'decision') <> 'null'"));
+  assert.ok(migration.includes("current_report -> 'decision' is not null"));
 });
