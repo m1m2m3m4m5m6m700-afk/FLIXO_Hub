@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+
 import { PNG } from '../helpers/image-tool-fixture';
 const MANUAL_TOOL_IDS = [
   'background-remover','image-upscaler','image-cropper','image-compressor','image-converter','image-effects',
@@ -44,6 +45,7 @@ async function executeManual(page: Page, toolId: (typeof MANUAL_TOOL_IDS)[number
   const fileInput = page.locator('input[type=file]').first();
   await expect(fileInput).toHaveCount(1);
   await fileInput.setInputFiles(fixture());
+  await expect(fileInput).toHaveValue(/flixo-release-fixture\.png/);
 
   if (toolId === 'image-cropper') {
     await page.getByRole('textbox', { name: 'Crop width' }).fill('4');
@@ -52,39 +54,51 @@ async function executeManual(page: Page, toolId: (typeof MANUAL_TOOL_IDS)[number
     await page.getByRole('textbox', { name: 'Output height' }).fill('4');
   }
 
-  const runButton = toolId === 'image-compressor'
-    ? page.getByRole('button', { name: /Compress image/i })
-    : page.getByRole('button', { name: /Run tool/i });
-  await expect(runButton).toBeEnabled({ timeout: 10_000 });
-  await runButton.click();
-  await expect(page.locator('a[download]').first()).toBeVisible({ timeout: 20_000 });
+  if (toolId === 'image-compressor') {
+    const runButton = page.getByRole('button', { name: /Compress image/i });
+    await expect(runButton).toBeEnabled({ timeout: 10_000 });
+    await runButton.click();
+    await expect(page.locator('a[download]').first()).toBeVisible({ timeout: 20_000 });
+  } else if (toolId === 'image-effects') {
+    const runButton = page.getByRole('button', { name: /Run tool/i });
+    await expect(runButton).toBeEnabled({ timeout: 10_000 });
+    await runButton.click();
+    await expect(page.locator('img[alt]').last()).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByRole('button', { name: /Download/i })).toBeVisible({ timeout: 20_000 });
+  } else {
+    const runButton = page.getByRole('button', { name: /Run tool/i });
+    await expect(runButton).toBeEnabled({ timeout: 10_000 });
+    await runButton.click();
+    await expect(page.locator('a[download]').first()).toBeVisible({ timeout: 20_000 });
+  }
 }
 
 async function planAndExecuteAgent(page: Page, toolId: string, prompt: string, language: 'ar' | 'en') {
   await page.goto('/agent', { waitUntil: 'domcontentloaded' });
-  const main = page.locator('main').last();
-  const direction = await main.getAttribute('dir');
-  const expectedDirection = language === 'ar' ? 'rtl' : 'ltr';
-  if (direction !== expectedDirection) {
-    await main.locator('header button').first().click();
+  if (language === 'ar') {
+    const main = page.locator('main').last();
+    const direction = await main.getAttribute('dir');
+    if (direction !== 'rtl') await page.getByRole('button', { name: /العربية/i }).click();
+    await expect(page.locator('main').last()).toHaveAttribute('dir', 'rtl');
+    await expect(page.locator('main').last()).toHaveAttribute('lang', 'ar');
   }
-  await expect(main).toHaveAttribute('dir', expectedDirection);
-  await expect(main).toHaveAttribute('lang', language);
+  if (language === 'en') {
+    const main = page.locator('main').last();
+    const direction = await main.getAttribute('dir');
+    if (direction !== 'ltr') await page.getByRole('button', { name: /English/i }).click();
+    await expect(page.locator('main').last()).toHaveAttribute('dir', 'ltr');
+  }
   await page.locator('#agent-prompt').fill(prompt);
   await page.locator('#agent-file').setInputFiles(fixture());
-  const buildButton = page.getByRole('button', { name: /Build plan/i });
-  await expect(buildButton).toBeVisible({ timeout: 10_000 });
-  await expect(buildButton).toBeEnabled({ timeout: 10_000 });
-  await buildButton.click();
+  await page.getByTestId('agent-build-plan').click();
   const plan = page.locator('[aria-label="agent-plan"]');
   await expect(plan).toContainText(toolId);
-  const confirmation = plan.locator('input[type=checkbox]');
-  await expect(confirmation).not.toBeChecked();
-  const executeButton = plan.getByRole('button').first();
+  await expect(page.getByTestId('agent-confirmation')).not.toBeChecked();
+  const executeButton = page.getByTestId('agent-execute');
   await expect(executeButton).toBeDisabled();
   await expect(page.locator('[aria-label="agent-result"]')).toHaveCount(0);
-  await confirmation.check();
-  await executeButton.click();
+  await page.getByTestId('agent-confirmation').check();
+  await page.getByRole('button', { name: language === 'ar' ? /تنفيذ/i : /Execute/i }).click();
   await expect(page.locator('[aria-label="agent-result"]')).toBeVisible({ timeout: 20_000 });
 }
 
