@@ -112,7 +112,7 @@ function reconcile({ capsule, targetSha, cwd = process.cwd(), patchFile = null, 
       runGit(['apply', '--3way', '--whitespace=nowarn', patchPath], cwd);
     } catch (error) {
       const message = String(error?.stderr ?? error?.message ?? error).slice(0, 3000);
-      throw new Error(`PATCH_CAPSULE_CONFLICT:${message}`);
+      throw new Error(`PATCH_CAPSULE_CONFLICT:${message}`, { cause: error });
     }
 
     const status = runGit(['status', '--short'], cwd);
