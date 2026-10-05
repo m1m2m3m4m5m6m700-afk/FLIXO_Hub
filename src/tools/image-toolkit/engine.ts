@@ -500,7 +500,30 @@ export async function executeCanonicalImageEngine(toolId:string,blob:Blob,parame
   switch(toolId){
     case 'background-remover': return removeBackground(blob,Number(parameters.tolerance??42),signal);
     case 'image-upscaler': return resizeImage(blob,Number(parameters.scale??2),signal);
-    case 'image-cropper': return cropResizeImage(blob,{x:Number(parameters.x??0),y:Number(parameters.y??0),width:Number(parameters.cropWidth??500),height:Number(parameters.cropHeight??500)},{width:Number(parameters.width??500),height:Number(parameters.height??500)},signal);
+    case 'image-cropper': {
+      const info = await imageInfo(blob);
+      const ratioParts = typeof parameters.aspectRatio === 'string'
+        ? parameters.aspectRatio.split(':').map(Number)
+        : [info.width, info.height];
+      const ratioWidth = Number.isFinite(ratioParts[0]) && ratioParts[0] > 0 ? ratioParts[0] : info.width;
+      const ratioHeight = Number.isFinite(ratioParts[1]) && ratioParts[1] > 0 ? ratioParts[1] : info.height;
+      const ratio = ratioWidth / ratioHeight;
+      const sourceRatio = info.width / info.height;
+      const cropWidth = Number(parameters.cropWidth ?? (sourceRatio > ratio
+        ? Math.max(1, Math.round(info.height * ratio))
+        : info.width));
+      const cropHeight = Number(parameters.cropHeight ?? (sourceRatio > ratio
+        ? info.height
+        : Math.max(1, Math.round(info.width / ratio))));
+      const outputWidth = Number(parameters.width ?? cropWidth);
+      const outputHeight = Number(parameters.height ?? cropHeight);
+      return cropResizeImage(
+        blob,
+        { x: Number(parameters.x ?? 0), y: Number(parameters.y ?? 0), width: cropWidth, height: cropHeight },
+        { width: outputWidth, height: outputHeight },
+        signal,
+      );
+    }
     case 'image-compressor':{const {compressImage}=await import('../image-compressor/engine.ts');const r=await compressImage(new File([blob],'flixo-input',{type:blob.type||'image/png'}),{quality:Number(parameters.quality??0.82),format:String(parameters.format??'image/webp') as 'image/png'|'image/jpeg'|'image/webp',targetSizeKB:parameters.targetSizeKB===undefined?undefined:Number(parameters.targetSizeKB),maxWidth:parameters.maxWidth===undefined?undefined:Number(parameters.maxWidth),maxHeight:parameters.maxHeight===undefined?undefined:Number(parameters.maxHeight)},signal);return r.blob;}
     case 'image-converter': return convertImage(blob,String(parameters.format??'image/webp') as 'image/png'|'image/jpeg'|'image/webp',signal);
     case 'image-effects':{let current=blob;if(parameters.brightness!==undefined)current=await applyBasicImageEffect(current,'brightness',Number(parameters.brightness),signal);if(parameters.contrast!==undefined)current=await applyBasicImageEffect(current,'contrast',Number(parameters.contrast),signal);if(parameters.saturate!==undefined)current=await applyBasicImageEffect(current,'saturation',Number(parameters.saturate),signal);if(parameters.grayscale!==undefined)current=await applyBasicImageEffect(current,'grayscale',Number(parameters.grayscale),signal);return current;}
