@@ -25,6 +25,7 @@ function assertLayer(layer: ImageLayer): void {
   assertString(layer.id, "Layer id");
   assertString(layer.name, "Layer name");
   if (!LAYER_TYPES.includes(layer.type)) throw new Error(`Unsupported layer type: ${String(layer.type)}`);
+  if (typeof layer.locked !== "boolean") throw new Error("Layer locked must be a boolean");
   if (typeof layer.visible !== "boolean") throw new Error("Layer visible must be a boolean");
   assertFiniteNumber(layer.opacity, "Layer opacity");
   if (layer.opacity < 0 || layer.opacity > 1) throw new Error("Layer opacity must be between 0 and 1");
@@ -67,8 +68,8 @@ export function createImageDocument(input: Pick<ImageDocument, "id" | "width" | 
   };
 }
 
-export function addLayer(document: ImageDocument, layer: Omit<ImageLayer, "transform"> & Partial<Pick<ImageLayer, "transform">>): ImageDocument {
-  const nextLayer: ImageLayer = { ...layer, transform: layer.transform ?? defaultTransform() };
+export function addLayer(document: ImageDocument, layer: Omit<ImageLayer, "transform" | "locked"> & Partial<Pick<ImageLayer, "transform" | "locked">>): ImageDocument {
+  const nextLayer: ImageLayer = { locked: layer.locked ?? false, ...layer, transform: layer.transform ?? defaultTransform() };
   assertLayer(nextLayer);
   if (document.layers.some((existing) => existing.id === nextLayer.id)) throw new Error(`Layer id already exists: ${nextLayer.id}`);
   return { ...document, layers: [...document.layers, nextLayer] };

@@ -22,6 +22,7 @@ export const MAX_FILES = 20;
 export const MAX_INPUT_SIZE = IMAGE_COMPRESSOR_MAX_INPUT_SIZE;
 export const MAX_OUTPUT_PIXELS = IMAGE_COMPRESSOR_MAX_PIXELS;
 
+function throwIfAborted(signal?: AbortSignal): void { if (signal?.aborted) throw signal.reason instanceof Error ? signal.reason : new DOMException('Image compression cancelled.','AbortError'); }
 function getTargetSize(width: number, height: number, maxWidth?: number, maxHeight?: number) {
   const widthLimit = Number.isFinite(maxWidth) && (maxWidth ?? 0) > 0 ? maxWidth! : width;
   const heightLimit = Number.isFinite(maxHeight) && (maxHeight ?? 0) > 0 ? maxHeight! : height;
@@ -47,7 +48,9 @@ async function encodeToTarget(
   format: CompressionFormat,
   quality: number,
   targetBytes?: number,
+  signal?: AbortSignal,
 ) {
+  throwIfAborted(signal);
   if (!targetBytes || format === 'image/png') {
     return { blob: await encode(canvas, format, quality), qualityUsed: quality };
   }
@@ -58,6 +61,7 @@ async function encodeToTarget(
   let bestQuality = low;
 
   for (let attempt = 0; attempt < 7; attempt += 1) {
+    throwIfAborted(signal);
     const candidateQuality = (low + high) / 2;
     const candidate = await encode(canvas, format, candidateQuality);
     if (candidate.size <= targetBytes) {
@@ -118,7 +122,8 @@ async function loadSourceImage(file: File): Promise<SourceImage> {
   }
 }
 
-async function compressImageOnMainThread(file: File, options: CompressionOptions): Promise<CompressionResult> {
+async function compressImageOnMainThread(file: File, options: CompressionOptions, signal?: AbortSignal): Promise<CompressionResult> {
+  throwIfAborted(signal);
   assertSafeImageInput(file);
 
   const image = await loadSourceImage(file);
@@ -146,7 +151,7 @@ async function compressImageOnMainThread(file: File, options: CompressionOptions
     context.drawImage(image.source, 0, 0, size.width, size.height);
 
     const targetBytes = options.targetSizeKB && options.targetSizeKB > 0 ? options.targetSizeKB * 1024 : undefined;
-    const encoded = await encodeToTarget(canvas, options.format, options.quality, targetBytes);
+    const encoded = await encodeToTarget(canvas, options.format, options.quality, targetBytes, signal);
 
     return {
       blob: encoded.blob,
@@ -173,36 +178,42 @@ function canUseCompressionWorker(file: File) {
   );
 }
 
-function compressImageInWorker(file: File, options: CompressionOptions): Promise<CompressionResult> {
+function compressImageInWorker(file: File, options: CompressionOptions, signal?: AbortSignal): Promise<CompressionResult> {
   return new Promise((resolve, reject) => {
     const worker = new Worker(new URL('./compressor.worker.ts', import.meta.url), { type: 'module' });
     const cleanup = () => worker.terminate();
+    const onAbort = () => { cleanup(); reject(new DOMException('Image compression cancelled.','AbortError')); };
+    signal?.addEventListener('abort', onAbort, { once: true });
 
     worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
+      signal?.removeEventListener('abort', onAbort);
       cleanup();
       if (event.data.ok) resolve(event.data.result);
       else reject(new Error(event.data.error));
     };
 
     worker.onerror = () => {
+      signal?.removeEventListener('abort', onAbort);
       cleanup();
       reject(new Error('The compression worker failed.'));
     };
 
+    throwIfAborted(signal);
     worker.postMessage({ file, options });
   });
 }
 
-export async function compressImage(file: File, options: CompressionOptions): Promise<CompressionResult> {
+export async function compressImage(file: File, options: CompressionOptions, signal?: AbortSignal): Promise<CompressionResult> {
+  throwIfAborted(signal);
   assertSafeImageInput(file);
 
   if (canUseCompressionWorker(file)) {
     try {
-      return await compressImageInWorker(file, options);
+      return await compressImageInWorker(file, options, signal);
     } catch {
       // Keep a safe main-thread fallback for browsers with partial worker/canvas support.
     }
   }
 
-  return compressImageOnMainThread(file, options);
+  return compressImageOnMainThread(file, options, signal);
 }

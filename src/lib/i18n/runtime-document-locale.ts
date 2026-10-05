@@ -2,8 +2,15 @@ import type { Locale } from './config';
 import { isLocale, LOCALE_METADATA } from './config';
 
 const LOCALE_PATH_RE = /^\/([^/]+)(?:\/|$)/u;
+const AGENT_PATH = '/agent';
+const AGENT_LOCALE_ATTRIBUTE = 'data-flixo-agent-locale';
 
 export function localeFromPathname(pathname: string): Locale {
+  if (pathname === AGENT_PATH && typeof document !== 'undefined') {
+    const candidate = document.documentElement.getAttribute(AGENT_LOCALE_ATTRIBUTE);
+    if (candidate && isLocale(candidate)) return candidate;
+    return 'ar';
+  }
   const candidate = pathname.match(LOCALE_PATH_RE)?.[1] ?? 'en';
   return isLocale(candidate) ? candidate : 'en';
 }
@@ -103,7 +110,7 @@ export function installDocumentLocaleContract(
 
   htmlObserver.observe(document.documentElement, {
     attributes: true,
-    attributeFilter: ['lang', 'dir', 'data-flixo-locale'],
+    attributeFilter: ['lang', 'dir', 'data-flixo-locale', AGENT_LOCALE_ATTRIBUTE],
   });
 
   const bodyObserver = new MutationObserver((mutations) => {
