@@ -128,7 +128,6 @@ test('canonical MVP capability verifiers accept measurable valid artifacts and r
   try {
     const input = new Blob(['input'], { type: 'image/png' });
     const output = new Blob(['output'], { type: 'image/png' });
-    currentVerificationInput = input;
     imageDimensions.set(input, { width: 100, height: 50 });
     imageDimensions.set(output, { width: 200, height: 100 });
     assert.equal(await definition('image-upscaler').verifier(input, output, { scale: 2 }), true);
@@ -140,7 +139,7 @@ test('canonical MVP capability verifiers accept measurable valid artifacts and r
     const effectsOutput = new Blob(['effects-output'], { type: 'image/png' });
     imageDimensions.set(effectsInput, { width: 32, height: 32 });
     imageDimensions.set(effectsOutput, { width: 32, height: 32 });
-    imageDataRead = 0;
+    currentVerificationInput = effectsInput;
     assert.equal(await definition('image-effects').verifier(effectsInput, effectsOutput, { contrast: 120 }), true);
     assert.equal(await definition('image-effects').verifier(effectsInput, effectsOutput, { brightness: 100 }), false);
 
@@ -148,7 +147,7 @@ test('canonical MVP capability verifiers accept measurable valid artifacts and r
     const bgOutput = new Blob(['bg-output'], { type: 'image/png' });
     imageDimensions.set(bgInput, { width: 32, height: 32 });
     imageDimensions.set(bgOutput, { width: 32, height: 32 });
-    imageDataRead = 0;
+    currentVerificationInput = bgInput;
     assert.equal(await definition('background-remover').verifier(bgInput, bgOutput, {}), true);
 
     const compressedInput = new Blob(['x'.repeat(1000)], { type: 'image/png' });
@@ -159,20 +158,18 @@ test('canonical MVP capability verifiers accept measurable valid artifacts and r
     assert.equal(await definition('image-converter').verifier(input, converted, { format: 'image/webp' }), true);
 
     for (const id of [
-      'image-rotate',
-      'image-flip-horizontal',
-      'image-flip-vertical',
-      'image-brightness',
-      'image-contrast',
-      'image-saturation',
-      'image-grayscale',
-      'image-invert',
-      'image-sepia',
-      'image-blur',
+      'image-brightness-contrast',
+      'image-saturation-hue',
+      'image-exposure',
+      'image-highlights-shadows',
       'image-sharpen',
-      'image-resizer',
-      'image-hue',
-      'image-pixelate',
+      'image-blur',
+      'image-grayscale-duotone',
+      'image-filters',
+      'image-watermark',
+      'image-text-overlay',
+      'image-draw-annotate',
+      'image-redaction',
     ]) {
       const candidateInput = new Blob(['candidate-input'], { type: 'image/png' });
       const candidateOutput = new Blob(['candidate-output'], { type: 'image/png' });
@@ -182,6 +179,18 @@ test('canonical MVP capability verifiers accept measurable valid artifacts and r
       assert.equal(await definition(id).verifier(candidateInput, candidateOutput, {}), true, id);
       assert.equal(await definition(id).verifier(candidateInput, candidateInput, {}), false, id + ':neutral-output');
     }
+    const resizeInput = new Blob(['resize-input'], { type: 'image/png' });
+    const resizeOutput = new Blob(['resize-output'], { type: 'image/png' });
+    imageDimensions.set(resizeInput, { width: 32, height: 32 });
+    imageDimensions.set(resizeOutput, { width: 48, height: 48 });
+    assert.equal(await definition('image-resizer').verifier(resizeInput, resizeOutput, { scale: 1.5 }), true, 'image-resizer');
+
+    const rotateInput = new Blob(['rotate-input'], { type: 'image/png' });
+    const rotateOutput = new Blob(['rotate-output'], { type: 'image/png' });
+    imageDimensions.set(rotateInput, { width: 32, height: 48 });
+    imageDimensions.set(rotateOutput, { width: 48, height: 32 });
+    currentVerificationInput = rotateInput;
+    assert.equal(await definition('image-rotate-flip').verifier(rotateInput, rotateOutput, { rotation: 90 }), true, 'image-rotate-flip');
   } finally {
     if (originalCreateImageBitmap === undefined) delete globals.createImageBitmap;
     else globals.createImageBitmap = originalCreateImageBitmap;
@@ -195,15 +204,17 @@ test('canonical MVP capability verifiers accept measurable valid artifacts and r
 
 test('canonical MVP contains exactly twenty executable browser-local capabilities with complete contracts', async () => {
   const { MVP_EXECUTABLE_TOOL_IDS, CAPABILITY_DEFINITIONS } = await import('../src/config/manual-capability-definition.ts');
-  assert.equal(MVP_EXECUTABLE_TOOL_IDS.length, 20);
-  assert.equal(new Set(MVP_EXECUTABLE_TOOL_IDS).size, 20);
-  assert.equal(CAPABILITY_DEFINITIONS.length, 20);
-  for (const id of MVP_EXECUTABLE_TOOL_IDS) {
+  const { CANONICAL_IMAGE_TOOL_IDS } = await import('../src/lib/canonical-image-executor.ts');
+  assert.equal(CANONICAL_IMAGE_TOOL_IDS.length, 20);
+  assert.equal(new Set(CANONICAL_IMAGE_TOOL_IDS).size, 20);
+  assert.equal(MVP_EXECUTABLE_TOOL_IDS.length, 24);
+  assert.equal(CAPABILITY_DEFINITIONS.length, 24);
+  for (const id of CANONICAL_IMAGE_TOOL_IDS) {
     const item = definition(id);
     assert.equal(item.state, 'EXECUTABLE');
     assert.equal(item.executionMode, 'LOCAL');
     assert.equal(item.requirements.network, false);
-    assert.equal(item.recovery.maxAttempts, 3);
+    assert.equal(item.recovery.maxAttempts, 1);
     assert.equal(item.recovery.replanOnFailure, false);
     assert.equal(item.operational.executorId, id);
     assert.equal(item.operational.outputContractId, id);
