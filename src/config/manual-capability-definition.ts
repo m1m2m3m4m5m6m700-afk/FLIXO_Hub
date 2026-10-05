@@ -162,7 +162,7 @@ async function readVideoDimensions(blob: Blob, signal?: AbortSignal): Promise<Me
       video.onerror = () => { cleanup(); reject(new Error("Video output could not be decoded.")); };
       signal?.addEventListener("abort", onAbort, { once: true });
     });
-    if (!Number.isFinite(video.duration) || video.duration <= 0 || video.videoWidth <= 0 || video.videoHeight <= 0) return undefined;
+    if (video.duration <= 0 || video.videoWidth <= 0 || video.videoHeight <= 0) return undefined;
     return { width: video.videoWidth, height: video.videoHeight, duration: video.duration };
   } finally {
     URL.revokeObjectURL(url);
@@ -285,6 +285,7 @@ const videoVerifier: CanonicalCapabilityVerifier = async (input, output, paramet
     if (outputMeta.width !== Number(parameters.width) || outputMeta.height !== Number(parameters.height)) return false;
   }
   if (parameters.startSec !== undefined || parameters.endSec !== undefined) {
+    if (!Number.isFinite(inputMeta.duration) || !Number.isFinite(outputMeta.duration)) return false;
     const start = Number(parameters.startSec ?? 0);
     const end = Number(parameters.endSec ?? inputMeta.duration ?? 0);
     const expected = Math.max(0.001, Math.min(inputMeta.duration ?? end, end) - Math.min(Math.max(0, start), Math.max(0, (inputMeta.duration ?? 0) - 0.001)));
