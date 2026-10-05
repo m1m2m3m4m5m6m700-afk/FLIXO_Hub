@@ -89,8 +89,8 @@ function assertControllerContext() {
   if (process.env.GITHUB_ACTIONS !== 'true') {
     throw new Error('CONTROLLER_GITHUB_ACTIONS_REQUIRED');
   }
-  if ((process.env.GITHUB_REF_NAME ?? '') !== BRANCH) {
-    throw new Error('CONTROLLER_EXECUTION_REF_REQUIRED');
+  if ((process.env.FLIXO_TARGET_BRANCH ?? '') !== BRANCH) {
+    throw new Error('CONTROLLER_EXECUTION_TARGET_REQUIRED');
   }
 }
 
