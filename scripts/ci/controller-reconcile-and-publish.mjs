@@ -2,9 +2,9 @@
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
-import { readFile, writeFile, rm } from 'node:fs/promises';
+import { writeFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
-import { capture, reconcile, verify } from './patch-capsule.mjs';
+import { reconcile, verify } from './patch-capsule.mjs';
 
 const REPOSITORY = 'm1m2m3m4m5m6m700-afk/FLIXO_Hub';
 const BRANCH = 'execution';
@@ -169,11 +169,11 @@ async function publish(queueId, worktree, targetSha, message, allowedPaths) {
     throw new Error(`CONTROLLER_CAS_CONFLICT:${before}!=${targetSha}`);
   }
 
-  const statusLines = git(['status', '--short'], worktree).split('\\n').filter(Boolean);
+  const statusLines = git(['status', '--short'], worktree).split('\n').filter(Boolean);
   if (statusLines.length === 0) throw new Error('CONTROLLER_NO_RECONCILED_CHANGES');
   const allowed = new Set(allowedPaths);
   for (const line of statusLines) {
-    const path = line.slice(3).trim().replace(/^\"|\"$/g, '');
+    const path = line.slice(3).trim().replace(/^"|"$/g, '');
     if (!allowed.has(path)) throw new Error(`CONTROLLER_OUT_OF_SCOPE_CHANGE:${path}`);
   }
   if (!allowed.size) throw new Error('CONTROLLER_ALLOWED_PATHS_EMPTY');
@@ -196,7 +196,7 @@ async function publish(queueId, worktree, targetSha, message, allowedPaths) {
   } catch (error) {
     const detail = String(error?.stderr ?? error?.message ?? error).slice(0, 2000);
     const now = await liveHead().catch(() => '');
-    throw new Error(`CONTROLLER_CAS_PUSH_CONFLICT:${now || 'UNKNOWN'}:${detail}`);
+    throw new Error(`CONTROLLER_CAS_PUSH_CONFLICT:${now || 'UNKNOWN'}:${detail}`, { cause: error });
   }
 
   const after = await liveHead();
@@ -250,8 +250,8 @@ async function main() {
     if (output) await writeFile(output, JSON.stringify(record, null, 2) + '\n', 'utf8');
     console.log(JSON.stringify(record, null, 2));
   } finally {
-    try { git(['worktree', 'remove', '--force', worktree]); } catch {}
-    try { await rm(root, { recursive: true, force: true }); } catch {}
+    try { git(['worktree', 'remove', '--force', worktree]); } catch { /* best-effort worktree cleanup */ }
+    try { await rm(root, { recursive: true, force: true }); } catch { /* best-effort temp cleanup */ }
   }
 }
 
