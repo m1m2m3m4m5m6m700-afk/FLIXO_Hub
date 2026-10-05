@@ -80,7 +80,7 @@ function ImageCropperTool({ locale }: { locale?: string }) {
           assetStore,
           parameters: next,
           processor: async (input) => {
-            const output = await executeCanonicalTool('image-cropper', { blob: input.blob, fileName: input.name }, next);
+            const output = await executeCanonicalTool('image-cropper', { blob: input.blob, fileName: input.name ?? 'image' }, next);
             return { blob: output.blob, width: next.width, height: next.height, name: output.fileName };
           },
           verifier: async (_input, output, params) => {

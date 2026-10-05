@@ -55,7 +55,7 @@ export function ImageConverterTool({ locale }: { locale?: string }) {
           assetStore,
           parameters: next,
           processor: async (input) => {
-            const output = await executeCanonicalTool('image-converter', { blob: input.blob, fileName: input.name }, next);
+            const output = await executeCanonicalTool('image-converter', { blob: input.blob, fileName: input.name ?? 'image' }, next);
             return { blob: output.blob, width: input.width, height: input.height, name: output.fileName };
           },
           verifier: async (_input, output, params) => {

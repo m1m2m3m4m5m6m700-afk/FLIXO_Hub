@@ -76,9 +76,9 @@ export function ImageCompressor({ locale }: { locale?: string }) {
         const compressed = await executeCanonicalTool('image-compressor', { blob: file, fileName: file.name }, {
           quality: parameters.quality ?? 0.82,
           format,
-          maxWidth: parameters.maxWidth,
-          maxHeight: parameters.maxHeight,
-          targetSizeKB: parameters.targetSizeKB,
+          ...(parameters.maxWidth !== undefined ? { maxWidth: parameters.maxWidth } : {}),
+          ...(parameters.maxHeight !== undefined ? { maxHeight: parameters.maxHeight } : {}),
+          ...(parameters.targetSizeKB !== undefined ? { targetSizeKB: parameters.targetSizeKB } : {}),
         });
         const outputBytes = new Uint8Array(await compressed.blob.arrayBuffer());
         const outputName = compressed.fileName;
@@ -86,7 +86,7 @@ export function ImageCompressor({ locale }: { locale?: string }) {
           compressed.blob.size,
           compressed.blob.type || format,
           imageCompressorOutputIntegrity,
-          { width: compressed.width, height: compressed.height },
+          undefined,
           { filename: outputName, bytes: outputBytes },
         );
         if (!validation.valid) throw new Error(`Batch output integrity validation failed: ${validation.failures.join('; ')}`);
@@ -141,12 +141,12 @@ export function ImageCompressor({ locale }: { locale?: string }) {
           parameters: next,
           processor: async (input, params) => {
             const options = params as Parameters;
-            const compressed = await executeCanonicalTool('image-compressor', { blob: input.blob, fileName: input.name }, {
+            const compressed = await executeCanonicalTool('image-compressor', { blob: input.blob, fileName: input.name ?? 'image' }, {
               quality: options.quality ?? 0.82,
               format: options.format ?? 'image/webp',
-              targetSizeKB: options.targetSizeKB,
-              maxWidth: options.maxWidth,
-              maxHeight: options.maxHeight,
+              ...(options.targetSizeKB !== undefined ? { targetSizeKB: options.targetSizeKB } : {}),
+              ...(options.maxWidth !== undefined ? { maxWidth: options.maxWidth } : {}),
+              ...(options.maxHeight !== undefined ? { maxHeight: options.maxHeight } : {}),
             });
             const bitmap = await createImageBitmap(compressed.blob);
             const width = bitmap.width;

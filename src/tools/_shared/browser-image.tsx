@@ -10,7 +10,6 @@ import { executeCanonicalTool } from '../../lib/execution/canonical-executor';
 type Mode = 'photo-colorizer' | 'background-blur' | 'passport-photo-maker' | 'watermark-adder' | 'meme-generator' | 'collage-maker' | 'image-effects' | 'exif-cleaner' | 'svg-optimizer' | 'mockup-generator' | 'image-to-svg';
 type Props = { mode: Mode; title: string; accept?: string; multi?: boolean; locale?: Locale };
 type Result = { blob: Blob; url: string; name: string; width?: number; height?: number; text?: string };
-type EffectsWorkerResponse = { ok: boolean; blob?: Blob; error?: string };
 
 type UiCopy = {
   description: string; choose: string; watermark: string; top: string; bottom: string; brightness: string; contrast: string; saturation: string; grayscale: string; processing: string; run: string; result: string; download: string; noResult: string; chooseImage: string; toolResult: string; alertOperationFailed: string;
@@ -64,7 +63,6 @@ export function BrowserImageTool({ mode, title, accept = 'image/*', multi = fals
       else if (mode === 'background-blur') { ctx.filter = 'blur(16px)'; ctx.drawImage(image, 0, 0, width, height); ctx.filter = 'none'; const inset = Math.round(Math.min(width, height) * 0.18); ctx.drawImage(image, inset, inset, width - inset * 2, height - inset * 2); }
       else if (mode === 'watermark-adder') { ctx.drawImage(image, 0, 0, width, height); ctx.save(); ctx.globalAlpha = 0.45; ctx.fillStyle = '#fff'; ctx.font = `700 ${Math.max(24, Math.round(width / 18))}px sans-serif`; ctx.textAlign = 'right'; ctx.rotate(-Math.PI / 12); ctx.fillText(text, width - 30, height / 2); ctx.restore(); }
       else if (mode === 'meme-generator') { ctx.drawImage(image, 0, 0, width, height); ctx.font = `900 ${Math.max(32, Math.round(width / 10))}px Impact, sans-serif`; ctx.textAlign = 'center'; ctx.lineWidth = 8; ctx.strokeStyle = '#000'; ctx.fillStyle = '#fff'; ctx.strokeText(top, width / 2, 60); ctx.fillText(top, width / 2, 60); ctx.strokeText(bottom, width / 2, height - 30); ctx.fillText(bottom, width / 2, height - 30); }
-      else if (mode === 'image-effects') { const baseBlob = await new Promise<Blob>((resolve, reject) => canvas.toBlob((value) => value ? resolve(value) : reject(new Error('Could not prepare image.')), 'image/png')); setResult(await runImageEffectsWorker(baseBlob, effect, width, height)); return; }
       else if (mode === 'exif-cleaner') ctx.drawImage(image, 0, 0, width, height); else ctx.drawImage(image, 0, 0, width, height);
       const output = await canvasResult(canvas, `flixo-${mode}.png`); if (mode === 'exif-cleaner') assertExifCleanerOutputIntegrity(output.blob, { width: output.width ?? width, height: output.height ?? height }); setResult(output);
     } catch (cause) { setError(cause instanceof Error ? cause.message : copy.alertOperationFailed); } finally { setBusy(false); }
