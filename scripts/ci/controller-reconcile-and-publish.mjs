@@ -230,7 +230,22 @@ async function main() {
     // those deterministic checks; this script will publish only after the caller supplies
     // an explicit PASS marker from the canonical verification lane.
       verifyWorktree(worktree);
-    const publication = await publish(queueId, worktree, current, message, result.paths.length ? result.paths : row.paths);
+    let publication;
+    try {
+      publication = await publish(queueId, worktree, current, message, result.paths.length ? result.paths : row.paths);
+    } catch (error) {
+      const reason = String(error?.message ?? error).slice(0, 1800);
+      if (/CONTROLLER_CAS_(?:CONFLICT|PUSH_CONFLICT)/.test(reason)) {
+        const movedHead = await liveHead().catch(() => current);
+        await rpc('flix_controller_push_queue_mark_conflict', {
+          p_queue_id: queueId,
+          p_controller_agent: CONTROLLER,
+          p_current_sha: movedHead,
+          p_reason: reason,
+        }).catch(() => {});
+      }
+      throw error;
+    }
     const record = { protocolVersion: 'FLIXO-PATCH-CAPSULE-v1', queueId, sourceSha: row.target_sha, targetSha: current, validation, publication };
     if (output) await writeFile(output, JSON.stringify(record, null, 2) + '\n', 'utf8');
     console.log(JSON.stringify(record, null, 2));
