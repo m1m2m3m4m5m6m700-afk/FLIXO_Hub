@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { readFile, writeFile } from 'node:fs/promises';
 import { rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { existsSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
@@ -91,8 +92,8 @@ function reconcile({ capsule, targetSha, cwd = process.cwd(), patchFile = null, 
   runGit(['reset', '--hard', targetSha], cwd);
   runGit(['clean', '-ffd'], cwd);
 
-  const patchPath = patchFile ?? `${cwd}/.flixo-patch-capsule-${process.pid}.patch`;
-  if (patchFile) writeFileSync(patchPath, capsule.patchText, 'utf8');
+  const patchPath = patchFile ?? `${tmpdir()}/flixo-patch-capsule-${process.pid}-${Date.now()}.patch`;
+  writeFileSync(patchPath, capsule.patchText, 'utf8');
 
   try {
     if (!capsule.patchText) {
@@ -109,11 +110,7 @@ function reconcile({ capsule, targetSha, cwd = process.cwd(), patchFile = null, 
     }
 
     try {
-      if (patchFile) {
-        runGit(['apply', '--3way', '--whitespace=nowarn', patchPath], cwd);
-      } else {
-        runGit(['apply', '--3way', '--whitespace=nowarn'], cwd, capsule.patchText);
-      }
+      runGit(['apply', '--3way', '--whitespace=nowarn', patchPath], cwd);
     } catch (error) {
       const message = String(error?.stderr ?? error?.message ?? error).slice(0, 3000);
       throw new Error(`PATCH_CAPSULE_CONFLICT:${message}`, { cause: error });
