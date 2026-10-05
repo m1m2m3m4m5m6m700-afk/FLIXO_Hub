@@ -35,7 +35,7 @@ test('captures an exact candidate patch and rejects wrong parent', async () => {
     git(dir, 'commit', '-am', 'second candidate');
     const secondCandidate = git(dir, 'rev-parse', 'HEAD');
     await assert.rejects(
-      async () => capture({ sourceSha: candidate, candidateSha: secondCandidate, cwd: dir }),
+      async () => capture({ sourceSha: source, candidateSha: secondCandidate, cwd: dir }),
       /PATCH_CAPSULE_PARENT_MISMATCH/,
     );
   } finally {
