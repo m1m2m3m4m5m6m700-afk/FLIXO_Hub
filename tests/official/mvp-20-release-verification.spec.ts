@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { assertImageResult, uploadFixture } from '../helpers/image-tool-fixture';
+import { PNG, assertImageResult, uploadFixture } from '../helpers/image-tool-fixture';
 
 const MANUAL_TOOL_IDS = [
   'background-remover',
@@ -78,12 +78,8 @@ async function executeManual(page: Page, toolId: (typeof MANUAL_TOOL_IDS)[number
 async function configureLanguage(page: Page, language: 'ar' | 'en') {
   const main = page.locator('main').last();
   await expect(main).toBeVisible();
-  const toggle = page.getByTestId('agent-language-toggle');
-  const label = (await toggle.innerText()).trim();
-
-  if (language === 'en' && /English/i.test(label)) await toggle.click();
-  if (language === 'ar' && /العربية/i.test(label)) await toggle.click();
-
+  const current = await main.getAttribute('lang');
+  if (current !== language) await page.getByTestId('agent-language-toggle').click();
   await expect(main).toHaveAttribute('lang', language);
   await expect(main).toHaveAttribute('dir', language === 'ar' ? 'rtl' : 'ltr');
 }
@@ -96,10 +92,7 @@ async function planAndExecuteAgent(page: Page, toolId: string, prompt: string, l
   await page.locator('#agent-file').setInputFiles({
     name: 'flixo-agent-fixture.png',
     mimeType: 'image/png',
-    buffer: Buffer.from(
-      'iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAPUlEQVR42mP4z8DwHwwZ/oMBAwOYxQBD/xkaHBT+Kzg0/HdoUPh/IsXoP4OIhs1/Gw2R/ynTTvz/sCXgPwDaSiSJ4dCj1wAAAABJRU5ErkJggg==',
-      'base64',
-    ),
+    buffer: PNG,
   });
 
   const buildButton = page.getByTestId('agent-build-plan');
