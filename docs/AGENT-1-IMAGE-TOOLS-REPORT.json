@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 3,
+  "agent": "AGENT-1",
+  "scope": "20 browser-local image tools",
+  "workBranch": "agent-1/image-tools-20-current-execution-20261005",
+  "status": "IMPLEMENTED_PENDING_EXACT_SHA_CERTIFICATION",
+  "certificationStatus": "BLOCKED_PENDING_EXACT_SHA_CI_AND_BROWSER_E2E",
+  "tools": {
+    "total": 20,
+    "required": [
+      "background-remover",
+      "image-upscaler",
+      "image-cropper",
+      "image-compressor",
+      "image-converter",
+      "image-effects",
+      "image-resizer",
+      "image-rotate-flip",
+      "image-brightness-contrast",
+      "image-saturation-hue",
+      "image-exposure",
+      "image-highlights-shadows",
+      "image-sharpen",
+      "image-blur",
+      "image-grayscale-duotone",
+      "image-filters",
+      "image-watermark",
+      "image-text-overlay",
+      "image-draw-annotate",
+      "image-redaction"
+    ],
+    "registry": "canonical",
+    "manual": "canonical executor",
+    "agent": "canonical planner -> confirmation -> canonical executor",
+    "verifier": "independent capability verifiers",
+    "rawBlobEgress": false,
+    "lockedLayerSelection": false,
+    "cancellation": "bounded and test-covered",
+    "retryPolicy": "bounded",
+    "unknownToolPolicy": "fail-closed"
+  },
+  "tests": {
+    "staticCoverage": "ADDED",
+    "browserE2E": "PENDING",
+    "exactShaCI": "PENDING",
+    "localEnvironment": "NOT_AVAILABLE"
+  },
+  "blockers": [
+    "CI must execute against the final PR head SHA and produce PASS evidence.",
+    "Official browser E2E must execute against the final PR head SHA and produce PASS evidence.",
+    "PR must be mergeable into current execution without bypassing protected governance."
+  ],
+  "handoff": {
+    "target": "AGENT-2",
+    "state": "READY_FOR_HANDOFF_AFTER_CERTIFICATION",
+    "note": "Do not treat implementation as certified until exact-SHA CI and browser E2E are green."
+  }
+}
