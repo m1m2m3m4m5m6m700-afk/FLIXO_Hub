@@ -41,8 +41,8 @@
   },
   "tests": {
     "staticCoverage": "ADDED",
-    "browserE2E": "PENDING",
-    "exactShaCI": "PENDING",
+    "browserE2E": "PENDING_EXACT_SHA",
+    "exactShaCI": "PENDING_EXACT_SHA",
     "localEnvironment": "NOT_AVAILABLE"
   },
   "blockers": [
@@ -54,5 +54,16 @@
     "target": "AGENT-2",
     "state": "READY_FOR_HANDOFF_AFTER_CERTIFICATION",
     "note": "Do not treat implementation as certified until exact-SHA CI and browser E2E are green."
-  }
+  },
+  "implementationCommit": "ccd30be32229a4bab903e730cbdde0b1919ef6e6",
+  "latestCiObservation": {
+    "runNumber": 15866,
+    "sha": "e8fba70c8e2029c5ac215dc738203bb31c683742",
+    "conclusion": "FAILURE",
+    "scope": "stale pre-fix head; not certification evidence for current implementationCommit"
+  },
+  "knownFailures": [
+    "Run 15866 failed on stale head e8fba70c8e2029c5ac215dc738203bb31c683742 with TypeScript errors that were subsequently fixed on ccd30be32229a4bab903e730cbdde0b1919ef6e6.",
+    "No exact-head PASS has yet been observed for ccd30be32229a4bab903e730cbdde0b1919ef6e6."
+  ]
 }
