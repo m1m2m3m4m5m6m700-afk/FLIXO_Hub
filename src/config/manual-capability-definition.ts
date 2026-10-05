@@ -289,20 +289,35 @@ const videoVerifier: CanonicalCapabilityVerifier = async (input, output, paramet
     const expectedHeight = toolIsVideoCropper(parameters) ? Math.min(Number(parameters.height), inputMeta.height) : Number(parameters.height);
     if (outputMeta.width !== expectedWidth || outputMeta.height !== expectedHeight) return false;
   }
+
+  const inputDuration = inputMeta.duration;
+  const outputDuration = outputMeta.duration;
+
   if (parameters.startSec !== undefined || parameters.endSec !== undefined) {
-    if (!Number.isFinite(inputMeta.duration) || !Number.isFinite(outputMeta.duration)) return false;
+    if (!Number.isFinite(inputDuration) || !Number.isFinite(outputDuration)) return false;
     const start = Number(parameters.startSec ?? 0);
-    const end = Number(parameters.endSec ?? inputMeta.duration ?? 0);
-    const expected = Math.max(0.001, Math.min(inputMeta.duration ?? end, end) - Math.min(Math.max(0, start), Math.max(0, (inputMeta.duration ?? 0) - 0.001)));
-    if (Math.abs((outputMeta.duration ?? 0) - expected) > 0.35) return false;
+    const end = Number(parameters.endSec ?? inputDuration);
+    const expected = Math.max(
+      0.001,
+      Math.min(inputDuration, end) - Math.min(Math.max(0, start), Math.max(0, inputDuration - 0.001)),
+    );
+    if (Math.abs(outputDuration - expected) > 0.35) return false;
   }
-  if (parameters.videoBitsPerSecond !== undefined && Number.isFinite(outputMeta.duration) && outputMeta.duration > 0) {
+
+  if (parameters.videoBitsPerSecond !== undefined && Number.isFinite(outputDuration) && outputDuration > 0) {
     const audioBitsPerSecond = Number(parameters.audioBitsPerSecond ?? 0);
     const requestedBitsPerSecond = Number(parameters.videoBitsPerSecond) + audioBitsPerSecond;
-    const observedBitsPerSecond = (output.size * 8) / outputMeta.duration;
-    if (!Number.isFinite(requestedBitsPerSecond) || requestedBitsPerSecond <= 0 || observedBitsPerSecond > requestedBitsPerSecond * 1.4) return false;
+    const observedBitsPerSecond = (output.size * 8) / outputDuration;
+    if (
+      !Number.isFinite(requestedBitsPerSecond) ||
+      requestedBitsPerSecond <= 0 ||
+      observedBitsPerSecond > requestedBitsPerSecond * 1.4
+    ) {
+      return false;
+    }
   }
-  return outputMeta.duration !== undefined && outputMeta.duration > 0;
+
+  return outputDuration !== undefined && outputDuration > 0;
 };
 
 function createCapability(id:(typeof MVP_EXECUTABLE_TOOL_IDS)[number]):CanonicalCapabilityDefinition{
