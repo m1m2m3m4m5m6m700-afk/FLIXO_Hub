@@ -43,10 +43,24 @@ export function getToolOutputContract(toolId: string): ToolOutputContract | unde
   return TOOL_OUTPUT_CONTRACTS[toolId];
 }
 
-export function assertReadyToolsHaveOutputContracts(): void {
-  const ready = TOOL_REGISTRY.filter((tool) => tool.isReady);
+export type OutputContractAssertionOptions = Readonly<{
+  scopeIds?: readonly string[];
+}>;
+
+export function assertReadyToolsHaveOutputContracts(options: OutputContractAssertionOptions = {}): void {
+  const scopeIds = options.scopeIds;
+  const scopeSet = scopeIds ? new Set(scopeIds) : undefined;
+  if (scopeSet) {
+    const unknownScopeIds = [...scopeSet].filter((id) => !TOOL_REGISTRY.some((tool) => tool.id === id));
+    if (unknownScopeIds.length) throw new Error(`Unknown output-contract assertion scope ids: ${unknownScopeIds.join(', ')}`);
+  }
+
+  const ready = TOOL_REGISTRY.filter((tool) => tool.isReady && (!scopeSet || scopeSet.has(tool.id)));
   const readyIds = new Set(ready.map((tool) => tool.id));
-  const contractIds = new Set(Object.keys(TOOL_OUTPUT_CONTRACTS));
+  const allContractIds = new Set(Object.keys(TOOL_OUTPUT_CONTRACTS));
+  const contractIds = scopeSet
+    ? new Set([...allContractIds].filter((id) => scopeSet.has(id)))
+    : allContractIds;
   const missing = ready.filter((tool) => !tool.operational.outputContractId || !contractIds.has(tool.operational.outputContractId)).map((tool) => tool.id);
   const orphan = [...contractIds].filter((id) => !readyIds.has(id));
   if (missing.length) throw new Error(`Ready tools missing output contracts: ${missing.join(', ')}`);
