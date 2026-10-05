@@ -2,6 +2,7 @@
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { readFile, writeFile } from 'node:fs/promises';
+import { rmSync } from 'node:fs';
 import { existsSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
@@ -80,14 +81,14 @@ function verify(capsule) {
   return true;
 }
 
-function reconcile({ capsule, targetSha, cwd = process.cwd(), patchFile = null }) {
+function reconcile({ capsule, targetSha, cwd = process.cwd(), patchFile = null, preserveWorktree = false }) {
   verify(capsule);
   assertSha(targetSha, 'target');
 
   runGit(['reset', '--hard', targetSha], cwd);
   runGit(['clean', '-ffd'], cwd);
 
-  const patchPath = patchFile ?? `${process.cwd()}/.flixo-patch-capsule-${process.pid}.patch`;
+  const patchPath = patchFile ?? `${cwd}/.flixo-patch-capsule-${process.pid}.patch`;
   writeFile(patchPath, capsule.patchText, 'utf8');
 
   try {
@@ -132,8 +133,8 @@ function reconcile({ capsule, targetSha, cwd = process.cwd(), patchFile = null }
     return reconciled;
   } finally {
     if (existsSync(patchPath) && patchFile === null) {
-      runGit(['checkout', '--', '.'], cwd);
-      try { execFileSync('rm', ['-f', patchPath], { stdio: 'ignore' }); } catch {}
+      if (!preserveWorktree) runGit(['checkout', '--', '.'], cwd);
+      rmSync(patchPath, { force: true });
     }
   }
 }
