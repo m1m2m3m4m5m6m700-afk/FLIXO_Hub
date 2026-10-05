@@ -34,7 +34,7 @@ export function applyDocumentLocale(locale: Locale): void {
     html.setAttribute('data-flixo-locale', locale);
   }
 
-  document.querySelectorAll<HTMLElement>('main').forEach((main) => {
+  document.querySelectorAll<HTMLElement>('main:not([data-flixo-locale-scope="local"])').forEach((main) => {
     if (main.getAttribute('lang') !== languageTag) {
       main.setAttribute('lang', languageTag);
     }
