@@ -110,9 +110,22 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+  branch-policy:
+    name: Branch policy
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: true
+      - name: Assert only main and execution branches exist
+        run: node scripts/ci/verify-branch-policy.mjs
+
   trust-gate:
     name: trust-gate
-    needs: [verify, browser]
+    needs: [verify, browser, branch-policy]
     if: ${{ always() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
