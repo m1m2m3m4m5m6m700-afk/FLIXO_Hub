@@ -2,7 +2,7 @@
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { readFile, writeFile } from 'node:fs/promises';
-import { rmSync } from 'node:fs';
+import { rmSync, writeFileSync } from 'node:fs';
 import { existsSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
@@ -92,7 +92,7 @@ function reconcile({ capsule, targetSha, cwd = process.cwd(), patchFile = null, 
   runGit(['clean', '-ffd'], cwd);
 
   const patchPath = patchFile ?? `${cwd}/.flixo-patch-capsule-${process.pid}.patch`;
-  if (patchFile) await writeFile(patchPath, capsule.patchText, 'utf8');
+  if (patchFile) writeFileSync(patchPath, capsule.patchText, 'utf8');
 
   try {
     if (!capsule.patchText) {
