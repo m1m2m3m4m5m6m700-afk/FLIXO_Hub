@@ -1,4 +1,5 @@
 import { applyBasicImageEffect, convertImage, cropResizeImage, flipImage, hueShiftImage, imageInfo, padImage, pixelateImage, removeBackground, resizeImage, rotateImage } from '../tools/image-toolkit/engine';
+import { compressImage } from '../tools/image-compressor/engine';
 
 export type ChainInput = Readonly<{ blob: Blob; fileName: string }>;
 export type ChainOutput = Readonly<{ blob: Blob; fileName: string }>;
@@ -41,7 +42,18 @@ export const TOOL_CHAIN_ADAPTERS: Readonly<Record<string, ToolChainAdapterDefini
   } }),
   'image-compressor': Object.freeze({ execute: async ({ blob, fileName }: ChainInput, parameters) => {
     const format = stringParam(parameters, 'format', 'image/webp') as 'image/png' | 'image/jpeg' | 'image/webp';
-    return { blob: await convertImage(blob, format), fileName: baseName(fileName) + '-compressed' + (format === 'image/jpeg' ? '.jpg' : format === 'image/png' ? '.png' : '.webp') };
+    const quality = numberParam(parameters, 'quality', 0.8);
+    const targetSizeKB = parameters?.targetSizeKB;
+    const maxWidth = parameters?.maxWidth;
+    const maxHeight = parameters?.maxHeight;
+    const result = await compressImage(new File([blob], baseName(fileName) + '.input', { type: blob.type || 'image/png' }), {
+      format,
+      quality,
+      ...(typeof targetSizeKB === 'number' ? { targetSizeKB } : {}),
+      ...(typeof maxWidth === 'number' ? { maxWidth } : {}),
+      ...(typeof maxHeight === 'number' ? { maxHeight } : {}),
+    });
+    return { blob: result.blob, fileName: baseName(fileName) + '-compressed' + (format === 'image/jpeg' ? '.jpg' : format === 'image/png' ? '.png' : '.webp') };
   } }),
   'image-effects': Object.freeze({ execute: async ({ blob, fileName }: ChainInput, parameters) => {
     const brightness = numberParam(parameters, 'brightness', 100);
