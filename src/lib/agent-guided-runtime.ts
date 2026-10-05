@@ -47,7 +47,7 @@ function matchedTool(prompt: string): { toolId: string; intent: string } {
       intent: tool.capability.intents.find((intent) => normalized.includes(normalize(intent))),
       score: Math.max(...tool.capability.intents.map((intent) => normalized.includes(normalize(intent)) ? intent.length : 0), 0),
     }))
-    .filter(({ score, intent }) => score > 0 && intent);
+    .filter(({ score }) => score > 0);
 
   const candidates = [...primary.map(({ tool, score }) => ({
     tool,
