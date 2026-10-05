@@ -356,7 +356,7 @@ export async function executeCanonicalTool(
   rawParameters: CanonicalCapabilityParameters = {},
   signal?: AbortSignal,
 ): Promise<CanonicalExecutionOutput> {
-  const { tool, capability } = resolveCanonicalTool(toolId);
+  const { capability } = resolveCanonicalTool(toolId);
   assertNotAborted(signal);
   const parameters = validateCapabilityParameters(toolId, rawParameters);
   await preflightInput(
