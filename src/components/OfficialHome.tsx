@@ -13,6 +13,7 @@ import {
 import { TOOL_CATALOG } from '../config/registry';
 import { ROADMAP_CATEGORIES } from '../data/roadmap-categories';
 import { classifyHomeIntent, type AssistantResult } from '../lib/home-intent-classifier';
+import { AgentGuidedWorkspace } from './AgentGuidedWorkspace';
 
 const HOME_H1_BY_LOCALE: Readonly<Record<string, string>> = {
   en: 'Your digital tools. In one place.',
@@ -287,6 +288,8 @@ export function OfficialHome() {
                   </div>
                 )}
               </div>
+
+              <AgentGuidedWorkspace />
 
               <div className="official-trust">
                 <span><Check size={14} /> التنفيذ اليدوي</span>
