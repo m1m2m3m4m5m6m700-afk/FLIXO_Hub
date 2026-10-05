@@ -1,0 +1,37 @@
+.agent-guided-workspace{margin:2.5rem auto 0;max-width:1100px;border:1px solid rgba(127,127,127,.22);border-radius:28px;padding:24px;background:rgba(255,255,255,.72);backdrop-filter:blur(16px);box-shadow:0 18px 60px rgba(0,0,0,.08)}
+.agent-guided-workspace__header{display:flex;justify-content:space-between;gap:24px;align-items:flex-start;margin-bottom:20px}
+.agent-guided-workspace__eyebrow{display:block;font-size:11px;letter-spacing:.16em;font-weight:800;opacity:.58;margin-bottom:8px}
+.agent-guided-workspace__header h2{margin:0;font-size:clamp(22px,3vw,34px)}
+.agent-guided-workspace__header p{max-width:760px;margin:.65rem 0 0;opacity:.72;line-height:1.7}
+.agent-guided-workspace__badge{font-size:10px;font-weight:800;letter-spacing:.1em;border:1px solid currentColor;border-radius:999px;padding:7px 10px;white-space:nowrap;opacity:.72}
+.agent-guided-workspace__grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
+.agent-guided-workspace__card{border:1px solid rgba(127,127,127,.18);border-radius:22px;padding:18px;background:rgba(255,255,255,.66)}
+.agent-guided-workspace__field,.agent-guided-workspace__file,.agent-guided-workspace__params{display:grid;gap:8px;font-size:13px;font-weight:700}
+.agent-guided-workspace__field textarea{resize:vertical;min-height:110px}
+.agent-guided-workspace__field textarea,.agent-guided-workspace__file input{font:inherit;border:1px solid rgba(127,127,127,.25);border-radius:14px;padding:12px;background:rgba(255,255,255,.86)}
+.agent-guided-workspace__file{margin-top:14px}
+.agent-guided-workspace__file small{opacity:.62;font-weight:500}
+.agent-guided-workspace__actions{display:flex;gap:10px;margin-top:16px}
+.agent-guided-workspace button,.agent-guided-workspace a{border-radius:12px;padding:10px 14px;border:1px solid rgba(127,127,127,.24);text-decoration:none;font:inherit;cursor:pointer}
+.agent-guided-workspace button:disabled{opacity:.5;cursor:not-allowed}
+.agent-guided-workspace__primary{background:#111827!important;color:#fff;border-color:#111827!important}
+.agent-guided-workspace__error{display:grid;gap:6px;margin-top:14px;border:1px solid rgba(180,50,50,.3);border-radius:14px;padding:12px;font-size:13px}
+.agent-guided-workspace__error strong{font-size:12px}
+.agent-guided-workspace__error a{justify-self:start}
+.agent-guided-workspace__state,.agent-guided-workspace__result{display:flex;justify-content:space-between;gap:14px;align-items:center}
+.agent-guided-workspace__state{padding-bottom:14px;border-bottom:1px solid rgba(127,127,127,.15);font-size:12px}
+.agent-guided-workspace__state strong{font-size:10px;letter-spacing:.12em}
+.agent-guided-workspace__plan dl{display:grid;gap:10px;margin:16px 0}
+.agent-guided-workspace__plan dl div{display:flex;justify-content:space-between;gap:14px;border-bottom:1px dashed rgba(127,127,127,.16);padding-bottom:9px}
+.agent-guided-workspace__plan dt{opacity:.58}
+.agent-guided-workspace__plan dd{margin:0;text-align:end;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+.agent-guided-workspace__params pre{white-space:pre-wrap;overflow:auto;border:1px solid rgba(127,127,127,.15);border-radius:14px;padding:12px;background:rgba(0,0,0,.03);font-size:11px;line-height:1.6}
+.agent-guided-workspace__confirmation{display:grid;gap:10px;margin-top:6px}
+.agent-guided-workspace__confirmation p{margin:0;font-size:12px;opacity:.66}
+.agent-guided-workspace__result{margin-top:16px;border-top:1px solid rgba(127,127,127,.15);padding-top:14px}
+.agent-guided-workspace__result div{display:grid;gap:3px;font-size:12px}
+.agent-guided-workspace__result span{opacity:.58}
+.agent-guided-workspace__empty{min-height:250px;display:grid;place-items:center;text-align:center;gap:8px;align-content:center;opacity:.65}
+.agent-guided-workspace__empty strong{font-size:18px}
+.agent-guided-workspace__empty span{max-width:420px;line-height:1.7}
+@media (max-width:800px){.agent-guided-workspace{padding:18px;border-radius:22px}.agent-guided-workspace__header{display:grid}.agent-guided-workspace__grid{grid-template-columns:1fr}}
