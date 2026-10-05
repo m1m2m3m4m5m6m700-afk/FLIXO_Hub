@@ -33,7 +33,7 @@ export function assertMvpLocalExecutionBoundary(tool: MVPScopedTool): void {
   if (!tool.isReady) throw new Error(`MVP executable capability is not ready: ${tool.id}`);
   if (!tool.path.startsWith('/en/')) throw new Error(`MVP manual route is missing: ${tool.id}`);
   if (tool.capability.intents.length === 0) {
-    throw new Error(`MVP agent intent registration is missing: ${tool.id}`);
+    throw new Error(`MVP capability intent registration is missing: ${tool.id}`);
   }
   if (tool.executionMode !== 'LOCAL' || tool.requirements.network) {
     throw new Error(`MVP capability is not client-only: ${tool.id}`);
