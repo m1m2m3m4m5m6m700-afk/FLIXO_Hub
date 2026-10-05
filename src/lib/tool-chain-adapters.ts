@@ -1,42 +1,62 @@
-﻿import { applyBasicImageEffect, convertImage, flipImage, removeBackground, resizeImage, rotateImage } from '../tools/image-toolkit/engine';
+import { MVP_EXECUTABLE_TOOL_IDS, type CanonicalCapabilityParameters } from '../config/manual-capability-definition';
+import { executeCanonicalTool } from './execution/canonical-executor';
 
 export type ChainInput = Readonly<{ blob: Blob; fileName: string }>;
 export type ChainOutput = Readonly<{ blob: Blob; fileName: string }>;
-export type ToolChainAdapter = (input: ChainInput) => Promise<ChainOutput>;
-type ToolChainAdapterDefinition = Readonly<{ execute: ToolChainAdapter }>;
-const baseName = (name: string) => name.replace(/\.[^.]+$/, '') || 'flixo-output';
+export type ToolChainAdapter = (
+  input: ChainInput,
+  parameters?: CanonicalCapabilityParameters,
+) => Promise<ChainOutput>;
 
-export const TOOL_CHAIN_ADAPTERS: Readonly<Record<string, ToolChainAdapterDefinition>> = Object.freeze({
-  'image-converter': Object.freeze({ execute: async ({ blob, fileName }: ChainInput) => ({ blob: await convertImage(blob, 'image/webp'), fileName: baseName(fileName) + '.webp' }) }),
-  'image-upscaler': Object.freeze({ execute: async ({ blob, fileName }: ChainInput) => ({ blob: await resizeImage(blob, 2), fileName: baseName(fileName) + '-2x.png' }) }),
-  'background-remover': Object.freeze({ execute: async ({ blob, fileName }: ChainInput) => ({ blob: await removeBackground(blob, 42), fileName: baseName(fileName) + '-no-background.png' }) }),
-  'image-rotate': Object.freeze({ execute: async ({ blob, fileName }: ChainInput) => ({ blob: await rotateImage(blob, 90), fileName: baseName(fileName) + '-rotated.png' }) }),
-  'image-flip-horizontal': Object.freeze({ execute: async ({ blob, fileName }: ChainInput) => ({ blob: await flipImage(blob, true), fileName: baseName(fileName) + '-flipped-h.png' }) }),
-  'image-flip-vertical': Object.freeze({ execute: async ({ blob, fileName }: ChainInput) => ({ blob: await flipImage(blob, false), fileName: baseName(fileName) + '-flipped-v.png' }) }),
-  'image-brightness': Object.freeze({ execute: async ({ blob, fileName }: ChainInput) => ({ blob: await applyBasicImageEffect(blob, 'brightness', 115), fileName: baseName(fileName) + '-brightness.png' }) }),
-  'image-contrast': Object.freeze({ execute: async ({ blob, fileName }: ChainInput) => ({ blob: await applyBasicImageEffect(blob, 'contrast', 115), fileName: baseName(fileName) + '-contrast.png' }) }),
-  'image-saturation': Object.freeze({ execute: async ({ blob, fileName }: ChainInput) => ({ blob: await applyBasicImageEffect(blob, 'saturation', 115), fileName: baseName(fileName) + '-saturation.png' }) }),
-  'image-grayscale': Object.freeze({ execute: async ({ blob, fileName }: ChainInput) => ({ blob: await applyBasicImageEffect(blob, 'grayscale', 100), fileName: baseName(fileName) + '-grayscale.png' }) }),
-  'image-invert': Object.freeze({ execute: async ({ blob, fileName }: ChainInput) => ({ blob: await applyBasicImageEffect(blob, 'invert', 100), fileName: baseName(fileName) + '-invert.png' }) }),
-  'image-sepia': Object.freeze({ execute: async ({ blob, fileName }: ChainInput) => ({ blob: await applyBasicImageEffect(blob, 'sepia', 100), fileName: baseName(fileName) + '-sepia.png' }) }),
-  'image-blur': Object.freeze({ execute: async ({ blob, fileName }: ChainInput) => ({ blob: await applyBasicImageEffect(blob, 'blur', 80), fileName: baseName(fileName) + '-blur.png' }) }),
-  'image-sharpen': Object.freeze({ execute: async ({ blob, fileName }: ChainInput) => ({ blob: await applyBasicImageEffect(blob, 'sharpen', 110), fileName: baseName(fileName) + '-sharpen.png' }) }),
-});
+const MVP_CHAIN_IDS = new Set<string>(MVP_EXECUTABLE_TOOL_IDS);
 
-export const getToolChainAdapter = (toolId: string): ToolChainAdapter | undefined => TOOL_CHAIN_ADAPTERS[toolId]?.execute;
+function defaultParameters(toolId: string): CanonicalCapabilityParameters {
+  switch (toolId) {
+    case 'background-remover':
+      return { tolerance: 42 };
+    case 'image-upscaler':
+      return { scale: 2 };
+    case 'image-compressor':
+      return { format: 'image/webp', quality: 0.82 };
+    case 'image-converter':
+      return { format: 'image/webp' };
+    case 'image-effects':
+      return { brightness: 100, contrast: 115, saturate: 100 };
+    case 'video-cropper':
+      return { x: 0, y: 0, width: 1280, height: 720 };
+    case 'video-resizer':
+      return { width: 1280, height: 720 };
+    case 'video-compressor':
+      return { videoBitsPerSecond: 2_500_000, audioBitsPerSecond: 128_000 };
+    default:
+      return {};
+  }
+}
+
+export const getToolChainAdapter = (toolId: string): ToolChainAdapter | undefined =>
+  MVP_CHAIN_IDS.has(toolId)
+    ? (input, parameters) =>
+        executeCanonicalTool(toolId, input, parameters ?? defaultParameters(toolId))
+    : undefined;
 
 export async function executeToolChain(
   steps: readonly string[],
   input: ChainInput,
   onStep?: (completed: number, total: number, toolId: string) => void,
 ): Promise<ChainOutput> {
+  if (steps.length < 1 || steps.length > 4) {
+    throw new Error('Tool chain is bounded to 1-4 canonical MVP steps.');
+  }
+
   let current = input;
   for (let index = 0; index < steps.length; index += 1) {
     const toolId = steps[index];
-    const definition = TOOL_CHAIN_ADAPTERS[toolId];
-    if (!definition) throw new Error('Tool "' + toolId + '" has no local chain adapter yet.');
+    const adapter = getToolChainAdapter(toolId);
+    if (!adapter) {
+      throw new Error('Tool "' + toolId + '" is outside the canonical MVP execution surface.');
+    }
     onStep?.(index, steps.length, toolId);
-    current = await definition.execute(current);
+    current = await adapter(current);
   }
   return current;
 }

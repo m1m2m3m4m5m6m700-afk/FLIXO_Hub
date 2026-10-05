@@ -1,3 +1,5 @@
+[Reading 281 lines from start (total: 281 lines, 0 remaining)]
+
 import { getToolById } from '@/config/registry.ts';
 import { TOOL_CATALOG } from '@/config/registry.ts';
 import { MVP_EXECUTABLE_TOOL_IDS, getCapability, validateCapabilityParameters, type CanonicalCapabilityParameters } from '@/config/manual-capability-definition.ts';
@@ -44,7 +46,7 @@ function matchedTool(prompt: string): { toolId: string; intent: string } {
     .filter((tool) => mvpIds.has(tool.id))
     .map((tool) => ({
       tool,
-      intent: tool.capability.intents.find((intent) => normalized.includes(normalize(intent))),
+      intent: tool.capability.intents.find((intent) => normalized.includes(normalize(intent))) ?? tool.title,
       score: Math.max(...tool.capability.intents.map((intent) => normalized.includes(normalize(intent)) ? intent.length : 0), 0),
     }))
     .filter(({ score }) => score > 0);
@@ -271,7 +273,11 @@ export async function executeAgentPlan(
   if (!record || record.file !== file || record.plan !== plan || record.identity !== identityOf(validated)) {
     throw new Error('Execution denied: confirmation receipt is missing, stale, or bound to another plan/file.');
   }
-  confirmations.delete(receipt.token);
+  const confirmationToken = receipt?.token;
+  if (!confirmationToken) {
+    throw new Error('Execution denied: confirmation receipt token is required.');
+  }
+  confirmations.delete(confirmationToken);
 
   if (validated.steps.length !== 1) {
     throw new Error('Execution denied: the current Agent Guided MVP is bounded to one canonical tool step.');
@@ -279,3 +285,5 @@ export async function executeAgentPlan(
   const [step] = validated.steps;
   return executeCanonicalTool(step.toolId, { blob: file, fileName: file.name }, step.params ?? {}, signal);
 }
+
+[executed on device: Abood (aa7ebda3-6bd7-4231-869d-19d658154460)]
