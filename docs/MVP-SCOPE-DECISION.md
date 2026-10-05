@@ -1,11 +1,11 @@
 # FLIXO MVP Scope Decision Record
 
 Status: CANONICAL
-Decision date: 2026-09-27
+Decision date: 2026-10-05
 
 ## Decision
 
-The Browser-First AI Editing MVP executable scope is exactly ten capabilities.
+The Browser-First AI Editing MVP executable scope is exactly 24 canonical capabilities for this release lane: 20 browser-local image capabilities plus the existing 4 browser-local video capabilities.
 
 Image:
 - `background-remover`
@@ -14,6 +14,20 @@ Image:
 - `image-compressor`
 - `image-converter`
 - `image-effects`
+- `image-resizer`
+- `image-rotate-flip`
+- `image-brightness-contrast`
+- `image-saturation-hue`
+- `image-exposure`
+- `image-highlights-shadows`
+- `image-sharpen`
+- `image-blur`
+- `image-grayscale-duotone`
+- `image-filters`
+- `image-watermark`
+- `image-text-overlay`
+- `image-draw-annotate`
+- `image-redaction`
 
 Video:
 - `video-trimmer`
@@ -21,26 +35,10 @@ Video:
 - `video-resizer`
 - `video-compressor`
 
-## Basis
+## Execution Contract
 
-These ten capabilities are the current canonical executable/local set and are covered by the repository executable registry, executor coverage, output contracts, deterministic intent proof, and browser-oriented execution boundary.
+All 20 image capabilities are browser-local and must route through the canonical registry and canonical image executor. Agent execution requires explicit user confirmation, rejects locked targets, rejects unknown tools, remains bounded by cancellation/timeout/retry limits, and fails closed on verifier failure. Raw `File`/`Blob` payloads are not sent to models, providers, or network transports.
 
-The historical six-image set remains the image subset of the MVP. The four video capabilities are included because they are already implemented as executable local capabilities under the same canonical contract.
+## Certification Boundary
 
-## Runtime authority
-
-This document records product scope. Runtime authority remains the canonical tool/capability definitions and registry. The scope is mechanically enforced by the MVP scope contract and proof suite.
-
-## Workflow contract
-
-Every executable MVP capability supports:
-1. Agent Guided Workflow.
-2. Manual Standalone Workflow.
-
-## Post-MVP boundary
-
-Capabilities outside these ten IDs may remain recognized or plannable, but they are not executable MVP scope and must not become hidden MVP dependencies.
-
-## Change control
-
-A scope change requires a deliberate update to the canonical definitions, tests, documentation, and release review. Agents may not change the executable set unilaterally.
+This decision freezes the executable release scope at 20 image tools plus the pre-existing 4 local video tools. The broader image/tool catalog remains outside this release gate.
