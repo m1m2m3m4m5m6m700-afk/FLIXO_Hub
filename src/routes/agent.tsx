@@ -145,6 +145,14 @@ export function AgentPage() {
     abortController.current?.abort();
   };
 
+  const toggleLanguage = () => {
+    const nextLanguage = language === 'ar' ? 'en' : 'ar';
+    if (typeof document !== 'undefined') {
+      document.documentElement.setAttribute('data-flixo-agent-locale', nextLanguage);
+    }
+    setLanguage(nextLanguage);
+  };
+
   return (
     <main dir={direction} lang={language === 'ar' ? 'ar' : 'en'} style={{ minHeight: '100vh', padding: '32px 20px', background: 'var(--background, #090d12)', color: 'var(--foreground, #f6f7f9)' }}>
       <div style={{ maxWidth: 920, margin: '0 auto', display: 'grid', gap: 20 }}>
@@ -154,7 +162,7 @@ export function AgentPage() {
             <h1>{copy.title}</h1>
             <p style={{ maxWidth: 760, opacity: 0.8 }}>{copy.subtitle}</p>
           </div>
-          <button type="button" data-testid="agent-language-toggle" onClick={() => setLanguage(language === 'ar' ? 'en' : 'ar')}>{copy.language}</button>
+          <button type="button" data-testid="agent-language-toggle" onClick={toggleLanguage}>{copy.language}</button>
         </header>
 
         <section style={{ display: 'grid', gap: 12, padding: 20, border: '1px solid rgba(255,255,255,.12)', borderRadius: 18 }}>
