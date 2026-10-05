@@ -277,6 +277,163 @@ After merge: resolve new main SHA; run canonical CI on main; re-run exact-SHA ve
 If any post-merge identity or verification mismatch exists: do not declare success; open a new scoped repair on execution.
 EXIT: PROMOTION_VERIFIED or FAIL_CLOSED with blocker.
 
+# 2A. RECOVERY DELTA — 2026-10-06 / P4 REMAINING WORK
+
+PURPOSE:
+This section records the residual gaps discovered while continuing P4. It is part of the execution contract and MUST be consulted after every P4 mutation. It does not create a second runtime authority.
+
+CURRENT RECOVERY LINEAGE:
+- Active recovery branch: \`recovery/p4-agent-workflow-20261006\`
+- Last observed remote candidate during this delta: \`d83d2db2a11b3bc59fa5a93b92c952fa9e8e28ed\`
+- Historical evidence from any earlier SHA is stale after a mutation.
+- Never force-push this recovery lane. If the remote branch advances, fetch it, reconcile lineage, and preserve all valid commits before pushing.
+
+EVIDENCE ALREADY ESTABLISHED ON THE CURRENT P4 LINEAGE:
+- Typecheck: PASS.
+- Core suite: PASS, 29/29 tests on the verified local run with the required \`VITE_SITE_URL\` boundary.
+- Secret Scan: PASS.
+- CodeQL: PASS.
+- Canonical execution boundary tests: PASS.
+- Guided-runtime confirmation/identity protections: PASS in core coverage.
+- Browser acceptance previously proved \`video-trimmer\` and \`video-resizer\`.
+These facts are evidence for their observed SHA only and do not authorize Certification.
+
+REMAINING P4 BLOCKERS — MUST BE CLOSED BEFORE PROMPT 05+ FINALIZATION:
+
+### P4-B01 — Agent intent routing conflict
+OBSERVED:
+- The request \`compress this image to WebP\` was resolved by the Guided Agent as \`image-converter\` instead of \`image-compressor\`.
+ROOT CAUSE CLASS:
+- Lexical ranking gives the format token \`WebP\` enough weight to outrank the explicit compression operation.
+REQUIRED FIX:
+- Make operation intent dominant over target-format overlap.
+- Rank explicit action phrases, then file-family compatibility, then parameter/format hints.
+- Preserve deterministic ambiguity rejection when two operation intents remain tied.
+REGRESSION:
+- English: \`compress this image to WebP\` -> \`image-compressor\`.
+- Arabic equivalent -> \`image-compressor\`.
+- \`convert this image to WebP\` -> \`image-converter\`.
+- Compression without a format remains compressor.
+EXIT:
+- Agent plan exposes the expected canonical tool ID for all four cases and core/E2E tests pass.
+
+### P4-B02 — Guided Agent workspace browser stability
+OBSERVED:
+- Chromium CI intermittently reported \`Agent Guided MVP\` not visible on \`/en\` and \`/ar\`, even though the component is wired into \`OfficialHome\`.
+REQUIRED FIX:
+- Prove the workspace mounts deterministically on both routes under the official Vite/preview path.
+- Verify no route, locale initialization, hydration, or CSS/layout condition suppresses the region.
+- Keep the test scoped to the real rendered region; do not replace it with a source-code existence assertion.
+REGRESSION:
+- Full Chromium run must pass the English and Arabic Guided Agent workflows on the same SHA.
+EXIT:
+- No missing-region failure and no runtime/page/console failure for those tests.
+
+### P4-B03 — Video cropper / compressor verifier closure
+OBSERVED:
+- On the current P4 candidate, \`video-trimmer\` and \`video-resizer\` passed browser acceptance.
+- \`video-cropper\` and \`video-compressor\` still failed closed with \`Execution failed closed: verifier rejected artifact\`.
+- A verifier-side change already exists in history to tolerate non-finite WebM duration for non-trim operations while keeping duration mandatory for trim comparisons.
+REQUIRED FIX:
+- Diagnose the exact cropper/compressor output metadata/size mismatch on the current SHA.
+- Keep fail-closed verification.
+- For cropper: prove dimensions match requested output and output is decodable WebM.
+- For compressor: prove output remains valid WebM and satisfies the measurable compression contract without relying on a false size assumption.
+- Do not add a second video executor or weaken verification to bypass the failure.
+REGRESSION:
+- Individual Chromium acceptance for all four video capabilities: trimmer, cropper, resizer, compressor.
+EXIT:
+- 4/4 video acceptance tests PASS on one exact SHA.
+
+### P4-B04 — Full localization closure exposed by Chromium
+OBSERVED:
+- G4 detected a French home-page H1 fallback: \`/fr must not reuse English H1\`.
+- Other locale/runtime checks can expose race-sensitive visibility failures.
+REQUIRED FIX:
+- Close French home-page H1 first, then rerun the complete public-route localization/SEO contract.
+- Audit every locale for title, description, H1, authoritative tool name, accessible UI, and runtime/console cleanliness.
+- Do not weaken \`g4-localization-runtime.spec.ts\` to accept English fallback.
+REGRESSION:
+- Full G4 route matrix on Chromium, exact SHA only.
+EXIT:
+- No English H1/meta/UI leakage except explicitly allowlisted technical/shared terms.
+
+### P4-B05 — Local verification reproducibility
+OBSERVED:
+- Local Chromium E2E from the recovery workstation timed out at the Playwright \`webServer\` startup boundary after 120s; the test itself did not reach the application.
+- Core tests require the official \`VITE_SITE_URL\`/\`SITE_URL\` contract outside approved CI/Vercel contexts.
+REQUIRED FIX:
+- Document and/or codify the minimum local verification environment so a local runner can distinguish application failure from runner startup failure.
+- Preserve the fail-closed origin requirement; never weaken it just to make tests runnable.
+- CI remains authoritative for exact-SHA browser evidence when the local runner cannot reproduce the approved environment.
+REGRESSION:
+- Local \`typecheck\`, \`test:core\`, and targeted E2E produce explicit pass/fail logs with no silent environment ambiguity.
+EXIT:
+- Environment failures are classified as environment BLOCKER, not misreported as application PASS/FAIL.
+
+### P4-B06 — Plan authority / branch-state alignment
+OBSERVED:
+- The master plan describes the normal integration path as \`execution -> main\`, while the active recovery lane is a dedicated \`recovery/*\` branch.
+REQUIRED FIX:
+- Treat the recovery branch as an isolated execution lane until the candidate is intentionally promoted to \`execution\`.
+- Every state record must include both the active recovery SHA and the eventual integration target.
+- Do not call recovery PASS evidence equivalent to main certification before exact-SHA promotion and post-merge verification.
+EXIT:
+- No ambiguity exists about which SHA is being tested, certified, or promoted.
+
+### P4-B07 — Concurrent branch-drift protection
+OBSERVED:
+- A push was rejected because another execution session advanced the same recovery branch from \`8fb068d…\` to \`d83d2db2…\`.
+REQUIRED FIX:
+- Before every write: fetch the remote target and compare exact head.
+- On drift: reconcile with rebase/merge while preserving all valid commits; never force-push.
+- After reconciliation: rerun all affected checks because the candidate SHA changed.
+REGRESSION:
+- State record captures START_SHA, REMOTE_HEAD_SHA, END_SHA, and stale evidence invalidation.
+EXIT:
+- No mutation is pushed against an unknown remote head.
+
+### P4-B08 — Do not duplicate the WebM remediation
+DECISION:
+- A temporary local experiment added \`fix-webm-duration@1.0.6\` to patch missing WebM duration metadata.
+- That experiment was reverted after confirming the recovery branch already contained a verifier-side correction suitable for the current architecture.
+RULE:
+- Do not reintroduce the dependency unless a current-SHA test proves the verifier-side correction is insufficient and the new dependency is justified, reviewed, and covered.
+- Prefer one canonical media path and the smallest architecture-consistent correction.
+EXIT:
+- No duplicate WebM-duration repair path exists.
+
+### P4-B09 — Guided Agent acceptance matrix must match canonical planner behavior
+REQUIRED TEST MATRIX:
+1. English image compression to WebP.
+2. Arabic image compression to WebP.
+3. English image conversion to WebP.
+4. Arabic image conversion to WebP.
+5. Unsupported operation -> deterministic manual fallback.
+6. Confirmation required before execution.
+7. Confirmation is bound to the exact plan and file.
+8. Receipt is single-use.
+9. Result is produced by the canonical executor and passes output verification.
+EXIT:
+- All cases pass without direct engine invocation from the Agent UI.
+
+### P4-B10 — Required CI revalidation after P4 closure
+SEQUENCE:
+- Fix one blocker at a time.
+- Record new END_SHA.
+- Rerun targeted regression.
+- Rerun \`npm test\` and build.
+- Rerun Chromium browser smoke/acceptance.
+- Rerun Secret Scan and CodeQL when code/security changes apply.
+- Recheck trust-gate and exact-SHA promotion proof.
+- Invalidate all evidence from earlier SHAs.
+EXIT:
+- One exact candidate SHA owns all required passing evidence.
+
+P4 EXIT CONDITION:
+Do NOT advance to final certification merely because the core suite is green.
+P4 is CLOSED only when P4-B01 through P4-B10 are either PASS with current-SHA evidence or explicitly classified as external BLOCKER with exact evidence. Then continue sequentially through Prompts 05–20.
+
 # 3. REQUIRED STATE RECORD
 For every prompt record:
 PROMPT_ID=
