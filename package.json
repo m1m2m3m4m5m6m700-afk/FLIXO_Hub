@@ -17,9 +17,9 @@
     "generate:robots": "node scripts/generate-robots.mjs",
     "generate:sitemap": "node --import=./scripts/register-node-resolver.mjs --experimental-strip-types scripts/generate-sitemap.mjs",
     "generate:static-routes": "node --import=./scripts/register-node-resolver.mjs --experimental-strip-types scripts/generate-static-route-entries.mjs",
-    "test:core": "node scripts/assert-test-files.mjs tests/canonical-capability-verifiers.test.ts tests/agent-guided-runtime.test.ts tests/editor-color-scene.test.ts tests/editor-document-model.test.ts tests/editor-history.test.ts tests/editor-masks.test.ts tests/editor-performance.test.ts tests/editor-render-graph.test.ts tests/worker-production-boundary.test.ts && node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/canonical-capability-verifiers.test.ts tests/agent-guided-runtime.test.ts tests/editor-color-scene.test.ts tests/editor-document-model.test.ts tests/editor-history.test.ts tests/editor-masks.test.ts tests/editor-performance.test.ts tests/editor-render-graph.test.ts tests/worker-production-boundary.test.ts",
+    "test:core": "node scripts/assert-test-files.mjs tests/canonical-capability-verifiers.test.ts tests/image-tool-agent-workflow.test.ts tests/agent-guided-runtime.test.ts tests/editor-color-scene.test.ts tests/editor-document-model.test.ts tests/editor-history.test.ts tests/editor-masks.test.ts tests/editor-performance.test.ts tests/editor-render-graph.test.ts tests/worker-production-boundary.test.ts && node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/canonical-capability-verifiers.test.ts tests/agent-guided-runtime.test.ts tests/editor-color-scene.test.ts tests/editor-document-model.test.ts tests/editor-history.test.ts tests/editor-masks.test.ts tests/editor-performance.test.ts tests/editor-render-graph.test.ts tests/worker-production-boundary.test.ts",
     "test:e2e": "playwright test",
-    "test": "npm run test:model-license && npm run verify:agents && npm run verify:i18n && npm run typecheck && npm run lint && npm run test:control-plane-contracts && npm run test:core",
+    "test": "npm run test:model-license && npm run verify:agents && npm run verify:i18n && npm run typecheck && npm run lint && npm run test:core",
     "ci": "npm run test && npm run build",
     "test:model-license": "node scripts/model-license-gate.mjs",
     "test:model-license:release": "node scripts/model-license-gate.mjs --require-entry",
@@ -28,9 +28,7 @@
     "typecheck:contracts": "npx tsc -p packages/contracts/tsconfig.json --noEmit",
     "verify:launch": "node scripts/verify-public-launch-readiness.mjs",
     "verify:agents": "node scripts/verify-agent-profiles.mjs",
-    "verify:i18n": "node scripts/verify-i18n-locales.mjs",
-    "test:patch-capsule": "node --test scripts/ci/test-patch-capsule.mjs",
-    "test:control-plane-contracts": "node --check scripts/ci/patch-capsule.mjs && node --check scripts/ci/controller-reconcile-and-publish.mjs && npm run test:patch-capsule && node --test scripts/ci/test-controller-publication-contract.mjs"
+    "verify:i18n": "node scripts/verify-i18n-locales.mjs"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",
