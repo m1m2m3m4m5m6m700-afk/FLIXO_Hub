@@ -75,19 +75,12 @@ async function executeManual(page: Page, toolId: (typeof MANUAL_TOOL_IDS)[number
 
 async function planAndExecuteAgent(page: Page, toolId: string, prompt: string, language: 'ar' | 'en') {
   await page.goto('/agent', { waitUntil: 'domcontentloaded' });
-  if (language === 'ar') {
-    const main = page.locator('main').last();
-    const direction = await main.getAttribute('dir');
-    if (direction !== 'rtl') await page.getByRole('button', { name: /العربية/i }).click();
-    await expect(page.locator('main').last()).toHaveAttribute('dir', 'rtl');
-    await expect(page.locator('main').last()).toHaveAttribute('lang', 'ar');
+  const main = page.locator('main').last();
+  if (language === 'en' && await main.getAttribute('dir') !== 'ltr') {
+    await page.getByTestId('agent-language-toggle').click();
   }
-  if (language === 'en') {
-    const main = page.locator('main').last();
-    const direction = await main.getAttribute('dir');
-    if (direction !== 'ltr') await page.getByRole('button', { name: /English/i }).click();
-    await expect(page.locator('main').last()).toHaveAttribute('dir', 'ltr');
-  }
+  await expect(main).toHaveAttribute('dir', language === 'ar' ? 'rtl' : 'ltr');
+  await expect(main).toHaveAttribute('lang', language === 'ar' ? 'ar' : 'en');
   await page.locator('#agent-prompt').fill(prompt);
   await page.locator('#agent-file').setInputFiles(fixture());
   await page.getByTestId('agent-build-plan').click();
@@ -98,7 +91,9 @@ async function planAndExecuteAgent(page: Page, toolId: string, prompt: string, l
   await expect(executeButton).toBeDisabled();
   await expect(page.locator('[aria-label="agent-result"]')).toHaveCount(0);
   await page.getByTestId('agent-confirmation').check();
-  await page.getByRole('button', { name: language === 'ar' ? /تنفيذ/i : /Execute/i }).click();
+  const executeButton = page.getByTestId('agent-execute');
+  await expect(executeButton).toBeEnabled({ timeout: 5_000 });
+  await executeButton.click();
   await expect(page.locator('[aria-label="agent-result"]')).toBeVisible({ timeout: 20_000 });
 }
 
