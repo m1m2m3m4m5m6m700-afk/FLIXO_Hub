@@ -10,7 +10,8 @@ export type LocalToolId =
   | 'crop-resize'
   | 'watermark-remover'
   | 'raster-to-svg'
-  | 'image-rotate' | 'image-flip-horizontal' | 'image-flip-vertical' | 'image-brightness' | 'image-contrast' | 'image-saturation' | 'image-grayscale' | 'image-invert' | 'image-sepia' | 'image-blur' | 'image-sharpen' | 'image-resizer' | 'image-hue' | 'image-pixelate' | 'image-padding' | 'image-rounded-corners';
+  | 'image-rotate' | 'image-flip-horizontal' | 'image-flip-vertical' | 'image-brightness' | 'image-contrast' | 'image-saturation' | 'image-grayscale' | 'image-invert' | 'image-sepia' | 'image-blur' | 'image-sharpen' | 'image-resizer' | 'image-hue' | 'image-pixelate' | 'image-padding' | 'image-rounded-corners'
+  | 'image-effects' | 'image-rotate-flip' | 'image-brightness-contrast' | 'image-saturation-hue' | 'image-exposure' | 'image-highlights-shadows' | 'image-grayscale-duotone' | 'image-filters' | 'image-watermark' | 'image-text-overlay' | 'image-draw-annotate' | 'image-redaction';
 
 export type ImageInfo = { width: number; height: number };
 
@@ -30,14 +31,13 @@ export function imageInfo(blob: Blob): Promise<ImageInfo> {
   });
 }
 
-export function loadImage(blob: Blob): Promise<HTMLImageElement> {
+export function loadImage(blob: Blob, signal?: AbortSignal): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(blob);
     const image = new Image();
-    image.onload = () => {
-      URL.revokeObjectURL(url);
-      resolve(image);
-    };
+    const onAbort = () => { URL.revokeObjectURL(url); reject(new DOMException('Image operation cancelled.','AbortError')); };
+    signal?.addEventListener('abort',onAbort,{once:true});
+    image.onload=()=>{ signal?.removeEventListener('abort',onAbort); URL.revokeObjectURL(url); resolve(image); };
     image.onerror = () => {
       URL.revokeObjectURL(url);
       reject(new Error('Image could not be decoded.'));
@@ -110,8 +110,8 @@ function progressiveResize(image: HTMLImageElement, width: number, height: numbe
   return canvas;
 }
 
-export async function resizeImage(blob: Blob, scale: number): Promise<Blob> {
-  const image = await loadImage(blob);
+export async function resizeImage(blob: Blob, scale: number, signal?: AbortSignal): Promise<Blob> {
+  const image = await loadImage(blob, signal);
   const width = Math.max(1, Math.round(image.naturalWidth * scale));
   const height = Math.max(1, Math.round(image.naturalHeight * scale));
   const canvas = progressiveResize(image, width, height);
@@ -121,8 +121,10 @@ export async function resizeImage(blob: Blob, scale: number): Promise<Blob> {
   return canvasBlob(canvas, 'image/png');
 }
 
-export async function convertImage(blob: Blob, type: 'image/png' | 'image/jpeg' | 'image/webp'): Promise<Blob> {
-  const image = await loadImage(blob);
+export async function convertImage(blob: Blob, type: 'image/png' | 'image/jpeg' | 'image/webp', signal?: AbortSignal): Promise<Blob> {
+  throwIfAborted(signal);
+  throwIfAborted(signal);
+  const image = await loadImage(blob, signal);
   const canvas = document.createElement('canvas');
   canvas.width = image.naturalWidth;
   canvas.height = image.naturalHeight;
@@ -139,7 +141,8 @@ export async function convertImage(blob: Blob, type: 'image/png' | 'image/jpeg' 
   return canvasBlob(canvas, type, quality);
 }
 
-export async function cropResizeImage(blob: Blob, crop: { x: number; y: number; width: number; height: number }, out: { width: number; height: number }): Promise<Blob> {
+export async function cropResizeImage(blob: Blob, crop: { x: number; y: number; width: number; height: number }, out: { width: number; height: number }, signal?: AbortSignal): Promise<Blob> {
+  throwIfAborted(signal);
   const image = await loadImage(blob);
   const sourceX = clamp(Math.round(crop.x), 0, Math.max(0, image.naturalWidth - 1));
   const sourceY = clamp(Math.round(crop.y), 0, Math.max(0, image.naturalHeight - 1));
@@ -156,8 +159,10 @@ export async function cropResizeImage(blob: Blob, crop: { x: number; y: number; 
   return canvasBlob(canvas, 'image/png');
 }
 
-export async function removeBackground(blob: Blob, tolerance = 42): Promise<Blob> {
-  const image = await loadImage(blob);
+export async function removeBackground(blob: Blob, tolerance = 42, signal?: AbortSignal): Promise<Blob> {
+  throwIfAborted(signal);
+  throwIfAborted(signal);
+  const image = await loadImage(blob, signal);
   const canvas = document.createElement('canvas');
   canvas.width = image.naturalWidth;
   canvas.height = image.naturalHeight;
@@ -237,8 +242,9 @@ function reconstructRegion(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElem
   ctx.putImageData(imageData, 0, 0);
 }
 
-export async function fillRemoveRegion(blob: Blob, region: { x: number; y: number; width: number; height: number }): Promise<Blob> {
-  const image = await loadImage(blob);
+export async function fillRemoveRegion(blob: Blob, region: { x: number; y: number; width: number; height: number }, signal?: AbortSignal): Promise<Blob> {
+  throwIfAborted(signal);
+  const image = await loadImage(blob, signal);
   const canvas = document.createElement('canvas');
   canvas.width = image.naturalWidth;
   canvas.height = image.naturalHeight;
@@ -246,19 +252,21 @@ export async function fillRemoveRegion(blob: Blob, region: { x: number; y: numbe
   if (!ctx) throw new Error('Canvas is unavailable.');
   ctx.drawImage(image, 0, 0);
   reconstructRegion(ctx, canvas, region);
+  throwIfAborted(signal);
   return canvasBlob(canvas, 'image/png');
 }
 
-export async function watermarkRemove(blob: Blob, region: { x: number; y: number; width: number; height: number }): Promise<Blob> {
-  return fillRemoveRegion(blob, region);
+export async function watermarkRemove(blob: Blob, region: { x: number; y: number; width: number; height: number }, signal?: AbortSignal): Promise<Blob> {
+  return fillRemoveRegion(blob, region, signal);
 }
 
 function escapeXml(value: string) {
   return value.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 }
 
-export async function rasterToSvg(blob: Blob, columns = 48): Promise<Blob> {
-  const image = await loadImage(blob);
+export async function rasterToSvg(blob: Blob, columns = 48, signal?: AbortSignal): Promise<Blob> {
+  throwIfAborted(signal);
+  const image = await loadImage(blob, signal);
   const scale = Math.min(1, Math.max(1, columns) / image.naturalWidth);
   const width = Math.max(1, Math.round(image.naturalWidth * scale));
   const height = Math.max(1, Math.round(image.naturalHeight * scale));
@@ -271,6 +279,7 @@ export async function rasterToSvg(blob: Blob, columns = 48): Promise<Blob> {
   const { data } = ctx.getImageData(0, 0, width, height);
   const rects: string[] = [];
   for (let y = 0; y < height; y += 1) {
+    throwIfAborted(signal);
     let x = 0;
     while (x < width) {
       const index = (y * width + x) * 4;
@@ -292,12 +301,14 @@ export async function rasterToSvg(blob: Blob, columns = 48): Promise<Blob> {
       x += run;
     }
   }
+  throwIfAborted(signal);
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" shape-rendering="crispEdges"><title>${escapeXml('FLIXO Raster to SVG')}</title>${rects.join('')}</svg>`;
   return new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
 }
 
-export async function hueShiftImage(blob: Blob, degrees = 30): Promise<Blob> {
-  const image = await loadImage(blob);
+export async function hueShiftImage(blob: Blob, degrees = 30, signal?: AbortSignal): Promise<Blob> {
+  throwIfAborted(signal);
+  const image = await loadImage(blob, signal);
   const canvas = document.createElement('canvas');
   canvas.width = image.naturalWidth;
   canvas.height = image.naturalHeight;
@@ -366,13 +377,14 @@ export async function roundedCornersImage(blob: Blob, radius = 24): Promise<Blob
 export type BasicImageEffect =
   | 'brightness' | 'contrast' | 'saturation' | 'grayscale' | 'invert' | 'sepia' | 'blur' | 'sharpen';
 
-export async function applyBasicImageEffect(blob: Blob, effect: BasicImageEffect, value = 100): Promise<Blob> {
+export async function applyBasicImageEffect(blob: Blob, effect: BasicImageEffect, value = 100, signal?: AbortSignal): Promise<Blob> {
   const image = await loadImage(blob);
   const canvas = document.createElement('canvas');
   canvas.width = image.naturalWidth;
   canvas.height = image.naturalHeight;
   const ctx = canvas.getContext('2d', { willReadFrequently: effect !== 'blur' });
   if (!ctx) throw new Error('Canvas is unavailable.');
+  throwIfAborted(signal);
   const normalized = Math.max(0, Math.min(200, value));
   if (effect === 'blur') {
     ctx.filter = `blur(${Math.max(0, normalized / 20)}px)`;
@@ -390,14 +402,16 @@ export async function applyBasicImageEffect(blob: Blob, effect: BasicImageEffect
     ctx.filter = `sepia(${Math.max(0, Math.min(100, normalized))}%)`;
   }
   ctx.drawImage(image, 0, 0);
+  throwIfAborted(signal);
   if (effect === 'sharpen') {
     sharpenCanvas(ctx, Math.max(0.02, Math.min(0.35, normalized / 1000)));
   }
   return canvasBlob(canvas, 'image/png');
 }
 
-export async function rotateImage(blob: Blob, degrees = 90): Promise<Blob> {
-  const image = await loadImage(blob);
+export async function rotateImage(blob: Blob, degrees = 90, signal?: AbortSignal) {
+  throwIfAborted(signal);
+  const image = await loadImage(blob, signal);
   const normalized = ((degrees % 360) + 360) % 360;
   const swap = normalized === 90 || normalized === 270;
   const canvas = document.createElement('canvas');
@@ -408,10 +422,11 @@ export async function rotateImage(blob: Blob, degrees = 90): Promise<Blob> {
   ctx.translate(canvas.width / 2, canvas.height / 2);
   ctx.rotate((normalized * Math.PI) / 180);
   ctx.drawImage(image, -image.naturalWidth / 2, -image.naturalHeight / 2);
+  throwIfAborted(signal);
   return canvasBlob(canvas, 'image/png');
 }
 
-export async function flipImage(blob: Blob, horizontal = true): Promise<Blob> {
+export async function flipImage(blob: Blob, horizontal = true, signal?: AbortSignal) {
   const image = await loadImage(blob);
   const canvas = document.createElement('canvas');
   canvas.width = image.naturalWidth;
@@ -420,6 +435,7 @@ export async function flipImage(blob: Blob, horizontal = true): Promise<Blob> {
   if (!ctx) throw new Error('Canvas is unavailable.');
   ctx.translate(horizontal ? canvas.width : 0, horizontal ? 0 : canvas.height);
   ctx.scale(horizontal ? -1 : 1, horizontal ? 1 : -1);
+  throwIfAborted(signal);
   ctx.drawImage(image, 0, 0);
   return canvasBlob(canvas, 'image/png');
 }
@@ -438,4 +454,67 @@ export function downloadBlob(blob: Blob, fileName: string): void {
 
 export function fileChange(event: ChangeEvent<HTMLInputElement>): File | null {
   return event.target.files?.[0] ?? null;
+}
+
+function throwIfAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) throw signal.reason instanceof Error ? signal.reason : new DOMException('Image operation cancelled.', 'AbortError');
+}
+function parseHexColor(value: string): [number, number, number] {
+  const n=value.replace('#',''); return [Number.parseInt(n.slice(0,2),16),Number.parseInt(n.slice(2,4),16),Number.parseInt(n.slice(4,6),16)];
+}
+export async function resizeImageToDimensions(blob: Blob,width:number,height:number,signal?:AbortSignal):Promise<Blob>{
+  throwIfAborted(signal); const image=await loadImage(blob,signal); const canvas=progressiveResize(image,Math.max(1,Math.min(4000,Math.round(width))),Math.max(1,Math.min(4000,Math.round(height)))); throwIfAborted(signal); return canvasBlob(canvas,'image/png');
+}
+export async function rotateFlipImage(blob:Blob,p:{rotation:number;flipX:boolean;flipY:boolean},signal?:AbortSignal):Promise<Blob>{
+  throwIfAborted(signal); const image=await loadImage(blob,signal); const rotation=((p.rotation%360)+360)%360; const swap=rotation===90||rotation===270; const canvas=document.createElement('canvas'); canvas.width=swap?image.naturalHeight:image.naturalWidth; canvas.height=swap?image.naturalWidth:image.naturalHeight; const ctx=canvas.getContext('2d'); if(!ctx) throw new Error('Canvas is unavailable.'); ctx.translate(canvas.width/2,canvas.height/2); ctx.rotate(rotation*Math.PI/180); ctx.scale(p.flipX?-1:1,p.flipY?-1:1); ctx.drawImage(image,-image.naturalWidth/2,-image.naturalHeight/2); throwIfAborted(signal); return canvasBlob(canvas,'image/png');
+}
+export async function applyExposureImage(blob:Blob,exposure:number,signal?:AbortSignal):Promise<Blob>{
+  throwIfAborted(signal); const image=await loadImage(blob,signal); const canvas=document.createElement('canvas'); canvas.width=image.naturalWidth; canvas.height=image.naturalHeight; const ctx=canvas.getContext('2d',{willReadFrequently:true}); if(!ctx) throw new Error('Canvas is unavailable.'); ctx.drawImage(image,0,0); const data=ctx.getImageData(0,0,canvas.width,canvas.height); const factor=2**exposure; for(let y=0;y<canvas.height;y++){throwIfAborted(signal);for(let x=0;x<canvas.width;x++){const i=(y*canvas.width+x)*4;data.data[i]=clamp(data.data[i]*factor,0,255);data.data[i+1]=clamp(data.data[i+1]*factor,0,255);data.data[i+2]=clamp(data.data[i+2]*factor,0,255);}} ctx.putImageData(data,0,0); return canvasBlob(canvas,'image/png');
+}
+export async function applyHighlightsShadowsImage(blob:Blob,highlights:number,shadows:number,signal?:AbortSignal):Promise<Blob>{
+  throwIfAborted(signal); const image=await loadImage(blob,signal); const canvas=document.createElement('canvas'); canvas.width=image.naturalWidth; canvas.height=image.naturalHeight; const ctx=canvas.getContext('2d',{willReadFrequently:true}); if(!ctx) throw new Error('Canvas is unavailable.'); ctx.drawImage(image,0,0); const data=ctx.getImageData(0,0,canvas.width,canvas.height); for(let y=0;y<canvas.height;y++){throwIfAborted(signal);for(let x=0;x<canvas.width;x++){const i=(y*canvas.width+x)*4;const l=(0.2126*data.data[i]+0.7152*data.data[i+1]+0.0722*data.data[i+2])/255;const a=1+(highlights/100)*l*l*0.7+(shadows/100)*(1-l)*(1-l)*0.7;data.data[i]=clamp(data.data[i]*a,0,255);data.data[i+1]=clamp(data.data[i+1]*a,0,255);data.data[i+2]=clamp(data.data[i+2]*a,0,255);}} ctx.putImageData(data,0,0); return canvasBlob(canvas,'image/png');
+}
+export async function applyGrayscaleDuotoneImage(blob:Blob,intensity:number,darkColor:string,lightColor:string,signal?:AbortSignal):Promise<Blob>{
+  throwIfAborted(signal); const image=await loadImage(blob,signal); const canvas=document.createElement('canvas'); canvas.width=image.naturalWidth; canvas.height=image.naturalHeight; const ctx=canvas.getContext('2d',{willReadFrequently:true}); if(!ctx) throw new Error('Canvas is unavailable.'); ctx.drawImage(image,0,0); const data=ctx.getImageData(0,0,canvas.width,canvas.height); const [dr,dg,db]=parseHexColor(darkColor),[lr,lg,lb]=parseHexColor(lightColor),mix=Math.max(0,Math.min(1,intensity/100)); for(let y=0;y<canvas.height;y++){throwIfAborted(signal);for(let x=0;x<canvas.width;x++){const i=(y*canvas.width+x)*4;const l=(0.2126*data.data[i]+0.7152*data.data[i+1]+0.0722*data.data[i+2])/255;data.data[i]=clamp(data.data[i]*(1-mix)+(dr+(lr-dr)*l)*mix,0,255);data.data[i+1]=clamp(data.data[i+1]*(1-mix)+(dg+(lg-dg)*l)*mix,0,255);data.data[i+2]=clamp(data.data[i+2]*(1-mix)+(db+(lb-db)*l)*mix,0,255);}} ctx.putImageData(data,0,0); return canvasBlob(canvas,'image/png');
+}
+export async function applyFilterPresetImage(blob:Blob,preset:string,signal?:AbortSignal):Promise<Blob>{
+  throwIfAborted(signal); const image=await loadImage(blob,signal); const canvas=document.createElement('canvas'); canvas.width=image.naturalWidth; canvas.height=image.naturalHeight; const ctx=canvas.getContext('2d'); if(!ctx) throw new Error('Canvas is unavailable.'); ctx.filter=({vivid:'contrast(112%) saturate(135%)',warm:'saturate(118%) sepia(12%)',cool:'saturate(105%) hue-rotate(12deg) brightness(103%)',vintage:'sepia(24%) contrast(94%) saturate(88%)',mono:'grayscale(100%) contrast(108%)',sepia:'sepia(90%) contrast(103%)',cinematic:'contrast(115%) saturate(108%) brightness(96%)'} as Record<string,string>)[preset]??'contrast(112%) saturate(135%)'; ctx.drawImage(image,0,0); throwIfAborted(signal); return canvasBlob(canvas,'image/png');
+}
+export async function addTextOverlayImage(blob:Blob,p:{text:string;x:number;y:number;fontSize:number;color:string;background?:string;backgroundOpacity:number;align:'left'|'center'|'right';opacity?:number},signal?:AbortSignal):Promise<Blob>{
+  throwIfAborted(signal); const image=await loadImage(blob,signal); const canvas=document.createElement('canvas'); canvas.width=image.naturalWidth; canvas.height=image.naturalHeight; const ctx=canvas.getContext('2d'); if(!ctx) throw new Error('Canvas is unavailable.'); ctx.drawImage(image,0,0); ctx.font=String(p.fontSize)+'px sans-serif'; ctx.textAlign=p.align; ctx.textBaseline='middle'; const x=p.x/100*canvas.width,y=p.y/100*canvas.height; if(p.background){const metrics=ctx.measureText(p.text),pad=Math.max(4,p.fontSize*.25),w=metrics.width+pad*2,h=p.fontSize+pad*2,left=p.align==='center'?x-w/2:p.align==='right'?x-w:x;ctx.save();ctx.globalAlpha=p.backgroundOpacity;ctx.fillStyle=p.background;ctx.fillRect(left,y-h/2,w,h);ctx.restore();} ctx.save(); ctx.globalAlpha=clamp(p.opacity ?? 1,0,1); ctx.fillStyle=p.color; ctx.fillText(p.text,x,y); ctx.restore(); throwIfAborted(signal); return canvasBlob(canvas,'image/png');
+}
+export async function addWatermarkImage(blob:Blob,p:{text:string;x:number;y:number;fontSize:number;opacity:number;color:string},signal?:AbortSignal):Promise<Blob>{
+  const result=await addTextOverlayImage(blob,{...p,backgroundOpacity:0,align:'left',opacity:p.opacity},signal); return result;
+}
+export async function drawAnnotationImage(blob:Blob,p:{kind:'line'|'arrow'|'rect'|'ellipse';x1:number;y1:number;x2:number;y2:number;stroke:string;strokeWidth:number},signal?:AbortSignal):Promise<Blob>{
+  throwIfAborted(signal); const image=await loadImage(blob,signal); const canvas=document.createElement('canvas'); canvas.width=image.naturalWidth; canvas.height=image.naturalHeight; const ctx=canvas.getContext('2d'); if(!ctx) throw new Error('Canvas is unavailable.'); ctx.drawImage(image,0,0); const x1=p.x1/100*canvas.width,y1=p.y1/100*canvas.height,x2=p.x2/100*canvas.width,y2=p.y2/100*canvas.height; ctx.strokeStyle=p.stroke;ctx.lineWidth=p.strokeWidth;ctx.lineCap='round'; if(p.kind==='rect')ctx.strokeRect(x1,y1,x2-x1,y2-y1); else if(p.kind==='ellipse'){ctx.beginPath();ctx.ellipse((x1+x2)/2,(y1+y2)/2,Math.abs(x2-x1)/2,Math.abs(y2-y1)/2,0,0,Math.PI*2);ctx.stroke();}else{ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();if(p.kind==='arrow'){const a=Math.atan2(y2-y1,x2-x1),s=Math.max(8,p.strokeWidth*2);ctx.beginPath();ctx.moveTo(x2,y2);ctx.lineTo(x2-s*Math.cos(a-Math.PI/6),y2-s*Math.sin(a-Math.PI/6));ctx.lineTo(x2-s*Math.cos(a+Math.PI/6),y2-s*Math.sin(a+Math.PI/6));ctx.closePath();ctx.fillStyle=p.stroke;ctx.fill();}} throwIfAborted(signal); return canvasBlob(canvas,'image/png');
+}
+export async function redactImage(blob:Blob,p:{x:number;y:number;width:number;height:number;color:string},signal?:AbortSignal):Promise<Blob>{
+  throwIfAborted(signal); const image=await loadImage(blob,signal); const canvas=document.createElement('canvas'); canvas.width=image.naturalWidth; canvas.height=image.naturalHeight; const ctx=canvas.getContext('2d'); if(!ctx) throw new Error('Canvas is unavailable.'); ctx.drawImage(image,0,0); ctx.fillStyle=p.color;ctx.fillRect(p.x/100*canvas.width,p.y/100*canvas.height,p.width/100*canvas.width,p.height/100*canvas.height); throwIfAborted(signal); return canvasBlob(canvas,'image/png');
+}
+export async function executeCanonicalImageEngine(toolId:string,blob:Blob,parameters:Record<string,string|number|boolean>,signal?:AbortSignal):Promise<Blob>{
+  throwIfAborted(signal);
+  switch(toolId){
+    case 'background-remover': return removeBackground(blob,Number(parameters.tolerance??42),signal);
+    case 'image-upscaler': return resizeImage(blob,Number(parameters.scale??2),signal);
+    case 'image-cropper': return cropResizeImage(blob,{x:Number(parameters.x??0),y:Number(parameters.y??0),width:Number(parameters.cropWidth??500),height:Number(parameters.cropHeight??500)},{width:Number(parameters.width??500),height:Number(parameters.height??500)},signal);
+    case 'image-compressor':{const {compressImage}=await import('../image-compressor/engine.ts');const r=await compressImage(new File([blob],'flixo-input',{type:blob.type||'image/png'}),{quality:Number(parameters.quality??0.82),format:String(parameters.format??'image/webp') as 'image/png'|'image/jpeg'|'image/webp',targetSizeKB:parameters.targetSizeKB===undefined?undefined:Number(parameters.targetSizeKB),maxWidth:parameters.maxWidth===undefined?undefined:Number(parameters.maxWidth),maxHeight:parameters.maxHeight===undefined?undefined:Number(parameters.maxHeight)},signal);return r.blob;}
+    case 'image-converter': return convertImage(blob,String(parameters.format??'image/webp') as 'image/png'|'image/jpeg'|'image/webp',signal);
+    case 'image-effects':{let current=blob;if(parameters.brightness!==undefined)current=await applyBasicImageEffect(current,'brightness',Number(parameters.brightness),signal);if(parameters.contrast!==undefined)current=await applyBasicImageEffect(current,'contrast',Number(parameters.contrast),signal);if(parameters.saturate!==undefined)current=await applyBasicImageEffect(current,'saturation',Number(parameters.saturate),signal);if(parameters.grayscale!==undefined)current=await applyBasicImageEffect(current,'grayscale',Number(parameters.grayscale),signal);return current;}
+    case 'image-resizer':{if(parameters.width!==undefined||parameters.height!==undefined){const i=await imageInfo(blob);return resizeImageToDimensions(blob,Number(parameters.width??i.width),Number(parameters.height??i.height),signal);}return resizeImage(blob,Number(parameters.scale??1.2),signal);}
+    case 'image-rotate-flip': return rotateFlipImage(blob,{rotation:Number(parameters.rotation??90),flipX:Boolean(parameters.flipX),flipY:Boolean(parameters.flipY)},signal);
+    case 'image-brightness-contrast':{let current=blob;if(parameters.brightness!==undefined)current=await applyBasicImageEffect(current,'brightness',Number(parameters.brightness),signal);if(parameters.contrast!==undefined)current=await applyBasicImageEffect(current,'contrast',Number(parameters.contrast),signal);return current;}
+    case 'image-saturation-hue':{let current=blob;if(parameters.saturation!==undefined)current=await applyBasicImageEffect(current,'saturation',Number(parameters.saturation),signal);if(parameters.hue!==undefined)current=await hueShiftImage(current,Number(parameters.hue),signal);return current;}
+    case 'image-exposure': return applyExposureImage(blob,Number(parameters.exposure),signal);
+    case 'image-highlights-shadows': return applyHighlightsShadowsImage(blob,Number(parameters.highlights??0),Number(parameters.shadows??0),signal);
+    case 'image-sharpen': return applyBasicImageEffect(blob,'sharpen',Number(parameters.amount??110),signal);
+    case 'image-blur': return applyBasicImageEffect(blob,'blur',Number(parameters.radius??6)*20,signal);
+    case 'image-grayscale-duotone': return applyGrayscaleDuotoneImage(blob,Number(parameters.intensity??100),String(parameters.darkColor??'#111111'),String(parameters.lightColor??'#f5f5f5'),signal);
+    case 'image-filters': return applyFilterPresetImage(blob,String(parameters.preset??'vivid'),signal);
+    case 'image-watermark': return addWatermarkImage(blob,{text:String(parameters.text),x:Number(parameters.x??10),y:Number(parameters.y??90),fontSize:Number(parameters.fontSize??32),opacity:Number(parameters.opacity??0.65),color:String(parameters.color??'#ffffff')},signal);
+    case 'image-text-overlay': return addTextOverlayImage(blob,{text:String(parameters.text),x:Number(parameters.x??50),y:Number(parameters.y??50),fontSize:Number(parameters.fontSize??48),color:String(parameters.color??'#ffffff'),background:parameters.background?String(parameters.background):undefined,backgroundOpacity:Number(parameters.backgroundOpacity??0.5),align:String(parameters.align??'center') as 'left'|'center'|'right'},signal);
+    case 'image-draw-annotate': return drawAnnotationImage(blob,{kind:String(parameters.kind??'arrow') as 'line'|'arrow'|'rect'|'ellipse',x1:Number(parameters.x1??10),y1:Number(parameters.y1??10),x2:Number(parameters.x2??80),y2:Number(parameters.y2??80),stroke:String(parameters.stroke??'#ff3b30'),strokeWidth:Number(parameters.strokeWidth??8)},signal);
+    case 'image-redaction': return redactImage(blob,{x:Number(parameters.x??25),y:Number(parameters.y??25),width:Number(parameters.width??50),height:Number(parameters.height??25),color:String(parameters.color??'#000000')},signal);
+    default: throw new Error('UNKNOWN_CANONICAL_IMAGE_OPERATION:'+toolId);
+  }
 }
