@@ -337,7 +337,7 @@ export async function executeAgentPlan(
   }
   const deadline = Date.now() + capability.safetyLimits.timeoutMs;
   const confirmationToken = await createImageExecutionConfirmationToken(steps[0], parameters, []);
-  const receipt: CanonicalImageExecutionReceipt = await withExecutionGuards(
+  const resultReceipt: CanonicalImageExecutionReceipt = await withExecutionGuards(
     executeCanonicalImageTool({
       toolId: steps[0],
       inputBlob: file,
@@ -350,5 +350,5 @@ export async function executeAgentPlan(
     deadline,
   );
   assertNotAborted(signal);
-  return { blob: receipt.outputBlob, fileName: file.name };
+  return { blob: resultReceipt.outputBlob, fileName: file.name };
 }
