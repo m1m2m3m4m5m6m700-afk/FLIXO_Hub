@@ -91,7 +91,6 @@ async function planAndExecuteAgent(page: Page, toolId: string, prompt: string, l
   await expect(executeButton).toBeDisabled();
   await expect(page.locator('[aria-label="agent-result"]')).toHaveCount(0);
   await page.getByTestId('agent-confirmation').check();
-  const executeButton = page.getByTestId('agent-execute');
   await expect(executeButton).toBeEnabled({ timeout: 5_000 });
   await executeButton.click();
   await expect(page.locator('[aria-label="agent-result"]')).toBeVisible({ timeout: 20_000 });
