@@ -42,16 +42,16 @@ export const TOOL_CHAIN_ADAPTERS: Readonly<Record<string, ToolChainAdapterDefini
     const maxWidth = parameters?.maxWidth;
     const maxHeight = parameters?.maxHeight;
     const result = await executeCanonicalChainTool('image-compressor', blob, { format, quality, ...(typeof targetSizeKB === 'number' ? { targetSizeKB } : {}), ...(typeof maxWidth === 'number' ? { maxWidth } : {}), ...(typeof maxHeight === 'number' ? { maxHeight } : {}) });
-    return { blob: result.outputBlob, fileName: baseName(fileName) + '-compressed' + (format === 'image/jpeg' ? '.jpg' : format === 'image/png' ? '.png' : '.webp') };
+    return { blob: result, fileName: baseName(fileName) + '-compressed' + (format === 'image/jpeg' ? '.jpg' : format === 'image/png' ? '.png' : '.webp') };
   } }),
   'image-effects': Object.freeze({ execute: async ({ blob, fileName }: ChainInput, parameters) => {
     const brightness = numberParam(parameters, 'brightness', 100);
     const contrast = numberParam(parameters, 'contrast', 100);
     const saturation = numberParam(parameters, 'saturate', 100);
     const grayscale = numberParam(parameters, 'grayscale', 0);
-    const effectParameters = brightness !== 100 ? { brightness } : contrast !== 100 ? { contrast } : saturation !== 100 ? { saturate: saturation } : grayscale !== 0 ? { grayscale } : { contrast: 115 };
+    const effectParameters: ChainParameters = brightness !== 100 ? { brightness } : contrast !== 100 ? { contrast } : saturation !== 100 ? { saturate: saturation } : grayscale !== 0 ? { grayscale } : { contrast: 115 };
     const result = await executeCanonicalChainTool('image-effects', blob, effectParameters);
-    return { blob: result.outputBlob, fileName: baseName(fileName) + '-effects.png' };
+    return { blob: result, fileName: baseName(fileName) + '-effects.png' };
   } }),
   'image-rotate': Object.freeze({ execute: async ({ blob, fileName }: ChainInput) => ({ blob: await rotateImage(blob, 90), fileName: baseName(fileName) + '-rotated.png' }) }),
   'image-flip-horizontal': Object.freeze({ execute: async ({ blob, fileName }: ChainInput) => ({ blob: await flipImage(blob, true), fileName: baseName(fileName) + '-flipped-h.png' }) }),
