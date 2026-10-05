@@ -1,11 +1,10 @@
 import type { ToolDefinition } from '@/config/canonical-tool-definition.ts';
 
 export const FLIXO_MVP_SCOPE = Object.freeze({
+  productMode: 'MANUAL_ONLY',
   workflow: Object.freeze({
-    agentGuided: true,
+    agentGuided: false,
     manualStandalone: true,
-    deterministicStandardIntents: true,
-    gracefulManualFallback: true,
   }),
   processing: Object.freeze({
     executionLocation: 'BROWSER_ONLY',
@@ -20,59 +19,6 @@ export const FLIXO_MVP_SCOPE = Object.freeze({
     executableAfterAssetsLoaded: true,
   }),
 } as const);
-
-export type MvpStandardIntentCase = Readonly<{
-  id: string;
-  request: string;
-  expectedToolIds: readonly string[];
-}>;
-
-export const MVP_STANDARD_INTENT_SUITE_VERSION = 2 as const;
-export const MVP_NEGATIVE_INTENT_SUITE_VERSION = 1 as const;
-
-type MvpNegativeIntentCase = Readonly<{ id: string; request: string }>
-
-/**
- * Versioned deterministic acceptance corpus. Every case must resolve to the exact
- * canonical executable tool chain without a provider/network dependency.
- */
-export const MVP_STANDARD_INTENT_SUITE: readonly MvpStandardIntentCase[] = Object.freeze([
-  { id: 'background-en', request: 'remove the background from this image', expectedToolIds: ['background-remover'] },
-  { id: 'background-ar', request: 'إزالة الخلفية', expectedToolIds: ['background-remover'] },
-  { id: 'compress-en', request: 'compress my image', expectedToolIds: ['image-compressor'] },
-  { id: 'compress-ar', request: 'ضغط الصور', expectedToolIds: ['image-compressor'] },
-  { id: 'convert-webp-en', request: 'convert this image to webp', expectedToolIds: ['image-converter'] },
-  { id: 'convert-webp-ar', request: 'تحويل الصورة إلى webp', expectedToolIds: ['image-converter'] },
-  { id: 'upscale-en', request: 'upscale this image 2x', expectedToolIds: ['image-upscaler'] },
-  { id: 'upscale-ar', request: 'زيادة الدقة', expectedToolIds: ['image-upscaler'] },
-  { id: 'crop-en', request: 'crop this image to square', expectedToolIds: ['image-cropper'] },
-  { id: 'crop-ar', request: 'قص الصورة مربع', expectedToolIds: ['image-cropper'] },
-  { id: 'effects-en', request: 'increase contrast by 10%', expectedToolIds: ['image-effects'] },
-  { id: 'effects-ar', request: 'ارفع التباين 10%', expectedToolIds: ['image-effects'] },
-  { id: 'brightness-ar', request: 'ارفع السطوع 10%', expectedToolIds: ['image-effects'] },
-  { id: 'saturation-ar', request: 'ارفع التشبع 10%', expectedToolIds: ['image-effects'] },
-  { id: 'grayscale-ar', request: 'اجعل الصورة أبيض وأسود', expectedToolIds: ['image-effects'] },
-  { id: 'effects-negative-ar', request: 'خفض التباين 10%', expectedToolIds: ['image-effects'] },
-  { id: 'effects-en-brightness', request: 'increase brightness by 10%', expectedToolIds: ['image-effects'] },
-  { id: 'effects-en-saturation', request: 'increase saturation by 10%', expectedToolIds: ['image-effects'] },
-  { id: 'effects-en-grayscale', request: 'make it black and white', expectedToolIds: ['image-effects'] },
-  { id: 'effects-compound-ar', request: 'ارفع التباين 10% وارفع التشبع 20%', expectedToolIds: ['image-effects'] },
-  { id: 'trim-video-en', request: 'trim video', expectedToolIds: ['video-trimmer'] },
-  { id: 'crop-video-en', request: 'crop video to 720x720', expectedToolIds: ['video-cropper'] },
-  { id: 'crop-video-ar', request: 'قص الفيديو إلى 720×720', expectedToolIds: ['video-cropper'] },
-  { id: 'resize-video-en', request: 'resize video to 1280x720', expectedToolIds: ['video-resizer'] },
-  { id: 'resize-video-ar', request: 'غيّر حجم الفيديو إلى 1280×720', expectedToolIds: ['video-resizer'] },
-  { id: 'trim-video-ar', request: 'اقتطع أول 5 ثواني من الفيديو', expectedToolIds: ['video-trimmer'] },
-  { id: 'compress-video-ar', request: 'ضغط الفيديو', expectedToolIds: ['video-compressor'] },
-  { id: 'compound-webp', request: 'compress this image under 200KB and convert to WebP', expectedToolIds: ['image-converter', 'image-compressor'] },
-  { id: 'product-square', request: 'prepare a product image for a shop, square', expectedToolIds: ['background-remover', 'image-cropper'] },
-] as const);
-
-export const MVP_NEGATIVE_INTENT_SUITE: readonly MvpNegativeIntentCase[] = Object.freeze([
-  { id: 'unsupported-object-removal', request: 'remove the object from this image' },
-  { id: 'ambiguous-contrast-en', request: 'increase contrast' },
-  { id: 'ambiguous-contrast-ar', request: 'ارفع التباين' },
-] as const);
 
 type MVPScopedTool = Pick<
   ToolDefinition,
@@ -137,18 +83,3 @@ export function assertMvpScope(
   }
 }
 
-export type FlixoAgentFileMetadata = Readonly<{
-  name: string;
-  type: string;
-  size: number;
-}>;
-
-/**
- * MVP promotion is recorded only after canonical gates pass on the exact execution head.
- * Only non-content file metadata may leave the browser when a standalone tool explicitly requires it.
- * Raw File/Blob bytes are never part of the agent request contract.
- */
-export function toAgentFileMetadata(file: File | null | undefined): FlixoAgentFileMetadata | null {
-  if (!file) return null;
-  return Object.freeze({ name: file.name, type: file.type, size: file.size });
-}
