@@ -32,12 +32,15 @@ test('controller publication contract is execution-only, non-force, and controll
 
 test('controller recovery state contract remains recoverable after ACCEPTED', async () => {
   const migrationNames = await readdir(new URL('../../supabase/migrations/', import.meta.url));
-  const migrationName = migrationNames.find((name) => name.endsWith('_patch_capsule_publication_recovery.sql'));
-  assert.ok(migrationName, 'publication recovery migration must exist');
-  const migration = await readFile(new URL('../../supabase/migrations/' + migrationName, import.meta.url), 'utf8');
-  assert.ok(migration.includes("'CONFLICT','ACCEPTED'"));
-  assert.ok(migration.includes("candidate_sha=p_consolidated_commit_sha"));
-  assert.ok(migration.includes("p_current_sha=p_consolidated_commit_sha"));
-  assert.ok(migration.includes("status='ACCEPTED'"));
-  assert.ok(migration.includes("jsonb_typeof(current_report -> 'decision') <> 'null'"));
+  const recoveryName = migrationNames.find((name) => name.endsWith('_patch_capsule_publication_recovery.sql'));
+  const nullFixName = migrationNames.find((name) => name.endsWith('_patch_capsule_validation_null_fix.sql'));
+  assert.ok(recoveryName, 'publication recovery migration must exist');
+  assert.ok(nullFixName, 'validation null-fix migration must exist');
+  const recovery = await readFile(new URL('../../supabase/migrations/' + recoveryName, import.meta.url), 'utf8');
+  const nullFix = await readFile(new URL('../../supabase/migrations/' + nullFixName, import.meta.url), 'utf8');
+  assert.ok(recovery.includes("'CONFLICT','ACCEPTED'"));
+  assert.ok(recovery.includes("candidate_sha=p_consolidated_commit_sha"));
+  assert.ok(recovery.includes("p_current_sha=p_consolidated_commit_sha"));
+  assert.ok(recovery.includes("status='ACCEPTED'"));
+  assert.ok(nullFix.includes("jsonb_typeof(current_report -> 'decision') <> 'null'"));
 });
