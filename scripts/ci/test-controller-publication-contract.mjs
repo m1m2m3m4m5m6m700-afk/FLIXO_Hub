@@ -15,10 +15,25 @@ test('controller publication contract is execution-only, non-force, and controll
   assert.ok(!script.includes('refs/heads/main'));
   assert.ok(script.includes("git', ['push', '--porcelain', 'origin'"));
   assert.ok(script.includes("git(['rev-parse', 'HEAD^']"));
+  assert.ok(script.includes("function createCandidateCommit"));
+  assert.ok(script.includes("p_reconciled_candidate_sha: candidateSha"));
+  assert.ok(script.includes("p_decision: 'ACCEPTED'"));
+  assert.ok(script.includes("flix_controller_push_queue_controller_decide"));
+  assert.ok(script.includes("ALREADY_PUBLISHED_RECOVERY"));
   assert.ok(workflow.includes('contents: write'));
   assert.ok(workflow.includes('ref: execution'));
   assert.ok(!workflow.includes('create_branch'));
   assert.ok(!workflow.includes('git switch -c'));
   assert.ok(!workflow.includes('git checkout -b'));
   assert.ok(workflow.includes('cancel-in-progress: false'));
+  assert.ok(workflow.includes('PENDING_CONTROLLER_REVIEW,CONTROLLER_REVIEWING,STALE,CONFLICT,ACCEPTED'));
+});
+
+
+test('controller recovery state contract remains recoverable after ACCEPTED', async () => {
+  const migration = await readFile(new URL('../../supabase/migrations/20261005095500_patch-capsule-publication-recovery.sql', import.meta.url), 'utf8');
+  assert.ok(migration.includes("'CONFLICT','ACCEPTED'"));
+  assert.ok(migration.includes("candidate_sha=p_consolidated_commit_sha"));
+  assert.ok(migration.includes("p_current_sha=p_consolidated_commit_sha"));
+  assert.ok(migration.includes("status='ACCEPTED'"));
 });
