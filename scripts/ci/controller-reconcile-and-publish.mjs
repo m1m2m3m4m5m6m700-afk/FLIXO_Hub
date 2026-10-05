@@ -309,7 +309,7 @@ async function main() {
     console.log(JSON.stringify(record, null, 2));
   } finally {
     try { git(['worktree', 'remove', '--force', worktree]); } catch { /* best-effort cleanup */ }
-    try { await rm(root, { recursive: true, force: true }); } catch {}
+    try { await rm(root, { recursive: true, force: true }); } catch { /* best-effort temp cleanup */ }
   }
 }
 
