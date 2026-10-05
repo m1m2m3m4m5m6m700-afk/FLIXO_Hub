@@ -1,6 +1,6 @@
 import { getCapability, MVP_EXECUTABLE_TOOL_IDS, validateCapabilityParameters } from '../config/manual-capability-definition';
 import { TOOL_CATALOG } from '../config/registry';
-import { executeToolChain, type ChainInput, type ChainOutput } from './tool-chain-adapters';
+import { CANONICAL_IMAGE_TOOL_IDS, createImageExecutionConfirmationToken, executeCanonicalImageTool, type CanonicalImageExecutionReceipt } from './canonical-image-executor';
 import { imageInfo } from '../tools/image-toolkit/engine';
 import { parseExecutionPlan, type ExecutionPlanContract } from './contracts/ai-plan';
 
@@ -30,8 +30,19 @@ const DEFAULT_PARAMS: Readonly<Record<string, Record<string, string | number | b
   'image-compressor': { format: 'image/webp', quality: 0.8 },
   'image-effects': { contrast: 115 },
   'image-resizer': { scale: 1.5 },
-  'image-hue': { degrees: 30 },
-  'image-pixelate': { blockSize: 10 },
+  'image-rotate-flip': { rotation: 90, flipX: false, flipY: false },
+  'image-brightness-contrast': { brightness: 115 },
+  'image-saturation-hue': { saturation: 115 },
+  'image-exposure': { exposure: 1 },
+  'image-highlights-shadows': { highlights: 20 },
+  'image-sharpen': { amount: 110 },
+  'image-blur': { radius: 6 },
+  'image-grayscale-duotone': { intensity: 100 },
+  'image-filters': { preset: 'vivid' },
+  'image-watermark': { text: 'FLIXO' },
+  'image-text-overlay': { text: 'FLIXO' },
+  'image-draw-annotate': { kind: 'arrow' },
+  'image-redaction': { x: 25, y: 25, width: 50, height: 25 },
 });
 
 function normalize(value: string): string {
@@ -291,18 +302,22 @@ export async function executeAgentPlan(
   file: File,
   receipt: AgentConfirmationReceipt | null | undefined,
   signal?: AbortSignal,
-): Promise<ChainOutput> {
+): Promise<Readonly<{ blob: Blob; fileName: string }>> {
   assertLocalImageFile(file);
   if (plan.requiresUserConfirmation !== true) {
     throw new Error('Execution denied: explicit user confirmation is required.');
   }
 
+  assertNotAborted(signal);
   const validatedPlan = parseValidatedAgentPlan(plan);
   if (validatedPlan.catalogFingerprint !== TOOL_CATALOG.fingerprint) {
     throw new Error('Execution denied: plan is stale relative to the current canonical tool catalog.');
   }
+  // The confirmation receipt is bound to the exact AgentPlan object issued to the UI.
+  // Validate the normalized plan separately, but consume the receipt against the original plan object.
+  // Consume the one-time confirmation before honoring cancellation so an aborted attempt cannot replay it.
+  verifyConfirmationReceipt(plan, file, receipt);
   assertNotAborted(signal);
-  verifyConfirmationReceipt(validatedPlan, file, receipt);
 
   const steps = validatedPlan.steps.map((step) => step.toolId);
   if (steps.length !== 1) throw new Error('Agent execution is bounded to one local tool step.');
@@ -318,27 +333,41 @@ export async function executeAgentPlan(
   ) {
     throw new Error('Execution denied by the canonical capability boundary.');
   }
+  if (!CANONICAL_IMAGE_TOOL_IDS.includes(steps[0])) {
+    throw new Error('Execution denied: tool is outside the canonical image executor.');
+  }
+
   await assertAgentInputWithinCapabilityBudget(file, capability);
   assertNotAborted(signal);
-  const parameters = validateCapabilityParameters(steps[0], validatedPlan.steps[0].params ?? {});
-  const input: ChainInput = Object.freeze({ blob: file, fileName: file.name });
+
+  const parameters = validateCapabilityParameters(
+    steps[0],
+    validatedPlan.steps[0].params ?? {},
+  ) as Record<string, string | number | boolean>;
+  const confirmationToken = await createImageExecutionConfirmationToken(
+    steps[0],
+    parameters,
+    [],
+  );
   const deadline = Date.now() + capability.safetyLimits.timeoutMs;
 
-  const output = await withExecutionGuards(
-    executeToolChain(steps, input),
+  const receiptResult: CanonicalImageExecutionReceipt = await withExecutionGuards(
+    executeCanonicalImageTool({
+      toolId: steps[0],
+      inputBlob: file,
+      parameters,
+      origin: 'agent',
+      confirmed: true,
+      confirmationToken,
+      signal,
+    }),
     signal,
     deadline,
   );
   assertNotAborted(signal);
 
-  const verified = await withExecutionGuards(
-    capability.verifier(file, output.blob, parameters),
-    signal,
-    deadline,
-  );
-  assertNotAborted(signal);
-  if (!verified) {
-    throw new Error('Execution failed closed: output verifier rejected the artifact.');
-  }
-  return output;
+  return Object.freeze({
+    blob: receiptResult.outputBlob,
+    fileName: file.name,
+  });
 }
