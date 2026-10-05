@@ -156,16 +156,28 @@ async function persistReconciliation(queueId, row, current, result) {
   return validationReport;
 }
 
-async function publish(queueId, worktree, targetSha, message) {
+function verifyWorktree(worktree) {
+  git(['diff', '--check'], worktree);
+  execFileSync('npm', ['ci', '--no-audit', '--no-fund'], { cwd: worktree, encoding: 'utf8', stdio: 'inherit' });
+  execFileSync('npm', ['test'], { cwd: worktree, encoding: 'utf8', stdio: 'inherit' });
+  execFileSync('npm', ['run', 'build'], { cwd: worktree, encoding: 'utf8', stdio: 'inherit' });
+}
+
+async function publish(queueId, worktree, targetSha, message, allowedPaths) {
   const before = await liveHead();
   if (before !== targetSha) {
     throw new Error(`CONTROLLER_CAS_CONFLICT:${before}!=${targetSha}`);
   }
 
-  const status = git(['status', '--short'], worktree);
-  if (!status) throw new Error('CONTROLLER_NO_RECONCILED_CHANGES');
-
-  git(['add', '-A'], worktree);
+  const statusLines = git(['status', '--short'], worktree).split('\\n').filter(Boolean);
+  if (statusLines.length === 0) throw new Error('CONTROLLER_NO_RECONCILED_CHANGES');
+  const allowed = new Set(allowedPaths);
+  for (const line of statusLines) {
+    const path = line.slice(3).trim().replace(/^\"|\"$/g, '');
+    if (!allowed.has(path)) throw new Error(`CONTROLLER_OUT_OF_SCOPE_CHANGE:${path}`);
+  }
+  if (!allowed.size) throw new Error('CONTROLLER_ALLOWED_PATHS_EMPTY');
+  git(['add', '--', ...[...allowed]], worktree);
   const staged = git(['diff', '--cached', '--name-only'], worktree);
   if (!staged) throw new Error('CONTROLLER_EMPTY_STAGED_DIFF');
 
@@ -217,11 +229,8 @@ async function main() {
     // Fresh verification must happen in this worktree before publish. The workflow owns
     // those deterministic checks; this script will publish only after the caller supplies
     // an explicit PASS marker from the canonical verification lane.
-    if (process.env.FLIXO_RECONCILE_VERIFIED !== 'true') {
-      throw new Error('CONTROLLER_VERIFICATION_PROOF_REQUIRED');
-    }
-
-    const publication = await publish(queueId, worktree, current, message);
+      verifyWorktree(worktree);
+    const publication = await publish(queueId, worktree, current, message, result.paths.length ? result.paths : row.paths);
     const record = { protocolVersion: 'FLIXO-PATCH-CAPSULE-v1', queueId, sourceSha: row.target_sha, targetSha: current, validation, publication };
     if (output) await writeFile(output, JSON.stringify(record, null, 2) + '\n', 'utf8');
     console.log(JSON.stringify(record, null, 2));
