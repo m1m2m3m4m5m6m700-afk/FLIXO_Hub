@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useLocation } from '@tanstack/react-router';
-import { renderVideoToWebm } from '@/lib/video/video-executor';
+import { executeCanonicalTool } from '@/lib/execution/canonical-executor';
 
 export function VideoLocalTool() {
   const [file, setFile] = useState<File | null>(null);
@@ -13,14 +13,15 @@ export function VideoLocalTool() {
     if (!file) return;
     setBusy(true);
     try {
-      const output = await renderVideoToWebm(file, id === 'video-trimmer'
+      const parameters = id === 'video-trimmer'
         ? {}
         : id === 'video-compressor'
           ? { videoBitsPerSecond: 2_500_000 }
           : id === 'video-resizer'
             ? { width: 1280, height: 720 }
-            : { crop: { x: 0, y: 0, width: 1280, height: 720 } });
-      setResult(output);
+            : { x: 0, y: 0, width: 1280, height: 720 };
+      const output = await executeCanonicalTool(id, { blob: file, fileName: file.name }, parameters);
+      setResult(output.blob);
     } finally {
       setBusy(false);
     }
