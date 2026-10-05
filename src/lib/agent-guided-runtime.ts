@@ -1,7 +1,7 @@
 import { getCapability, MVP_EXECUTABLE_TOOL_IDS, validateCapabilityParameters } from '../config/manual-capability-definition';
 import { TOOL_CATALOG } from '../config/registry';
-import { executeToolChain, type ChainInput, type ChainOutput } from './tool-chain-adapters';
-import { imageInfo } from '../tools/image-toolkit/engine';
+import { executeCanonicalTool } from './execution/canonical-executor';
+import type { ChainOutput } from './tool-chain-adapters';
 import { parseExecutionPlan, type ExecutionPlanContract } from './contracts/ai-plan';
 
 export type AgentPlan = Readonly<ExecutionPlanContract & {
@@ -97,45 +97,6 @@ function executionPlanIdentity(plan: ExecutionPlanContract): string {
       toolId: step.toolId,
       params: step.params ?? {},
     })),
-  });
-}
-
-function withExecutionGuards<T>(
-  operation: Promise<T>,
-  signal: AbortSignal | undefined,
-  deadline: number,
-): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    let settled = false;
-    const cleanup = () => {
-      if (signal) signal.removeEventListener('abort', onAbort);
-      if (timer !== undefined) clearTimeout(timer);
-    };
-    const finish = (callback: () => void) => {
-      if (settled) return;
-      settled = true;
-      cleanup();
-      callback();
-    };
-    const onAbort = () => finish(() => reject(abortError('Agent execution cancelled.')));
-    const remainingMs = Math.max(1, deadline - Date.now());
-    const timer = setTimeout(
-      () => finish(() => reject(new Error('Agent execution timed out.'))),
-      remainingMs,
-    );
-
-    if (signal) {
-      if (signal.aborted) {
-        finish(() => reject(abortError('Agent execution cancelled.')));
-        return;
-      }
-      signal.addEventListener('abort', onAbort, { once: true });
-    }
-
-    operation.then(
-      (value) => finish(() => resolve(value)),
-      (error) => finish(() => reject(error)),
-    );
   });
 }
 
@@ -318,27 +279,6 @@ export async function executeAgentPlan(
   ) {
     throw new Error('Execution denied by the canonical capability boundary.');
   }
-  await assertAgentInputWithinCapabilityBudget(file, capability);
   assertNotAborted(signal);
-  const parameters = validateCapabilityParameters(steps[0], validatedPlan.steps[0].params ?? {});
-  const input: ChainInput = Object.freeze({ blob: file, fileName: file.name });
-  const deadline = Date.now() + capability.safetyLimits.timeoutMs;
-
-  const output = await withExecutionGuards(
-    executeToolChain(steps, input),
-    signal,
-    deadline,
-  );
-  assertNotAborted(signal);
-
-  const verified = await withExecutionGuards(
-    capability.verifier(file, output.blob, parameters),
-    signal,
-    deadline,
-  );
-  assertNotAborted(signal);
-  if (!verified) {
-    throw new Error('Execution failed closed: output verifier rejected the artifact.');
-  }
-  return output;
+  return executeCanonicalTool(steps[0], { blob: file, fileName: file.name }, validatedPlan.steps[0].params ?? {}, signal);
 }
