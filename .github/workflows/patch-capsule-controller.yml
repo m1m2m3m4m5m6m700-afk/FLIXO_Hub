@@ -64,7 +64,7 @@ jobs:
             -H "apikey: ${SUPABASE_SECRET_KEY}" \
             -H "Authorization: Bearer ${SUPABASE_SECRET_KEY}" \
             -H "Accept: application/json" \
-            "${SUPABASE_URL}/rest/v1/flix_controller_push_queue?status=in.(PENDING_CONTROLLER_REVIEW,CONTROLLER_REVIEWING,STALE,CONFLICT)&select=queue_id&order=created_at.asc&limit=1")"
+            "${SUPABASE_URL}/rest/v1/flix_controller_push_queue?status=in.(PENDING_CONTROLLER_REVIEW,CONTROLLER_REVIEWING,STALE,CONFLICT,ACCEPTED)&select=queue_id&order=created_at.asc&limit=1")"
           queue_id="$(printf '%s' "${body}" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const x=JSON.parse(s);process.stdout.write(x[0]?.queue_id||"")})')"
           if [ -z "${queue_id}" ]; then
             echo "QUEUE_EMPTY=true" >> "${GITHUB_OUTPUT}"
