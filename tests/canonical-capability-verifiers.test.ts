@@ -150,7 +150,11 @@ test('canonical MVP capability verifiers accept measurable valid artifacts and r
 
     const cropVideoOutput = new Blob(['video-crop'], { type: 'video/webm' });
     videoMetadata.set(cropVideoOutput, { width: 200, height: 120, duration: 10 });
-    assert.equal(await definition('video-cropper').verifier(trimInput, cropVideoOutput, { width: 200, height: 120 }), true);
+    assert.equal(await definition('video-cropper').verifier(trimInput, cropVideoOutput, { x: 0, y: 0, width: 200, height: 120 }), true);
+
+    const cropClampedOutput = new Blob(['video-crop-clamped'], { type: 'video/webm' });
+    videoMetadata.set(cropClampedOutput, { width: 320, height: 180, duration: 10 });
+    assert.equal(await definition('video-cropper').verifier(trimInput, cropClampedOutput, { x: 0, y: 0, width: 1280, height: 720 }), true);
 
     const resizeVideoOutput = new Blob(['video-resize'], { type: 'video/webm' });
     videoMetadata.set(resizeVideoOutput, { width: 640, height: 360, duration: 10 });
@@ -160,7 +164,11 @@ test('canonical MVP capability verifiers accept measurable valid artifacts and r
     const compressorOutput = new Blob(['z'.repeat(800)], { type: 'video/webm' });
     videoMetadata.set(compressorInput, { width: 320, height: 180, duration: 10 });
     videoMetadata.set(compressorOutput, { width: 320, height: 180, duration: 10 });
-    assert.equal(await definition('video-compressor').verifier(compressorInput, compressorOutput, { videoBitsPerSecond: 1_000_000 }), true);
+    assert.equal(await definition('video-compressor').verifier(compressorInput, compressorOutput, { videoBitsPerSecond: 1_000_000, audioBitsPerSecond: 128_000 }), true);
+
+    const compressorExpanded = new Blob(['z'.repeat(4000)], { type: 'video/webm' });
+    videoMetadata.set(compressorExpanded, { width: 320, height: 180, duration: 10 });
+    assert.equal(await definition('video-compressor').verifier(compressorInput, compressorExpanded, { videoBitsPerSecond: 10_000_000, audioBitsPerSecond: 2_000_000 }), true);
   } finally {
     if (originalCreateImageBitmap === undefined) delete globals.createImageBitmap;
     else globals.createImageBitmap = originalCreateImageBitmap;
