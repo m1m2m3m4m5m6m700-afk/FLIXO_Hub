@@ -30,7 +30,6 @@ const contracts: Record<string, ToolOutputContract> = {
   'mockup-generator': { toolId: 'mockup-generator', variants: [image] },
   seed: { toolId: 'seed', variants: [image] },
   pix: { toolId: 'pix', variants: [image] },
-  'ai-image-generator': { toolId: 'ai-image-generator', variants: [image] },
   'video-trimmer': { toolId: 'video-trimmer', variants: [video] },
   'video-cropper': { toolId: 'video-cropper', variants: [video] },
   'video-resizer': { toolId: 'video-resizer', variants: [video] },
