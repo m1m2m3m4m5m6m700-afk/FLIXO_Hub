@@ -1,6 +1,5 @@
-import { applyBasicImageEffect, convertImage, cropResizeImage, flipImage, hueShiftImage, imageInfo, padImage, pixelateImage, removeBackground, resizeImage, rotateImage } from '../tools/image-toolkit/engine';
+import { applyBasicImageEffect, flipImage, hueShiftImage, padImage, pixelateImage, resizeImage, rotateImage } from '../tools/image-toolkit/engine';
 import { executeCanonicalImageTool } from './canonical-image-executor';
-import { compressImage } from '../tools/image-compressor/engine';
 
 export type ChainInput = Readonly<{ blob: Blob; fileName: string }>;
 export type ChainOutput = Readonly<{ blob: Blob; fileName: string }>;
@@ -26,7 +25,7 @@ const executeCanonicalChainTool = async (toolId: string, blob: Blob, parameters:
 };
 
 export const TOOL_CHAIN_ADAPTERS: Readonly<Record<string, ToolChainAdapterDefinition>> = Object.freeze({
-  'image-converter': Object.freeze({ execute: async ({ blob, fileName }: ChainInput, parameters) => {
+  'image-converter': Object.freeze({ execute: async ({ blob, fileName }: ChainInput, parameters?: ChainParameters) => {
     const format = stringParam(parameters, 'format', 'image/webp') as 'image/png' | 'image/jpeg' | 'image/webp';
     return { blob: await executeCanonicalChainTool('image-converter', blob, { format }), fileName: baseName(fileName) + (format === 'image/jpeg' ? '.jpg' : format === 'image/png' ? '.png' : '.webp') };
   } }),
@@ -42,7 +41,7 @@ export const TOOL_CHAIN_ADAPTERS: Readonly<Record<string, ToolChainAdapterDefini
     const targetSizeKB = parameters?.targetSizeKB;
     const maxWidth = parameters?.maxWidth;
     const maxHeight = parameters?.maxHeight;
-    const result = await executeCanonicalImageTool('image-compressor', blob, { format, quality, ...(typeof targetSizeKB === 'number' ? { targetSizeKB } : {}), ...(typeof maxWidth === 'number' ? { maxWidth } : {}), ...(typeof maxHeight === 'number' ? { maxHeight } : {}) });
+    const result = await executeCanonicalChainTool('image-compressor', blob, { format, quality, ...(typeof targetSizeKB === 'number' ? { targetSizeKB } : {}), ...(typeof maxWidth === 'number' ? { maxWidth } : {}), ...(typeof maxHeight === 'number' ? { maxHeight } : {}) });
     return { blob: result.outputBlob, fileName: baseName(fileName) + '-compressed' + (format === 'image/jpeg' ? '.jpg' : format === 'image/png' ? '.png' : '.webp') };
   } }),
   'image-effects': Object.freeze({ execute: async ({ blob, fileName }: ChainInput, parameters) => {
@@ -51,7 +50,7 @@ export const TOOL_CHAIN_ADAPTERS: Readonly<Record<string, ToolChainAdapterDefini
     const saturation = numberParam(parameters, 'saturate', 100);
     const grayscale = numberParam(parameters, 'grayscale', 0);
     const effectParameters = brightness !== 100 ? { brightness } : contrast !== 100 ? { contrast } : saturation !== 100 ? { saturate: saturation } : grayscale !== 0 ? { grayscale } : { contrast: 115 };
-    const result = await executeCanonicalImageTool('image-effects', blob, effectParameters);
+    const result = await executeCanonicalChainTool('image-effects', blob, effectParameters);
     return { blob: result.outputBlob, fileName: baseName(fileName) + '-effects.png' };
   } }),
   'image-rotate': Object.freeze({ execute: async ({ blob, fileName }: ChainInput) => ({ blob: await rotateImage(blob, 90), fileName: baseName(fileName) + '-rotated.png' }) }),
