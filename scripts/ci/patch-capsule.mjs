@@ -116,6 +116,9 @@ function reconcile({ capsule, targetSha, cwd = process.cwd(), patchFile = null, 
     }
 
     const status = runGit(['status', '--short'], cwd);
+    // git diff omits untracked files. Record intent-to-add so new files created by
+    // three-way application remain part of the portable reconciled patch.
+    if (status) runGit(['add', '--intent-to-add', '--', '.'], cwd);
     const reconciledPatch = runGit(['diff', '--binary', '--full-index', '--'], cwd);
     const paths = runGit(['diff', '--name-only', '--'], cwd);
     const reconciled = {
