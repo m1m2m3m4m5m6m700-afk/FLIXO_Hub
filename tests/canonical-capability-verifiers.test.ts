@@ -54,7 +54,6 @@ test('canonical MVP capability verifiers accept measurable valid artifacts and r
     getImageData() {
       const data = new Uint8ClampedArray(32 * 32 * 4);
       const source = activeBitmap ? bitmapSources.get(activeBitmap) : undefined;
-      const marker = source?.text ? undefined : undefined;
       if (source && source === currentVerificationInput) {
         for (let index = 0; index < data.length; index += 4) {
           data[index] = 16;
