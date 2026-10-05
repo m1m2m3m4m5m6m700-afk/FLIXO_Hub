@@ -294,20 +294,23 @@ const videoVerifier: CanonicalCapabilityVerifier = async (input, output, paramet
   const outputDuration = outputMeta.duration;
 
   if (parameters.startSec !== undefined || parameters.endSec !== undefined) {
-    if (!Number.isFinite(inputDuration) || !Number.isFinite(outputDuration)) return false;
+    if (typeof inputDuration !== 'number' || typeof outputDuration !== 'number' || !Number.isFinite(inputDuration) || !Number.isFinite(outputDuration)) return false;
+    const finiteInputDuration = inputDuration;
+    const finiteOutputDuration = outputDuration;
     const start = Number(parameters.startSec ?? 0);
-    const end = Number(parameters.endSec ?? inputDuration);
+    const end = Number(parameters.endSec ?? finiteInputDuration);
     const expected = Math.max(
       0.001,
-      Math.min(inputDuration, end) - Math.min(Math.max(0, start), Math.max(0, inputDuration - 0.001)),
+      Math.min(finiteInputDuration, end) - Math.min(Math.max(0, start), Math.max(0, finiteInputDuration - 0.001)),
     );
-    if (Math.abs(outputDuration - expected) > 0.35) return false;
+    if (Math.abs(finiteOutputDuration - expected) > 0.35) return false;
   }
 
-  if (parameters.videoBitsPerSecond !== undefined && Number.isFinite(outputDuration) && outputDuration > 0) {
+  if (parameters.videoBitsPerSecond !== undefined && typeof outputDuration === 'number' && Number.isFinite(outputDuration) && outputDuration > 0) {
+    const finiteOutputDuration = outputDuration;
     const audioBitsPerSecond = Number(parameters.audioBitsPerSecond ?? 0);
     const requestedBitsPerSecond = Number(parameters.videoBitsPerSecond) + audioBitsPerSecond;
-    const observedBitsPerSecond = (output.size * 8) / outputDuration;
+    const observedBitsPerSecond = (output.size * 8) / finiteOutputDuration;
     if (
       !Number.isFinite(requestedBitsPerSecond) ||
       requestedBitsPerSecond <= 0 ||
