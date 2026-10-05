@@ -13,11 +13,12 @@ const SHA_RE = /^[0-9a-f]{40}$/;
 const HASH_RE = /^[0-9a-f]{64}$/;
 const MAX_PATCH_BYTES = 2_000_000;
 
-function runGit(args, cwd = process.cwd()) {
+function runGit(args, cwd = process.cwd(), input = undefined) {
   return execFileSync('git', args, {
     cwd,
     encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe'],
+    input,
+    stdio: input === undefined ? ['ignore', 'pipe', 'pipe'] : ['pipe', 'pipe', 'pipe'],
   }).trimEnd();
 }
 
@@ -91,7 +92,7 @@ function reconcile({ capsule, targetSha, cwd = process.cwd(), patchFile = null, 
   runGit(['clean', '-ffd'], cwd);
 
   const patchPath = patchFile ?? `${cwd}/.flixo-patch-capsule-${process.pid}.patch`;
-  writeFile(patchPath, capsule.patchText, 'utf8');
+  if (patchFile) await writeFile(patchPath, capsule.patchText, 'utf8');
 
   try {
     if (!capsule.patchText) {
@@ -108,7 +109,11 @@ function reconcile({ capsule, targetSha, cwd = process.cwd(), patchFile = null, 
     }
 
     try {
-      runGit(['apply', '--3way', '--whitespace=nowarn', patchPath], cwd);
+      if (patchFile) {
+        runGit(['apply', '--3way', '--whitespace=nowarn', patchPath], cwd);
+      } else {
+        runGit(['apply', '--3way', '--whitespace=nowarn'], cwd, capsule.patchText);
+      }
     } catch (error) {
       const message = String(error?.stderr ?? error?.message ?? error).slice(0, 3000);
       throw new Error(`PATCH_CAPSULE_CONFLICT:${message}`, { cause: error });
