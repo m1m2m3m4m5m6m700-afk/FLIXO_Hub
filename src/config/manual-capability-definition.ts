@@ -277,12 +277,17 @@ const effectsVerifier: CanonicalCapabilityVerifier = async (input, output, param
   return hasMeaningfulPixelChange(input, output, signal);
 };
 
+const toolIsVideoCropper = (parameters: CanonicalCapabilityParameters): boolean =>
+  parameters.x !== undefined && parameters.y !== undefined && parameters.width !== undefined && parameters.height !== undefined && parameters.startSec === undefined && parameters.endSec === undefined && parameters.fps === undefined && parameters.videoBitsPerSecond === undefined;
+
 const videoVerifier: CanonicalCapabilityVerifier = async (input, output, parameters, signal) => {
   if (signal?.aborted || output.size <= 0 || output.type !== "video/webm") return false;
   const [inputMeta, outputMeta] = await Promise.all([readVideoDimensions(input, signal), readVideoDimensions(output, signal)]);
   if (!inputMeta || !outputMeta) return false;
   if (parameters.width !== undefined && parameters.height !== undefined) {
-    if (outputMeta.width !== Number(parameters.width) || outputMeta.height !== Number(parameters.height)) return false;
+    const expectedWidth = toolIsVideoCropper(parameters) ? Math.min(Number(parameters.width), inputMeta.width) : Number(parameters.width);
+    const expectedHeight = toolIsVideoCropper(parameters) ? Math.min(Number(parameters.height), inputMeta.height) : Number(parameters.height);
+    if (outputMeta.width !== expectedWidth || outputMeta.height !== expectedHeight) return false;
   }
   if (parameters.startSec !== undefined || parameters.endSec !== undefined) {
     if (!Number.isFinite(inputMeta.duration) || !Number.isFinite(outputMeta.duration)) return false;
@@ -291,7 +296,12 @@ const videoVerifier: CanonicalCapabilityVerifier = async (input, output, paramet
     const expected = Math.max(0.001, Math.min(inputMeta.duration ?? end, end) - Math.min(Math.max(0, start), Math.max(0, (inputMeta.duration ?? 0) - 0.001)));
     if (Math.abs((outputMeta.duration ?? 0) - expected) > 0.35) return false;
   }
-  if (parameters.videoBitsPerSecond !== undefined && output.size >= input.size) return false;
+  if (parameters.videoBitsPerSecond !== undefined && Number.isFinite(outputMeta.duration) && outputMeta.duration > 0) {
+    const audioBitsPerSecond = Number(parameters.audioBitsPerSecond ?? 0);
+    const requestedBitsPerSecond = Number(parameters.videoBitsPerSecond) + audioBitsPerSecond;
+    const observedBitsPerSecond = (output.size * 8) / outputMeta.duration;
+    if (!Number.isFinite(requestedBitsPerSecond) || requestedBitsPerSecond <= 0 || observedBitsPerSecond > requestedBitsPerSecond * 1.4) return false;
+  }
   return outputMeta.duration !== undefined && outputMeta.duration > 0;
 };
 
