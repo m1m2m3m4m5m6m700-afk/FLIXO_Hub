@@ -14,13 +14,14 @@ const SHA_RE = /^[0-9a-f]{40}$/;
 const HASH_RE = /^[0-9a-f]{64}$/;
 const MAX_PATCH_BYTES = 2_000_000;
 
-function runGit(args, cwd = process.cwd(), input = undefined) {
-  return execFileSync('git', args, {
+function runGit(args, cwd = process.cwd(), input = undefined, preserveOutput = false) {
+  const output = execFileSync('git', args, {
     cwd,
     encoding: 'utf8',
     input,
     stdio: input === undefined ? ['ignore', 'pipe', 'pipe'] : ['pipe', 'pipe', 'pipe'],
-  }).trimEnd();
+  });
+  return preserveOutput ? output : output.trimEnd();
 }
 
 function assertSha(value, label) {
@@ -45,7 +46,7 @@ function capture({ sourceSha, candidateSha, cwd = process.cwd(), taskId = null, 
     throw new Error(`PATCH_CAPSULE_PARENT_MISMATCH:${actualParent}!=${sourceSha}`);
   }
 
-  const patchText = runGit(['diff', '--binary', '--full-index', sourceSha, candidateSha, '--'], cwd);
+  const patchText = runGit(['diff', '--binary', '--full-index', sourceSha, candidateSha, '--'], cwd, undefined, true);
   const names = runGit(['diff', '--name-only', sourceSha, candidateSha, '--'], cwd);
   const paths = names ? names.split('\n').filter(Boolean) : [];
   const capsule = {
@@ -120,7 +121,7 @@ function reconcile({ capsule, targetSha, cwd = process.cwd(), patchFile = null, 
     // git diff omits untracked files. Record intent-to-add so new files created by
     // three-way application remain part of the portable reconciled patch.
     if (status) runGit(['add', '--intent-to-add', '--', '.'], cwd);
-    const reconciledPatch = runGit(['diff', '--binary', '--full-index', '--'], cwd);
+    const reconciledPatch = runGit(['diff', '--binary', '--full-index', '--'], cwd, undefined, true);
     const paths = runGit(['diff', '--name-only', '--'], cwd);
     const reconciled = {
       protocolVersion: PROTOCOL,
