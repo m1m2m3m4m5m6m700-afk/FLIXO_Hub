@@ -1,5 +1,3 @@
-[Reading 281 lines from start (total: 281 lines, 0 remaining)]
-
 import { getToolById } from '@/config/registry.ts';
 import { TOOL_CATALOG } from '@/config/registry.ts';
 import { MVP_EXECUTABLE_TOOL_IDS, getCapability, validateCapabilityParameters, type CanonicalCapabilityParameters } from '@/config/manual-capability-definition.ts';
@@ -285,5 +283,3 @@ export async function executeAgentPlan(
   const [step] = validated.steps;
   return executeCanonicalTool(step.toolId, { blob: file, fileName: file.name }, step.params ?? {}, signal);
 }
-
-[executed on device: Abood (aa7ebda3-6bd7-4231-869d-19d658154460)]
