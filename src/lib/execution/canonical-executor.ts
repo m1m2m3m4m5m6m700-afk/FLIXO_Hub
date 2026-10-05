@@ -1,5 +1,5 @@
 import { getCapability, validateCapabilityParameters, type CanonicalCapabilityParameters } from '../../config/manual-capability-definition.ts';
-import { getToolById } from '../config/registry.ts';
+import { getToolById } from '../../config/registry.ts';
 import { getToolChainAdapter, type ChainInput, type ChainOutput } from '../tool-chain-adapters.ts';
 import { getVideoToolExecutor, type VideoToolExecutor } from '../video/video-tool-executors.ts';
 import { validateFileSafety, MAGIC_BYTE_SIGNATURES } from '../contracts/file-safety.ts';
