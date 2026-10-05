@@ -148,7 +148,6 @@ test('canonical MVP capability verifiers accept measurable valid artifacts and r
     const bgOutput = new Blob(['bg-output'], { type: 'image/png' });
     imageDimensions.set(bgInput, { width: 32, height: 32 });
     imageDimensions.set(bgOutput, { width: 32, height: 32 });
-    imageDataRead = 0;
     assert.equal(await definition('background-remover').verifier(bgInput, bgOutput, {}), true);
 
     const compressedInput = new Blob(['x'.repeat(1000)], { type: 'image/png' });
