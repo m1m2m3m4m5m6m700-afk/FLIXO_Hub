@@ -1,0 +1,96 @@
+name: FLIXO Patch Capsule Controller
+
+on:
+  workflow_dispatch:
+    inputs:
+      queue_id:
+        description: "Optional durable Patch Capsule queue_id. Empty = oldest pending capsule."
+        required: false
+        type: string
+  schedule:
+    - cron: "*/10 * * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: flixo-patch-capsule-controller
+  cancel-in-progress: false
+
+jobs:
+  reconcile-and-publish:
+    name: Reconcile durable patch capsule onto live execution
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY || secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      FLIXO_CANONICAL_CONTROLLER: assistantController
+      FLIXO_TARGET_BRANCH: execution
+    steps:
+      - name: Checkout the sole mutation line
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          ref: execution
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Validate controller credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${GITHUB_TOKEN}"
+          test -n "${SUPABASE_URL}"
+          test -n "${SUPABASE_SECRET_KEY}"
+
+      - name: Select durable Patch Capsule
+        id: capsule
+        shell: bash
+        env:
+          INPUT_QUEUE_ID: ${{ inputs.queue_id }}
+        run: |
+          set -euo pipefail
+          if [ -n "${INPUT_QUEUE_ID}" ]; then
+            echo "queue_id=${INPUT_QUEUE_ID}" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+          body="$(curl --fail-with-body --silent --show-error \
+            -H "apikey: ${SUPABASE_SECRET_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_SECRET_KEY}" \
+            -H "Accept: application/json" \
+            "${SUPABASE_URL}/rest/v1/flix_controller_push_queue?status=in.(PENDING_CONTROLLER_REVIEW,CONTROLLER_REVIEWING,STALE,CONFLICT)&select=queue_id&order=created_at.asc&limit=1")"
+          queue_id="$(printf '%s' "${body}" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const x=JSON.parse(s);process.stdout.write(x[0]?.queue_id||"")})')"
+          if [ -z "${queue_id}" ]; then
+            echo "QUEUE_EMPTY=true" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+          echo "queue_id=${queue_id}" >> "${GITHUB_OUTPUT}"
+
+      - name: No-op when no durable work exists
+        if: steps.capsule.outputs.QUEUE_EMPTY == 'true'
+        run: echo "PATCH_CAPSULE_CONTROLLER=NO_WORK"
+
+      - name: Reconcile, verify, and CAS publish
+        if: steps.capsule.outputs.QUEUE_EMPTY != 'true'
+        env:
+          QUEUE_ID: ${{ steps.capsule.outputs.queue_id }}
+        run: |
+          set -euo pipefail
+          node scripts/ci/controller-reconcile-and-publish.mjs \
+            --queue-id "${QUEUE_ID}" \
+            --out controller-patch-capsule-evidence.json
+
+      - name: Upload controller evidence
+        if: always() && steps.capsule.outputs.QUEUE_EMPTY != 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: flixo-patch-capsule-controller-${{ github.run_id }}
+          path: controller-patch-capsule-evidence.json
+          if-no-files-found: warn
+          retention-days: 30
