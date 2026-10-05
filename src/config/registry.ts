@@ -2,6 +2,7 @@ import { TOOL_DEFINITIONS } from './canonical-tool-definition.ts';
 import type { ToolDefinition } from './canonical-tool-definition.ts';
 import { getLoadedToolCatalog } from './tool-platform/loader.ts';
 import type { ToolCatalog } from './tool-platform/types.ts';
+import { assertMvpScope, MVP_EXECUTABLE_TOOL_IDS } from '../lib/contracts/mvp-scope.ts';
 
 function assertToolRegistryContract(tools: readonly ToolDefinition[]): void {
   const ids = new Set<string>();
@@ -32,6 +33,7 @@ function assertToolRegistryContract(tools: readonly ToolDefinition[]): void {
 }
 
 assertToolRegistryContract(TOOL_DEFINITIONS);
+assertMvpScope(TOOL_DEFINITIONS, MVP_EXECUTABLE_TOOL_IDS);
 
 export const TOOL_REGISTRY: readonly ToolDefinition[] = Object.freeze(TOOL_DEFINITIONS);
 export const TOOL_CATALOG: ToolCatalog = getLoadedToolCatalog();
