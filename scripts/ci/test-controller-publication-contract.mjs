@@ -31,7 +31,7 @@ test('controller publication contract is execution-only, non-force, and controll
 
 
 test('controller recovery state contract remains recoverable after ACCEPTED', async () => {
-  const migration = await readFile(new URL('../../supabase/migrations/20261005095500_patch-capsule-publication-recovery.sql', import.meta.url), 'utf8');
+  const migration = await readFile(new URL('../../supabase/migrations/20261005065432_patch_capsule_publication_recovery.sql', import.meta.url), 'utf8');
   assert.ok(migration.includes("'CONFLICT','ACCEPTED'"));
   assert.ok(migration.includes("candidate_sha=p_consolidated_commit_sha"));
   assert.ok(migration.includes("p_current_sha=p_consolidated_commit_sha"));
