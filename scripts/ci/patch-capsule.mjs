@@ -11,6 +11,7 @@ const BRANCH = 'execution';
 const PROTOCOL = 'FLIXO-PATCH-CAPSULE-v1';
 const SHA_RE = /^[0-9a-f]{40}$/;
 const HASH_RE = /^[0-9a-f]{64}$/;
+const MAX_PATCH_BYTES = 2_000_000;
 
 function runGit(args, cwd = process.cwd()) {
   return execFileSync('git', args, {
@@ -73,6 +74,7 @@ function verify(capsule) {
   assertSha(capsule.candidateSha, 'candidate');
   if (capsule.parentSha !== capsule.sourceSha) throw new Error('PATCH_CAPSULE_PARENT_SOURCE_MISMATCH');
   if (typeof capsule.patchText !== 'string') throw new Error('PATCH_CAPSULE_PATCH_TEXT_REQUIRED');
+  if (Buffer.byteLength(capsule.patchText, 'utf8') > MAX_PATCH_BYTES) throw new Error('PATCH_CAPSULE_PATCH_TOO_LARGE');
   if (!HASH_RE.test(capsule.patchSha256 ?? '')) throw new Error('PATCH_CAPSULE_PATCH_HASH_INVALID');
   if (sha256(capsule.patchText) !== capsule.patchSha256) throw new Error('PATCH_CAPSULE_PATCH_HASH_MISMATCH');
   if (!Array.isArray(capsule.paths) || capsule.paths.some((value) => typeof value !== 'string' || !value)) {
