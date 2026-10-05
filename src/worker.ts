@@ -11,7 +11,7 @@ export function resolveDeploymentIdentity(requestedSha:string, deploymentSha:str
 const SECURITY_HEADERS: Record<string, string> = Object.freeze({
   'Content-Security-Policy': "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; worker-src 'self' blob:; connect-src 'self'; manifest-src 'self'",
   'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'strict-origin-when-cross-origin',
-  'Permissions-Policy': 'geolocation=(), microphone=(), camera=()', 'X-Frame-Options': 'DENY',
+  'Permissions-Policy': 'geolocation=(), microphone=(), camera=(self)', 'X-Frame-Options': 'DENY',
   'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
 });
 function secure(response: Response): Response { const headers = new Headers(response.headers); for (const [k,v] of Object.entries(SECURITY_HEADERS)) headers.set(k,v); return new Response(response.body,{status:response.status,statusText:response.statusText,headers}); }
