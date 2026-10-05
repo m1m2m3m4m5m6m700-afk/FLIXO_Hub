@@ -1,4 +1,5 @@
 import { applyBasicImageEffect, convertImage, cropResizeImage, flipImage, hueShiftImage, imageInfo, padImage, pixelateImage, removeBackground, resizeImage, rotateImage } from '../tools/image-toolkit/engine';
+import { executeCanonicalImageTool } from './canonical-image-executor';
 import { compressImage } from '../tools/image-compressor/engine';
 
 export type ChainInput = Readonly<{ blob: Blob; fileName: string }>;
@@ -19,52 +20,39 @@ const stringParam = (parameters: ChainParameters | undefined, key: string, fallb
   return typeof value === 'string' && value.length > 0 ? value : fallback;
 };
 
+const executeCanonicalChainTool = async (toolId: string, blob: Blob, parameters: ChainParameters): Promise<Blob> => {
+  const receipt = await executeCanonicalImageTool({ toolId, inputBlob: blob, parameters, origin: 'manual' });
+  return receipt.outputBlob;
+};
+
 export const TOOL_CHAIN_ADAPTERS: Readonly<Record<string, ToolChainAdapterDefinition>> = Object.freeze({
   'image-converter': Object.freeze({ execute: async ({ blob, fileName }: ChainInput, parameters) => {
     const format = stringParam(parameters, 'format', 'image/webp') as 'image/png' | 'image/jpeg' | 'image/webp';
-    return { blob: await convertImage(blob, format), fileName: baseName(fileName) + (format === 'image/jpeg' ? '.jpg' : format === 'image/png' ? '.png' : '.webp') };
+    return { blob: await executeCanonicalChainTool('image-converter', blob, { format }), fileName: baseName(fileName) + (format === 'image/jpeg' ? '.jpg' : format === 'image/png' ? '.png' : '.webp') };
   } }),
   'image-upscaler': Object.freeze({ execute: async ({ blob, fileName }: ChainInput, parameters) => {
     const scale = numberParam(parameters, 'scale', 2);
-    return { blob: await resizeImage(blob, scale), fileName: baseName(fileName) + `-${scale}x.png` };
+    return { blob: await executeCanonicalChainTool('image-upscaler', blob, { scale }), fileName: baseName(fileName) + `-${scale}x.png` };
   } }),
-  'background-remover': Object.freeze({ execute: async ({ blob, fileName }: ChainInput, parameters) => ({ blob: await removeBackground(blob, numberParam(parameters, 'tolerance', 42)), fileName: baseName(fileName) + '-no-background.png' }) }),
-  'image-cropper': Object.freeze({ execute: async ({ blob, fileName }: ChainInput, parameters) => {
-    const info = await imageInfo(blob);
-    const ratio = stringParam(parameters, 'aspectRatio', '1:1').split(':').map(Number);
-    const ratioValue = ratio[1] > 0 ? ratio[0] / ratio[1] : 1;
-    const size = Math.min(info.width, info.height);
-    const width = ratioValue >= 1 ? Math.min(info.width, Math.max(1, Math.round(info.height * ratioValue))) : Math.min(info.width, size);
-    const height = ratioValue >= 1 ? Math.min(info.height, Math.max(1, Math.round(info.width / ratioValue))) : Math.min(info.height, Math.max(1, Math.round(info.width / ratioValue)));
-    const cropWidth = ratioValue >= 1 ? Math.min(info.width, Math.max(1, Math.round(height * ratioValue))) : width;
-    const cropHeight = ratioValue >= 1 ? height : Math.min(info.height, Math.max(1, Math.round(width / ratioValue)));
-    return { blob: await cropResizeImage(blob, { x: Math.floor((info.width - cropWidth) / 2), y: Math.floor((info.height - cropHeight) / 2), width: cropWidth, height: cropHeight }, { width: cropWidth, height: cropHeight }), fileName: baseName(fileName) + '-cropped.png' };
-  } }),
+  'background-remover': Object.freeze({ execute: async ({ blob, fileName }: ChainInput, parameters) => ({ blob: await executeCanonicalChainTool('background-remover', blob, { tolerance: numberParam(parameters, 'tolerance', 42) }), fileName: baseName(fileName) + '-no-background.png' }) }),
+  'image-cropper': Object.freeze({ execute: async ({ blob, fileName }: ChainInput, parameters) => ({ blob: await executeCanonicalChainTool('image-cropper', blob, { aspectRatio: stringParam(parameters, 'aspectRatio', '1:1') }), fileName: baseName(fileName) + '-cropped.png' }) }),
   'image-compressor': Object.freeze({ execute: async ({ blob, fileName }: ChainInput, parameters) => {
     const format = stringParam(parameters, 'format', 'image/webp') as 'image/png' | 'image/jpeg' | 'image/webp';
     const quality = numberParam(parameters, 'quality', 0.8);
     const targetSizeKB = parameters?.targetSizeKB;
     const maxWidth = parameters?.maxWidth;
     const maxHeight = parameters?.maxHeight;
-    const result = await compressImage(new File([blob], baseName(fileName) + '.input', { type: blob.type || 'image/png' }), {
-      format,
-      quality,
-      ...(typeof targetSizeKB === 'number' ? { targetSizeKB } : {}),
-      ...(typeof maxWidth === 'number' ? { maxWidth } : {}),
-      ...(typeof maxHeight === 'number' ? { maxHeight } : {}),
-    });
-    return { blob: result.blob, fileName: baseName(fileName) + '-compressed' + (format === 'image/jpeg' ? '.jpg' : format === 'image/png' ? '.png' : '.webp') };
+    const result = await executeCanonicalImageTool('image-compressor', blob, { format, quality, ...(typeof targetSizeKB === 'number' ? { targetSizeKB } : {}), ...(typeof maxWidth === 'number' ? { maxWidth } : {}), ...(typeof maxHeight === 'number' ? { maxHeight } : {}) });
+    return { blob: result.outputBlob, fileName: baseName(fileName) + '-compressed' + (format === 'image/jpeg' ? '.jpg' : format === 'image/png' ? '.png' : '.webp') };
   } }),
   'image-effects': Object.freeze({ execute: async ({ blob, fileName }: ChainInput, parameters) => {
     const brightness = numberParam(parameters, 'brightness', 100);
     const contrast = numberParam(parameters, 'contrast', 100);
     const saturation = numberParam(parameters, 'saturate', 100);
     const grayscale = numberParam(parameters, 'grayscale', 0);
-    if (brightness !== 100) return { blob: await applyBasicImageEffect(blob, 'brightness', brightness), fileName: baseName(fileName) + '-brightness.png' };
-    if (contrast !== 100) return { blob: await applyBasicImageEffect(blob, 'contrast', contrast), fileName: baseName(fileName) + '-contrast.png' };
-    if (saturation !== 100) return { blob: await applyBasicImageEffect(blob, 'saturation', saturation), fileName: baseName(fileName) + '-saturation.png' };
-    if (grayscale !== 0) return { blob: await applyBasicImageEffect(blob, 'grayscale', grayscale), fileName: baseName(fileName) + '-grayscale.png' };
-    return { blob: await applyBasicImageEffect(blob, 'contrast', 115), fileName: baseName(fileName) + '-effects.png' };
+    const effectParameters = brightness !== 100 ? { brightness } : contrast !== 100 ? { contrast } : saturation !== 100 ? { saturate: saturation } : grayscale !== 0 ? { grayscale } : { contrast: 115 };
+    const result = await executeCanonicalImageTool('image-effects', blob, effectParameters);
+    return { blob: result.outputBlob, fileName: baseName(fileName) + '-effects.png' };
   } }),
   'image-rotate': Object.freeze({ execute: async ({ blob, fileName }: ChainInput) => ({ blob: await rotateImage(blob, 90), fileName: baseName(fileName) + '-rotated.png' }) }),
   'image-flip-horizontal': Object.freeze({ execute: async ({ blob, fileName }: ChainInput) => ({ blob: await flipImage(blob, true), fileName: baseName(fileName) + '-flipped-h.png' }) }),
