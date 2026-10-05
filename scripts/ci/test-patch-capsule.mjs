@@ -93,3 +93,30 @@ test('fails closed on an overlapping change and preserves the capsule', async ()
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+
+test('reconciles a newly created file without dropping the addition', async () => {
+  const dir = await initRepo();
+  try {
+    const source = git(dir, 'rev-parse', 'HEAD');
+    await writeFile(join(dir, 'new-file.txt'), 'agent-created file\n');
+    git(dir, 'add', 'new-file.txt');
+    git(dir, 'commit', '-m', 'agent adds file');
+    const candidate = git(dir, 'rev-parse', 'HEAD');
+    const capsule = capture({ sourceSha: source, candidateSha: candidate, cwd: dir });
+
+    git(dir, 'reset', '--hard', source);
+    await writeFile(join(dir, 'parallel.txt'), 'parallel work\n');
+    git(dir, 'add', 'parallel.txt');
+    git(dir, 'commit', '-m', 'parallel head');
+    const movedHead = git(dir, 'rev-parse', 'HEAD');
+
+    const result = reconcile({ capsule, targetSha: movedHead, cwd: dir });
+    assert.equal(result.status, 'RECONCILED');
+    assert.match(result.patchText, /new-file\.txt/);
+    assert.match(result.patchText, /agent-created file/);
+    assert.equal(result.paths.includes('new-file.txt'), true);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
