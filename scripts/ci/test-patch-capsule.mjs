@@ -85,7 +85,7 @@ test('fails closed on an overlapping change and preserves the capsule', async ()
     git(dir, 'commit', '-am', 'parallel conflicting change');
     const movedHead = git(dir, 'rev-parse', 'HEAD');
 
-    await assert.rejects(
+    assert.throws(
       () => reconcile({ capsule, targetSha: movedHead, cwd: dir }),
       /PATCH_CAPSULE_CONFLICT/,
     );
