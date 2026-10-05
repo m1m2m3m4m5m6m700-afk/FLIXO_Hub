@@ -245,7 +245,7 @@ async function publish(queueId, worktree, targetSha, candidateSha) {
   if (parent !== targetSha) throw new Error('CONTROLLER_PARENT_MISMATCH:' + parent + '!=' + targetSha);
 
   try {
-    execFileSync('git', ['push', '--porcelain', 'origin', 'HEAD:refs/heads/' + BRANCH], {
+    execFileSync('git', ['push', '--porcelain', 'origin', `HEAD:refs/heads/${BRANCH}`], {
       cwd: worktree,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
