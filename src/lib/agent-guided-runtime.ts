@@ -56,26 +56,6 @@ function assertNotAborted(signal?: AbortSignal): void {
   if (signal?.aborted) throw abortError('Agent execution cancelled.');
 }
 
-function assertAgentInputWithinCapabilityBudget(
-  file: File,
-  capability: {
-    safetyLimits: { maxPixels: number; maxFileSizeBytes: number };
-  },
-): Promise<void> {
-  if (file.size > capability.safetyLimits.maxFileSizeBytes) {
-    throw new Error('Execution denied: input exceeds the canonical capability file-size limit.');
-  }
-  return imageInfo(file).then(({ width, height }) => {
-    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
-      throw new Error('Execution denied: image dimensions are invalid.');
-    }
-    if (width * height > capability.safetyLimits.maxPixels) {
-      throw new Error('Execution denied: image dimensions exceed the canonical capability pixel limit.');
-    }
-  });
-}
-
-
 function randomToken(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();
