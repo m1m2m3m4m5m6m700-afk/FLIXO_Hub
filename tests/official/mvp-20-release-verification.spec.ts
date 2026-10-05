@@ -1,11 +1,11 @@
 import { expect, test, type Page } from '@playwright/test';
 
-const PNG_FIXTURE = 'iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAPUlEQVR42mP4z8DwHwwZ/oMBAwOYxQBD/xkaHBT+Kzg0/HdoUPh/IsXoP4OIhs1/Gw2R/ynTTvz/sCXgPwDaSiSJ4dCj1wAAAABJRU5ErkJggg==';
+import { PNG } from '../helpers/image-tool-fixture';
 const MANUAL_TOOL_IDS = [
   'background-remover','image-upscaler','image-cropper','image-compressor','image-converter','image-effects',
-  'image-rotate','image-flip-horizontal','image-flip-vertical','image-brightness','image-contrast',
-  'image-saturation','image-grayscale','image-invert','image-sepia','image-blur','image-sharpen',
-  'image-resizer','image-hue','image-pixelate',
+  'image-resizer','image-rotate-flip','image-brightness-contrast','image-saturation-hue','image-exposure',
+  'image-highlights-shadows','image-sharpen','image-blur','image-grayscale-duotone','image-filters',
+  'image-watermark','image-text-overlay','image-draw-annotate','image-redaction',
 ] as const;
 
 const AGENT_CASES = [
@@ -15,27 +15,27 @@ const AGENT_CASES = [
   ['image-compressor', 'compress my image'],
   ['image-converter', 'convert this image to webp'],
   ['image-effects', 'adjust image effects'],
-  ['image-rotate', 'rotate the image'],
-  ['image-flip-horizontal', 'flip horizontal'],
-  ['image-flip-vertical', 'flip vertical'],
-  ['image-brightness', 'increase brightness'],
-  ['image-contrast', 'increase contrast by 10 percent'],
-  ['image-saturation', 'increase saturation'],
-  ['image-grayscale', 'make it black and white'],
-  ['image-invert', 'invert image colors'],
-  ['image-sepia', 'apply sepia'],
-  ['image-blur', 'blur the image'],
-  ['image-sharpen', 'sharpen the image'],
   ['image-resizer', 'resize the image'],
-  ['image-hue', 'change the hue'],
-  ['image-pixelate', 'pixelate the image'],
+  ['image-rotate-flip', 'rotate and flip the image'],
+  ['image-brightness-contrast', 'increase brightness and contrast'],
+  ['image-saturation-hue', 'increase saturation and hue'],
+  ['image-exposure', 'increase exposure'],
+  ['image-highlights-shadows', 'adjust highlights and shadows'],
+  ['image-sharpen', 'sharpen the image'],
+  ['image-blur', 'blur the image'],
+  ['image-grayscale-duotone', 'apply duotone mapping'],
+  ['image-filters', 'use photo filters'],
+  ['image-watermark', 'add a watermark'],
+  ['image-text-overlay', 'add text to the image'],
+  ['image-draw-annotate', 'draw an arrow on the image'],
+  ['image-redaction', 'redact a region of the image'],
 ] as const;
 
 function fixture() {
   return {
     name: 'flixo-release-fixture.png',
     mimeType: 'image/png',
-    buffer: Buffer.from(PNG_FIXTURE, 'base64'),
+    buffer: PNG,
   };
 }
 
