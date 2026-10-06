@@ -4,7 +4,7 @@ Repository identity: `m1m2m3m4m5m6m700-afk/FLIXO_Hub`. Historical references to 
 
 ## Scope
 
-This policy covers the FLIXO-AI-TOOLS repository, its source code, CI workflows, and production-facing configuration.
+This policy covers the FLIXO Hub repository, its source code, CI workflows, and production-facing configuration.
 
 ## Secrets
 
