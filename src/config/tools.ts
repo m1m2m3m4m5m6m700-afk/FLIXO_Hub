@@ -1,18 +1,13 @@
-import { TOOL_MANIFEST, getToolManifest, getToolManifestByPath } from './tool-manifest.ts';
-import { TOOL_REGISTRY } from './registry.ts';
-import type { ToolDefinition } from './canonical-tool-definition.ts';
+/** @deprecated Import from '@/lib/tools/tool-registry' for the consolidated tool source. */
+export {
+  TOOL_REGISTRY as TOOLS_REGISTRY,
+  TOOL_MANIFEST as TOOL_MANIFEST_ENTRIES,
+  getToolById as getToolConfig,
+  getToolByRoute as getToolConfigByPath,
+  getToolManifest,
+} from '../lib/tools/tool-registry.ts';
+export type { ToolDefinition as ToolConfig } from './canonical-tool-definition.ts';
+export type ToolComponent = ToolConfig['component'];
 
-export type ToolConfig = ToolDefinition;
-export type ToolComponent = ToolDefinition['component'];
-
-/** @deprecated Use TOOL_REGISTRY from ./registry.ts. Kept only for external compatibility. */
-export const TOOLS_REGISTRY = TOOL_REGISTRY;
-export const TOOL_MANIFEST_ENTRIES = TOOL_MANIFEST;
-
-/** @deprecated Use getToolById from ./registry.ts. Kept only for external compatibility. */
-export const getToolConfig = (id: string) => TOOL_REGISTRY.find((tool) => tool.id === id);
-export const getToolConfigByPath = getToolManifestByPath;
-/** @deprecated Use TOOL_CATALOG.ready from ./registry.ts. Kept only for external compatibility. */
-export const getReadyToolConfigs = () => TOOL_REGISTRY.filter((tool) => tool.isReady);
-
-export { getToolManifest };
+export const getReadyToolConfigs = () =>
+  TOOL_MANIFEST_ENTRIES.filter((tool) => tool.isReady);
