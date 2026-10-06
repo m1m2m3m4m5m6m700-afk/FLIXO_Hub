@@ -1,4 +1,4 @@
-import type { ToolDefinition } from '../canonical-tool-definition.ts';
+import type { ToolDefinition } from '../../lib/tools/tool-registry.ts';
 
 export type ManagedTool = ToolDefinition;
 
