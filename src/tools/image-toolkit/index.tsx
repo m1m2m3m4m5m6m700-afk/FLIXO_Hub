@@ -181,6 +181,11 @@ export function ImageToolPage({ toolId }: Props) {
       else if (toolId === 'image-sepia') { blob = await applyBasicImageEffect(file, 'sepia', 100); fileName += '-sepia.png'; }
       else if (toolId === 'image-blur') { blob = await applyBasicImageEffect(file, 'blur', 80); fileName += '-blur.png'; }
       else if (toolId === 'image-sharpen') { blob = await applyBasicImageEffect(file, 'sharpen', 110); fileName += '-sharpen.png'; }
+      else if (toolId === 'image-effects') {
+        const output = await executeCanonicalTool('image-effects', { blob: file, fileName: file.name }, { contrast: 110 });
+        blob = output.blob;
+        fileName = output.fileName;
+      }
       else { blob = await rasterToSvg(file, Number(columns) || 48); fileName += '.svg'; }
       if (blob.type.startsWith('image/') && !info) info = await imageInfo(blob);
       replaceResult(await createResult(blob, fileName, info));
