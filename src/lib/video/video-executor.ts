@@ -96,6 +96,16 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
   // The renderer captures the processed video track into a local WebM artifact.
   video.muted = true;
   video.playsInline = true;
+  // Keep the media element attached to the document so headless Chromium reliably
+  // starts playback and advances decoded frames during canvas capture.
+  video.style.position = 'fixed';
+  video.style.left = '-10000px';
+  video.style.top = '0';
+  video.style.width = '1px';
+  video.style.height = '1px';
+  video.style.opacity = '0';
+  video.style.pointerEvents = 'none';
+  document.body?.appendChild(video);
 
   try {
     const metadataReady = waitForEvent(video, 'loadedmetadata');
@@ -221,5 +231,6 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
     releaseSource?.();
     video.removeAttribute('src');
     video.load();
+    if (video.parentNode) video.parentNode.removeChild(video);
   }
 }
