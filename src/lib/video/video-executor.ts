@@ -86,20 +86,22 @@ function stopTracks(stream: MediaStream | null | undefined): void {
 async function stopRecorder(recorder: MediaRecorder | null): Promise<void> {
   if (!recorder || recorder.state === 'inactive') return;
   await new Promise<void>((resolve) => {
-    const previous = recorder.onstop;
     recorder.addEventListener('stop', () => resolve(), { once: true });
     try {
       recorder.stop();
     } catch {
-      previous?.call(recorder, new Event('stop'));
       resolve();
     }
   });
 }
 
-function assertWebmArtifact(blob: Blob): void {
+async function assertWebmArtifact(blob: Blob): Promise<void> {
   if (blob.type !== 'video/webm') throw new Error(`Unexpected video output MIME type: ${blob.type || '(missing MIME)'}`);
   if (blob.size < 4) throw new Error('VIDEO_OUTPUT_EMPTY');
+  const header = new Uint8Array(await blob.slice(0, 4).arrayBuffer());
+  if (header[0] !== 0x1a || header[1] !== 0x45 || header[2] !== 0xdf || header[3] !== 0xa3) {
+    throw new Error('VIDEO_OUTPUT_SIGNATURE_INVALID');
+  }
 }
 
 export async function renderVideoToWebm(
@@ -174,7 +176,7 @@ export async function renderVideoToWebm(
     });
 
     let recorderFailure: Error | undefined;
-    const stopped = new Promise<void>((resolve, reject) => {
+    const stopped = new Promise<void>((resolve) => {
       recorder!.ondataavailable = (event) => {
         if (event.data.size <= 0) return;
         totalBytes += event.data.size;
@@ -190,12 +192,9 @@ export async function renderVideoToWebm(
       };
       recorder!.onerror = () => {
         recorderFailure = recorderFailure ?? new Error('VIDEO_RECORDING_FAILED');
-        reject(recorderFailure);
+        operationController.abort();
       };
-      recorder!.onstop = () => {
-        if (recorderFailure) reject(recorderFailure);
-        else resolve();
-      };
+      recorder!.onstop = () => resolve();
     });
 
     await seek(video, options.startSec ?? 0, operationController.signal);
@@ -238,10 +237,11 @@ export async function renderVideoToWebm(
     video.pause();
     await stopRecorder(recorder);
     await stopped;
+    if (recorderFailure) throw recorderFailure;
     if (!chunks.length) throw new Error('VIDEO_RECORDING_EMPTY');
 
     const output = new Blob(chunks, { type: 'video/webm' });
-    assertWebmArtifact(output);
+    await assertWebmArtifact(output);
     return output;
   } finally {
     clearTimeout(timeoutId);
