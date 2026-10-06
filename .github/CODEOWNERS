@@ -2,7 +2,7 @@
 # These entries provide explicit ownership coverage.
 # GitHub enforcement is separate: the active main ruleset MUST require the
 # approving-review and Code Owner gates before those controls are considered mandatory.
-*
+* @m1m2m3m4m5m6m700-afk
 /.github/workflows/ @m1m2m3m4m5m6m700-afk
 /.github/CODEOWNERS @m1m2m3m4m5m6m700-afk
 /.github/agents/ @m1m2m3m4m5m6m700-afk
