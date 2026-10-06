@@ -195,7 +195,21 @@ jobs:
           fetch-depth: 1
           persist-credentials: true
       - name: Assert only main and execution branches exist
+        if: ${{ github.event_name != 'pull_request' }}
         run: node scripts/ci/verify-branch-policy.mjs
+      - name: Verify canonical PR source identity
+        if: ${{ github.event_name == 'pull_request' }}
+        env:
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          BASE_REPO: ${{ github.event.pull_request.base.repo.full_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$HEAD_REPO"
+          test -n "$BASE_REPO"
+          test "$HEAD_REPO" = "$GITHUB_REPOSITORY"
+          test "$BASE_REPO" = "$GITHUB_REPOSITORY"
+          echo "PR_SOURCE_IDENTITY=PASS"
       - name: Verify main governance ruleset
         if: ${{ (github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main') || github.ref == 'refs/heads/main' }}
         env:
@@ -246,6 +260,8 @@ jobs:
           GITHUB_EVENT_NAME: ${{ github.event_name }}
           GITHUB_REF: ${{ github.ref }}
           GITHUB_EVENT_PATH: ${{ github.event_path }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          BASE_REPO: ${{ github.event.pull_request.base.repo.full_name || github.repository }}
           TRUST_RESULT: ${{ needs.trust-gate.result }}
           GH_TOKEN: ${{ github.token }}
         run: |
