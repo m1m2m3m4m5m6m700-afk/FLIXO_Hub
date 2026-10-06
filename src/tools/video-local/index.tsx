@@ -75,7 +75,7 @@ export function VideoLocalTool() {
     return { videoBitsPerSecond: 2_500_000, audioBitsPerSecond: 128_000 };
   }, [id, inputMeta]);
 
-  const mergedParameters = { ...defaults, ...parameters };
+  const mergedParameters: Parameters = { ...defaults, ...parameters };
 
   const updateParameter = (key: string, value: string) => {
     setParameters((current) => ({ ...current, [key]: value }));
