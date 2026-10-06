@@ -91,6 +91,66 @@ jobs:
           npx playwright install --with-deps chromium
           npm run test:e2e -- --project=chromium tests/official/mvp-10-release-verification.spec.ts
 
+      - name: Publish browser failure diagnostics
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f playwright-report/results.json || { echo 'No Playwright results JSON produced.'; exit 0; }
+          node > /tmp/flixo-browser-failure.md <<'NODE'
+          const fs = require('fs');
+          const data = JSON.parse(fs.readFileSync('playwright-report/results.json', 'utf8'));
+          const failures = [];
+          const walk = (suite, path = []) => {
+            for (const spec of suite.specs ?? []) {
+              for (const test of spec.tests ?? []) {
+                const failed = (test.results ?? []).filter((result) => result.status === 'failed' || result.status === 'timedOut');
+                if (failed.length) {
+                  failures.push({
+                    title: [...path, spec.title].filter(Boolean).join(' / '),
+                    project: test.projectName,
+                    expected: test.expectedStatus,
+                    attempts: failed.map((result) => ({
+                      status: result.status,
+                      duration: result.duration,
+                      errors: (result.errors ?? []).map((error) => String(error.message ?? error).slice(0, 4000)),
+                    })),
+                  });
+                }
+              }
+            }
+            for (const child of suite.suites ?? []) walk(child, [...path, suite.title].filter(Boolean));
+          };
+          for (const suite of data.suites ?? []) walk(suite);
+          const lines = [
+            '## FLIXO Browser E2E diagnostic',
+            '',
+            'Exact SHA: ' + process.env.EXPECTED_SHA,
+            'Failed tests: ' + failures.length,
+            '',
+          ];
+          for (const failure of failures.slice(0, 20)) {
+            lines.push('### ' + failure.title);
+            lines.push('- Project: ' + (failure.project ?? 'unknown'));
+            lines.push('- Expected: ' + (failure.expected ?? 'unknown'));
+            for (const attempt of failure.attempts) {
+              lines.push('- Attempt status: ' + attempt.status + '; durationMs=' + attempt.duration);
+              for (const error of attempt.errors) lines.push('```text\\n' + error + '\\n```');
+            }
+            lines.push('');
+          }
+          process.stdout.write(lines.join('\\n'));
+          NODE
+          printf '\\n\\nThis diagnostic is emitted only because Browser E2E failed; no PASS is inferred from it.\\n' >> /tmp/flixo-browser-failure.md
+          PR_NUMBER="$(gh pr list --state open --head execution --json number --jq '.[0].number // empty')"
+          if [ -n "$PR_NUMBER" ]; then
+            gh pr comment "$PR_NUMBER" --body-file /tmp/flixo-browser-failure.md
+          else
+            cat /tmp/flixo-browser-failure.md
+          fi
       - name: Wait for exact-SHA security workflows
         shell: bash
         run: |
