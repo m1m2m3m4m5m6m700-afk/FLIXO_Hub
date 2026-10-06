@@ -150,17 +150,22 @@ test('canonical MVP capability verifiers accept measurable valid artifacts and r
     imageDimensions.set(bgOutput, { width: 32, height: 32 });
     currentVerificationInput = bgInput;
     assert.equal(await definition('background-remover').verifier(bgInput, bgOutput, {}), true);
+    assert.equal(await definition('background-remover').verifier(bgInput, bgInput, {}), false);
 
     const compressedInput = new Blob(['x'.repeat(1000)], { type: 'image/png' });
     const compressedOutput = new Blob(['x'.repeat(400)], { type: 'image/webp' });
     assert.equal(await definition('image-compressor').verifier(compressedInput, compressedOutput, { targetSizeKB: 1 }), true);
+    assert.equal(
+      await definition('image-compressor').verifier(compressedInput, new Blob(['x'.repeat(1200)], { type: 'image/webp' }), {}),
+      false,
+    );
 
     const converted = new Blob(['converted'], { type: 'image/webp' });
     assert.equal(await definition('image-converter').verifier(input, converted, { format: 'image/webp' }), true);
 
     const videoIds = ['video-trimmer', 'video-cropper', 'video-resizer', 'video-compressor'];
     for (const id of videoIds) {
-      const candidateInput = new Blob(['candidate-video-input'], { type: 'video/webm' });
+      const candidateInput = new Blob(['candidate-video-input'.repeat(2)], { type: 'video/webm' });
       const candidateOutput = new Blob(['candidate-video-output'], { type: 'video/webm' });
       videoMetadata.set(candidateInput, { width: 320, height: 180, duration: 2 });
       videoMetadata.set(candidateOutput, {
