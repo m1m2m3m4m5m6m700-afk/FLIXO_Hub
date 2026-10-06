@@ -4,12 +4,12 @@ STATUS: BLOCKER
 PROMPT_ID: 01
 SCOPE: READ_ONLY_STATE_RECORD
 RECORDED_AT_UTC: 2026-10-06
-START_SHA: d64819ff6f3aae5d1ed3dcade957891f48efa256
-END_SHA: d64819ff6f3aae5d1ed3dcade957891f48efa256
+START_SHA: bff91e1e14d3b02c9778738dfa93972ab154ea53
+END_SHA: bff91e1e14d3b02c9778738dfa93972ab154ea53
 CURRENT_MAIN_SHA: 263827228cbe5f4851470297fde5f2858ff844de
-CURRENT_EXECUTION_SHA: d64819ff6f3aae5d1ed3dcade957891f48efa256
+CURRENT_EXECUTION_SHA: bff91e1e14d3b02c9778738dfa93972ab154ea53
 PR: #1002
-PR_HEAD_SHA: d64819ff6f3aae5d1ed3dcade957891f48efa256
+PR_HEAD_SHA: bff91e1e14d3b02c9778738dfa93972ab154ea53
 PR_BASE_SHA: 263827228cbe5f4851470297fde5f2858ff844de
 PRIMARY_BRANCH: execution
 INTEGRATION_PATH: execution -> main
@@ -25,13 +25,13 @@ INTEGRATION_PATH: execution -> main
 - exact-SHA coverage evidence
 - Red Team evidence
 
-Current exact-candidate workflow state at d64819ff6f3aae5d1ed3dcade957891f48efa256:
-- FLIXO Secret Scan: PASS on d64819ff6f3aae5d1ed3dcade957891f48efa256 (push and pull request runs).
-- FLIXO CodeQL: PASS on d64819ff6f3aae5d1ed3dcade957891f48efa256 (push and pull request runs).
-- FLIXO CI: IN_PROGRESS/PENDING on d64819ff6f3aae5d1ed3dcade957891f48efa256; its completed child gates include typecheck, lint, npm test, production dependency audit, build, exact-SHA coverage, and adversarial regression as PASS, while Branch policy is FAIL because Prompt-12 governance is not satisfied.
-- Chromium browser smoke: IN_PROGRESS on d64819ff6f3aae5d1ed3dcade957891f48efa256.
-- TestSprite Live E2E: the execution run has been re-triggered on the same d64819ff6f3aae5d1ed3dcade957891f48efa256; no PASS claim is made until the native Playwright/TestSprite path completes.
-- Prompt 17 clean-clone final Red Team: IN_PROGRESS/PENDING on d64819ff6f3aae5d1ed3dcade957891f48efa256; no PASS claim is made until the full exact-SHA gate completes.
+Current exact-candidate workflow state at bff91e1e14d3b02c9778738dfa93972ab154ea53:
+- FLIXO Secret Scan: PASS on bff91e1e14d3b02c9778738dfa93972ab154ea53.
+- FLIXO CodeQL: PASS on bff91e1e14d3b02c9778738dfa93972ab154ea53.
+- FLIXO CI: PENDING on bff91e1e14d3b02c9778738dfa93972ab154ea53; the current run has not yet produced a complete gate result.
+- Chromium browser smoke: PENDING on bff91e1e14d3b02c9778738dfa93972ab154ea53.
+- TestSprite Live E2E: no final PASS evidence is bound to bff91e1e14d3b02c9778738dfa93972ab154ea53.
+- Prompt 17 clean-clone final Red Team: not certified on bff91e1e14d3b02c9778738dfa93972ab154ea53.
 - Prompt 18 freeze and Prompt 19 certification evidence are not present.
 
 ## Governance evidence
