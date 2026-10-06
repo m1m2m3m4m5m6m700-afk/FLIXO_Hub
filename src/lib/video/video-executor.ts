@@ -94,7 +94,6 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
   let canvasStream: MediaStream | undefined;
   let sourceStream: MediaStream | null = null;
   let recorder: MediaRecorder | undefined;
-  let frameHandle = 0;
   let drawing = false;
   let frameInterval: ReturnType<typeof setInterval> | undefined;
   let releaseSource: (() => void) | null = null;
@@ -224,7 +223,6 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
 
     drawing = false;
     clearInterval(frameInterval);
-    cancelAnimationFrame(frameHandle);
     video.pause();
     if (activeRecorder.state !== 'inactive') {
       try { activeRecorder.requestData(); } catch { /* recorder may already be stopping */ }
@@ -240,7 +238,6 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
   } finally {
     drawing = false;
     if (frameInterval) clearInterval(frameInterval);
-    if (frameHandle) cancelAnimationFrame(frameHandle);
     video.pause();
     if (recorder && recorder.state !== 'inactive') {
       try { recorder.stop(); } catch { /* recorder may already be stopping */ }
