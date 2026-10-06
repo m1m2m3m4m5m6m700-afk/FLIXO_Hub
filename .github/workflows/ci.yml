@@ -80,7 +80,7 @@ jobs:
           set -euo pipefail
           test -s dist/attestations/build-certification.json
           test -s dist/attestations/build-certification.md
-          grep -Fq ""commitSha": "$BUILD_SHA"" dist/attestations/build-certification.json
+          grep -Fq "\"commitSha\": \"$BUILD_SHA\"" dist/attestations/build-certification.json
           grep -Fq "$BUILD_SHA" dist/attestations/build-certification.md
       - name: Upload build artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
