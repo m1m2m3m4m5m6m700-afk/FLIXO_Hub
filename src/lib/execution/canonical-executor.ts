@@ -6,7 +6,7 @@ import { validateFileSafety, MAGIC_BYTE_SIGNATURES } from '@/lib/contracts/file-
 import { applyBasicImageEffect, convertImage, cropResizeImage, removeBackground, resizeImage } from '@/tools/image-toolkit/engine.ts';
 import { compressImage } from '@/tools/image-compressor/engine.ts';
 import { renderVideoToWebm } from '@/lib/video/video-executor.ts';
-import { attachVideoBlobSource } from '@/lib/video/blob-video-source.ts';
+import { attachVideoBlobSource, getBoundedVideoDuration } from '@/lib/video/blob-video-source.ts';
 
 const IMAGE_MIME = ['image/png', 'image/jpeg', 'image/webp'] as const;
 const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp'] as const;
@@ -132,9 +132,7 @@ async function preflightInput(
       Math.min(timeoutMs, 30_000),
       signal,
     );
-    if (!Number.isFinite(video.duration) || video.duration <= 0 || video.duration > MAX_VIDEO_DURATION_SECONDS) {
-      throw new Error('Execution denied: video duration exceeds the canonical 10-minute boundary.');
-    }
+    getBoundedVideoDuration(video, MAX_VIDEO_DURATION_SECONDS);
     if (!Number.isInteger(video.videoWidth) || !Number.isInteger(video.videoHeight) || video.videoWidth < 1 || video.videoHeight < 1) {
       throw new Error('Execution denied: video dimensions are invalid.');
     }
@@ -389,6 +387,7 @@ async function verifyOutputContract(
           signal,
         );
         dimensions = { width: video.videoWidth, height: video.videoHeight };
+        getBoundedVideoDuration(video, MAX_VIDEO_DURATION_SECONDS);
       } finally {
         releaseSource?.();
         video.removeAttribute('src');
