@@ -88,8 +88,13 @@ function splitSections(markdown) {
 }
 
 function isHistoricalSection(section) {
-  const firstLines = section.body.filter((line) => line.trim()).slice(0, 6).join('\n');
-  return HISTORICAL_MARKER.test(section.heading) || HISTORICAL_MARKER.test(firstLines);
+  if (HISTORICAL_MARKER.test(section.heading)) return true;
+  const firstLines = section.body.filter((line) => line.trim()).slice(0, 6);
+  return firstLines.some((line) =>
+    /^(?:STATUS|STATE|EVIDENCE_STATE)\s*[:=]\s*(?:HISTORICAL|RETIRED|INVALIDATED|NOT CURRENT(?: CERTIFICATION)?|LAST-VERIFIED-CANDIDATE|SUPERSEDED)\b/iu.test(
+      line.trim(),
+    ),
+  );
 }
 
 function extractHistoricalTokens(sections) {
@@ -171,10 +176,12 @@ function validateDocument({ path, content, requireCurrentPlaceholders, stateReco
   }
 
   const certificationClaims = currentText.match(
-    /(?:^|\n)\s*(?:STATUS|CERTIFICATION|RELEASE|RED_TEAM|PROMOTION)\s*[:=][^\n]*(?:PASS|CERTIFIED|RELEASE VERIFIED)/giu,
+    /(?:^|\n)\s*(?:STATUS|CERTIFICATION|RELEASE|RED_TEAM|PROMOTION)\s*[:=][^\n]*(?:PASS\b|CERTIFIED\b|RELEASE VERIFIED)/giu,
   ) ?? [];
   for (const claim of certificationClaims) {
-    errors.push(path + ': current certification claim must be backed by a complete exact-SHA record, but this document is not allowed to self-certify: ' + claim.trim());
+    if (!/(?:NOT\s+READY|NOT\s+CERTIFIED)\b/iu.test(claim)) {
+      errors.push(path + ': current certification claim must be backed by a complete exact-SHA record, but this document is not allowed to self-certify: ' + claim.trim());
+    }
   }
 
   for (const pr of historical.pr) {
