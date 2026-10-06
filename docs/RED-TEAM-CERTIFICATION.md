@@ -1,20 +1,22 @@
-# FLIXO Repository Red-Team Certification Record
+# FLIXO Red Team Certification Record
 
-Status: HISTORICAL / NOT CURRENT
+STATUS: NOT READY
 
-This document preserves a prior Red-Team record for audit history only. Its findings and PASS language are not evidence for the current PR #1002 candidate.
+This is the current Red Team evidence record for FLIXO Hub. Historical Red Team results are not reusable as certification evidence for a new execution SHA.
 
-## Current requirement
-The active Red-Team target is the exact live PR #1002 head on `execution`.
+Current lane:
+- Repository: m1m2m3m4m5m6m700-afk/FLIXO_Hub
+- Candidate branch: execution
+- Integration PR: #1002
 
-Prompt 17 must run from a clean checkout and must test:
-- Agent and Manual workflows;
-- privacy and raw File/Blob egress;
-- prompt injection and malformed provider/tool data;
-- invalid parameters and unsupported capabilities;
-- resource exhaustion and abort;
-- output corruption;
-- stale-SHA and release-evidence integrity;
-- security and browser gates.
+Current adversarial coverage implemented in-repository:
+- canonical executor rejects unknown and non-admitted capabilities;
+- prompt-injection-shaped and oversized requests fail closed;
+- confirmation receipts cannot be replayed or transplanted to another file;
+- catalog fingerprint tampering is rejected;
+- filename traversal, MIME/signature spoofing, extension mismatch and ZIP-bomb ratios fail closed;
+- browser E2E covers Agent confirmation and Manual execution across the ten-tool MVP.
 
-Any current finding becomes a repair task. A current Red-Team PASS must be generated on the same candidate lineage later.
+The dedicated adversarial suite is `tests/red-team-control-plane.test.ts` and is required to pass on the final frozen candidate SHA.
+
+Prompt 17 has not yet been certified on a frozen clean-clone candidate. Therefore no RED_TEAM_PASS claim is valid yet.
