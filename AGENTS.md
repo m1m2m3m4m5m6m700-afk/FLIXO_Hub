@@ -65,11 +65,13 @@ Routine work does not require a fixed pre-execution operation count, mandatory h
 Worker branches may be created, rebased, abandoned, and replaced freely. Their existence must not block unrelated agent work. Exact-SHA, security/privacy, and production-boundary controls remain mandatory.
 
 
-## Official Repository Knowledge Agent Package
-The official repository-knowledge agent package is centralized under `الوكلاء/وكيل-معرفة-المستودع/`.
+## Official Repository Agent Packages
+The official repository explorer package is centralized under `الوكلاء/المستكشف AI/`.
 
-- Canonical agent contract: `الوكلاء/وكيل-معرفة-المستودع/الوكيل.md`
-- Review/readme: `الوكلاء/وكيل-معرفة-المستودع/README.md`
-- Authority contract: `الوكلاء/وكيل-معرفة-المستودع/العقد.md`
-- SHA-bound reports: `الوكلاء/وكيل-معرفة-المستودع/التقارير/`
-- GitHub agent registration remains at `.github/agents/flixo-repository-knowledge-agent.md` and must remain byte-identical to the canonical contract.
+- Official agent name: `المستكشف AI`
+- Canonical agent contract: `الوكلاء/المستكشف AI/المستكشف.md`
+- Review/readme: `الوكلاء/المستكشف AI/README.md`
+- Authority contract: `الوكلاء/المستكشف AI/العقد.md`
+- SHA-bound reports: `الوكلاء/المستكشف AI/تقارير المستكشف/`
+- GitHub agent registration: `.github/agents/المستكشف-ai.md`
+- Red Team agents use separate official packages and separate report scopes; their files must not be merged into the explorer package.
