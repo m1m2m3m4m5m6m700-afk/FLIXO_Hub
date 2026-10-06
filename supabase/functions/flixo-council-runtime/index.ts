@@ -2,6 +2,10 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import crypto from "node:crypto";
 import { Buffer } from "node:buffer";
 import { createRemoteJWKSet, jwtVerify } from "npm:jose@6";
+import {
+  requireBearerToken,
+  validateGitHubOidcClaims,
+} from "../../../src/lib/security/council-oidc.ts";
 
 type Account = "CHIEF" | "WORKER_A" | "WORKER_B";
 type Body = Record<string, unknown>;
@@ -72,60 +76,25 @@ const trustedWorkflowSha = (workflow: string) => {
   const value = String((parsed as Record<string, unknown>)[workflow] ?? "").trim().toLowerCase();
   return /^[0-9a-f]{40}$/u.test(value) ? value : null;
 };
+
 const externalLeaseWatcherWorkflow = "FLIXO External Council Lease Watcher";
 const externalLeaseWatcherRef =
   `${GITHUB_REPOSITORY}/.github/workflows/council-external-lease-watch.yml@refs/heads/main`;
+
 const authGitHubWorkflow = async (req: Request, allowedWorkflows: string[]) => {
-  const token = bearer(req);
-  if (!token) throw new Error("COUNCIL_GITHUB_OIDC_MISSING");
+  const token = requireBearerToken(req.headers.get("authorization"));
   const verified = await jwtVerify(token, GITHUB_OIDC_JWKS, {
     issuer: GITHUB_OIDC_ISSUER,
     audience: GITHUB_OIDC_AUDIENCE,
   });
-  const claims = verified.payload;
-  if (String(claims.repository ?? "") !== GITHUB_REPOSITORY) throw new Error("COUNCIL_GITHUB_OIDC_REPOSITORY_REJECTED");
-  if (!allowedWorkflows.includes(String(claims.workflow ?? ""))) throw new Error("COUNCIL_GITHUB_OIDC_WORKFLOW_REJECTED");
-  const workflow = String(claims.workflow ?? "");
-  const workflowSha = String(claims.workflow_sha ?? "").trim().toLowerCase();
-  if (!/^[0-9a-f]{40}$/u.test(workflowSha)) throw new Error("COUNCIL_GITHUB_OIDC_WORKFLOW_SHA_MISSING");
-  const configuredWorkflowSha = trustedWorkflowSha(workflow);
-  const jobWorkflowRef = String(claims.job_workflow_ref ?? "").trim();
-  const jobWorkflowSha = String(claims.job_workflow_sha ?? "").trim().toLowerCase();
-  if (jobWorkflowRef && !/^[0-9a-f]{40}$/u.test(jobWorkflowSha)) {
-    throw new Error("COUNCIL_GITHUB_OIDC_JOB_WORKFLOW_SHA_MISSING");
-  }
-  if (jobWorkflowRef && !jobWorkflowSha) throw new Error("COUNCIL_GITHUB_OIDC_JOB_WORKFLOW_SHA_REQUIRED");
-  if (configuredWorkflowSha) {
-    if (workflowSha !== configuredWorkflowSha) throw new Error("COUNCIL_GITHUB_OIDC_WORKFLOW_SHA_REJECTED");
-    if (jobWorkflowRef && jobWorkflowSha !== configuredWorkflowSha) {
-      throw new Error("COUNCIL_GITHUB_OIDC_JOB_WORKFLOW_SHA_REJECTED");
-    }
-  } else if (workflow === externalLeaseWatcherWorkflow) {
-    const mainRef = `${GITHUB_REPOSITORY}/.github/workflows/council-external-lease-watch.yml@refs/heads/main`;
-    if (jobWorkflowRef !== mainRef) throw new Error("COUNCIL_EXTERNAL_WATCHER_MAIN_REF_REJECTED");
-    if (!jobWorkflowSha || jobWorkflowSha !== workflowSha) {
-      throw new Error("COUNCIL_EXTERNAL_WATCHER_WORKFLOW_SHA_MISMATCH");
-    }
-  } else {
-    throw new Error("COUNCIL_TRUSTED_WORKFLOW_SHA_MISSING=" + workflow);
-  }
-  const event = String(claims.event_name ?? "");
-  const ref = String(claims.ref ?? "");
-  const allowed = allowedWorkflows.some((workflow) => {
-    if (workflow === "FLIXO Master Agent Activation Relay") return event === "workflow_run" && ref === "refs/heads/execution" && String(claims.job_workflow_ref ?? "").startsWith(GITHUB_REPOSITORY + "/.github/workflows/agent-master-activation.yml@");
-    if (workflow === externalLeaseWatcherWorkflow) {
-      const expectedRef = String(claims.job_workflow_ref ?? "");
-      if (event === "schedule") return ref === "refs/heads/main" && expectedRef === externalLeaseWatcherRef;
-      if (event === "workflow_dispatch") return ref === "refs/heads/main" && expectedRef === externalLeaseWatcherRef;
-      return false;
-    }
-    if (workflow === "FLIXO Council Wake Push Relay") return event === "push" && ref === "refs/heads/execution" && String(claims.job_workflow_ref ?? "").startsWith(GITHUB_REPOSITORY + "/.github/workflows/council-wake-push-relay.yml@");
-    if (workflow === "FLIXO Agent Communication Relay") return event === "issue_comment" && ref === "refs/heads/main" && String(claims.job_workflow_ref ?? "").startsWith(GITHUB_REPOSITORY + "/.github/workflows/agent-communication-relay.yml@");
-    if (workflow === "FLIXO Cell Master Consult Relay") return event === "workflow_dispatch" && (ref === "refs/heads/execution" || ref === "refs/heads/main") && String(claims.job_workflow_ref ?? "").startsWith(GITHUB_REPOSITORY + "/.github/workflows/cell-master-consult.yml@");
-    return false;
+  const workflow = String(verified.payload.workflow ?? "");
+  return validateGitHubOidcClaims(verified.payload, {
+    repository: GITHUB_REPOSITORY,
+    allowedWorkflows,
+    trustedWorkflowSha: trustedWorkflowSha(workflow),
+    externalLeaseWatcherWorkflow,
+    externalLeaseWatcherRef,
   });
-  if (!allowed) throw new Error("COUNCIL_GITHUB_OIDC_CONTEXT_REJECTED");
-  return claims;
 };
 
 const db = async (path: string, init: RequestInit = {}) => {
