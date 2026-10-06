@@ -4,12 +4,12 @@ STATUS: BLOCKER
 PROMPT_ID: 01
 SCOPE: READ_ONLY_STATE_RECORD
 RECORDED_AT_UTC: 2026-10-06
-START_SHA: bff91e1e14d3b02c9778738dfa93972ab154ea53
-END_SHA: bff91e1e14d3b02c9778738dfa93972ab154ea53
+START_SHA: 4ab2ce6492f2ed10a7faafef9a2cb74ea9581c96
+END_SHA: 4ab2ce6492f2ed10a7faafef9a2cb74ea9581c96
 CURRENT_MAIN_SHA: 263827228cbe5f4851470297fde5f2858ff844de
-CURRENT_EXECUTION_SHA: bff91e1e14d3b02c9778738dfa93972ab154ea53
+CURRENT_EXECUTION_SHA: 4ab2ce6492f2ed10a7faafef9a2cb74ea9581c96
 PR: #1002
-PR_HEAD_SHA: bff91e1e14d3b02c9778738dfa93972ab154ea53
+PR_HEAD_SHA: 4ab2ce6492f2ed10a7faafef9a2cb74ea9581c96
 PR_BASE_SHA: 263827228cbe5f4851470297fde5f2858ff844de
 PRIMARY_BRANCH: execution
 INTEGRATION_PATH: execution -> main
@@ -25,13 +25,18 @@ INTEGRATION_PATH: execution -> main
 - exact-SHA coverage evidence
 - Red Team evidence
 
-Current exact-candidate workflow state at bff91e1e14d3b02c9778738dfa93972ab154ea53:
+Current exact-candidate workflow state at 4ab2ce6492f2ed10a7faaf9a2cb74ea9581c96:
 - FLIXO Secret Scan: PASS on bff91e1e14d3b02c9778738dfa93972ab154ea53.
 - FLIXO CodeQL: PASS on bff91e1e14d3b02c9778738dfa93972ab154ea53.
-- FLIXO CI: PENDING on bff91e1e14d3b02c9778738dfa93972ab154ea53; the current run has not yet produced a complete gate result.
-- Chromium browser smoke: PENDING on bff91e1e14d3b02c9778738dfa93972ab154ea53.
-- TestSprite Live E2E: no final PASS evidence is bound to bff91e1e14d3b02c9778738dfa93972ab154ea53.
-- Prompt 17 clean-clone final Red Team: not certified on bff91e1e14d3b02c9778738dfa93972ab154ea53.
+- FLIXO CI core verification: PASS on 4ab2ce6492f2ed10a7faafef9a2cb74ea9581c96 for typecheck, lint, core contracts, npm tests, audit, and production build.
+- Chromium browser smoke: PASS on 4ab2ce6492f2ed10a7faafef9a2cb74ea9581c96 (75 passed).
+- Exact-SHA internal coverage: PASS on 4ab2ce6492f2ed10a7faafef9a2cb74ea9581c96.
+- Red Team adversarial regression: PASS on 4ab2ce6492f2ed10a7faafef9a2cb74ea9581c96.
+- FLIXO CodeQL: PASS on 4ab2ce6492f2ed10a7faafef9a2cb74ea9581c96.
+- FLIXO Secret Scan/Gitleaks: PASS on 4ab2ce6492f2ed10a7faafef9a2cb74ea9581c96.
+- Prompt 17 clean-clone final Red Team: PASS on 4ab2ce6492f2ed10a7faafef9a2cb74ea9581c96.
+- trust-gate: FAIL CLOSED because Branch policy fails on the live main ruleset mismatch.
+- Exact-SHA promotion proof: FAIL CLOSED because trust-gate failed.
 - Prompt 18 freeze and Prompt 19 certification evidence are not present.
 
 ## Governance evidence
@@ -60,7 +65,7 @@ Any evidence tied to older execution SHAs, recovery branches, prior PRs, cancell
 
 1. Main governance ruleset is under-hardened. The available GitHub execution interface exposes ruleset access as read-only; no ruleset mutation capability is available.
 2. Independent human approval required by Prompt 12/20 is absent and cannot be fabricated by the execution agent.
-3. Exact-SHA Prompt 17–19 evidence is not complete until CI/browser/TestSprite/clean-clone gates finish on the final candidate.
+3. Prompt 17 exact-SHA evidence is now PASS; Prompt 18 freeze and Prompt 19 certification remain blocked by governance.
 
 ## NEXT_PROMPT
 
