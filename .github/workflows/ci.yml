@@ -187,9 +187,13 @@ jobs:
       - name: Assert only main and execution branches exist
         run: node scripts/ci/verify-branch-policy.mjs
       - name: Verify main governance ruleset
+        if: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/main' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/ci/verify-main-ruleset.mjs
+      - name: Record execution-branch governance deferral
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/execution' }}
+        run: echo 'MAIN_GOVERNANCE=PR_OR_MAIN_ONLY'
 
   trust-gate:
     name: trust-gate
