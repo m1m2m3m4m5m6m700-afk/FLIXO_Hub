@@ -5,7 +5,11 @@ import { test } from 'node:test';
 const repoRoot = process.cwd();
 
 test('security-sensitive CODEOWNERS entries point at real repository paths', () => {
-  const codeowners = readFileSync('.github/CODEOWNERS', 'utf8');
+  const lines = readFileSync('.github/CODEOWNERS', 'utf8')
+    .split(/\r?\n/u)
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith('#'));
+  const ownedPaths = new Set(lines.map((line) => line.split(/\s+/u)[0]));
   const expected = [
     '/.github/workflows/',
     '/.github/CODEOWNERS',
@@ -23,16 +27,15 @@ test('security-sensitive CODEOWNERS entries point at real repository paths', () 
 
   for (const path of expected) {
     assert.equal(existsSync(repoRoot + path), true, 'CODEOWNERS target must exist: ' + path);
-    const escaped = path.replace(/[.*+?^${}()|[\\]\\]/gu, '\\$&');
-    assert.match(codeowners, new RegExp('^' + escaped + '\\s+', 'm'));
+    assert.equal(ownedPaths.has(path), true, 'CODEOWNERS must explicitly cover: ' + path);
   }
 
-  assert.doesNotMatch(codeowners, /^\\/docs\\/security\\.md\\s+/mu);
+  assert.equal(ownedPaths.has('/docs/security.md'), false);
 });
 
 test('production security policy denies unused high-impact browser permissions', () => {
   const worker = readFileSync('src/worker.ts', 'utf8');
-  assert.match(worker, /'Permissions-Policy': 'geolocation=\\(\\), microphone=\\(\\), camera=\\(\\)'/u);
+  assert.match(worker, /'Permissions-Policy': 'geolocation=\(\), microphone=\(\), camera=\(\)'/u);
 
   const vercel = JSON.parse(readFileSync('vercel.json', 'utf8')) as {
     headers?: Array<{ source?: string; headers?: Array<{ key?: string; value?: string }> }>;
