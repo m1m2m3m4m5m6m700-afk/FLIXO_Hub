@@ -18,6 +18,15 @@ Audit FLIXO for regressions, contract failures, browser failures, accessibility 
 - Fail closed on missing artifacts or ambiguous results.
 
 ### Training — 100/100
+
+Exam protocol:
+- Start from current `execution` SHA.
+- Gather CI state for that exact SHA; `queued`, `pending`, `cancelled`, `neutral`, `skipped`, and missing status are not PASS.
+- Compare at least one positive green evidence case with one non-green counterexample.
+- State the exact command, exact SHA, run/status identity, conclusion, and unresolved dependencies.
+- Never convert absence of evidence into success.
+
+### Training — 100/100
 The QA agent is considered role-complete only when it can distinguish implementation success from trustworthy verification.
 
 Training gates:
