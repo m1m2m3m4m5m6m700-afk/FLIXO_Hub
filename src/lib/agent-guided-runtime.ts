@@ -3,7 +3,7 @@ import { TOOL_CATALOG } from '@/config/registry.ts';
 import { MVP_EXECUTABLE_TOOL_IDS, getCapability, validateCapabilityParameters, type CanonicalCapabilityParameters } from '@/config/manual-capability-definition.ts';
 import { findToolIntent } from '@/lib/intent-router.ts';
 import { parseExecutionPlan, type ExecutionPlanContract } from '@/lib/contracts/ai-plan.ts';
-import { executeCanonicalTool, type CanonicalExecutionOutput } from '@/lib/execution/canonical-executor.ts';
+import { executeCanonicalChain, type CanonicalExecutionOutput } from '@/lib/execution/canonical-executor.ts';
 
 export type AgentPlan = Readonly<ExecutionPlanContract & {
   requiresUserConfirmation: true;
@@ -342,9 +342,10 @@ export async function executeAgentPlan(
   }
   confirmations.delete(confirmationToken);
 
-  if (validated.steps.length !== 1) {
-    throw new Error('Execution denied: the current Agent Guided MVP is bounded to one canonical tool step.');
-  }
-  const [step] = validated.steps;
-  return executeCanonicalTool(step.toolId, { blob: file, fileName: file.name }, step.params ?? {}, signal);
+  return executeCanonicalChain(
+    validated.steps.map((step) => ({ toolId: step.toolId, params: step.params ?? {} })),
+    { blob: file, fileName: file.name },
+    undefined,
+    signal,
+  );
 }
