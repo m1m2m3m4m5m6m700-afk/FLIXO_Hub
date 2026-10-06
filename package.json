@@ -27,7 +27,7 @@
     "verify:contracts": "node scripts/verify-contract-boundary.mjs",
     "typecheck:contracts": "npx tsc -p packages/contracts/tsconfig.json --noEmit",
     "verify:launch": "node scripts/verify-public-launch-readiness.mjs",
-    "verify:agents": "node scripts/verify-agent-profiles.mjs",
+    "verify:agents": "node scripts/verify-agent-profiles.mjs && node scripts/verify-scout-boundary.mjs",
     "verify:i18n": "node scripts/verify-i18n-locales.mjs",
     "test:patch-capsule": "node --test scripts/ci/test-patch-capsule.mjs",
     "test:control-plane-contracts": "node --check scripts/ci/patch-capsule.mjs && node --check scripts/ci/controller-reconcile-and-publish.mjs && npm run test:patch-capsule && node --test scripts/ci/test-controller-publication-contract.mjs && node --test scripts/ci/test-workflow-exact-sha-contract.mjs",
