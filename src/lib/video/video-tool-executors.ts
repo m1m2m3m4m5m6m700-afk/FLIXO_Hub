@@ -1,4 +1,4 @@
-import { renderVideoToWebm, type VideoRenderOptions, validateVideoRenderOptions, type VideoMetadata } from './video-executor';
+import { renderVideoToWebm, type VideoRenderOptions, type VideoMetadata } from './video-executor';
 
 type CapabilityParameters = Record<string, string | number | boolean>;
 export type VideoToolExecutor = (inputBlob: Blob, parameters: CapabilityParameters, tool: { id: string }, signal?: AbortSignal) => Promise<Blob>;
@@ -7,6 +7,13 @@ function optionalFinite(value: unknown, label: string, min: number, max: number)
   if (value === undefined) return undefined;
   const number = Number(value);
   if (!Number.isFinite(number) || number < min || number > max) throw new Error(`VIDEO_PARAMETER_INVALID:${label}`);
+  return number;
+}
+
+function optionalInteger(value: unknown, label: string, min: number, max: number): number | undefined {
+  if (value === undefined) return undefined;
+  const number = Number(value);
+  if (!Number.isInteger(number) || number < min || number > max) throw new Error(`VIDEO_PARAMETER_INVALID:${label}`);
   return number;
 }
 
@@ -41,8 +48,8 @@ export const VIDEO_EXECUTORS: Readonly<Record<string, VideoToolExecutor>> = Obje
     signal,
   }),
   'video-compressor': (inputBlob, parameters, _tool, signal) => renderVideoToWebm(inputBlob, {
-    videoBitsPerSecond: optionalFinite(parameters.videoBitsPerSecond, 'videoBitsPerSecond', 1, 50_000_000),
-    audioBitsPerSecond: optionalFinite(parameters.audioBitsPerSecond, 'audioBitsPerSecond', 1, 512_000),
+    videoBitsPerSecond: optionalInteger(parameters.videoBitsPerSecond, 'videoBitsPerSecond', 1, 50_000_000),
+    audioBitsPerSecond: optionalInteger(parameters.audioBitsPerSecond, 'audioBitsPerSecond', 1, 512_000),
     signal,
   }),
 });
