@@ -1,4 +1,5 @@
 import { assertSafeImageInput, IMAGE_COMPRESSOR_MAX_PIXELS } from './file-safety';
+import { assertImageOutputBudget, assertRasterOutput } from '../../lib/media/media-safety.ts';
 
 type WorkerCompressionFormat = 'image/jpeg' | 'image/webp' | 'image/png';
 
@@ -53,6 +54,12 @@ async function encodeToTarget(canvas: OffscreenCanvas, format: WorkerCompression
 self.onmessage = async (event: MessageEvent<{ file: File; options: WorkerCompressionOptions }>) => {
   try {
     const { file, options } = event.data;
+    if (!Number.isFinite(options.quality) || options.quality < 0.01 || options.quality > 1) throw new Error('Compression quality must be between 0.01 and 1.');
+    if (!['image/jpeg', 'image/webp', 'image/png'].includes(options.format)) throw new Error('Unsupported compression output format.');
+    for (const [name, value] of [['maxWidth', options.maxWidth], ['maxHeight', options.maxHeight]] as const) {
+      if (value !== undefined && (!Number.isInteger(value) || value < 1 || value > 4000)) throw new Error(`${name} must be an integer between 1 and 4000.`);
+    }
+    if (options.targetSizeKB !== undefined && (!Number.isInteger(options.targetSizeKB) || options.targetSizeKB < 1 || options.targetSizeKB > 64 * 1024)) throw new Error('Target size must be an integer between 1 KB and 64 MB.');
     assertSafeImageInput(file);
     if (file.type === 'image/svg+xml') throw new Error('SVG worker path unavailable');
 
@@ -75,6 +82,9 @@ self.onmessage = async (event: MessageEvent<{ file: File; options: WorkerCompres
 
       const targetBytes = options.targetSizeKB && options.targetSizeKB > 0 ? options.targetSizeKB * 1024 : undefined;
       const encoded = await encodeToTarget(canvas, options.format, options.quality, targetBytes);
+      if (targetBytes !== undefined && encoded.blob.size > targetBytes) throw new Error('The requested target size cannot be reached with the selected format and dimensions.');
+      assertImageOutputBudget(size.width, size.height);
+      await assertRasterOutput(encoded.blob, options.format);
       self.postMessage({ ok: true, result: { blob: encoded.blob, width: size.width, height: size.height, mimeType: options.format, qualityUsed: encoded.qualityUsed } });
     } finally {
       bitmap.close();
