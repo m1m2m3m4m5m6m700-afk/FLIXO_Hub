@@ -59,6 +59,20 @@ test('FLIXO CI protects every candidate-sensitive checkout and identity stamp', 
   );
 });
 
+test('canonical CI security workflows do not trigger on execution worker PRs', async () => {
+  const files = [
+    '.github/workflows/ci.yml',
+    '.github/workflows/codeql.yml',
+    '.github/workflows/secret-scan.yml',
+  ];
+
+  for (const path of files) {
+    const workflow = await readFile(new URL('../../' + path, import.meta.url), 'utf8');
+    assert.doesNotMatch(workflow, /pull_request:\s*\n\s*branches:\s*\[main, execution\]/u);
+    assert.match(workflow, /pull_request:\s*\n\s*branches:\s*\[main\]/u);
+  }
+});
+
 test('worker pull requests are filtered out of canonical release jobs', async () => {
   const files = [
     '.github/workflows/ci.yml',
