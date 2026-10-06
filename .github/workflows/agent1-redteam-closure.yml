@@ -42,7 +42,9 @@ jobs:
             tests/admin-evidence-integrity.test.ts \
             tests/admin-login-rate-limit.test.ts \
             tests/council-runtime-security.test.ts \
-            tests/redteam-agent1-closure-contract.test.ts
+            tests/redteam-agent1-closure-contract.test.ts \
+            tests/redteam-agent1-closure-controls.test.ts \
+            tests/ocr-supply-chain.test.ts
       - name: Typecheck
         run: npm run typecheck
       - name: Lint
@@ -51,6 +53,36 @@ jobs:
         run: npm run build:runtime
       - name: Red Team control-plane regression
         run: npm run test:red-team
+
+
+  browser-media:
+    name: RT-12/13 Chromium media verification
+    needs: [targeted, browser-media]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact SHA
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - name: Exact-SHA browser adversarial suite
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          npm run test:e2e -- --project=chromium \
+            tests/rt12-adversarial-browser.spec.ts \
+            tests/seed.spec.ts \
+            tests/pix.spec.ts \
+            tests/image-ocr.spec.ts
 
   live:
     name: Live Supabase evidence
