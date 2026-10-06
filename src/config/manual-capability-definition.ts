@@ -256,7 +256,7 @@ const backgroundRemovalVerifier: CanonicalCapabilityVerifier = async (input, out
   if (signal?.aborted || output.size <= 0 || output.type !== "image/png") return false;
   const [inputDimensions, outputDimensions] = await Promise.all([readImageDimensions(input, signal), readImageDimensions(output, signal)]);
   if (!inputDimensions || !outputDimensions || inputDimensions.width !== outputDimensions.width || inputDimensions.height !== outputDimensions.height) return false;
-  return true;
+  return hasMeaningfulPixelChange(input, output, signal);
 };
 
 const upscalerVerifier: CanonicalCapabilityVerifier = async (input, output, parameters, signal) => {
@@ -300,7 +300,8 @@ const changedImageVerifier: CanonicalCapabilityVerifier = async (input, output, 
 const targetSizeVerifier: CanonicalCapabilityVerifier = async (input, output, parameters, signal) => {
   if (signal?.aborted || output.size <= 0 || !output.type.startsWith("image/")) return false;
   const target = typeof parameters.targetSizeKB === "number" ? parameters.targetSizeKB : undefined;
-  if (target !== undefined && output.size > target * 1024) return false;  return true;
+  if (target !== undefined && output.size > target * 1024) return false;
+  return output.size < input.size;
 };
 
 const formatVerifier: CanonicalCapabilityVerifier = async (_input, output, parameters, signal) => {
@@ -327,7 +328,11 @@ const videoVerifier: CanonicalCapabilityVerifier = async (input, output, paramet
     const end = Number(parameters.endSec ?? inputMeta.duration ?? 0);
     const expected = Math.max(0.001, Math.min(inputMeta.duration ?? end, end) - Math.min(Math.max(0, start), Math.max(0, (inputMeta.duration ?? 0) - 0.001)));
     if (Math.abs((outputMeta.duration ?? 0) - expected) > 0.35) return false;
-  }  return outputMeta.duration !== undefined && outputMeta.duration > 0;
+  }
+  if (parameters.width === undefined && parameters.height === undefined && parameters.startSec === undefined && parameters.endSec === undefined) {
+    return outputMeta.duration > 0 && output.size < input.size;
+  }
+  return outputMeta.duration !== undefined && outputMeta.duration > 0;
 };
 
 function createCapability(id:(typeof MVP_EXECUTABLE_TOOL_IDS)[number]):CanonicalCapabilityDefinition{
