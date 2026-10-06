@@ -85,6 +85,10 @@ export function VideoLocalTool() {
     abortRef.current?.abort();
     setFile(nextFile);
     setResult(null);
+    if (resultUrl) {
+      URL.revokeObjectURL(resultUrl);
+      setResultUrl(null);
+    }
     setError('');
     setInputMeta(null);
     setParameters({});
@@ -123,14 +127,15 @@ export function VideoLocalTool() {
     abortRef.current = controller;
 
     try {
-      const validated = validateCapabilityParameters(id, mergedParameters as Record<string, string | number | boolean>);
+      const numericParameters = Object.fromEntries(Object.entries(mergedParameters).map(([key, value]) => [key, value === '' || value === undefined ? undefined : Number(value)]));
+      const validated = validateCapabilityParameters(id, numericParameters as Record<string, string | number | boolean>);
       const output = await executor(file, validated, { id }, controller.signal);
       const verified = await definition.verifier(file, output, validated, controller.signal);
       if (!verified) throw new Error('VIDEO_OUTPUT_VERIFICATION_FAILED');
       const verifiedMeta = await inspectVideoMetadata(output, controller.signal);
+      if (verifiedMeta.size <= 0) throw new Error('VIDEO_OUTPUT_INVALID');
       setResult(output);
       setResultUrl(URL.createObjectURL(output));
-      if (verifiedMeta.size <= 0) throw new Error('VIDEO_OUTPUT_INVALID');
     } catch (cause) {
       if (cause instanceof DOMException && cause.name === 'AbortError') {
         setError('VIDEO_OPERATION_ABORTED');
