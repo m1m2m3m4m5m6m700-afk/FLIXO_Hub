@@ -122,6 +122,7 @@ async function compressImageOnMainThread(file: File, options: CompressionOptions
   assertSafeImageInput(file);
 
   const image = await loadSourceImage(file);
+  let canvas: HTMLCanvasElement | null = null;
   try {
     assertSafeImageInput(file, { width: image.width, height: image.height });
 
@@ -130,7 +131,7 @@ async function compressImageOnMainThread(file: File, options: CompressionOptions
       throw new Error('The requested output is too large for safe browser processing. Reduce the dimensions and try again.');
     }
 
-    const canvas = document.createElement('canvas');
+    canvas = document.createElement('canvas');
     canvas.width = size.width;
     canvas.height = size.height;
 
@@ -157,6 +158,12 @@ async function compressImageOnMainThread(file: File, options: CompressionOptions
     };
   } finally {
     image.cleanup();
+    if (canvas) {
+      canvas.width = 1;
+      canvas.height = 1;
+      canvas.width = 0;
+      canvas.height = 0;
+    }
   }
 }
 
@@ -173,23 +180,39 @@ function canUseCompressionWorker(file: File) {
   );
 }
 
+const WORKER_TIMEOUT_MS = 60_000;
+
 function compressImageInWorker(file: File, options: CompressionOptions): Promise<CompressionResult> {
   return new Promise((resolve, reject) => {
     const worker = new Worker(new URL('./compressor.worker.ts', import.meta.url), { type: 'module' });
-    const cleanup = () => worker.terminate();
+    let settled = false;
+    const cleanup = () => {
+      worker.terminate();
+      clearTimeout(timeout);
+    };
+    const fail = (error: Error) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(error);
+    };
+    const timeout = setTimeout(() => fail(new Error('The compression worker timed out.')), WORKER_TIMEOUT_MS);
 
     worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
+      if (settled) return;
+      settled = true;
       cleanup();
       if (event.data.ok) resolve(event.data.result);
       else reject(new Error(event.data.error));
     };
 
-    worker.onerror = () => {
-      cleanup();
-      reject(new Error('The compression worker failed.'));
-    };
+    worker.onerror = () => fail(new Error('The compression worker failed.'));
 
-    worker.postMessage({ file, options });
+    try {
+      worker.postMessage({ file, options });
+    } catch (error) {
+      fail(error instanceof Error ? error : new Error('The compression worker could not accept the input.'));
+    }
   });
 }
 
