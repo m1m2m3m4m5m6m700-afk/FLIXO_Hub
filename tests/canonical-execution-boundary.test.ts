@@ -163,6 +163,19 @@ test('tool-chain panel UI matches the canonical chain/media boundary', () => {
   assert.match(panel, /accept="image\/\*,video\/\*"/u);
 });
 
+test('image effects are declared and routed through the browser worker boundary', () => {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+  const capabilities = readFileSync(resolve(root, 'src/config/manual-capability-definition.ts'), 'utf8');
+  const executor = readFileSync(resolve(root, 'src/lib/execution/canonical-executor.ts'), 'utf8');
+  const workerPath = resolve(root, 'src/lib/execution/image-effects.worker.ts');
+
+  assert.ok(existsSync(workerPath));
+  assert.match(capabilities, /id === "image-effects" \? "browser-worker" : "browser-local"/u);
+  assert.match(executor, /new Worker\(new URL\('\.\/image-effects\.worker\.ts', import\.meta\.url\), \{ type: 'module' \}\)/u);
+  assert.match(executor, /worker\.terminate\(\)/u);
+  assert.match(executor, /signal\?\.addEventListener\('abort', onAbort, \{ once: true \}\)/u);
+});
+
 test('canonical executor validates the bounded signature probe against its own length', () => {
   const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
   const executor = readFileSync(resolve(root, 'src/lib/execution/canonical-executor.ts'), 'utf8');
