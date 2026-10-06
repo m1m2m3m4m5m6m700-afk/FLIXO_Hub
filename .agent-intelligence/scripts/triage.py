@@ -27,6 +27,7 @@ def append_jsonl(path,obj):
 def norm(v):
     s=str(v or "").lower().replace("_"," ").replace("-"," "); s=re.sub(r"[^\w\u0600-\u06ff]+"," ",s,flags=re.UNICODE); return re.sub(r"\s+"," ",s).strip()
 def toks(v): return {ALIASES.get(x,x) for x in norm(v).split() if x not in STOP and len(x)>1}
+def raw_toks(v): return {x for x in norm(v).split() if x not in STOP and len(x)>1}
 def concepts(p): return toks(" ".join(str(p.get(k,"")) for k in ("entity_key","title","proposed_change","current_gap","repository_gap","category","scope","lane")))&set(ALIASES.values())
 def entity_key(p):
     x=norm(p.get("entity_key"))
@@ -155,12 +156,17 @@ def lane(p):
     if "docs/" in s or "i18n" in s or "locale" in s or ".md" in s:return "C — Docs/i18n"
     return "G — Global/Compliance"
 def similarity(a,b):
-    at,bt=toks(a.get("title")),toks(b.get("title")); aa=at|toks(a.get("proposed_change"))|toks(a.get("repository_gap"))|concepts(a); bb=bt|toks(b.get("proposed_change"))|toks(b.get("repository_gap"))|concepts(b)
-    tc=len(at&bt)/max(1,len(at|bt)); bc=len(aa&bb)/max(1,len(aa|bb)); cc=len(concepts(a)&concepts(b))/max(1,len(concepts(a)|concepts(b)))
-    ar=set(map(str,a.get("repo_refs",[]) if isinstance(a.get("repo_refs",[]),list) else [])); br=set(map(str,b.get("repo_refs",[]) if isinstance(b.get("repo_refs",[]),list) else []))
-    base=min(1,0.55*tc+0.30*bc+0.15*cc+(0.10 if ar&br else 0))
-    shared=(aa&bb)-set(concepts(a))-GENERIC
-    if concepts(a)&concepts(b) and bc>=0.45 and shared:return max(base,0.82)
+    at,bt=toks(a.get("title")),toks(b.get("title"))
+    aa=at|toks(a.get("proposed_change"))|toks(a.get("repository_gap"))|concepts(a)
+    bb=bt|toks(b.get("proposed_change"))|toks(b.get("repository_gap"))|concepts(b)
+    ra=raw_toks(" ".join(str(a.get(k,"")) for k in ("title","proposed_change","repository_gap")))
+    rb=raw_toks(" ".join(str(b.get(k,"")) for k in ("title","proposed_change","repository_gap")))
+    tc=len(at&bt)/max(1,len(at|bt)); bc=len(aa&bb)/max(1,len(aa|bb)); raw_bc=len(ra&rb)/max(1,len(ra|rb)); cc=len(concepts(a)&concepts(b))/max(1,len(concepts(a)|concepts(b)))
+    ar=set(map(str,a.get("repo_refs",[]) if isinstance(a.get("repo_refs",[]),list) else []))
+    br=set(map(str,b.get("repo_refs",[]) if isinstance(b.get("repo_refs",[]),list) else []))
+    base=min(1,0.40*tc+0.25*bc+0.20*raw_bc+0.15*cc+(0.10 if ar&br else 0))
+    if concepts(a)&concepts(b) and ar&br and raw_bc>=0.45:
+        return max(base,0.82)
     return base
 def blocks(p):
     t=sorted(toks(" ".join(str(p.get(k,"")) for k in ("title","proposed_change")))); c=sorted(concepts(p)); k=set()
