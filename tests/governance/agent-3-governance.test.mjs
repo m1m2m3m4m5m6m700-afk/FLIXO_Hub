@@ -82,6 +82,10 @@ test('branch refs classify production, integration, controlled-agent, quarantine
     classifyRef('refs/heads/agent-2-media-engines-20261006').authority,
     'quarantined-stale',
   );
+  assert.equal(
+    classifyRef('refs/heads/agent-tools-consolidation-20261006').authority,
+    'quarantined-stale',
+  );
   assert.equal(classifyRef('refs/heads/feature/unknown').allowed, false);
   assert.equal(classifyRef('refs/heads/agent-9/anything').allowed, false);
   assert.equal(classifyRef('refs/heads/agent-2-unknown-stale').allowed, false);
