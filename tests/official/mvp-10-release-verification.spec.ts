@@ -178,6 +178,19 @@ test.describe('FLIXO ten-tool release verification', () => {
     await expect(page.locator('[aria-label="agent-result"] a[download]')).toHaveAttribute('download', 'flixo-image-compressor.webp');
   });
 
+  test('agent/compound request Arabic generates and executes the same canonical chain', async ({ page }) => {
+    await page.goto('/agent', { waitUntil: 'domcontentloaded' });
+    await page.locator('#agent-prompt').fill('ضغط الصورة إلى أقل من 200KB وتحويلها إلى WebP');
+    await page.locator('#agent-file').setInputFiles(imageFixture());
+    await page.getByTestId('agent-build-plan').click();
+    const plan = page.locator('[aria-label="agent-plan"]');
+    await expect(plan).toContainText('image-converter');
+    await expect(plan).toContainText('image-compressor');
+    await page.getByTestId('agent-confirmation').check();
+    await page.getByTestId('agent-execute').click();
+    await expect(page.locator('[aria-label="agent-result"]')).toBeVisible({ timeout: 30_000 });
+  });
+
   test('agent/unsupported operation fails closed without creating a plan', async ({ page }) => {
     await page.goto('/agent', { waitUntil: 'domcontentloaded' });
     await page.locator('#agent-prompt').fill('remove the object from this image');
