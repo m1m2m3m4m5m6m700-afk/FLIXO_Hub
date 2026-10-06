@@ -199,6 +199,23 @@ jobs:
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/execution' }}
         run: echo 'MAIN_GOVERNANCE=PR_OR_MAIN_ONLY'
 
+  rt17-live-governance:
+    name: RT-17 live main governance
+    if: ${{ github.event_name == 'pull_request' && startsWith(github.head_ref, 'agent-3a/redteam-rt17-') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: node scripts/ci/verify-main-ruleset.mjs
   trust-gate:
     name: trust-gate
     needs: [verify, browser, branch-policy, coverage, red-team]
