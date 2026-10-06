@@ -77,7 +77,7 @@ const VIDEO_CASES = [
 
 test.describe('MVP video capability individual acceptance', () => {
   for (const videoCase of VIDEO_CASES) {
-    test(videoCase.id + ' executes locally and produces a verified WebM artifact', async ({ page }) => {
+    test(videoCase.id + ' executes locally with measurable output behavior', async ({ page }) => {
       await page.goto('/en/' + videoCase.id);
       await expect(page.getByRole('heading', { name: 'Local video processing' })).toBeVisible();
 
@@ -89,6 +89,21 @@ test.describe('MVP video capability individual acceptance', () => {
         mimeType: 'video/webm',
         buffer: fixture,
       });
+
+      if (videoCase.id === 'video-trimmer') {
+        await page.getByLabel('Start time (seconds)').fill('0.20');
+        await page.getByLabel('End time (seconds)').fill('0.60');
+      } else if (videoCase.id === 'video-cropper') {
+        await page.getByLabel('Width').fill('160');
+        await page.getByLabel('Height').fill('90');
+      } else if (videoCase.id === 'video-resizer') {
+        await page.getByLabel('Width').fill('160');
+        await page.getByLabel('Height').fill('90');
+        await page.getByLabel('FPS').fill('15');
+      } else {
+        await page.getByLabel('Video bitrate (bps)').fill('256000');
+        await page.getByLabel('Audio bitrate (bps)').fill('64000');
+      }
 
       await page.getByRole('button', { name: 'Process video' }).click();
 
@@ -127,6 +142,13 @@ test.describe('MVP video capability individual acceptance', () => {
       expect(metadata.duration).toBeGreaterThan(0);
       expect(metadata.width).toBeGreaterThan(0);
       expect(metadata.height).toBeGreaterThan(0);
+      if (videoCase.id === 'video-trimmer') {
+        expect(Math.abs(metadata.duration - 0.4)).toBeLessThan(0.4);
+      }
+      if (videoCase.id === 'video-cropper' || videoCase.id === 'video-resizer') {
+        expect(metadata.width).toBe(160);
+        expect(metadata.height).toBe(90);
+      }
 
       const downloadPromise = page.waitForEvent('download');
       await downloadLink.click();
@@ -135,4 +157,32 @@ test.describe('MVP video capability individual acceptance', () => {
       expect(download.suggestedFilename()).toBe('flixo-video-output.webm');
     });
   }
+});
+
+
+test('video tools reject malformed containers before processing', async ({ page }) => {
+  await page.goto('/en/video-trimmer');
+  await expect(page.getByRole('heading', { name: 'Local video processing' })).toBeVisible();
+  await page.getByLabel('Choose video').setInputFiles({
+    name: 'malformed.webm',
+    mimeType: 'video/webm',
+    buffer: Buffer.from('NOT-A-WEBM'),
+  });
+  await expect(page.getByRole('alert')).toContainText('selected video is not supported');
+  await expect(page.getByRole('button', { name: 'Process video' })).toBeDisabled();
+});
+
+test('video cropper rejects rectangles outside decoded dimensions', async ({ page }) => {
+  await page.goto('/en/video-cropper');
+  const fixture = await buildVideoFixture(page);
+  await page.getByLabel('Choose video').setInputFiles({
+    name: 'crop-boundary.webm',
+    mimeType: 'video/webm',
+    buffer: fixture,
+  });
+  await expect(page.getByText('320 × 180px')).toBeVisible();
+  await page.getByLabel('Width').fill('321');
+  await page.getByLabel('Height').fill('180');
+  await page.getByRole('button', { name: 'Process video' }).click();
+  await expect(page.getByRole('alert')).toContainText('VIDEO_CROP_BOUNDS_INVALID');
 });
