@@ -14,16 +14,16 @@ import {
 } from '../../../scripts/repository-knowledge-scan.mjs';
 
 const repoRoot = process.cwd();
-const profilePath = 'الوكلاء/وكيل-معرفة-المستودع/الوكيل.md';
-const registrationProfilePath = '.github/agents/flixo-repository-knowledge-agent.md';
+const profilePath = 'الوكلاء/المستكشف AI/الوكيل.md';
+const registrationProfilePath = '.github/agents/المستكشف-ai.md';
 const scannerPath = 'scripts/repository-knowledge-scan.mjs';
 const workflowPath = '.github/workflows/repository-knowledge.yml';
-const reportDir = 'الوكلاء/وكيل-معرفة-المستودع/التقارير';
+const reportDir = 'الوكلاء/المستكشف AI/التقارير';
 
 test('knowledge agent profile declares bounded read-only mission', () => {
   const profile = readFileSync(profilePath, 'utf8');
 
-  assert.match(profile, /report_path: 0\(التقارير\)\//);
+  assert.match(profile, /report_path: الوكلاء\/المستكشف AI\/تقارير المستكشف\//);
   assert.match(profile, /READ-ONLY reconnaissance and knowledge agent/);
   assert.match(profile, /must never invent missing information/);
   assert.match(profile, /CAN_COMPLETE/);
@@ -32,6 +32,7 @@ test('knowledge agent profile declares bounded read-only mission', () => {
   assert.match(profile, /must not.*merge or deploy/s);
   assert.match(profile, /must not.*declare PASS\/GREEN\/CERTIFIED/s);
   assert.doesNotMatch(profile, /reports\/repository-knowledge\//);
+  assert.match(profile, /name: المستكشف AI/);
 });
 
 test('symbol extraction distinguishes exported and local declarations', () => {
@@ -74,9 +75,9 @@ test('import extraction and local resolution produce dependency edges', () => {
 });
 
 test('generated reports are inventoried but excluded from recursive semantic analysis', () => {
-  assert.equal(isGeneratedKnowledgeArtifact('0(التقارير)/abc.md'), true);
+  assert.equal(isGeneratedKnowledgeArtifact('الوكلاء/المستكشف AI/تقارير المستكشف/abc.md'), true);
   assert.equal(isGeneratedKnowledgeArtifact('src/example.ts'), false);
-  assert.equal(classifyPath('0(التقارير)/abc.md'), 'generated-knowledge-artifact');
+  assert.equal(classifyPath('الوكلاء/المستكشف AI/تقارير المستكشف/abc.md'), 'generated-knowledge-artifact');
   assert.equal(classifyPath('src/example.ts'), 'runtime');
 });
 
@@ -158,5 +159,5 @@ test('workflow wakes on execution changes and ignores only its own report direct
 test('scanner does not re-ingest legacy English report directory', () => {
   const scanner = readFileSync(scannerPath, 'utf8');
   assert.doesNotMatch(scanner, /reports\/repository-knowledge/);
-  assert.match(scanner, /0\(التقارير\)/);
+  assert.match(scanner, /الوكلاء\/المستكشف AI\/تقارير المستكشف/);
 });
