@@ -2,7 +2,7 @@ name: FLIXO CodeQL
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, execution]
   push:
     branches: [main, execution]
   schedule:
@@ -42,3 +42,28 @@ jobs:
         with:
           category: "/language:${{ matrix.language }}"
           upload: never
+
+      - name: Locate exact CodeQL SARIF
+        id: sarif
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p codeql-sarif
+          sarif_files=()
+          for candidate in             "$GITHUB_WORKSPACE/results/javascript.sarif"             "$GITHUB_WORKSPACE/../results/javascript.sarif"             "$RUNNER_TEMP/codeql_databases/javascript/results/javascript.sarif"; do
+            if [ -f "$candidate" ]; then sarif_files+=("$candidate"); fi
+          done
+          test "${#sarif_files[@]}" -eq 1
+          cp "${sarif_files[0]}" "codeql-sarif/${{ matrix.language }}.sarif"
+          echo "path=codeql-sarif/${{ matrix.language }}.sarif" >> "$GITHUB_OUTPUT"
+
+      - name: Fail closed on CodeQL findings
+        run: node scripts/ci/verify-codeql-clean.mjs "${{ steps.sarif.outputs.path }}"
+
+      - name: Upload durable CodeQL evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: flixo-codeql-clean-${{ github.sha }}-${{ matrix.language }}
+          path: codeql-sarif
+          if-no-files-found: error
+          retention-days: 90
