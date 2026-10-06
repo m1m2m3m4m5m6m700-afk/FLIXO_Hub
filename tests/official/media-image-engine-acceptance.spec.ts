@@ -25,9 +25,9 @@ async function buildImageFixture(page: Parameters<Parameters<typeof test>[2]>[0]
 }
 
 async function readOutput(page: Parameters<Parameters<typeof test>[2]>[0]['page']) {
-  const link = page.locator('.download-button').last();
-  await expect(link).toBeVisible({ timeout: 30_000 });
-  const url = await link.getAttribute('href');
+  const outputImage = page.locator('img[alt="Tool result"]');
+  await expect(outputImage).toBeVisible({ timeout: 30_000 });
+  const url = await outputImage.getAttribute('src');
   if (!url?.startsWith('blob:')) throw new Error('IMAGE_OUTPUT_BLOB_URL_MISSING');
   return page.evaluate(async (blobUrl) => {
     const response = await fetch(blobUrl);
