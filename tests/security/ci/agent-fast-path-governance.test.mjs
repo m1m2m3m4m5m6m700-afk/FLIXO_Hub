@@ -56,15 +56,10 @@ test('disposable worker branches are allowed', () => {
   }
 });
 
-test('routine task governance does not restore a mandatory lease queue', () => {
-  const ledger = readFileSync(new URL('../../../المهام.md', import.meta.url), 'utf8');
-  assert.match(ledger, /Canonical Agent Task Ledger/);
-  const start = ledger.indexOf('# ACTIVE DISPATCH QUEUE');
-  const end = ledger.indexOf('## 7. STATUS SEMANTICS', start);
-  assert.ok(start >= 0);
-  assert.ok(end > start);
-  const activeQueue = ledger.slice(start, end);
-  assert.doesNotMatch(activeQueue, /AVAILABLE\s*->\s*CLAIMED/u);
-  assert.doesNotMatch(activeQueue, /lease\/heartbeat/u);
-  assert.match(activeQueue, /EXEC-CERT-001/);
+test('current product governance stays manual-only without a mandatory lease queue', () => {
+  const directive = readFileSync(new URL('../../../GPT', import.meta.url), 'utf8');
+  assert.match(directive, /FLIXO Manual-Only Product Directive/u);
+  assert.match(directive, /No public or internal AI agent runtime/u);
+  assert.doesNotMatch(directive, /AVAILABLE\s*->\s*CLAIMED/u);
+  assert.doesNotMatch(directive, /mandatory.*lease|mandatory.*heartbeat/u);
 });
