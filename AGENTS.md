@@ -15,15 +15,15 @@ Human Authority explicitly authorizes an expanded execution mode for repository 
 
 Within the `execution` integration lane, authorized agents may independently inspect, implement, refactor, test, document, harden, and coordinate across repository surfaces without waiting for per-file or per-agent approval. This may include runtime, tests, documentation, configuration, localization, media tooling, security tooling, agent orchestration, CI/workflow definitions, and integration code when the assigned task requires it.
 
-Open execution means broad implementation authority on `execution`; it does not grant production or certification authority. Agents must still:
-- keep all mutations on the canonical `execution` lane;
+Open execution means broad implementation authority across `execution` and disposable worker branches; it does not grant production or certification authority. Agents must still:
+- use `execution` as the canonical integration lane; disposable worker branches are allowed for isolation and parallel work;
 - re-read the live execution SHA before and after meaningful mutation;
 - use non-force, race-safe publication and invalidate stale evidence after SHA drift;
 - preserve fail-closed behavior and strengthen or preserve verification gates;
 - keep user data, secrets, and provider/model output inside the existing trust boundaries;
 - record material changes and verification results against the exact resulting SHA.
 
-Multiple agents may collaborate on the same `execution` lane, but this does not create a third integration lane or a second production source of truth.
+Multiple agents may collaborate through `execution` or isolated worker branches. Worker branches are development workspaces, not production authority.
 
 ## Governance synchronization
 The repository has three distinct control planes and they must never be conflated:
@@ -54,3 +54,9 @@ The canonical executable MVP is exactly ten browser-local capabilities, as defin
 
 ## Completion
 A task is complete only when implementation, verification, evidence, and documentation are all aligned to the same candidate lineage.
+
+
+## Agent Fast Path
+Routine work does not require a fixed pre-execution operation count, mandatory handoff, lease/heartbeat, successor session, or conversational approval. Use a risk-based preflight covering current target SHA, scope, affected surface, intended regression, and safe publication. Add deeper controls only when risk requires them.
+
+Worker branches may be created, rebased, abandoned, and replaced freely. Their existence must not block unrelated agent work. Exact-SHA, security/privacy, and production-boundary controls remain mandatory.
