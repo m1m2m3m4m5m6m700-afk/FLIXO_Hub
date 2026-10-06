@@ -79,6 +79,7 @@ const withCanonicalRasterChecks = (file: File, policy: BrowserFileValidationPoli
     ...policy,
     allowedExtensions: policy.allowedExtensions ?? inferredExtensions,
     magicBytes: policy.magicBytes ?? inferredMagic,
+    decoder: policy.decoder ?? decodeImage,
   };
 };
 
