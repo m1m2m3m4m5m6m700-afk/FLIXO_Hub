@@ -16,7 +16,11 @@ concurrency:
 
 jobs:
   video-assurance:
-    name: Chromium video/media assurance
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+    name: ${{ matrix.browser }} video/media assurance
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
@@ -42,12 +46,12 @@ jobs:
         run: npm run test:video-assurance
       - name: Build exact runtime candidate for preview
         run: npm run build:runtime
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
-      - name: Real Chromium video capability acceptance
-        run: npm run test:e2e -- --project=chromium tests/official/video-capability-acceptance.spec.ts
-      - name: Real Chromium deep media lifecycle assurance
-        run: npm run test:e2e -- --project=chromium tests/official/video-media-assurance.spec.ts
+      - name: Install browser
+        run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: Real video capability acceptance
+        run: npm run test:e2e -- --project=${{ matrix.browser }} tests/official/video-capability-acceptance.spec.ts
+      - name: Real deep media lifecycle assurance
+        run: npm run test:e2e -- --project=${{ matrix.browser }} tests/official/video-media-assurance.spec.ts
       - name: Upload exact video assurance evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
