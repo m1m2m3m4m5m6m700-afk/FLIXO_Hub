@@ -52,3 +52,7 @@ Final certification remains `NOT READY` until:
 - post-merge identity and production verification pass where applicable.
 
 No documentation mutation may be used to convert a live governance blocker into a certification PASS.
+
+
+## Governance Modes
+Development uses FAST governance to minimize agent latency while preserving exact-SHA, security, privacy, and production-boundary controls. Final certification uses STRICT governance and does not inherit development shortcuts. A FAST pass is never a certification pass.
