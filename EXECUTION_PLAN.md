@@ -1,3 +1,5 @@
+<!-- Historical long-running roadmap. Current MVP state lives in المهام.md; repository structure/ownership lives in docs/REPOSITORY-STRUCTURE.md; exact-SHA release state must be resolved from the live execution candidate. -->
+
 # FLIXO Hub — Autonomous Repository Architecture & Tool Integration Execution Plan
 
 ## Mission
