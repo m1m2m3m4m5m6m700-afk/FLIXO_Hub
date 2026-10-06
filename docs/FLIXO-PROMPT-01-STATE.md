@@ -4,12 +4,12 @@ STATUS: BLOCKER
 PROMPT_ID: 01
 SCOPE: READ_ONLY_STATE_RECORD
 RECORDED_AT_UTC: 2026-10-06
-START_SHA: 4ab2ce6492f2ed10a7faafef9a2cb74ea9581c96
-END_SHA: 4ab2ce6492f2ed10a7faafef9a2cb74ea9581c96
+START_SHA: a8b9c55d8c6cd16abe96ce3362f5693db399823a
+END_SHA: a8b9c55d8c6cd16abe96ce3362f5693db399823a
 CURRENT_MAIN_SHA: 263827228cbe5f4851470297fde5f2858ff844de
-CURRENT_EXECUTION_SHA: 4ab2ce6492f2ed10a7faafef9a2cb74ea9581c96
+CURRENT_EXECUTION_SHA: a8b9c55d8c6cd16abe96ce3362f5693db399823a
 PR: #1002
-PR_HEAD_SHA: 4ab2ce6492f2ed10a7faafef9a2cb74ea9581c96
+PR_HEAD_SHA: a8b9c55d8c6cd16abe96ce3362f5693db399823a
 PR_BASE_SHA: 263827228cbe5f4851470297fde5f2858ff844de
 PRIMARY_BRANCH: execution
 INTEGRATION_PATH: execution -> main
@@ -25,19 +25,19 @@ INTEGRATION_PATH: execution -> main
 - exact-SHA coverage evidence
 - Red Team evidence
 
-Current exact-candidate workflow state at 4ab2ce6492f2ed10a7faaf9a2cb74ea9581c96:
-- FLIXO Secret Scan: PASS on bff91e1e14d3b02c9778738dfa93972ab154ea53.
-- FLIXO CodeQL: PASS on bff91e1e14d3b02c9778738dfa93972ab154ea53.
-- FLIXO CI core verification: PASS on 4ab2ce6492f2ed10a7faafef9a2cb74ea9581c96 for typecheck, lint, core contracts, npm tests, audit, and production build.
-- Chromium browser smoke: PASS on 4ab2ce6492f2ed10a7faafef9a2cb74ea9581c96 (75 passed).
-- Exact-SHA internal coverage: PASS on 4ab2ce6492f2ed10a7faafef9a2cb74ea9581c96.
-- Red Team adversarial regression: PASS on 4ab2ce6492f2ed10a7faafef9a2cb74ea9581c96.
-- FLIXO CodeQL: PASS on 4ab2ce6492f2ed10a7faafef9a2cb74ea9581c96.
-- FLIXO Secret Scan/Gitleaks: PASS on 4ab2ce6492f2ed10a7faafef9a2cb74ea9581c96.
-- Prompt 17 clean-clone final Red Team: PASS on 4ab2ce6492f2ed10a7faafef9a2cb74ea9581c96.
-- trust-gate: FAIL CLOSED because Branch policy fails on the live main ruleset mismatch.
-- Exact-SHA promotion proof: FAIL CLOSED because trust-gate failed.
-- Prompt 18 freeze and Prompt 19 certification evidence are not present.
+## Current exact-candidate workflow state
+
+- FLIXO Secret Scan: PASS on a8b9c55d8c6cd16abe96ce3362f5693db399823a
+- FLIXO CodeQL: PASS on a8b9c55d8c6cd16abe96ce3362f5693db399823a
+- FLIXO Final Clean-Clone Red Team: PASS on a8b9c55d8c6cd16abe96ce3362f5693db399823a
+- FLIXO CI core verification: PASS on a8b9c55d8c6cd16abe96ce3362f5693db399823a
+- Chromium browser smoke: PASS on a8b9c55d8c6cd16abe96ce3362f5693db399823a
+- Exact-SHA internal coverage: PASS on a8b9c55d8c6cd16abe96ce3362f5693db399823a
+- Red Team adversarial regression: PASS on a8b9c55d8c6cd16abe96ce3362f5693db399823a
+- Branch policy: FAIL CLOSED because live main governance ruleset verification reports required approving reviews=0 instead of 1
+- trust-gate: FAIL CLOSED because Branch policy failed
+- Exact-SHA promotion proof: FAIL CLOSED because trust-gate failed
+- Production exact-SHA deployment: SKIPPED for execution candidate; no production deployment identity is claimed
 
 ## Governance evidence
 
@@ -51,7 +51,7 @@ GitHub ruleset `FLIXO-MAIN-PROTECTION` (ID 23854302) is active and targets `refs
 
 This fails the active Prompt 12 governance contract.
 
-PR #1002 currently has no independent human approving review. Automated security comments are not an independent human approval.
+PR #1002 currently has no independent human approving review. Automated security reviews/comments do not satisfy that requirement.
 
 ## Branch state
 
@@ -59,13 +59,13 @@ Only `main` and `execution` are currently present.
 
 ## Stale evidence invalidated
 
-Any evidence tied to older execution SHAs, recovery branches, prior PRs, cancelled runs, or prior production merges is not current certification evidence for PR #1002.
+Evidence tied to older execution SHAs, including 40d7da1b34a1d6dd01b23f3811ae3d069b965bfb and earlier, is not current certification evidence for PR #1002. Prior freeze/certification records are historical and not valid for this candidate.
 
 ## BLOCKERS
 
-1. Main governance ruleset is under-hardened. The available GitHub execution interface exposes ruleset access as read-only; no ruleset mutation capability is available.
+1. Main governance ruleset is under-hardened and cannot be mutated through the connected GitHub interface.
 2. Independent human approval required by Prompt 12/20 is absent and cannot be fabricated by the execution agent.
-3. Prompt 17 exact-SHA evidence is now PASS; Prompt 18 freeze and Prompt 19 certification remain blocked by governance.
+3. Prompt 18 freeze and Prompt 19 certification are not complete for this candidate.
 
 ## NEXT_PROMPT
 
