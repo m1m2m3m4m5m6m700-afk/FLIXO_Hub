@@ -10,15 +10,16 @@ export function VideoLocalTool() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const abortController = useRef<AbortController | null>(null);
+  const resultUrlRef = useRef<string | null>(null);
   const location = useLocation();
   const id = String(location.pathname).split('/').pop() ?? 'video-trimmer';
 
   useEffect(() => {
     return () => {
       abortController.current?.abort();
-      if (resultUrl) URL.revokeObjectURL(resultUrl);
+      if (resultUrlRef.current) URL.revokeObjectURL(resultUrlRef.current);
     };
-  }, [resultUrl]);
+  }, []);
 
   const run = async () => {
     if (!file) return;
@@ -26,8 +27,9 @@ export function VideoLocalTool() {
     abortController.current = controller;
     setBusy(true);
     setError('');
-    if (resultUrl) {
-      URL.revokeObjectURL(resultUrl);
+    if (resultUrlRef.current) {
+      URL.revokeObjectURL(resultUrlRef.current);
+      resultUrlRef.current = null;
       setResultUrl(null);
     }
     setResult(null);
@@ -41,6 +43,7 @@ export function VideoLocalTool() {
             : { x: 40, y: 20, width: 160, height: 90 };
       const output = await executeCanonicalTool(id, { blob: file, fileName: file.name }, parameters, controller.signal);
       const url = URL.createObjectURL(output.blob);
+      resultUrlRef.current = url;
       setResult(output.blob);
       setResultUrl(url);
     } catch (caught) {
