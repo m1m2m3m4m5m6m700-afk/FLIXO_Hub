@@ -17,6 +17,49 @@ id = "generic-api-key"
     '''^src/lib/communicationStore\.ts$''',
   ]
 
+  [[rules.allowlists]]
+  description = "Verified non-secret Chair1 adversarial test fixture in historical test commit"
+  condition = "AND"
+  commits = [
+    "a4d85af76b8dc19116ebb1043fb1cafeb36fbe54",
+  ]
+  paths = [
+    '''^scripts/ci/test-chair1-central-lease-adversarial\.mjs$''',
+  ]
+
+  [[rules.allowlists]]
+  description = "Verified non-secret Chair1 approval test fixture in historical test commit"
+  condition = "AND"
+  commits = [
+    "9ed9a5f1a518defb915f1391a0c03f7e6d925a44",
+  ]
+  paths = [
+    '''^scripts/ci/test-auto-repair-chair1-audit\.mjs$''',
+  ]
+
+  [[rules.allowlists]]
+  description = "Verified empty configuration placeholder in historical environment example"
+  condition = "AND"
+  commits = [
+    "d034d5a06bdedf2c924bfd86a700d00461b46ca0",
+  ]
+  paths = [
+    '''^\.env\.example$''',
+  ]
+
+[[rules]]
+id = "cloudflare-api-key"
+
+  [[rules.allowlists]]
+  description = "Verified documentation-only commit SHA falsely classified as a Cloudflare key"
+  condition = "AND"
+  commits = [
+    "112bc0d8d4d104a4ade23aef8daf69a09379a9cc",
+  ]
+  paths = [
+    '''^المهام\.md$''',
+  ]
+
 [[rules]]
 id = "jwt"
 
