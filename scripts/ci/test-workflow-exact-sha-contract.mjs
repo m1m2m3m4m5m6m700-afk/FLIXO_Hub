@@ -77,6 +77,17 @@ test('worker pull requests are filtered out of canonical release jobs', async ()
   }
 });
 
+test('promotion lineage checkout retains full history for merge-base verification', async () => {
+  const workflow = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
+  const marker = '      - name: Verify exact head identity and live promotion lineage';
+  const markerIndex = workflow.indexOf(marker);
+  assert.ok(markerIndex >= 0, 'promotion lineage verification step must exist');
+  const checkoutIndex = workflow.lastIndexOf('      - uses: actions/checkout@', markerIndex);
+  assert.ok(checkoutIndex >= 0, 'promotion lineage checkout must exist');
+  const checkoutBlock = workflow.slice(checkoutIndex, markerIndex);
+  assert.match(checkoutBlock, /fetch-depth: 0/u);
+});
+
 test('promotion and production gates remain fail-closed and exact-SHA bound', async () => {
   const workflow = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
 
