@@ -174,13 +174,6 @@ export function OfficialHome() {
 
   const quickToolQueries = ['إزالة الخلفية', 'ضغط الصور', 'تكبير الصور', 'قص الصور'];
 
-  const featuredTools = useMemo(
-    () =>
-      FEATURED_IDS.map((id) => TOOL_CATALOG.ready.find((tool) => tool.id === id))
-        .filter((tool): tool is (typeof TOOL_CATALOG.ready)[number] => Boolean(tool)),
-    [],
-  );
-
   const runAssistant = () => {
     const prompt = query.trim();
     if (!prompt) {
