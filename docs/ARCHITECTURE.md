@@ -40,14 +40,13 @@ Browser
 
 Agents and provider/model outputs are untrusted proposal data. They do not own execution authority.
 
-## Supported product workflows
+## Supported product workflow
 
-The MVP supports two independent workflows:
+The current executable MVP is manual-only:
 
-- Agent Guided Workflow: prompt + local File/Blob -> deterministic local intent/parameter resolution -> confirmation receipt -> canonical executor -> verifier -> downloadable artifact.
 - Manual Standalone Workflow: tool route -> local file input -> canonical executor -> verifier -> downloadable artifact.
 
-The Manual workflow does not depend on the Agent workflow.
+Agent/planner/provider paths are non-authoritative and are not required for MVP file processing. The Manual workflow is the canonical product execution path and does not depend on an agent runtime.
 
 ## Browser-local privacy boundary
 
