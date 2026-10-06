@@ -56,7 +56,10 @@ jobs:
           if-no-files-found: error
           retention-days: 14
       - run: npm audit --omit=dev --audit-level=high
-      - run: npm run build
+      - name: Build and generate runtime certification artifacts
+        env:
+          FLIXO_BUILD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: npm run build
       - name: Stamp exact build identity
         shell: bash
         env:
@@ -69,6 +72,16 @@ jobs:
           printf '%s\n' "$BUILD_SHA" > dist/__flixo-identity.txt
           mkdir -p "dist/__flixo/identity/$BUILD_SHA"
           printf '%s\n' "$BUILD_SHA" > "dist/__flixo/identity/$BUILD_SHA/index.txt"
+      - name: Verify generated runtime certification artifacts
+        shell: bash
+        env:
+          BUILD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test -s dist/attestations/build-certification.json
+          test -s dist/attestations/build-certification.md
+          grep -Fq ""commitSha": "$BUILD_SHA"" dist/attestations/build-certification.json
+          grep -Fq "$BUILD_SHA" dist/attestations/build-certification.md
       - name: Upload build artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
