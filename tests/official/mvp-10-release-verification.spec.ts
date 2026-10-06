@@ -186,6 +186,31 @@ test.describe('FLIXO ten-tool release verification', () => {
     });
   }
 
+  test('manual/background-remover does not send raw fixture bytes over the network', async ({ page }) => {
+    const fixture = imageFixture();
+    const unexpected: Array<{ url: string; method: string; reason: string }> = [];
+    const fixtureBase64 = fixture.buffer.toString('base64');
+    const fixtureBuffer = fixture.buffer;
+
+    page.on('request', (request) => {
+      const url = request.url();
+      const method = request.method();
+      const bodyText = request.postData();
+      const bodyBytes = request.postDataBuffer();
+      if (bodyText?.includes(fixtureBase64) || (bodyBytes && bodyBytes.includes(fixtureBuffer))) {
+        unexpected.push({ url, method, reason: 'request body contains raw fixture bytes or base64 fixture payload' });
+      }
+    });
+
+    await page.goto('/en/background-remover', { waitUntil: 'domcontentloaded' });
+    const fileInput = page.locator('#image-tool-file');
+    await fileInput.setInputFiles(fixture);
+    await page.getByRole('button', { name: 'Run tool' }).click();
+    await expect(page.locator('a[download]').first()).toBeVisible({ timeout: 20_000 });
+
+    expect(unexpected, unexpected.map((item) => item.method + ' ' + item.url + ' — ' + item.reason).join(' | ')).toEqual([]);
+  });
+
   test('agent/background-remover-ar requires explicit confirmation and preserves RTL', async ({ page }) => {
     await planAndExecuteAgent(page, 'إزالة الخلفية', 'background-remover', 'ar', await meaningfulImageFixture(page));
   });
