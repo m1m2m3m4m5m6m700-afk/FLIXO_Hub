@@ -293,6 +293,20 @@ test.describe('FLIXO ten-tool release verification', () => {
     await expect(page.locator('[aria-label="agent-result"]')).toBeVisible({ timeout: 30_000 });
   });
 
+  test('agent plan is invalidated when the user changes intent after planning', async ({ page }) => {
+    await page.goto('/agent', { waitUntil: 'domcontentloaded' });
+    await page.locator('#agent-prompt').fill('compress my image');
+    await page.locator('#agent-file').setInputFiles(await meaningfulImageFixture(page));
+    await page.getByTestId('agent-build-plan').click();
+    await expect(page.locator('[aria-label="agent-plan"]')).toContainText('image-compressor');
+    await page.getByTestId('agent-confirmation').check();
+    await expect(page.getByTestId('agent-execute')).toBeEnabled();
+    await page.locator('#agent-prompt').fill('convert this image to webp');
+    await expect(page.locator('[aria-label="agent-plan"]')).toHaveCount(0);
+    await expect(page.getByTestId('agent-confirmation')).not.toBeChecked();
+    await expect(page.getByTestId('agent-execute')).toHaveCount(0);
+  });
+
   test('agent/unsupported operation fails closed without creating a plan', async ({ page }) => {
     await page.goto('/agent', { waitUntil: 'domcontentloaded' });
     await page.locator('#agent-prompt').fill('remove the object from this image');

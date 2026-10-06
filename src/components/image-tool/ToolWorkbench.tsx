@@ -362,8 +362,8 @@ export function ToolWorkbench<P>({
                 onDrop={(event) => {
                   event.preventDefault();
                   if (busy) return;
-                  const dropped = event.dataTransfer.files?.[0];
-                  if (dropped) void handleFiles([dropped]);
+                  const dropped = Array.from(event.dataTransfer.files ?? []);
+                  if (dropped.length) void handleFiles(multiple ? dropped : [dropped[0]]);
                 }}
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M12 16V4M12 4 7 9M12 4l5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
@@ -403,7 +403,18 @@ export function ToolWorkbench<P>({
                 ['before', t('Before')],
                 ['after', t('After')],
               ] as const).map(([mode, label]) => (
-                <button key={mode} type="button" className={`flixo-tool-view-btn ${viewMode === mode ? 'active' : ''}`} onClick={() => setViewMode(mode)}>{label}</button>
+                <button
+                  key={mode}
+                  id={`flixo-tool-view-${mode}`}
+                  role="tab"
+                  type="button"
+                  aria-selected={viewMode === mode}
+                  tabIndex={viewMode === mode ? 0 : -1}
+                  className={`flixo-tool-view-btn ${viewMode === mode ? 'active' : ''}`}
+                  onClick={() => setViewMode(mode)}
+                >
+                  {label}
+                </button>
               ))}
             </div>
             <div className="flixo-tool-zoom mono">
@@ -414,7 +425,7 @@ export function ToolWorkbench<P>({
           </div>
 
           <div className="flixo-tool-canvas-stage">
-            <div className="flixo-tool-canvas-card image-workbench-output">
+            <div id="flixo-tool-preview-panel" role="tabpanel" aria-labelledby={`flixo-tool-view-${viewMode}`} className="flixo-tool-canvas-card image-workbench-output">
               {viewMode === 'compare' ? (
                 <div className="flixo-tool-preview-grid compare">
                   <div className="flixo-tool-preview-pane">

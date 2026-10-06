@@ -2,7 +2,7 @@
 import { execFileSync } from 'node:child_process';
 
 const allowed = new Set(['refs/heads/main', 'refs/heads/execution']);
-const coordinationPrefix = /^refs\/heads\/agent-(?:1|2|3)\//u;
+const coordinationPrefix = /^refs\/heads\/agent(?:-|)(?:1|2|3)\//u;
 const output = execFileSync('git', ['ls-remote', '--heads', 'origin'], { encoding: 'utf8' });
 const unexpected = output
   .split('\n')
