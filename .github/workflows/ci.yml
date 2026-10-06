@@ -267,6 +267,11 @@ jobs:
 
           echo "EXACT_SHA_PROMOTION_PROOF=$EXPECTED_SHA"
 
+      - name: Verify repository origin and live integration freshness
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/ci/verify-promotion-context.mjs
+
   production-deploy:
     name: Production exact-SHA deployment
     needs: [promotion-proof]
