@@ -39,6 +39,7 @@ const DEFINITIONS: Record<Exclude<LocalToolId, 'image-compressor'>, { title: str
 };
 
 type Props = { toolId: Exclude<LocalToolId, 'image-compressor'> };
+type SharedImageToolId = Exclude<LocalToolId, 'ai-image-generator' | 'image-compressor'>;
 type Result = { blob: Blob; text?: string; fileName: string; info?: { width: number; height: number }; objectUrl?: string };
 
 type RasterMime = 'image/png' | 'image/jpeg' | 'image/webp';
