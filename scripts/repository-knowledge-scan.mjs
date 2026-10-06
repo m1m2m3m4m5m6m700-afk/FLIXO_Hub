@@ -459,6 +459,6 @@ function main() {
   console.log(JSON.stringify(result, null, 2));
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === fileURLToPath(process.argv[1])) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   main();
 }
