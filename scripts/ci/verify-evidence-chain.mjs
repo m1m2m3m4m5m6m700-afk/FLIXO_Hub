@@ -14,7 +14,7 @@ export function validateEvidenceChain(chain) {
     if (typeof chain[key] !== 'string' || !chain[key].trim()) errors.push(key + ':missing');
   }
   if (chain.testedSha !== chain.sourceSha) errors.push('testedSha:not-source');
-  if (chain.builtSha !== chain.sourceSha) errors.push('builtSha:not-source');
+  if (chain.buildSha !== chain.sourceSha) errors.push('buildSha:not-source');
   if (chain.deploymentSha !== chain.sourceSha) errors.push('deploymentSha:not-source');
   if (chain.environment === 'production' && chain.productionVerified !== true) errors.push('production:unverified');
   return { ok: errors.length === 0, errors };
