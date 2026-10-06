@@ -1,4 +1,5 @@
 name: FLIXO Agent-3 Triage and Clean
+# Agent-3 exact-SHA CI marker: rerun after every control-plane correction.
 
 on:
   push:
