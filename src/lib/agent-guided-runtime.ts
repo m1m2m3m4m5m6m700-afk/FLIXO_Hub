@@ -192,9 +192,6 @@ function parametersFor(toolId: string, prompt: string): CanonicalCapabilityParam
 
   const capability = getCapability(toolId);
   if (!capability) throw new Error('Agent capability is not registered: ' + toolId);
-  if (toolId === 'image-effects' && params.brightness === 100 && params.contrast === 115 && params.saturate === 100 && params.grayscale === undefined) {
-    params.contrast = 115;
-  }
   return validateCapabilityParameters(toolId, params);
 }
 
