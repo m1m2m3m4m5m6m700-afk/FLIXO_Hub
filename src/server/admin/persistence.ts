@@ -1,4 +1,4 @@
-import { canonicalTimestamp, integritySha256, assertIntegrityHash } from './canonical.ts';
+import { canonicalTimestamp, assertIntegrityHash } from './canonical.ts';
 
 type PersistenceConfig = {
   url: string;
