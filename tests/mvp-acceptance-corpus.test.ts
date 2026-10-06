@@ -21,7 +21,10 @@ test('versioned MVP acceptance corpus resolves every positive case through canon
       assert.deepEqual(plan.steps.map((step) => step.toolId), item.expectedToolIds, item.id);
       assert.equal(plan.catalogFingerprint.length > 0, true, item.id);
     } catch (error) {
-      throw new Error(`corpus case ${item.id} failed: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `corpus case ${item.id} failed: ${error instanceof Error ? error.message : String(error)}`,
+        { cause: error },
+      );
     }
   }
 });
