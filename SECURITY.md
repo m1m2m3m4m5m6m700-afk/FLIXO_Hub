@@ -36,8 +36,6 @@ Please include the affected component, reproduction steps, impact assessment, an
 
 Security checks must remain enabled. A failing security gate must not be bypassed solely to obtain a green build. External service failures must be classified separately from application-code failures.
 
-The normal CI Socket check may be skipped when `SOCKET_SECURITY_API_KEY` is not configured. The `Release Certification` workflow is stricter: `SOCKET_SECURITY_API_KEY` is mandatory there, and the Socket scan is a blocking release gate.
-
-Configure `SOCKET_SECURITY_API_KEY` as a GitHub Actions repository/environment secret before running release certification. Do not place the value in source files, workflow YAML, logs, or client-visible environment variables.
+The current release gate does not rely on a Socket workflow. The active repository security gates are the dependency audit, CodeQL, secret scanning, and Red-Team regression defined by the current CI/release plan. Any future third-party supply-chain scanner must be added to the executable release plan and workflow before it can be treated as a required gate.
 
 Changes to authentication, authorization, secret handling, dependency execution, or CI permissions require targeted review and fresh evidence on the exact commit being promoted.
