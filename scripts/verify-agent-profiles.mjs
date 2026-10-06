@@ -22,7 +22,7 @@ for (const file of required) {
   if (!/^---\r?\n/u.test(content)) throw new Error(`${file}: invalid frontmatter`);
   if (!/100\/100/u.test(content)) throw new Error(`${file}: missing 100/100 training contract`);
   if (!/Practical Mastery Loop/u.test(content)) throw new Error(`${file}: missing practical mastery loop`);
-  if (/git push origin main|force[- ]push|write directly to main|declare PASS\/GREEN\/CERTIFIED/iu.test(content)) {
+  if (/git push origin main|force[- ]push|write directly to main|(?:^|\n)\s*(?:I|we|this agent|the agent|agent)\s+(?:can|may|will|shall)\s+(?:declare\s+)?(?:PASS|GREEN|CERTIFIED)\b|(?:^|\n)\s*(?:I|we|this agent|the agent|agent)\s+(?:can|may|will|shall)\s+(?:certify|self-certify)\b/imu.test(content)) {
     throw new Error(`${file}: forbidden authority language detected`);
   }
 }
