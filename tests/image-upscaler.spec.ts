@@ -17,10 +17,15 @@ test('image-upscaler: scales dimensions and downloads PNG', async ({ page }) => 
   await assertDownload(page, /\.png$/);
 });
 
-test('image-upscaler: rejects an unsafe scale', async ({ page }) => {
+test('image-upscaler: rejects scales outside the canonical 1x-8x contract', async ({ page }) => {
   await page.goto('/en/image-upscaler');
   await uploadFixture(page);
+
+  await page.getByRole('textbox', { name: 'Scale', exact: true }).fill('0.5');
+  await page.getByRole('button', { name: 'Run tool' }).click();
+  await expect(page.getByRole('alert')).toContainText('Scale must be between 1 and 8.');
+
   await page.getByRole('textbox', { name: 'Scale', exact: true }).fill('9');
   await page.getByRole('button', { name: 'Run tool' }).click();
-  await expect(page.getByRole('alert')).toContainText('Scale must be between 0.25 and 4.');
+  await expect(page.getByRole('alert')).toContainText('Scale must be between 1 and 8.');
 });
