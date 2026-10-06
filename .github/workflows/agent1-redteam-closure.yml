@@ -1,0 +1,221 @@
+
+name: Agent 1 Red Team Closure
+
+on:
+  pull_request:
+    branches: [execution]
+  push:
+    branches:
+      - agent-1/redteam-closure-20261006
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agent1-redteam-closure-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+env:
+  SUPABASE_PROJECT_REF: zrpsmgdrtwzrhkjwwujo
+
+jobs:
+  targeted:
+    name: RT-01/02/10/18 targeted verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact SHA
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Exact-SHA targeted tests
+        run: |
+          set -euo pipefail
+          node --test --experimental-strip-types \
+            tests/admin-evidence-integrity.test.ts \
+            tests/admin-login-rate-limit.test.ts \
+            tests/council-runtime-security.test.ts \
+            tests/redteam-agent1-closure-contract.test.ts
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Runtime build
+        run: npm run build:runtime
+      - name: Red Team control-plane regression
+        run: npm run test:red-team
+
+  live:
+    name: Live Supabase evidence
+    needs: targeted
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact SHA
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+      - name: Require live verification credentials
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          test -n "$SUPABASE_ACCESS_TOKEN" || { echo "::error::Missing SUPABASE_ACCESS_TOKEN; live RT evidence cannot be claimed."; exit 1; }
+          test -n "$SUPABASE_DB_URL" || { echo "::error::Missing SUPABASE_DB_URL; live database verification cannot be claimed."; exit 1; }
+
+      - name: Run Supabase security advisors
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            -H "Content-Type: application/json" \
+            "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/advisors/security" \
+            -o supabase-security-advisors.json
+          test -s supabase-security-advisors.json
+
+      - name: Verify live RT-01, RT-10 and RT-18 database state
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -P pager=off <<'SQL' > live-db-evidence.txt
+          \\echo 'RT-01 privilege proof'
+          with scheduler as (
+            select username::name as username
+              from cron.job
+             where jobname = 'flixo-assistant-wake-retry'
+             order by jobid desc
+             limit 1
+          )
+          select
+            coalesce(username::text, 'MISSING') as scheduler_role,
+            has_function_privilege('anon', 'public.flixo_retry_pending_assistant_wakes()', 'EXECUTE') as anon_exec,
+            has_function_privilege('authenticated', 'public.flixo_retry_pending_assistant_wakes()', 'EXECUTE') as authenticated_exec,
+            has_function_privilege('service_role', 'public.flixo_retry_pending_assistant_wakes()', 'EXECUTE') as service_role_exec,
+            case
+              when username is null then false
+              else has_function_privilege(username, 'public.flixo_retry_pending_assistant_wakes()', 'EXECUTE')
+            end as scheduler_exec
+          from scheduler;
+
+          \\echo 'RT-01 cron execution history'
+          select j.jobid, j.username, d.status, d.return_message, d.start_time
+            from cron.job j
+            left join lateral (
+              select status, return_message, start_time
+                from cron.job_run_details
+               where jobid = j.jobid
+               order by start_time desc
+               limit 3
+            ) d on true
+           where j.jobname = 'flixo-assistant-wake-retry'
+           order by d.start_time desc;
+
+          \\echo 'RT-10 privilege and RLS proof'
+          select
+            to_regclass('public.flix_admin_login_rate_limits') is not null as rate_table_exists,
+            c.relrowsecurity as rls_enabled,
+            has_function_privilege('anon', 'public.flixo_admin_login_rate_check(text)', 'EXECUTE') as anon_exec,
+            has_function_privilege('authenticated', 'public.flixo_admin_login_rate_check(text)', 'EXECUTE') as authenticated_exec,
+            has_function_privilege('service_role', 'public.flixo_admin_login_rate_check(text)', 'EXECUTE') as service_role_exec
+          from pg_class c
+          where c.oid = 'public.flix_admin_login_rate_limits'::regclass;
+
+          \\echo 'RT-10 transactional behavior proof'
+          begin;
+          select * from public.flixo_admin_login_rate_check('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+          select * from public.flixo_admin_login_rate_check('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+          rollback;
+
+          \\echo 'RT-18 schema/FK proof'
+          select column_name
+            from information_schema.columns
+           where table_schema='public'
+             and table_name='flix_admin_evidence'
+             and column_name in ('evidence_id','recorded_at','created_at')
+           order by column_name;
+          select column_name
+            from information_schema.columns
+           where table_schema='public'
+             and table_name='flix_admin_audit_events'
+             and column_name in ('event_id','occurred_at','created_at','evidence_id')
+           order by column_name;
+          select conname
+            from pg_constraint
+           where conrelid='public.flix_admin_audit_events'::regclass
+             and conname='flix_admin_audit_events_evidence_fk';
+          select count(*) as orphan_audit_links
+            from public.flix_admin_audit_events a
+           where a.evidence_id is not null
+             and not exists (
+               select 1 from public.flix_admin_evidence e where e.evidence_id=a.evidence_id
+             );
+          SQL
+
+          test -s live-db-evidence.txt
+
+      - name: Verify current deployed Council function metadata/body
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/functions/flixo-council-runtime" \
+            -o council-runtime-metadata.json
+          curl --fail-with-body --silent --show-error \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/functions/flixo-council-runtime/body" \
+            -o council-runtime-body.json
+          test -s council-runtime-metadata.json
+          test -s council-runtime-body.json
+          node <<'NODE'
+          const fs = require('fs');
+          const m = JSON.parse(fs.readFileSync('council-runtime-metadata.json','utf8'));
+          const b = JSON.parse(fs.readFileSync('council-runtime-body.json','utf8'));
+          const body = typeof b === 'string' ? b : (b.body ?? b.content ?? b.source ?? '');
+          if (!body) throw new Error('Missing function body in Management API response.');
+          fs.writeFileSync('council-runtime-lineage.txt', [
+            'repository_sha=' + process.env.GITHUB_SHA,
+            'function_slug=' + (m.slug ?? ''),
+            'version=' + (m.version ?? ''),
+            'verify_jwt=' + (m.verify_jwt ?? ''),
+            'ezbr_sha256=' + (m.ezbr_sha256 ?? ''),
+            'body_sha256=' + require('crypto').createHash('sha256').update(body).digest('hex'),
+          ].join('\\n') + '\\n');
+          NODE
+
+      - name: Negative public-path check — no anonymous privileged route
+        run: |
+          set -euo pipefail
+          status="$(curl --silent --show-error --location --max-time 20 -o /tmp/council-anon.json -w '%{http_code}' \
+            "https://$SUPABASE_PROJECT_REF.supabase.co/functions/v1/flixo-council-runtime?action=dispatch")"
+          echo "HTTP=$status"
+          test "$status" = "401" || test "$status" = "403"
+          cat /tmp/council-anon.json
+
+      - name: Upload exact-SHA live evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: agent1-redteam-live-$${{ github.sha }}
+          path: |
+            supabase-security-advisors.json
+            live-db-evidence.txt
+            council-runtime-metadata.json
+            council-runtime-body.json
+            council-runtime-lineage.txt
+          if-no-files-found: warn
+          retention-days: 30
