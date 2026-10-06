@@ -14,6 +14,8 @@ import { useFullscreenSync } from '../../components/useFullscreenSync';
 import { getTranslationBundle, type Locale } from '../../lib/i18n';
 import { EN_SEED_UI } from '../../lib/i18n/locales/en';
 import type { SeedUiTranslations } from '../../lib/i18n/types';
+import { validateBrowserFile } from '../../lib/contracts/browser-file-safety';
+import { validateOutputIntegrity } from '../../lib/contracts/output-integrity';
 
 export interface SeedState extends SeedRenderSettings {
   blurRadius: number;
@@ -186,29 +188,46 @@ export default function SeedTool({ locale = 'en' as Locale }: { locale?: Locale 
     applyHistorySnapshot(next, historyIndex + 1);
   };
 
+  const seedFilePolicy = {
+    allowedMime: ['image/avif', 'image/bmp', 'image/gif', 'image/jpeg', 'image/png', 'image/webp'],
+    maxBytes: 25 * 1024 * 1024,
+    maxPixels: 40_000_000,
+  } as const;
+
   const openImage = (file: File) => {
-    if (!file.type.startsWith('image/')) { setError('Drop a supported image file.'); return; }
-    const url = URL.createObjectURL(file);
-    if (imageUrlRef.current) URL.revokeObjectURL(imageUrlRef.current);
-    imageUrlRef.current = url;
-    const img = new Image();
-    img.onload = () => {
-      renderSettingsRef.current = DEFAULT_STATE;
-      setImage(img); setImageName(file.name); setSettings(DEFAULT_STATE); setAdvanced(cloneAdvanced(DEFAULT_ADVANCED));
-      setHistory([{ basic: DEFAULT_STATE, advanced: cloneAdvanced(DEFAULT_ADVANCED) }]); setHistoryIndex(0); setZoomLevel(1); setError('');
-    };
-    img.onerror = () => setError('Unable to decode this image.');
-    img.src = url;
+    void validateBrowserFile(file, seedFilePolicy).then((validation) => {
+      if (!validation.safe || !validation.width || !validation.height) {
+        setError(`Input rejected by File Safety: ${validation.failures.join('; ')}`);
+        return;
+      }
+      const url = URL.createObjectURL(file);
+      if (imageUrlRef.current) URL.revokeObjectURL(imageUrlRef.current);
+      imageUrlRef.current = url;
+      const img = new Image();
+      img.onload = () => {
+        renderSettingsRef.current = DEFAULT_STATE;
+        setImage(img); setImageName(file.name); setSettings(DEFAULT_STATE); setAdvanced(cloneAdvanced(DEFAULT_ADVANCED));
+        setHistory([{ basic: DEFAULT_STATE, advanced: cloneAdvanced(DEFAULT_ADVANCED) }]); setHistoryIndex(0); setZoomLevel(1); setError('');
+      };
+      img.onerror = () => setError('Unable to decode this image.');
+      img.src = url;
+    }).catch(() => setError('Unable to validate this image.'));
   };
+
   const openDoubleExposure = (file: File) => {
-    if (!file.type.startsWith('image/')) { setError('Choose an image for the exposure layer.'); return; }
-    const url = URL.createObjectURL(file);
-    if (doubleExposureUrlRef.current) URL.revokeObjectURL(doubleExposureUrlRef.current);
-    doubleExposureUrlRef.current = url;
-    const layer = new Image();
-    layer.onload = () => updateAdvanced('doubleExposure', layer);
-    layer.onerror = () => setError('Unable to decode the exposure layer.');
-    layer.src = url;
+    void validateBrowserFile(file, seedFilePolicy).then((validation) => {
+      if (!validation.safe) {
+        setError(`Input rejected by File Safety: ${validation.failures.join('; ')}`);
+        return;
+      }
+      const url = URL.createObjectURL(file);
+      if (doubleExposureUrlRef.current) URL.revokeObjectURL(doubleExposureUrlRef.current);
+      doubleExposureUrlRef.current = url;
+      const layer = new Image();
+      layer.onload = () => updateAdvanced('doubleExposure', layer);
+      layer.onerror = () => setError('Unable to decode the exposure layer.');
+      layer.src = url;
+    }).catch(() => setError('Unable to validate the exposure layer.'));
   };
   const addBrushPoint = (event: React.PointerEvent<HTMLCanvasElement>) => {
     if (!image || advanced.brushStrength === 0) return;
@@ -240,7 +259,26 @@ export default function SeedTool({ locale = 'en' as Locale }: { locale?: Locale 
       if (settings.warmth !== 0) { ctx.save(); ctx.globalAlpha = Math.abs(settings.warmth) / 400; ctx.globalCompositeOperation = 'overlay'; ctx.fillStyle = settings.warmth > 0 ? '#ffa500' : '#0096ff'; ctx.fillRect(0, 0, output.width, output.height); ctx.restore(); }
       renderAdvanced(ctx, advanced);
       const blob = await new Promise<Blob | null>((resolve) => output.toBlob(resolve, 'image/png'));
-      if (!blob || blob.size < 32) throw new Error('Export produced an invalid image.');
+      if (!blob) throw new Error('Export produced no image.');
+      const bytes = new Uint8Array(await blob.arrayBuffer());
+      const validation = validateOutputIntegrity(
+        blob.size,
+        blob.type,
+        {
+          toolId: 'seed',
+          allowedMime: ['image/png'],
+          maxBytes: 25 * 1024 * 1024,
+          minBytes: 32,
+          maxPixels: 40_000_000,
+          allowedExtensions: ['png'],
+          signatures: ['89504e470d0a1a0a'],
+          requireArtifact: true,
+          requireSafeFilename: true,
+        },
+        { width: output.width, height: output.height },
+        { filename: 'seed-edited.png', bytes },
+      );
+      if (!validation.valid) throw new Error(`Export integrity validation failed: ${validation.failures.join('; ')}`);
       const url = URL.createObjectURL(blob); const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'seed-edited.png';
       document.body.appendChild(anchor); anchor.click();
       window.setTimeout(() => { URL.revokeObjectURL(url); anchor.remove(); }, 1000);
