@@ -6,7 +6,7 @@ REPOSITORY: m1m2m3m4m5m6m700-afk/FLIXO_Hub
 BRANCH: agent-3a/redteam-rt17-20261006
 INTEGRATION_TARGET: execution
 START_SHA: a6feb563eb6d53e30badc0b071cadc805b71e0af
-VALIDATED_CODE_SHA_BEFORE_REPORT: bd17cbfd1d84c8f1424be0e2d1e2dfed9bc36189
+VALIDATED_CODE_SHA_BEFORE_REPORT: 1d8c5c178efcd3069f0eabd84aa7cc780d662a2d
 
 ## RT-17 finding
 
@@ -91,6 +91,10 @@ Added/strengthened:
 - `.github/workflows/ci.yml` — CODEOWNERS guard runs in CI and an RT-17 live-governance job runs for `agent-3a/redteam-rt17-*`.
 - `scripts/ci/verify-branch-policy.mjs` — narrowly admits the exact RT-17 coordination namespace `agent-3a/redteam-rt17-*` without opening a generic `agent-3a/*` namespace.
 
+## Validation state on the pre-report SHA
+
+CI was initiated against `1d8c5c178efcd3069f0eabd84aa7cc780d662a2d` (FLIXO CI run `37489404574`). At the time of this record rollover: Typecheck/lint/core was in progress, Red Team was queued, Branch Policy was in progress, and RT-17 live governance was queued. These are execution-state observations only and are not PASS evidence. This report mutation invalidates those pre-report candidate-specific results and requires fresh checks on the final report SHA.
+
 ## Evidence rule
 
 Every mutation after `VALIDATED_CODE_SHA_BEFORE_REPORT` invalidates candidate-specific runtime/CI evidence from the previous SHA. This report itself is a documentation mutation and is therefore not a certification artifact.
@@ -113,3 +117,5 @@ Every mutation after `VALIDATED_CODE_SHA_BEFORE_REPORT` invalidates candidate-sp
 This record does not certify FLIXO Hub, `execution`, `main`, production readiness, or the overall release.
 
 `CERTIFICATION=FORBIDDEN`
+
+`RT-17=OWNER_ACTION`
