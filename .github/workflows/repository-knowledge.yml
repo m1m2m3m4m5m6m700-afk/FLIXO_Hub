@@ -50,7 +50,7 @@ jobs:
           set -euo pipefail
           REPORT="0(التقارير)/${GITHUB_SHA}.md"
           test -s "$REPORT"
-          grep -Fq -- "- SHA: ${GITHUB_SHA}" "$REPORT"
+          grep -Fq -- "- Exact SHA: ${GITHUB_SHA}" "$REPORT"
           grep -Fq -- "- Uncovered repository-authored text lines: 0" "$REPORT"
 
       - name: Run strict knowledge-agent contract tests
