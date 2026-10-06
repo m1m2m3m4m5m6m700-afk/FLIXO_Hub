@@ -112,6 +112,19 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
     const endSec = Math.max(startSec + 0.001, Math.min(options.endSec ?? duration, duration));
     if (endSec <= startSec) throw new Error('VIDEO_TRIM_RANGE_INVALID');
 
+    // Compression requests are bounded relative to the source bitrate so the result
+    // is not merely re-encoded at a larger or identical bitrate for tiny inputs.
+    const sourceBitsPerSecond = (inputBlob.size * 8) / duration;
+    const compressionBitrateTarget = options.videoBitsPerSecond !== undefined
+      ? Math.max(32_000, Math.floor(sourceBitsPerSecond * 0.70))
+      : undefined;
+    const effectiveVideoBitsPerSecond = compressionBitrateTarget === undefined
+      ? options.videoBitsPerSecond
+      : Math.max(16_000, Math.min(options.videoBitsPerSecond!, Math.floor(compressionBitrateTarget * 0.80)));
+    const effectiveAudioBitsPerSecond = compressionBitrateTarget === undefined
+      ? options.audioBitsPerSecond
+      : Math.max(8_000, Math.min(options.audioBitsPerSecond ?? 128_000, Math.floor(compressionBitrateTarget * 0.20)));
+
     const { canvas, source } = buildCanvas(video, options);
     const context = canvas.getContext('2d');
     if (!context) throw new Error('VIDEO_CANVAS_CONTEXT_UNAVAILABLE');
@@ -129,8 +142,8 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
     const mimeType = supportedMimeType();
     recorder = new MediaRecorder(canvasStream, {
       mimeType,
-      ...(options.videoBitsPerSecond ? { videoBitsPerSecond: options.videoBitsPerSecond } : {}),
-      ...(options.audioBitsPerSecond ? { audioBitsPerSecond: options.audioBitsPerSecond } : {}),
+      ...(effectiveVideoBitsPerSecond ? { videoBitsPerSecond: effectiveVideoBitsPerSecond } : {}),
+      ...(effectiveAudioBitsPerSecond ? { audioBitsPerSecond: effectiveAudioBitsPerSecond } : {}),
     });
 
     const activeRecorder = recorder;
