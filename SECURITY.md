@@ -2,7 +2,7 @@
 
 ## Scope
 
-This policy covers the FLIXO-AI-TOOLS repository, its source code, CI workflows, and production-facing configuration.
+This policy covers the FLIXO_Hub repository, its source code, CI workflows, and production-facing configuration.
 
 ## Secrets
 
