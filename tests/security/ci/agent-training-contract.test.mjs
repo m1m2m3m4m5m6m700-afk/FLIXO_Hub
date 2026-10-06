@@ -20,7 +20,7 @@ test('all official agents have explicit identities', () => {
     assert.ok(content.includes('tools: read, search, terminal'));
     assert.doesNotMatch(content, /git push origin main|force[- ]push|write directly to main/iu);
     assert.doesNotMatch(content, /(?:^|\\n)\\s*(?:the agent|agent)\\s+(?:can|may|will|shall)\\s+(?:declare\\s+)?(?:PASS|GREEN|CERTIFIED)|(?:^|\\n)\\s*(?:the agent|agent)\\s+(?:can|may|will|shall)\\s+(?:certify|self-certify)\\b/imu);
-    if (agent.training) assert.match(content, /100\\/100/u);
+    if (agent.training) assert.match(content, /100\/100/u);
   }
 });
 
@@ -40,8 +40,8 @@ test('role-specific packages expose bounded report paths', () => {
 test('training program defines evidence-based 100 score and adjudication', () => {
   const readme = readFileSync('الوكلاء/تدريب الوكلاء/README.md', 'utf8');
   const rubric = readFileSync('الوكلاء/تدريب الوكلاء/المعيار-100.md', 'utf8');
-  assert.match(readme, /هدف 100\\/100/u);
-  assert.match(readme, /لا يُمنح الوكيل تقييم 100\\/100/u);
+  assert.match(readme, /هدف 100\/100/u);
+  assert.match(readme, /لا يُمنح الوكيل تقييم 100\/100/u);
   assert.match(rubric, /الأدلة/u);
   assert.match(rubric, /CONFIRMED \/ REJECTED \/ DISPUTED \/ UNKNOWN/u);
 });
