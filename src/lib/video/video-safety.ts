@@ -1,4 +1,4 @@
-import { MAGIC_BYTE_SIGNATURES, type MagicByteSignature } from '../contracts/file-safety.ts';
+type MagicByteSignature = Readonly<{ name: string; bytes: readonly number[]; offset?: number }>;
 
 export const VIDEO_LIMITS = Object.freeze({
   maxInputBytes: 512 * 1024 * 1024,
@@ -13,7 +13,7 @@ export const VIDEO_LIMITS = Object.freeze({
 });
 
 const VIDEO_SIGNATURES: Record<string, MagicByteSignature> = {
-  webm: MAGIC_BYTE_SIGNATURES.webm,
+  webm: { name: 'WebM/EBML', bytes: [0x1a, 0x45, 0xdf, 0xa3] },
   mp4: { name: 'MP4/ISO-BMFF', bytes: [0x66, 0x74, 0x79, 0x70], offset: 4 },
   quicktime: { name: 'QuickTime/ISO-BMFF', bytes: [0x66, 0x74, 0x79, 0x70], offset: 4 },
   ogg: { name: 'Ogg', bytes: [0x4f, 0x67, 0x67, 0x53] },
