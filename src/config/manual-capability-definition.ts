@@ -319,6 +319,26 @@ const effectsVerifier: CanonicalCapabilityVerifier = async (input, output, param
   return hasMeaningfulPixelChange(input, output, signal);
 };
 
+const videoCropperVerifier: CanonicalCapabilityVerifier = async (input, output, parameters, signal) => {
+  if (signal?.aborted || output.size <= 0 || output.type !== "video/webm") return false;
+  const [inputMeta, outputMeta] = await Promise.all([readVideoDimensions(input, signal), readVideoDimensions(output, signal)]);
+  if (!inputMeta || !outputMeta) return false;
+
+  const requestedX = Math.max(0, Number(parameters.x ?? 0));
+  const requestedY = Math.max(0, Number(parameters.y ?? 0));
+  const requestedWidth = Math.max(1, Number(parameters.width ?? inputMeta.width));
+  const requestedHeight = Math.max(1, Number(parameters.height ?? inputMeta.height));
+  const x = Math.min(requestedX, Math.max(0, inputMeta.width - 1));
+  const y = Math.min(requestedY, Math.max(0, inputMeta.height - 1));
+  const expectedWidth = Math.min(requestedWidth, inputMeta.width - x);
+  const expectedHeight = Math.min(requestedHeight, inputMeta.height - y);
+
+  return outputMeta.width === Math.max(1, Math.round(expectedWidth)) &&
+    outputMeta.height === Math.max(1, Math.round(expectedHeight)) &&
+    outputMeta.duration !== undefined &&
+    outputMeta.duration > 0;
+};
+
 const videoVerifier: CanonicalCapabilityVerifier = async (input, output, parameters, signal) => {
   if (signal?.aborted || output.size <= 0 || output.type !== "video/webm") return false;
   const [inputMeta, outputMeta] = await Promise.all([readVideoDimensions(input, signal), readVideoDimensions(output, signal)]);
@@ -352,6 +372,7 @@ function createCapability(id:(typeof MVP_EXECUTABLE_TOOL_IDS)[number]):Canonical
     id === "image-compressor" ? targetSizeVerifier :
     id === "image-converter" ? formatVerifier :
     id === "image-effects" ? effectsVerifier :
+    id === "video-cropper" ? videoCropperVerifier :
     isVideo ? videoVerifier :
     changedImageVerifier;
   return Object.freeze({
