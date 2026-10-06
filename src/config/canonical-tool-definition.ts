@@ -50,29 +50,6 @@ export type CapabilityParameters = CanonicalCapabilityParameters;
 export type CapabilityVerifier = CanonicalCapabilityVerifier;
 export type CapabilityLimits = CanonicalCapabilityLimits;
 
-export type ToolDefinition = Readonly<{
-  id: string;
-  family: ToolFamily;
-  title: string;
-  description: string;
-  category: ToolCategory;
-  isReady: boolean;
-  path: string;
-  routes: Readonly<Record<Locale, string>>;
-  aliases: readonly string[];
-  component: LazyExoticComponent<ComponentType>;
-  capability: Readonly<{ state: CapabilityState; intents: readonly string[] }>;
-  executionMode: ExecutionMode;
-  parameterSchema: ZodType;
-  safetyLimits: CapabilityLimits;
-  verifier: CapabilityVerifier;
-  requirements: ToolRequirements;
-  recovery: ToolRecoveryPolicy;
-  operational: ToolOperationalProfile;
-  localization: Readonly<{ titleKey: string; descriptionKey: string }>;
-  seo: Readonly<{ title: string; description: string; robots: 'index,follow,max-image-preview:large' }>;
-}>;
-
 const IMAGE_TOOL_CONFIGS: readonly ToolSource[] = Object.freeze([
   { id: 'filter-mask', title: 'Filter Mask', path: '/en/filter-mask', description: 'Live camera filters with instant local preview.', category: 'Images', isReady: true, aliases: ['/en/filters'], component: lazy(() => import('@/tools/filter-mask').then((m) => ({ default: m.FilterMaskTool }))) },
   { id: 'image-compressor', title: 'Image Compressor', path: '/en/image-compressor', description: 'Reduce JPG, PNG, and WebP file size in your browser.', category: 'Images', isReady: true, aliases: ['/ar/image-compressor'], component: lazy(() => import('@/tools/image-compressor/index.tsx').then((m) => ({ default: m.ImageCompressor }))) },
