@@ -211,3 +211,13 @@ test('canonical executor enforces container signatures for supported video MIME 
   assert.ok(executor.includes("bytes: [0x4f, 0x67, 0x67, 0x53]"));
   assert.ok(executor.includes("magicBytes: isVideo"));
 });
+
+test('canonical execution deadlines actively abort downstream processing', () => {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+  const executor = readFileSync(resolve(root, 'src/lib/execution/canonical-executor.ts'), 'utf8');
+  assert.match(executor, /const executionController = new AbortController\(\)/u);
+  assert.match(executor, /const executionSignal = executionController\.signal/u);
+  assert.match(executor, /timeoutController\?\.abort\(\)/u);
+  assert.match(executor, /withDeadline\([\s\S]*executionController/u);
+  assert.match(executor, /executionController\.abort\(\)/u);
+});
