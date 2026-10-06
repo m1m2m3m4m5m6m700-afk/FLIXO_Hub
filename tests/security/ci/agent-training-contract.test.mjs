@@ -51,3 +51,17 @@ test('package exposes the all-agent training contract as a test gate', () => {
   assert.equal(pkg.scripts['test:agent-training'], 'node --test tests/security/ci/agent-training-contract.test.mjs');
   assert.match(pkg.scripts.test, /test:agent-training/u);
 });
+
+test('agent training includes exact-SHA learning and lesson promotion checks', async () => {
+  const learner = await import('../../../scripts/agent-learning/self-learning-control-plane.mjs');
+  const sha = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+  const stale = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
+  const result = learner.scoreSubmission({
+    agent: 'المستكشف AI', drill: 'repository-knowledge', exactSha: sha, evidence: ['e'], unknowns: [],
+    nextActions: ['n'], coveragePercent: 100, dependencies: [], semanticDiff: []
+  }, stale);
+  assert.equal(result.passed, false);
+  assert.equal(learner.evaluateLessonPromotion({
+    testedSha: sha, evidence: ['e'], review: { decision: 'CONFIRMED' }, repeatPasses: 2, regressionTest: true
+  }, sha).status, 'PROMOTED');
+});
