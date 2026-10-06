@@ -139,6 +139,9 @@ function parametersFor(toolId: string, prompt: string): CanonicalCapabilityParam
         params.width = dimensions.width;
         params.height = dimensions.height;
       }
+      if (!params.aspectRatio && !dimensions) {
+        throw new Error('Request is ambiguous. Specify crop dimensions or a square/aspect ratio.');
+      }
       break;
     case 'image-compressor': {
       params.format = normalized.includes('png') ? 'image/png' : normalized.includes('jpg') || normalized.includes('jpeg') ? 'image/jpeg' : 'image/webp';
@@ -147,9 +150,13 @@ function parametersFor(toolId: string, prompt: string): CanonicalCapabilityParam
       if (target) params.targetSizeKB = Number(target[1]);
       break;
     }
-    case 'image-converter':
+    case 'image-converter': {
+      if (!/(?:png|jpg|jpeg|webp)/u.test(normalized)) {
+        throw new Error('Request is ambiguous. Specify the target image format: PNG, JPEG, or WebP.');
+      }
       params.format = normalized.includes('png') ? 'image/png' : normalized.includes('jpg') || normalized.includes('jpeg') ? 'image/jpeg' : 'image/webp';
       break;
+    }
     case 'image-effects': {
       const hasBrightness = /brightness|سطوع/iu.test(normalized);
       const hasContrast = /contrast|تباين/iu.test(normalized);
@@ -173,24 +180,20 @@ function parametersFor(toolId: string, prompt: string): CanonicalCapabilityParam
     case 'video-trimmer': {
       const firstSeconds = normalized.match(/(?:first|أول|الأولى)\s*(\d{1,5})\s*(?:seconds?|ثواني?)/u);
       if (firstSeconds) params.endSec = Number(firstSeconds[1]);
+      else throw new Error('Request is ambiguous. Specify a trim range or duration.');
       break;
     }
     case 'video-cropper':
-      if (dimensions) {
-        params.x = 0;
-        params.y = 0;
-        params.width = dimensions.width;
-        params.height = dimensions.height;
-      } else {
-        params.x = 0;
-        params.y = 0;
-        params.width = 1280;
-        params.height = 720;
-      }
+      if (!dimensions) throw new Error('Request is ambiguous. Specify target crop dimensions.');
+      params.x = 0;
+      params.y = 0;
+      params.width = dimensions.width;
+      params.height = dimensions.height;
       break;
     case 'video-resizer':
-      params.width = dimensions?.width ?? 1280;
-      params.height = dimensions?.height ?? 720;
+      if (!dimensions) throw new Error('Request is ambiguous. Specify target video dimensions.');
+      params.width = dimensions.width;
+      params.height = dimensions.height;
       break;
     case 'video-compressor':
       params.videoBitsPerSecond = 2_500_000;
