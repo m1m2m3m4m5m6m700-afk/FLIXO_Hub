@@ -2,7 +2,7 @@ name: FLIXO CodeQL
 
 on:
   pull_request:
-    branches: [main, execution]
+    branches: [main]
   push:
     branches: [main, execution]
   schedule:
