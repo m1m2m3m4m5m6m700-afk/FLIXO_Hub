@@ -44,8 +44,18 @@ export async function validateBrowserFile(
   policy: BrowserFileValidationPolicy = DEFAULT_IMAGE_POLICY,
 ): Promise<BrowserFileValidationResult> {
   const failures: string[] = [];
-  let content: Uint8Array;
+  const preliminary = validateFileSafety(
+    {
+      name: file.name,
+      mime: file.type,
+      bytes: file.size,
+    },
+    policy,
+  );
+  failures.push(...preliminary.failures);
+  if (failures.length > 0) return { safe: false, failures, decoded: false };
 
+  let content: Uint8Array;
   try {
     content = new Uint8Array(await file.arrayBuffer());
   } catch {
