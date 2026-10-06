@@ -72,3 +72,14 @@ When repository policy text and live GitHub enforcement disagree:
 ## Certification rule
 
 Only the Certification/Release authority may declare a release certified. Open Agent Execution Mode changes implementation freedom, not certification authority.
+
+
+## Agent Fast Path / Release Strict Path
+The control plane has two explicit modes:
+
+| Mode | Purpose | Agent friction | Release assurance |
+|---|---|---|---|
+| FAST | Routine implementation, repair, testing, experimentation | No fixed operation count, no mandatory handoff/lease, worker branches allowed, no routine approval | Not a certification authority |
+| STRICT | Release candidate, production promotion, final certification | Used only when release assurance is requested | Exact-SHA + live governance + required approval conditions |
+
+FAST mode never grants direct `main` mutation, certification, or production deployment authority. STRICT remains the release closure mode.
