@@ -99,7 +99,8 @@ test('scanner produces an exact-SHA report with zero uncovered authored lines', 
 
   assert.match(result.sha, /^[0-9a-f]{40}$/);
   assert.equal(result.uncoveredSourceLines, 0);
-  assert.equal(result.reportPath, reportDir + '/' + result.sha + '.md');
+  const normalizedReportPath = result.reportPath.replace(repoRoot + '/', '');
+  assert.equal(normalizedReportPath, reportDir + '/' + result.sha + '.md');
   assert.ok(result.trackedFiles > 0);
   assert.ok(result.sourceTextFiles > 0);
   assert.ok(result.symbolCount > 0);
@@ -120,12 +121,12 @@ test('scanner produces an exact-SHA report with zero uncovered authored lines', 
 test('workflow wakes on execution changes and ignores only its own report directory', () => {
   const workflow = readFileSync(workflowPath, 'utf8');
 
-  assert.match(workflow, /branches: [execution]/);
+  assert.match(workflow, /branches:\s*\[execution\]/);
   assert.match(workflow, /paths-ignore:/);
   assert.match(workflow, /0\(التقارير\)\/\*\*/);
   assert.match(workflow, /ref: \$\{\{ github\.sha \}\}/);
   assert.match(workflow, /test "\$\(git rev-parse HEAD\)" = "\$\{GITHUB_SHA\}"/);
-  assert.match(workflow, /Uncovered text lines: 0/);
+  assert.match(workflow, /Uncovered repository-authored text lines: 0/);
   assert.match(workflow, /git fetch origin execution/);
   assert.match(workflow, /git add '0\(التقارير\)\//);
   assert.doesNotMatch(workflow, /reports\/repository-knowledge/);
