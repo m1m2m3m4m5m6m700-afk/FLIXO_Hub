@@ -58,13 +58,17 @@ PROMPT_INJECTION_PATTERNS = [
     re.compile(r"disregard\s+(?:the\s+)?(?:system|developer|security)\s+instructions?", re.I),
     re.compile(r"reveal\s+(?:the\s+)?system\s+prompt", re.I),
     re.compile(r"(?:run|execute)\s+(?:the\s+)?(?:shell|terminal|command)", re.I),
-    re.compile(r"\b(?:bash|powershell|terminal|cmd\.exe|curl|wget)\b", re.I),
+    re.compile(r"\b(?:bash|powershell|terminal|cmd\.exe|curl|wget|rm\s+-rf|git\s+push\s+--force|python3?\s+-c)\b", re.I),
     re.compile(r"\b(?:invoke|spawn|delegate)\s+(?:an?\s+)?agent\b", re.I),
     re.compile(r"\b(?:bypass|disable|override)\s+(?:the\s+)?(?:validator|security|policy|gate|rules?)\b", re.I),
     re.compile(r"\b(?:merge|deploy|promote|certify|approve)\s+(?:this|the|it)\b", re.I),
     re.compile(r"\bwrite\s+(?:to|into)\s+(?:main|production)\b", re.I),
     re.compile(r"\b(?:send|exfiltrate|publish)\s+(?:the\s+)?(?:secret|token|credential|api[_ -]?key)\b", re.I),
     re.compile(r"\bdo\s+not\s+validate\b", re.I),
+    re.compile(r"تجاهل\s+(?:كل\s+)?التعليمات\s+(?:السابقة|الأصلية)", re.I),
+    re.compile(r"تجاهل\s+تعليمات\s+(?:النظام|المطور)", re.I),
+    re.compile(r"(?:نفذ|شغل)\s+(?:الأمر|الطرفية|الشل)", re.I),
+    re.compile(r"(?:تجاوز|عطل|غير)\s+(?:المدقق|البوابة|قواعد\s+النظام|الحماية)", re.I),
 ]
 
 HYPE_PATTERNS = [
@@ -74,6 +78,7 @@ HYPE_PATTERNS = [
     re.compile(r"\beveryone\s+is\s+using\b", re.I),
     re.compile(r"\b(?:revolutionary|game[- ]changing|best[- ]in[- ]class|must[- ]have)\b", re.I),
     re.compile(r"\blatest\s+therefore\b", re.I),
+    re.compile(r"الأكثر\s+شيوعًا|الأفضل\s+على\s+الإطلاق|الأحدث\s+إذًا", re.I),
 ]
 
 QUANT_PATTERN = re.compile(
@@ -462,6 +467,11 @@ def validate_proposal(proposal_path: Path, repo_root: Path | None = None, now: d
     proposal_path = proposal_path.resolve(strict=True)
     if not proposal_path.is_file():
         return _result({}, "rejected", {"V-01": "FAIL"}, ["proposal must be an existing regular file"])
+    inbox_root = (root / ".agent-intelligence" / "inbox").resolve(strict=True)
+    try:
+        proposal_path.relative_to(inbox_root)
+    except ValueError:
+        return _result({}, "rejected", {"V-01": "FAIL"}, ["proposal must reside under .agent-intelligence/inbox"])
     if proposal_path.stat().st_size > MAX_PROPOSAL_BYTES:
         return _result({}, "rejected", {"V-01": "FAIL"}, ["proposal exceeds 64 KiB"])
     try:
@@ -547,7 +557,7 @@ def validate_all(repo_root: Path | None = None) -> list[dict[str, Any]]:
     root = (repo_root or Path(__file__).resolve().parents[2]).resolve(strict=True)
     inbox = root / ".agent-intelligence" / "inbox"
     if not inbox.exists():
-        return []
+        raise ValidationError("inbox directory is missing")
     if inbox.is_symlink() or not inbox.is_dir():
         raise ValidationError("inbox boundary is invalid")
 
@@ -556,6 +566,8 @@ def validate_all(repo_root: Path | None = None) -> list[dict[str, Any]]:
         if path.is_symlink():
             raise ValidationError("symbolic links are forbidden in inbox")
         if path.is_dir():
+            continue
+        if path.name in {".gitkeep", "README.md"}:
             continue
         if path.suffix.lower() not in {".yml", ".yaml"}:
             raise ValidationError("unsupported file in inbox: " + path.name)
