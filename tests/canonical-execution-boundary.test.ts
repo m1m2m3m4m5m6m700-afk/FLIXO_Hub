@@ -133,17 +133,23 @@ test('active MVP UI paths do not expose a direct engine execution bypass', () =>
   );
 });
 
-test('canonical video media boundaries use Blob-backed srcObject and release it', () => {
+test('canonical video media boundaries use the shared safe media-source adapter', () => {
   const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
   const canonical = readFileSync(resolve(root, 'src/lib/execution/canonical-executor.ts'), 'utf8');
   const renderer = readFileSync(resolve(root, 'src/lib/video/video-executor.ts'), 'utf8');
-  assert.match(canonical, /video\.srcObject = input\.blob/u);
-  assert.match(canonical, /video\.srcObject = output\.blob/u);
-  assert.match(canonical, /video\.srcObject = null/u);
-  assert.match(renderer, /video\.srcObject = inputBlob/u);
-  assert.match(renderer, /video\.srcObject = null/u);
-  assert.doesNotMatch(canonical, /video\.src\s*=/u);
-  assert.doesNotMatch(renderer, /video\.src\s*=/u);
+  const verifier = readFileSync(resolve(root, 'src/config/manual-capability-definition.ts'), 'utf8');
+  const adapter = readFileSync(resolve(root, 'src/lib/video/blob-video-source.ts'), 'utf8');
+
+  assert.match(canonical, /attachVideoBlobSource\(video, input\.blob, signal\)/u);
+  assert.match(canonical, /attachVideoBlobSource\(video, output\.blob, signal\)/u);
+  assert.match(renderer, /attachVideoBlobSource\(video, inputBlob, options\.signal\)/u);
+  assert.match(verifier, /attachVideoBlobSource\(video, blob, signal\)/u);
+  assert.match(adapter, /new MediaSourceClass\(\)/u);
+  assert.match(adapter, /sourceBuffer\.appendBuffer\(bytes\)/u);
+  assert.match(adapter, /video\.srcObject = mediaSource/u);
+  assert.doesNotMatch(canonical, /video\.src\s*=\s*URL\.createObjectURL/u);
+  assert.doesNotMatch(renderer, /video\.src\s*=\s*URL\.createObjectURL/u);
+  assert.doesNotMatch(verifier, /video\.src\s*=\s*URL\.createObjectURL/u);
 });
 
 test('video renderer cleans active media resources on every terminal path', () => {
