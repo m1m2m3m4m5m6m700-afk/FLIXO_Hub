@@ -49,3 +49,23 @@ export function assertMvpLocalExecutionBoundary(tool: MVPScopedTool): void {
   }
 }
 
+
+
+export function assertMvpScope(
+  tools: readonly MVPScopedTool[],
+  executableIds: readonly string[],
+): void {
+  const executableSet = new Set(executableIds);
+  const registeredExecutable = tools.filter((tool) => tool.capability.state === 'EXECUTABLE');
+  const registeredIds = registeredExecutable.map((tool) => tool.id);
+  if (registeredIds.length !== executableIds.length) {
+    throw new Error(`MVP executable registry cardinality mismatch: expected ${executableIds.length}, got ${registeredIds.length}`);
+  }
+  for (const id of executableIds) {
+    const tool = tools.find((candidate) => candidate.id === id);
+    if (!tool) throw new Error(`MVP executable capability is missing from registry: ${id}`);
+    assertMvpLocalExecutionBoundary(tool);
+  }
+  const unexpected = registeredExecutable.filter((tool) => !executableSet.has(tool.id)).map((tool) => tool.id);
+  if (unexpected.length) throw new Error(`Unexpected executable capabilities outside MVP scope: ${unexpected.join(',')}`);
+}
