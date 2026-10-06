@@ -1,4 +1,4 @@
-import { attachVideoBlobSource } from './blob-video-source.ts';
+import { attachVideoBlobSource, getBoundedVideoDuration } from './blob-video-source.ts';
 export type VideoRenderOptions = Readonly<{
   startSec?: number;
   endSec?: number;
@@ -105,8 +105,7 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
     // Attach the Blob through the shared safe media-source adapter; no DOM object URL is created here.
     releaseSource = await attachVideoBlobSource(video, inputBlob, options.signal);
     await metadataReady;
-    const duration = video.duration;
-    if (!Number.isFinite(duration) || duration <= 0) throw new Error('VIDEO_METADATA_INVALID');
+    const duration = getBoundedVideoDuration(video, 10 * 60);
 
     const startSec = Math.max(0, Math.min(options.startSec ?? 0, Math.max(0, duration - 0.001)));
     const endSec = Math.max(startSec + 0.001, Math.min(options.endSec ?? duration, duration));
