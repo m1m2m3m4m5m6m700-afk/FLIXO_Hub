@@ -1,3 +1,5 @@
+import { TOOL_MANIFEST } from '../lib/tools/tool-registry.ts';
+
 /** @deprecated Import from '@/lib/tools/tool-registry' for the consolidated tool source. */
 export {
   TOOL_REGISTRY as TOOLS_REGISTRY,
@@ -9,5 +11,4 @@ export {
 export type { ToolDefinition as ToolConfig } from './canonical-tool-definition.ts';
 export type ToolComponent = ToolConfig['component'];
 
-export const getReadyToolConfigs = () =>
-  TOOL_MANIFEST_ENTRIES.filter((tool) => tool.isReady);
+export const getReadyToolConfigs = () => TOOL_MANIFEST.filter((tool) => tool.isReady);
