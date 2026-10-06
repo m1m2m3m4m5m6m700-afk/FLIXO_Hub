@@ -34,7 +34,7 @@ export function VideoLocalTool() {
     runAbortRef.current = controller;
     try {
       const output = await renderVideoToWebm(file, id === 'video-trimmer'
-        ? {}
+        ? { signal: controller.signal }
         : id === 'video-compressor'
           ? { videoBitsPerSecond: 2_500_000, signal: controller.signal }
           : id === 'video-resizer'
