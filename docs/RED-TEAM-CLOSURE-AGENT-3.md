@@ -5,6 +5,7 @@ Status: IMPLEMENTATION COMPLETE ON AGENT-3 LANE / FINAL RELEASE NOT CERTIFIED
 Branch: `agent-3/redteam-closure-20261006`
 Integration target: `execution`
 Functional remediation checkpoint SHA before this report: `4073ea05ceb25f53aaaec17262e41fa103d1d0a5`
+PR #1081 head at report capture: `ed5844a35d04fe2a9461d5ab179b6e5760f5329e`
 
 > This is a remediation/evidence record, not a release certificate. Any later commit invalidates SHA-specific test evidence until rerun.
 
@@ -65,7 +66,7 @@ The browser loader now pins Tesseract.js 7.0.0, its worker path, Tesseract.js Co
 
 A repository regression gate blocks version-floating or legacy OCR loading.
 
-Current public package metadata identifies Tesseract.js 7.0.0 as the current package release, and jsDelivr publishes static-version URLs for that release. The remaining trust boundary is the external CDN/data origin; local bundling is the stronger future posture.
+Current upstream package metadata identifies Tesseract.js 7.0.0 and jsDelivr exposes static-version URLs for the 7.0.0 assets. The remaining trust boundary is the external CDN/data origin; local bundling is the stronger future posture. No unverifiable SRI hash was inserted.
 
 ## RT-16 — Contract / adapter drift
 
@@ -129,8 +130,6 @@ Observed branch inventory at closure:
 - `agent-3/ux-browser-20261006`
 - `agent3/ux-browser-20261006`
 - `agent3/verification-20261006`
-
-- `agent-2/media-engines-execution-20261006` and `agent-3/parallel-execution-plan-20261006` were observed as search matches in the branch inventory and remain non-authoritative refs despite name similarity to the operational lane.
 
 No branch was deleted. Production authority remains restricted to `main`; integration remains `execution -> main`.
 
