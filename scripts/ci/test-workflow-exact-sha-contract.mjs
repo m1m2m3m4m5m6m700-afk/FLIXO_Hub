@@ -54,8 +54,12 @@ test('FLIXO CI protects every candidate-sensitive checkout and identity stamp', 
     'candidate jobs must derive EXPECTED_SHA from the exact candidate SHA',
   );
   assert.ok(
-    !workflow.includes('github.event.pull_request.head.sha || github.sha'),
-    'legacy ambiguous PR-head selector must not remain in FLIXO CI',
+    !workflow.includes('      EXPECTED_SHA: ${{ github.sha }}'),
+    'candidate EXPECTED_SHA must not fall back to bare github.sha',
+  );
+  assert.ok(
+    !workflow.includes('          BUILD_SHA: ${{ github.sha }}'),
+    'build identity must not fall back to bare github.sha',
   );
 });
 
