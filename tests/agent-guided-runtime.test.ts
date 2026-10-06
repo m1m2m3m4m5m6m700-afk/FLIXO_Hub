@@ -19,7 +19,7 @@ test('guided runtime is bounded to the current canonical ten-tool MVP', () => {
 });
 
 test('guided runtime reuses canonical intent and rejects unsupported capabilities', () => {
-  const videoPlan = planAgentRequest('trim the video', video());
+  const videoPlan = planAgentRequest('trim the first 1 seconds of this video', video());
   assert.equal(videoPlan.steps[0].toolId, 'video-trimmer');
   assert.throws(
     () => planAgentRequest('remove the object from this image', image()),
