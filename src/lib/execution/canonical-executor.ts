@@ -213,12 +213,18 @@ async function executeImageEffectsFallback(
   effects: ReadonlyArray<readonly ['brightness' | 'contrast' | 'saturation' | 'grayscale', number]>,
 ): Promise<Blob> {
   let current = input;
-  current = await executeImageEffectsInWorker(input, effects, 30_000);
+  for (const [effect, value] of effects) {
+    current = await applyBasicImageEffect(current, effect, value);
+  }
   return current;
 }
 
-async function executeImageEffects(input: Blob, parameters: CanonicalCapabilityParameters): Promise<Blob> {
-  let current = input;
+async function executeImageEffects(
+  input: Blob,
+  parameters: CanonicalCapabilityParameters,
+  timeoutMs: number,
+  signal?: AbortSignal,
+): Promise<Blob> {
   const effects: Array<['brightness' | 'contrast' | 'saturation' | 'grayscale', number]> = [];
   for (const key of ['brightness', 'contrast', 'saturate', 'grayscale'] as const) {
     const value = parameters[key];
@@ -229,10 +235,7 @@ async function executeImageEffects(input: Blob, parameters: CanonicalCapabilityP
     effects.push([effect, value]);
   }
   if (!effects.length) throw new Error('Image effects require at least one non-neutral adjustment.');
-  for (const [effect, value] of effects) {
-    current = await applyBasicImageEffect(current, effect, value);
-  }
-  return current;
+  return executeImageEffectsInWorker(input, effects, timeoutMs, signal);
 }
 
 async function executeMvpTool(
@@ -335,7 +338,7 @@ async function executeMvpTool(
       return Object.freeze({ blob, fileName: baseName(input.fileName) + '.' + extensionForMime(format) });
     }
     case 'image-effects': {
-      const blob = await executeImageEffects(input.blob, parameters);
+      const blob = await executeImageEffects(input.blob, parameters, 30_000, signal);
       return Object.freeze({ blob, fileName: baseName(input.fileName) + '-effects.png' });
     }
     default:
