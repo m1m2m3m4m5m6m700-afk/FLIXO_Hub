@@ -253,29 +253,37 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
       ...(options.audioBitsPerSecond !== undefined ? { audioBitsPerSecond: options.audioBitsPerSecond } : {}),
     });
 
+    const controller = new AbortController();
+    const onCallerAbort = () => controller.abort();
+    options.signal?.addEventListener("abort", onCallerAbort, { once: true });
+    timeoutId = setTimeout(() => {
+      if (!options.signal?.aborted) controller.abort();
+    }, options.timeoutMs ?? VIDEO_DEFAULT_TIMEOUT_MS);
+
     const chunks: Blob[] = [];
     let stopError: Error | undefined;
+    let processingError: Error | undefined;
+    let bufferedBytes = 0;
     recorder.ondataavailable = (event) => {
-      if (event.data.size > 0) chunks.push(event.data);
+      if (event.data.size <= 0) return;
+      bufferedBytes += event.data.size;
+      chunks.push(event.data);
+      if (bufferedBytes > VIDEO_MAX_OUTPUT_BYTES) {
+        stopError = new Error("VIDEO_OUTPUT_TOO_LARGE");
+        controller.abort();
+      }
     };
     recorder.onerror = () => {
       stopError = new Error("VIDEO_RECORDING_FAILED");
+      controller.abort();
     };
 
     if (options.signal?.aborted) throw new DOMException("Video operation aborted.", "AbortError");
     const startSec = options.startSec ?? 0;
     const endSec = options.endSec ?? metadata.duration;
 
-    await seek(video, startSec, options.signal);
-
-    const controller = new AbortController();
-    timeoutId = setTimeout(() => {
-      if (!options.signal?.aborted) controller.abort();
-    }, options.timeoutMs ?? VIDEO_DEFAULT_TIMEOUT_MS);
-    const onCallerAbort = () => controller.abort();
-    options.signal?.addEventListener("abort", onCallerAbort, { once: true });
-
     try {
+      await seek(video, startSec, controller.signal);
       recorder.start(250);
       drawing = true;
 
@@ -292,7 +300,7 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
           if (controller.signal.aborted) {
             reject(options.signal?.aborted
               ? new DOMException("Video operation aborted.", "AbortError")
-              : new Error("VIDEO_PROCESSING_TIMEOUT"));
+              : (stopError ?? new Error("VIDEO_PROCESSING_TIMEOUT")));
             return;
           }
           if (video.currentTime >= endSec || video.ended) {
@@ -303,6 +311,8 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
         };
         tick();
       });
+    } catch (error) {
+      processingError = error instanceof Error ? error : new Error("VIDEO_PROCESSING_FAILED");
     } finally {
       drawing = false;
       cancelAnimationFrame(drawFrameId);
@@ -314,9 +324,9 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
     }
 
     await stopRecorder(recorder);
+    if (processingError) throw processingError;
     if (stopError) throw stopError;
     if (!chunks.length) throw new Error("VIDEO_RECORDING_EMPTY");
-
     const output = new Blob(chunks, { type: "video/webm" });
     if (output.size <= 0 || output.size > VIDEO_MAX_OUTPUT_BYTES || output.type !== "video/webm") throw new Error("VIDEO_OUTPUT_INVALID");
     return output;
