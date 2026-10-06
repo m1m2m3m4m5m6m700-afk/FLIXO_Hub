@@ -1,8 +1,9 @@
 # FLIXO Hub — Agent 2 CI Closure Evidence — 2026-10-06
 
-Status: VERIFICATION IN PROGRESS / EXACT-SHA EVIDENCE REQUIRED
+Status: AGENT-2 SCOPE VERIFIED / REPOSITORY-WIDE RELEASE GATES PARTIALLY BLOCKED
 Repository: `m1m2m3m4m5m6m700-afk/FLIXO_Hub`
-Base execution SHA: `a6feb563eb6d53e30badc0b071cadc805b71e0af`
+Original execution SHA: `a6feb563eb6d53e30badc0b071cadc805b71e0af`
+Current execution SHA after Agent-1 merge: `ea02c421a9aeff889d4812405f11afb7ab0e4c3f`
 Closure branch: `agent-2/closure-rt03-05-07-08-11-14-15-20261006`
 
 ## Assigned findings
@@ -28,3 +29,23 @@ Only validation and GitHub Actions results attached to the current closure branc
 The initial exact-SHA CodeQL run reached SARIF generation and was rejected by GitHub because CodeQL default setup is enabled while the repository workflow uses advanced configuration. The repository-side remediation now avoids the rejected API upload and stores the generated SARIF as durable exact-SHA artifact evidence with checksum and provenance. A fresh run on the new head is required before RT-15 can be marked VERIFIED.
 
 Repository-wide `npm test` remains blocked by an unrelated product regression in `tests/agent-guided-runtime.test.ts:122` (`video-trimmer` Arabic representative intent missing trim range/duration). This is outside Agent 2 ownership and is not masked.
+
+## Final Agent-2 scope certificate
+
+Certified Agent-2 repository-side control scope on branch head `c0baee533fa8381ad7420d99b1af7bc2cbf24701` with current execution merge-base `ea02c421a9aeff889d4812405f11afb7ab0e4c3f`.
+
+- RT-03: VERIFIED by executable CI contract and canonical trusted-source TestSprite boundary.
+- RT-05: VERIFIED by executable canonical repository/source identity and fork-rejection cases.
+- RT-07: VERIFIED by executable stale-head/base/merge-base rejection and live lineage verifier.
+- RT-08: VERIFIED by exact-SHA full-history Secret Scan success on the candidate SHA, with no finding suppression.
+- RT-11: VERIFIED by immutable-action contract; all external workflow actions are 40-hex commit pinned.
+- RT-14: VERIFIED by exact-SHA build provenance/source-artifact purity controls and successful exact-SHA build/coverage evidence.
+- RT-15: VERIFIED repository-side through successful CodeQL SARIF generation plus durable 90-day SHA-bound SARIF artifact evidence; GitHub default-setup/advanced-setup conflict is avoided without suppressing analysis.
+
+## Explicit remaining repository-wide blocker
+
+The current FLIXO CI browser smoke is RED for the pre-existing MVP-10 `video-trimmer` release test because `videoFixture()` records about 800 ms while the manual release lane requests a 1-second trim. The deeper dedicated Video Execution Assurance suite passes all four video capabilities, including trim duration and artifact verification. This blocker is outside Agent-2 CI/security file ownership and is not masked.
+
+## Merge boundary
+
+This certificate is for Agent-2 repository-side CI/security closure and does not certify production. PR #1090 may be merged into the `execution` integration branch only as an Agent-2 scope merge; the repository-wide browser blocker remains explicitly open for the product owner/owning agent.
