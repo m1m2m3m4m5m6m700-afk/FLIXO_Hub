@@ -39,3 +39,10 @@ Training gates:
 - no mutation of release governance;
 - no self-certification.
 
+
+## Practical Mastery Loop
+1. Pin the current SHA before reading any result.
+2. Evaluate every required check independently.
+3. Treat queued/pending/cancelled/skipped/neutral/missing as NOT PASS.
+4. Cross-check command, run identity, SHA, and artifact evidence.
+5. Never certify from an incomplete evidence set.
