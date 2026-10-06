@@ -6,7 +6,7 @@ import { lintLedger } from '../../../scripts/ci/ledger-lint.mjs';
 test('active task ledger satisfies the canonical task-card contract', () => {
   const result = lintLedger(readFileSync('المهام.md', 'utf8'));
   assert.equal(result.pass, true, result.failures.join('\n'));
-  assert.equal(result.taskCount, 6);
+  assert.equal(result.taskCount, 7);
   assert.equal(result.inProgressCount, 0);
 });
 
