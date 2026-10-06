@@ -4,7 +4,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { executeCanonicalChain, executeCanonicalTool } from '../src/lib/execution/canonical-executor.ts';
+import { executeCanonicalChain, executeCanonicalTool, runBoundedExecutionAttempts } from '../src/lib/execution/canonical-executor.ts';
 import { MVP_EXECUTABLE_TOOL_IDS } from '../src/config/manual-capability-definition.ts';
 
 test('every current MVP capability resolves through the canonical executor boundary', async () => {
@@ -49,6 +49,43 @@ test('canonical chain is bounded and fail-closed', async () => {
   );
 });
 
+
+test('canonical retry policy is bounded to three attempts and returns the first success', async () => {
+  let attempts = 0;
+  const result = await runBoundedExecutionAttempts(99, async (attempt) => {
+    attempts += 1;
+    if (attempt < 3) throw new Error('transient failure');
+    return 'ok';
+  });
+  assert.equal(result, 'ok');
+  assert.equal(attempts, 3);
+});
+
+test('canonical retry exhaustion returns the final failure and never exceeds the configured cap', async () => {
+  let attempts = 0;
+  await assert.rejects(
+    () => runBoundedExecutionAttempts(99, async () => {
+      attempts += 1;
+      throw new Error('permanent failure #' + attempts);
+    }),
+    /permanent failure #3/i,
+  );
+  assert.equal(attempts, 3);
+});
+
+test('canonical retry loop stops immediately when the caller aborts', async () => {
+  const controller = new AbortController();
+  let attempts = 0;
+  await assert.rejects(
+    () => runBoundedExecutionAttempts(3, async () => {
+      attempts += 1;
+      controller.abort();
+      throw new DOMException('cancelled', 'AbortError');
+    }, controller.signal),
+    /cancelled/i,
+  );
+  assert.equal(attempts, 1);
+});
 
 
 test('MVP UI execution paths contain no raw-file network egress APIs', () => {
