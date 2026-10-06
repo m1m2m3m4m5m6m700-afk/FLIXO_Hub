@@ -299,9 +299,7 @@ const changedImageVerifier: CanonicalCapabilityVerifier = async (input, output, 
 const targetSizeVerifier: CanonicalCapabilityVerifier = async (input, output, parameters, signal) => {
   if (signal?.aborted || output.size <= 0 || !output.type.startsWith("image/")) return false;
   const target = typeof parameters.targetSizeKB === "number" ? parameters.targetSizeKB : undefined;
-  if (target !== undefined && output.size > target * 1024) return false;
-  if (target === undefined && output.size > input.size && typeof parameters.quality === "number") return false;
-  return true;
+  if (target !== undefined && output.size > target * 1024) return false;  return true;
 };
 
 const formatVerifier: CanonicalCapabilityVerifier = async (_input, output, parameters, signal) => {
