@@ -32,7 +32,7 @@ def build_proposal(root,manifest,source,snapshot):
     refs=source.get("repo_refs",manifest.get("default_repo_refs",[]))
     if not refs or not all(repo_ref_exists(root,r) for r in refs): raise ValueError("all repo_refs must exist")
     now=datetime.now(timezone.utc)
-    entity=source["entity_key"]
+    entity=source.get("entity_key") or f"{re.sub(r'[^a-z0-9]+','-',source['title'].lower()).strip('-')}::{CATEGORIES[manifest['role']]}"
     suffix=int(now.strftime("%H%M%S%f")[:8])
     proposal_id=f"{PREFIX[manifest['role']]}-{suffix:08d}"
     proposal={
