@@ -92,7 +92,9 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
   let drawing = false;
   let releaseSource: (() => void) | null = null;
   video.preload = 'auto';
-  video.muted = false;
+  // Processing is programmatic; mute playback so browser autoplay policy cannot block local rendering.
+  // The source audio track, when available, is still captured separately from the source stream.
+  video.muted = true;
   video.playsInline = true;
 
   try {
