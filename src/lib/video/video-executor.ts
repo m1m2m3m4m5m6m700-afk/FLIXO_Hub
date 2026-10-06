@@ -1,3 +1,4 @@
+import { attachVideoBlobSource } from './blob-video-source.ts';
 export type VideoRenderOptions = Readonly<{
   startSec?: number;
   endSec?: number;
@@ -89,6 +90,7 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
   let recorder: MediaRecorder | undefined;
   let frameHandle = 0;
   let drawing = false;
+  let releaseSource: (() => void) | null = null;
   video.preload = 'auto';
   video.muted = false;
   video.playsInline = true;
@@ -96,7 +98,7 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
   try {
     const metadataReady = waitForEvent(video, 'loadedmetadata');
     // Feed the Blob directly to the media element; avoid a DOM URL sink for untrusted media data.
-    video.srcObject = inputBlob;
+    releaseSource = await attachVideoBlobSource(video, inputBlob, options.signal);
     await metadataReady;
     const duration = video.duration;
     if (!Number.isFinite(duration) || duration <= 0) throw new Error('VIDEO_METADATA_INVALID');
@@ -189,7 +191,9 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
     }
     canvasStream?.getTracks().forEach((track) => track.stop());
     sourceStream?.getTracks().forEach((track) => track.stop());
-    video.srcObject = null;
+    // The source is detached by attachVideoBlobSource's cleanup closure.
+    releaseSource?.();
+    releaseSource = null;
     video.removeAttribute('src');
     video.load();
   }
