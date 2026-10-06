@@ -13,7 +13,7 @@ export const HOME_EN = {
   dropChoose: 'Drop or choose a file', dropSupport: 'Images are currently supported for smart recommendations.', suggestedTool: 'Suggested tool', openTool: 'Open tool',
   toolbox: 'TOOLBOX', toolboxTitle: 'Start with the tools people actually need.', ready: 'ready', empty: 'No matching tool yet. Try a simpler phrase or open Smart Intent with Ctrl K.',
   builtForFocus: 'BUILT FOR FOCUS', finalTitle: 'One search. One useful result.', finalLead: 'FLIXO is designed to get you from intent to action without turning a simple task into a workflow.', trySmart: 'Try Smart Intent', all: 'All', browserMeta: 'Browser-first · Instant start',
-  ariaHome: 'FLIXO home', ariaPrimary: 'Primary navigation', ariaFindTool: 'Find a tool', ariaTrust: 'Trust signals', ariaCategories: 'Tool categories', quickTags: ['Image compressor', 'Background remover', 'OCR', 'PDF', 'AI image'],
+  ariaHome: 'FLIXO home', ariaPrimary: 'Primary navigation', ariaFindTool: 'Find a tool', ariaTrust: 'Trust signals', ariaCategories: 'Tool categories', quickTags: ['Image compressor', 'Background remover', 'OCR', 'PDF'],
 } as const;
 
 export const HOME_AR = {
@@ -24,7 +24,7 @@ export const HOME_AR = {
   trust: [['المتصفح أولًا', 'معالجة محلية عندما تدعمها الأداة.'], ['بدء سريع', 'مسارات مباشرة بدون حواجز تسجيل غير ضرورية.'], ['توجيه ذكي', 'المهام الشائعة تصل مباشرة إلى أفضل أداة جاهزة.']], quickDrop: 'السحب السريع',
   quickDropTitle: 'ضع ملفًا. وسنوجّهك إلى الأداة المناسبة.', quickDropLead: 'لا ترفع FLIXO ملفك من الصفحة الرئيسية. نفحص نوع الملف محليًا فقط لاقتراح أداة موجودة.', dropChoose: 'اسحب ملفًا أو اختره', dropSupport: 'الصور مدعومة حاليًا للتوصيات الذكية.', suggestedTool: 'الأداة المقترحة', openTool: 'فتح الأداة',
   toolbox: 'صندوق الأدوات', toolboxTitle: 'ابدأ بالأدوات التي يحتاجها الناس فعلًا.', ready: 'جاهزة', empty: 'لا توجد أداة مطابقة بعد. جرّب عبارة أبسط أو افتح النية الذكية باستخدام Ctrl K.', builtForFocus: 'مصمم للتركيز', finalTitle: 'بحث واحد. نتيجة مفيدة واحدة.', finalLead: 'صُممت FLIXO لنقلك من النية إلى التنفيذ دون تحويل المهمة البسيطة إلى سير عمل معقد.', trySmart: 'جرّب النية الذكية', all: 'الكل', browserMeta: 'محلي · بدء فوري',
-  ariaHome: 'العودة إلى FLIXO', ariaPrimary: 'التنقل الرئيسي', ariaFindTool: 'العثور على أداة', ariaTrust: 'إشارات الثقة', ariaCategories: 'تصنيفات الأدوات', quickTags: ['ضغط الصور', 'إزالة الخلفية', 'OCR', 'PDF', 'صور AI'],
+  ariaHome: 'العودة إلى FLIXO', ariaPrimary: 'التنقل الرئيسي', ariaFindTool: 'العثور على أداة', ariaTrust: 'إشارات الثقة', ariaCategories: 'تصنيفات الأدوات', quickTags: ['ضغط الصور', 'إزالة الخلفية', 'OCR', 'PDF'],
   tools: {
     'image-compressor': 'ضاغط الصور', 'background-remover': 'إزالة الخلفية', 'image-upscaler': 'تكبير الصور', 'image-converter': 'محول الصور', 'ai-image-generator': 'مولد الصور بالذكاء الاصطناعي', 'object-remover': 'إزالة العناصر', 'watermark-remover': 'إزالة العلامة المائية', 'image-cropper': 'قص الصور', 'image-to-svg': 'تحويل الصورة إلى SVG', 'image-ocr': 'OCR للصور', 'background-blur': 'ضبابية الخلفية', 'passport-photo-maker': 'منشئ صور جواز السفر', 'watermark-adder': 'إضافة علامة مائية', 'meme-generator': 'منشئ الميمز', 'collage-maker': 'منشئ الكولاج', 'image-effects': 'تأثيرات الصور', 'exif-cleaner': 'منظف EXIF', 'svg-optimizer': 'محسن SVG', 'mockup-generator': 'منشئ النماذج', seed: 'Seed', pix: 'Pix Studio',
   },
