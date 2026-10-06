@@ -159,7 +159,7 @@ async function executeManualImage(page: Page, toolId: (typeof IMAGE_TOOL_IDS)[nu
 
 async function executeManualVideo(page: Page, toolId: (typeof VIDEO_TOOL_IDS)[number]) {
   await page.goto('/en/' + toolId, { waitUntil: 'domcontentloaded' });
-  await expect(page.getByRole('heading', { name: /Local video processing/i })).toBeVisible();
+  await expect(page.locator('#video-tool-title')).toBeVisible();
   const fileInput = page.getByLabel('Choose video');
   await fileInput.setInputFiles(await videoFixture(page));
   await expect(page.getByRole('button', { name: /Process video/i })).toBeEnabled({ timeout: 10_000 });
