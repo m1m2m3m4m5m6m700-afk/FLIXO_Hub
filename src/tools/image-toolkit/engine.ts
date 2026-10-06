@@ -14,7 +14,30 @@ export type LocalToolId =
 
 export type ImageInfo = { width: number; height: number };
 
+export const IMAGE_ENGINE_MAX_INPUT_BYTES = 64 * 1024 * 1024;
+export const IMAGE_ENGINE_MAX_PIXELS = 16_000_000;
+export const IMAGE_ENGINE_MAX_DIMENSION = 8_000;
+
+const SUPPORTED_IMAGE_MIME = new Set(['image/png', 'image/jpeg', 'image/webp']);
+
+export function validateImageEngineInput(blob: Blob): void {
+  if (!(blob instanceof Blob) || blob.size <= 0) throw new Error('IMAGE_INPUT_EMPTY');
+  if (!Number.isInteger(blob.size) || blob.size > IMAGE_ENGINE_MAX_INPUT_BYTES) throw new Error('IMAGE_INPUT_TOO_LARGE');
+  if (!SUPPORTED_IMAGE_MIME.has(blob.type)) throw new Error('IMAGE_INPUT_UNSUPPORTED_MIME');
+}
+
+export function validateImageDimensions(width: number, height: number): void {
+  if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1) throw new Error('IMAGE_DIMENSIONS_INVALID');
+  if (width > IMAGE_ENGINE_MAX_DIMENSION || height > IMAGE_ENGINE_MAX_DIMENSION) throw new Error('IMAGE_DIMENSIONS_INVALID');
+  if (width * height > IMAGE_ENGINE_MAX_PIXELS) throw new Error('IMAGE_PIXELS_EXCEEDED');
+}
+
+function validateOutputDimensions(width: number, height: number): void {
+  validateImageDimensions(width, height);
+}
+
 export function imageInfo(blob: Blob): Promise<ImageInfo> {
+  validateImageEngineInput(blob);
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(blob);
     const image = new Image();
@@ -31,12 +54,18 @@ export function imageInfo(blob: Blob): Promise<ImageInfo> {
 }
 
 export function loadImage(blob: Blob): Promise<HTMLImageElement> {
+  validateImageEngineInput(blob);
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(blob);
     const image = new Image();
     image.onload = () => {
       URL.revokeObjectURL(url);
-      resolve(image);
+      try {
+        validateImageDimensions(image.naturalWidth, image.naturalHeight);
+        resolve(image);
+      } catch (error) {
+        reject(error);
+      }
     };
     image.onerror = () => {
       URL.revokeObjectURL(url);
@@ -112,8 +141,10 @@ function progressiveResize(image: HTMLImageElement, width: number, height: numbe
 
 export async function resizeImage(blob: Blob, scale: number): Promise<Blob> {
   const image = await loadImage(blob);
+  if (!Number.isFinite(scale) || scale <= 0 || scale > 8) throw new Error('IMAGE_SCALE_INVALID');
   const width = Math.max(1, Math.round(image.naturalWidth * scale));
   const height = Math.max(1, Math.round(image.naturalHeight * scale));
+  validateOutputDimensions(width, height);
   const canvas = progressiveResize(image, width, height);
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Canvas is unavailable.');
@@ -123,6 +154,7 @@ export async function resizeImage(blob: Blob, scale: number): Promise<Blob> {
 
 export async function convertImage(blob: Blob, type: 'image/png' | 'image/jpeg' | 'image/webp'): Promise<Blob> {
   const image = await loadImage(blob);
+  validateOutputDimensions(image.naturalWidth, image.naturalHeight);
   const canvas = document.createElement('canvas');
   canvas.width = image.naturalWidth;
   canvas.height = image.naturalHeight;
@@ -141,10 +173,17 @@ export async function convertImage(blob: Blob, type: 'image/png' | 'image/jpeg' 
 
 export async function cropResizeImage(blob: Blob, crop: { x: number; y: number; width: number; height: number }, out: { width: number; height: number }): Promise<Blob> {
   const image = await loadImage(blob);
-  const sourceX = clamp(Math.round(crop.x), 0, Math.max(0, image.naturalWidth - 1));
-  const sourceY = clamp(Math.round(crop.y), 0, Math.max(0, image.naturalHeight - 1));
-  const sourceWidth = clamp(Math.round(crop.width), 1, image.naturalWidth - sourceX);
-  const sourceHeight = clamp(Math.round(crop.height), 1, image.naturalHeight - sourceY);
+  const cropValues = [crop.x, crop.y, crop.width, crop.height, out.width, out.height];
+  if (!cropValues.every(Number.isFinite)) throw new Error('IMAGE_CROP_INVALID');
+  if (![crop.x, crop.y, crop.width, crop.height, out.width, out.height].every(Number.isInteger)) throw new Error('IMAGE_CROP_INVALID');
+  if (crop.x < 0 || crop.y < 0 || crop.width < 1 || crop.height < 1 || crop.x + crop.width > image.naturalWidth || crop.y + crop.height > image.naturalHeight) {
+    throw new Error('IMAGE_CROP_BOUNDS_INVALID');
+  }
+  validateOutputDimensions(out.width, out.height);
+  const sourceX = crop.x;
+  const sourceY = crop.y;
+  const sourceWidth = crop.width;
+  const sourceHeight = crop.height;
   const canvas = document.createElement('canvas');
   canvas.width = Math.max(1, Math.round(out.width));
   canvas.height = Math.max(1, Math.round(out.height));
@@ -157,6 +196,7 @@ export async function cropResizeImage(blob: Blob, crop: { x: number; y: number; 
 }
 
 export async function removeBackground(blob: Blob, tolerance = 42): Promise<Blob> {
+  if (!Number.isFinite(tolerance) || tolerance < 0 || tolerance > 255) throw new Error('BACKGROUND_TOLERANCE_INVALID');
   const image = await loadImage(blob);
   const canvas = document.createElement('canvas');
   canvas.width = image.naturalWidth;
@@ -300,6 +340,7 @@ export type BasicImageEffect =
   | 'brightness' | 'contrast' | 'saturation' | 'grayscale' | 'invert' | 'sepia' | 'blur' | 'sharpen';
 
 export async function applyBasicImageEffect(blob: Blob, effect: BasicImageEffect, value = 100): Promise<Blob> {
+  if (!Number.isFinite(value) || value < 0 || value > 200) throw new Error('IMAGE_EFFECT_PARAMETER_INVALID');
   const image = await loadImage(blob);
   const canvas = document.createElement('canvas');
   canvas.width = image.naturalWidth;
