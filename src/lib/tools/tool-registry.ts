@@ -6,6 +6,8 @@
  * configuration modules re-export from here for backward compatibility.
  */
 import { z, type ZodType } from "zod";
+import type { ComponentType, LazyExoticComponent } from "react";
+import type { Locale } from "../i18n/config.ts";
 
 export type CanonicalCapabilityState = "RECOGNIZED" | "PLANNABLE" | "EXECUTABLE" | "UNAVAILABLE";
 export type CanonicalExecutionMode = "LOCAL" | "HYBRID" | "CLOUD";
@@ -334,3 +336,41 @@ export function validateCapabilityParameters(id: string, parameters: CanonicalCa
   if (!result.success) throw new Error(`Invalid parameters for manual capability ${id}.`);
   return result.data;
 }
+
+
+export type ToolFamily = "image" | "video" | "audio" | "ai" | "editor";
+export type ToolCategory = "Images" | "Video" | "Audio" | "AI" | "Editor";
+export type ToolLifecycle = "experimental" | "beta" | "ready" | "deprecated";
+export type ToolExecution = "browser-local" | "browser-worker" | "remote";
+export type ToolContractLevel = "structural" | "runtime" | "artifact";
+export type ToolRecoveryPolicy = Readonly<{ maxAttempts: number; replanOnFailure: boolean }>;
+export type ToolRequirements = Readonly<{ browser: true; network: boolean }>;
+export type ToolOperationalProfile = Readonly<{
+  lifecycle: ToolLifecycle;
+  execution: ToolExecution;
+  contracts: readonly ToolContractLevel[];
+  executorId: string | null;
+  outputContractId: string | null;
+}>;
+export type ToolDefinition = Readonly<{
+  id: string;
+  family: ToolFamily;
+  title: string;
+  description: string;
+  category: ToolCategory;
+  isReady: boolean;
+  path: string;
+  routes: Readonly<Record<Locale, string>>;
+  aliases: readonly string[];
+  component: LazyExoticComponent<ComponentType>;
+  capability: Readonly<{ state: CanonicalCapabilityState; intents: readonly string[] }>;
+  executionMode: CanonicalExecutionMode;
+  parameterSchema: ZodType;
+  safetyLimits: CanonicalCapabilityLimits;
+  verifier: CanonicalCapabilityVerifier;
+  requirements: ToolRequirements;
+  recovery: ToolRecoveryPolicy;
+  operational: ToolOperationalProfile;
+  localization: Readonly<{ titleKey: string; descriptionKey: string }>;
+  seo: Readonly<{ title: string; description: string; robots: "index,follow,max-image-preview:large" }>;
+}>;
