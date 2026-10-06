@@ -10,6 +10,7 @@ import {
   extractSymbols,
   isGeneratedKnowledgeArtifact,
   resolveLocalImport,
+  collectGitRefSnapshot,
 } from '../../../scripts/repository-knowledge-scan.mjs';
 
 const repoRoot = process.cwd();
@@ -85,6 +86,21 @@ test('task discovery is classified rather than converted into executable tasks',
   assert.equal(classifyTaskSignal('Remaining work is pending.'), 'future-work-candidate');
 });
 
+test('knowledge agent is explicitly allowed to read main without mutation authority', () => {
+  const profile = readFileSync(profilePath, 'utf8');
+  assert.match(profile, /# Main branch read scope/);
+  assert.match(profile, /explicitly authorized to read.*main/s);
+  assert.match(profile, /Reading.*main.*read-only reconnaissance/s);
+});
+
+test('scanner exposes a read-only main branch snapshot', () => {
+  const snapshot = collectGitRefSnapshot();
+  assert.match(snapshot.sha ?? '', /^[0-9a-f]{40}$/);
+  assert.equal(snapshot.readable, true);
+  assert.ok(snapshot.trackedFiles > 0);
+  assert.ok(snapshot.textFiles > 0);
+});
+
 test('scanner passes syntax validation', () => {
   execFileSync(process.execPath, ['--check', scannerPath], { cwd: repoRoot, stdio: 'pipe' });
 });
@@ -111,7 +127,7 @@ test('scanner produces an exact-SHA report with zero uncovered authored lines', 
 
   const report = readFileSync(result.reportPath, 'utf8');
   assert.match(report, new RegExp('Exact SHA: ' + result.sha));
-  assert.match(report, /## Dependency graph/);
+  assert.match(report, /## Main branch read snapshot/);\n  assert.match(report, /Main SHA:/);\n  assert.match(report, /## Dependency graph/);
   assert.match(report, /## Symbol index/);
   assert.match(report, /## Change delta/);
   assert.match(report, /## Capability boundary/);
