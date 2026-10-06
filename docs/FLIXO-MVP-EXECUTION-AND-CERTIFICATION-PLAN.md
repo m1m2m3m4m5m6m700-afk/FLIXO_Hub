@@ -200,7 +200,7 @@ EXIT: cleanup without regression or BLOCKER.
 
 # PROMPT 14 — DOCUMENTATION AUTHORITY ALIGNMENT
 ROLE: Documentation Architecture Agent.
-Align: README -> product; GPT -> architectural mandate/shared agent context; AGENTS.md -> agent execution contract; المهام.md -> backlog/scope state; PROJECTS.md -> project map; docs/ -> technical design/evidence.
+Align: README -> product; GPT -> architectural mandate/shared agent context; AGENTS.md -> agent execution contract; MVP-TASKS.md -> backlog/scope state; PROJECTS.md -> project map; docs/ -> technical design/evidence.
 Correct/remove stale SHA, stale status, obsolete MVP scope, obsolete architecture, false certification, and duplicate authority claims.
 Documentation MUST NOT become a second runtime source of truth. Canonical runtime structures remain authoritative.
 EXIT: documentation authority chain aligned or BLOCKER.
