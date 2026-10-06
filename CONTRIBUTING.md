@@ -6,7 +6,7 @@ The repository uses two operational branches only:
 
 - `main` — production/reference branch. Changes reach it through a pull request after the required certification gates pass.
 - `execution` — the sole development, repair, testing, and integration line.
-- No other development, repair, test, diagnostic, agent, or temporary branch may be created or used.
+- No other implementation, repair, test, diagnostic, agent, or temporary branch may be created or used. Short-lived scout/* branches are the sole research exception: they may change only التطوير.md, must target execution, and may never target main.
 - `main` is the production/reference destination and is never mutated directly.
 
 Promotion is exclusively `execution → main`. Historical refs are not execution paths.
@@ -96,3 +96,16 @@ A public tool must have a real runtime and the applicable automated regression/c
 ## Definition of done
 
 A change is complete when its implementation, tests, build/contracts, Evidence, certification decision, documentation, and release scope are all consistent with the repository policy.
+
+
+## Research Scout Boundary
+
+The three research Scouts are advisory-only GitHub Copilot custom agents:
+- Architecture Scout
+- Technology Scout
+- Ecosystem Scout
+
+Their tools are restricted to read, search, and edit. They have no shell/execute/agent-delegation capability. Their only writable file is التطوير.md.
+
+Scout branches use scout/*, target execution, and are blocked by CI if they change any file other than التطوير.md or attempt to target main.
+
