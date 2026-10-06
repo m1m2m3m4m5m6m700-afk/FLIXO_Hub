@@ -40,4 +40,4 @@ for (const locale of LOCALES) {
   }
 }
 
-console.log(`G1 static route entries generated: executable=${executableTools.length}, locales=${LOCALES.length}, routes=${readyTools.length * LOCALES.length + LOCALES.length + 1}, adminApi=5`);
+console.log(`G1 static route entries generated: executable=${executableTools.length}, locales=${LOCALES.length}, routes=${executableTools.length * LOCALES.length + LOCALES.length + 1}, adminApi=5`);
