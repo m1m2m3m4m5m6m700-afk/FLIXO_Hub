@@ -41,7 +41,7 @@ test('ledger linter rejects duplicate IDs, invalid dependencies, and owner-actio
 
   const result = lintLedger(source);
   assert.equal(result.pass, false);
-  assert.ok(result.failures.some((f) => f.startsWith('DUPLICATE_TASK_ID:')));
+  assert.ok(result.failures.some((f) => f === 'DUPLICATE_TASK_ID'));
   assert.ok(result.failures.some((f) => f.startsWith('IN_PROGRESS_COLLISION:')));
   assert.ok(result.failures.some((f) => f.startsWith('EXEC-OWNER-002:OWNER_ACTION_PR_MUST_BE_NA')));
   assert.ok(result.failures.some((f) => f.startsWith('EXEC-TEST-003:MISSING_DEPENDENCY:')));
