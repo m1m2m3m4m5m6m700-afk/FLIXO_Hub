@@ -16,9 +16,13 @@ test('versioned MVP acceptance corpus resolves every positive case through canon
   assert.equal(MVP_STANDARD_INTENT_SUITE_VERSION, 2);
   for (const item of MVP_STANDARD_INTENT_SUITE) {
     const file = item.id.includes('video') ? video() : image();
-    const plan = planAgentRequest(item.request, file);
-    assert.deepEqual(plan.steps.map((step) => step.toolId), item.expectedToolIds, item.id);
-    assert.equal(plan.catalogFingerprint.length > 0, true, item.id);
+    try {
+      const plan = planAgentRequest(item.request, file);
+      assert.deepEqual(plan.steps.map((step) => step.toolId), item.expectedToolIds, item.id);
+      assert.equal(plan.catalogFingerprint.length > 0, true, item.id);
+    } catch (error) {
+      throw new Error(`corpus case ${item.id} failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 });
 
