@@ -54,7 +54,6 @@ export function VideoLocalTool() {
   const [file, setFile] = useState<File | null>(null);
   const [inputMeta, setInputMeta] = useState<VideoMetadata | null>(null);
   const [parameters, setParameters] = useState<Parameters>({});
-  const [result, setResult] = useState<Blob | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
@@ -84,7 +83,6 @@ export function VideoLocalTool() {
   const handleFileChange = async (nextFile: File | null) => {
     abortRef.current?.abort();
     setFile(nextFile);
-    setResult(null);
     if (resultUrl) {
       URL.revokeObjectURL(resultUrl);
       setResultUrl(null);
@@ -134,7 +132,6 @@ export function VideoLocalTool() {
       if (!verified) throw new Error('VIDEO_OUTPUT_VERIFICATION_FAILED');
       const verifiedMeta = await inspectVideoMetadata(output, controller.signal);
       if (verifiedMeta.size <= 0) throw new Error('VIDEO_OUTPUT_INVALID');
-      setResult(output);
       setResultUrl(URL.createObjectURL(output));
     } catch (cause) {
       if (cause instanceof DOMException && cause.name === 'AbortError') {
