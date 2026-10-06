@@ -103,7 +103,7 @@ test('createEvidence tolerates equivalent database timestamp serialization', asy
   assert.ok(sent);
   assert.equal(evidence.evidence_id.length, 36);
   assert.equal(new Date(evidence.recorded_at).toISOString(), new Date(String(sent.recorded_at)).toISOString());
-  assert.equal(new Date(evidence.created_at).toISOString(), new Date(String(sent.created_at)).toISOString();
+  assert.equal(new Date(evidence.created_at).toISOString(), new Date(String(sent.created_at)).toISOString());
 });
 
 test('createAuditEvent binds generated id/timestamps into integrity payload', async () => {
