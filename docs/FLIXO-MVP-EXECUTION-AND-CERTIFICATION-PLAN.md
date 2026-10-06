@@ -292,6 +292,18 @@ BLOCKERS=
 NEXT_PROMPT=
 This is evidence/state metadata only. It MUST NOT become a runtime source of truth.
 
+# 3.5 TASK CLAIM / COORDINATION PROTOCOL
+
+The shared execution queue is coordination metadata only; it is not runtime authority.
+
+1. A task is unclaimed until an agent records TASK_ID, OWNER, STATUS=IN_PROGRESS, START_SHA, and scope/ownership in the shared ledger.
+2. Claiming a task MUST remove that task from the unowned/unassigned queue in the same coordination update. The task is not considered claimed if both an active claim and an unclaimed duplicate remain visible.
+3. Other agents MUST skip a claimed task and select another independent task unless they are the recorded owner or the owner explicitly releases the task.
+4. A released or abandoned task MUST be recorded as BLOCKED or UNCLAIMED with the reason and then may return to the unowned queue. Do not silently reclaim it.
+5. A completion record MUST retain task history. Never delete evidence or history merely because the task leaves the active queue.
+6. IMPLEMENTED, VERIFIED, and CERTIFIED remain evidence states, not ownership states. A task is releasable only when its owner records exact-SHA validation and required evidence.
+7. If two agents claim the same task, the later claim MUST be treated as invalid until coordination state is reconciled; no agent may overwrite the other agent's work blindly.
+8. This protocol prevents duplicated work only; it MUST NOT create a second runtime registry, executor, verifier, or certification authority.
 # 4. ANTI-INFLATION RULES
 IMPLEMENTED != VERIFIED
 VERIFIED_ON_OLD_SHA != VERIFIED_ON_CURRENT_SHA
