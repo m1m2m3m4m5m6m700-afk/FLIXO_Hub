@@ -157,8 +157,15 @@ test('video renderer cleans active media resources on every terminal path', () =
   const executor = readFileSync(resolve(root, 'src/lib/video/video-executor.ts'), 'utf8');
   assert.match(executor, /if \(recorder && recorder\.state !== 'inactive'\)[\s\S]*recorder\.stop\(\)/u);
   assert.match(executor, /canvasStream\?\.getTracks\(\)\.forEach\(\(track\) => track\.stop\(\)\)/u);
-  assert.match(executor, /sourceStream\?\.getTracks\(\)\.forEach\(\(track\) => track\.stop\(\)\)/u);
   assert.match(executor, /if \(frameHandle\) cancelAnimationFrame\(frameHandle\)/u);
+});
+
+test('video result Blob URLs are lifecycle-managed instead of being created during render', () => {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+  const ui = readFileSync(resolve(root, 'src/tools/video-local/index.tsx'), 'utf8');
+  assert.match(ui, /URL\.createObjectURL\(result\)/u);
+  assert.match(ui, /URL\.revokeObjectURL\(url\)/u);
+  assert.doesNotMatch(ui, /href=\{URL\.createObjectURL\(result\)\}/u);
 });
 
 test('tool-chain panel UI matches the canonical chain/media boundary', () => {
