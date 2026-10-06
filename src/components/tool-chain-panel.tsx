@@ -18,6 +18,12 @@ export function ToolChainPanel({ currentToolId }: { currentToolId?: string | nul
   const selected = chain.map((step) => ({ step, tool: tools.find((tool) => tool.id === step.id) })).filter((item): item is { step: typeof chain[number]; tool: (typeof tools)[number] } => Boolean(item.tool));
   const copy = getToolUiCopy();
 
+  const clearResult = () => {
+    if (resultUrl) URL.revokeObjectURL(resultUrl);
+    setResultUrl('');
+    setResult(null);
+  };
+
   useEffect(() => () => { if (resultUrl) URL.revokeObjectURL(resultUrl); }, [resultUrl]);
 
   const refresh = () => setChain(getToolChain());
@@ -39,11 +45,7 @@ export function ToolChainPanel({ currentToolId }: { currentToolId?: string | nul
     setProgress(0);
     setActiveTool('');
     setError('');
-    setResult(null);
-    if (resultUrl) {
-      URL.revokeObjectURL(resultUrl);
-      setResultUrl('');
-    }
+    clearResult();
     try {
       const { runStoredToolChain } = await import('../lib/tool-chain-runner');
       const output = await runStoredToolChain(
@@ -105,7 +107,7 @@ export function ToolChainPanel({ currentToolId }: { currentToolId?: string | nul
           <div className="flixo-chain-panel__runner">
             <label className="flixo-chain-panel__file">
               <span>{copy.inputFile}</span>
-              <input type="file" accept="image/*" aria-label={copy.chooseFile} disabled={running} onChange={(event) => { setInputFile(event.target.files?.[0] ?? null); setError(''); setResult(null); }} />
+              <input type="file" accept="image/*" aria-label={copy.chooseFile} disabled={running} onChange={(event) => { setInputFile(event.target.files?.[0] ?? null); setError(''); clearResult(); }} />
             </label>
             <button type="button" className="flixo-chain-panel__run" onClick={() => void runChain()} disabled={!inputFile || selected.length === 0 || running}>
               {running ? `${copy.processing}… ${progress}%` : copy.runChainLocally}
