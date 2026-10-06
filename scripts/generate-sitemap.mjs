@@ -24,8 +24,8 @@ const localizedPath = (locale, path) => {
 
 const absoluteUrl = (path) => new URL(normalizePath(path), `${SITE_ORIGIN}/`).toString();
 
-const readyTools = TOOL_MANIFEST.filter((tool) => tool.isReady);
-const localizedToolPaths = readyTools.flatMap((tool) => LOCALES.map((locale) => getLocalizedToolPath(tool, locale)));
+const executableTools = TOOL_MANIFEST.filter((tool) => tool.isReady && tool.capability.state === 'EXECUTABLE');
+const localizedToolPaths = executableTools.flatMap((tool) => LOCALES.map((locale) => getLocalizedToolPath(tool, locale)));
 const localizedHomePaths = LOCALES.map((locale) => localizedPath(locale, '/'));
 const urls = unique([...localizedHomePaths, ...localizedToolPaths]);
 
@@ -51,5 +51,5 @@ const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.s
 mkdirSync(outputDir, { recursive: true });
 writeFileSync(join(outputDir, 'sitemap.xml'), xml, 'utf8');
 console.log(
-  `Generated sitemap with ${urls.length} localized URLs (${readyTools.length} ready tools, ${LOCALES.length} locales) using canonical route/origin contracts at ${outputDir}/sitemap.xml.`,
+  `Generated sitemap with ${urls.length} localized URLs (${executableTools.length} executable tools, ${LOCALES.length} locales) using canonical route/origin contracts at ${outputDir}/sitemap.xml.`,
 );
