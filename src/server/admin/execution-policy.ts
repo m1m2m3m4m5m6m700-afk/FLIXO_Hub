@@ -28,9 +28,8 @@ export type AdminExecutionDecision =
       executionClass: 'READ';
     }
   | {
-      decision: 'ALLOW_EXECUTION' | 'DENY';
+      decision: 'DENY';
       reason:
-        | 'authenticated_execution'
         | 'missing_subject'
         | 'missing_capability'
         | 'missing_command'
@@ -71,17 +70,6 @@ export const evaluateAdminExecution = (
     return request.preview
       ? { decision: 'ALLOW_PREVIEW', reason: 'preview_only', executionClass: 'READ' }
       : { decision: 'ALLOW_READ', reason: 'authenticated_read', executionClass: 'READ' };
-  }
-
-  const normalizedTarget = request.target.trim().toLowerCase();
-  const executionLane = normalizedTarget === 'execution' || normalizedTarget.startsWith('execution/');
-
-  if (!request.preview && executionLane) {
-    return {
-      decision: 'ALLOW_EXECUTION',
-      reason: 'authenticated_execution',
-      executionClass: request.executionClass,
-    };
   }
 
   if (!request.preview && !request.rollbackPlan?.trim()) {
