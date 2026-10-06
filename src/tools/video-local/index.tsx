@@ -3,6 +3,27 @@ import { useLocation } from '@tanstack/react-router';
 import { executeCanonicalTool } from '@/lib/execution/canonical-executor';
 import type { CanonicalCapabilityParameters } from '@/config/manual-capability-definition';
 
+async function readVideoMetadata(file: File): Promise<{ width: number; height: number; duration: number }> {
+  const url = URL.createObjectURL(file);
+  const video = document.createElement('video');
+  video.preload = 'metadata';
+  video.src = url;
+  try {
+    await new Promise<void>((resolve, reject) => {
+      video.onloadedmetadata = () => resolve();
+      video.onerror = () => reject(new Error('Could not read video metadata.'));
+    });
+    if (video.videoWidth < 1 || video.videoHeight < 1 || !Number.isFinite(video.duration) || video.duration <= 0) {
+      throw new Error('Video metadata is invalid.');
+    }
+    return { width: video.videoWidth, height: video.videoHeight, duration: video.duration };
+  } finally {
+    URL.revokeObjectURL(url);
+    video.removeAttribute('src');
+    video.load();
+  }
+}
+
 export function VideoLocalTool() {
   const [file, setFile] = useState<File | null>(null);
   const [result, setResult] = useState<Blob | null>(null);
@@ -28,14 +49,20 @@ export function VideoLocalTool() {
     }
     setResult(null);
     try {
+      const metadata = await readVideoMetadata(file);
+      const width = Math.min(1280, metadata.width);
+      const height = Math.min(720, metadata.height);
       const parameters: CanonicalCapabilityParameters = id === 'video-trimmer'
         ? {}
         : id === 'video-compressor'
           ? { videoBitsPerSecond: 2_500_000, audioBitsPerSecond: 128_000 }
           : id === 'video-resizer'
-            ? { width: 1280, height: 720 }
-            : { x: 0, y: 0, width: 1280, height: 720 };
+            ? { width, height }
+            : { x: 0, y: 0, width, height };
       const output = await executeCanonicalTool(id, { blob: file, fileName: file.name }, parameters);
+      if (id === 'video-compressor' && output.blob.size >= file.size) {
+        throw new Error('Video compression did not reduce the file size.');
+      }
       const url = URL.createObjectURL(output.blob);
       setResult(output.blob);
       setResultUrl(url);
