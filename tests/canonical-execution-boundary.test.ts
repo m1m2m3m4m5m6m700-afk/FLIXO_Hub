@@ -204,7 +204,7 @@ test('video result Blob URLs are lifecycle-managed instead of being created duri
   assert.match(ui, /const \[resultUrl, setResultUrl\]/u);
   assert.match(ui, /const url = URL\.createObjectURL\(output\.blob\)/u);
   assert.match(ui, /setResultUrl\(url\)/u);
-  assert.match(ui, /URL\.revokeObjectURL\(resultUrl\)/u);
+  assert.match(ui, /URL\.revokeObjectURL\(resultUrlRef\.current\)/u);
   assert.match(ui, /return \(\) => \{/u);
   assert.match(ui, /href=\{resultUrl\}/u);
 });
