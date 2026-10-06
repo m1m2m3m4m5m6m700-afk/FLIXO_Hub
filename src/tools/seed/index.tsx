@@ -12,6 +12,7 @@ import { CurveMiniPreview, NumericField, SectionReset, StudioSlider, ToolSection
 import { FloatingCanvasOverlay, type FloatingCanvasOverlayLabels } from '../../components/floating-canvas-overlay';
 import { useFullscreenSync } from '../../components/useFullscreenSync';
 import { getTranslationBundle, type Locale } from '../../lib/i18n';
+import { validateBrowserFile } from '../../lib/contracts/browser-file-safety';
 import { EN_SEED_UI } from '../../lib/i18n/locales/en';
 import type { SeedUiTranslations } from '../../lib/i18n/types';
 
@@ -21,6 +22,29 @@ export interface SeedState extends SeedRenderSettings {
 }
 
 type Snapshot = { basic: SeedState; advanced: AdvancedSeedSettings };
+
+const SEED_IMAGE_MAX_BYTES = 25 * 1024 * 1024;
+const SEED_IMAGE_MAX_PIXELS = 40_000_000;
+
+const SEED_IMAGE_POLICY = Object.freeze({
+  maxBytes: SEED_IMAGE_MAX_BYTES,
+  maxPixels: SEED_IMAGE_MAX_PIXELS,
+  allowedMime: ['image/avif', 'image/bmp', 'image/gif', 'image/jpeg', 'image/png', 'image/webp'] as const,
+  allowedExtensions: ['avif', 'bmp', 'gif', 'jpeg', 'jpg', 'png', 'webp'] as const,
+  magicBytes: [] as const,
+  decoder: async (file: File) => {
+    if (typeof createImageBitmap !== 'function') throw new Error('Seed image decoding is unavailable.');
+    const bitmap = await createImageBitmap(file);
+    try {
+      if (bitmap.width < 1 || bitmap.height < 1) throw new Error('Seed image dimensions are invalid.');
+      if (bitmap.width * bitmap.height > SEED_IMAGE_MAX_PIXELS) {
+        throw new Error('Seed image exceeds the safe pixel processing limit.');
+      }
+    } finally {
+      bitmap.close();
+    }
+  },
+});
 
 const DEFAULT_STATE: SeedState = {
   brightness: 0, contrast: 0, saturation: 0, warmth: 0,
@@ -186,29 +210,45 @@ export default function SeedTool({ locale = 'en' as Locale }: { locale?: Locale 
     applyHistorySnapshot(next, historyIndex + 1);
   };
 
-  const openImage = (file: File) => {
-    if (!file.type.startsWith('image/')) { setError('Drop a supported image file.'); return; }
-    const url = URL.createObjectURL(file);
-    if (imageUrlRef.current) URL.revokeObjectURL(imageUrlRef.current);
-    imageUrlRef.current = url;
-    const img = new Image();
-    img.onload = () => {
-      renderSettingsRef.current = DEFAULT_STATE;
-      setImage(img); setImageName(file.name); setSettings(DEFAULT_STATE); setAdvanced(cloneAdvanced(DEFAULT_ADVANCED));
-      setHistory([{ basic: DEFAULT_STATE, advanced: cloneAdvanced(DEFAULT_ADVANCED) }]); setHistoryIndex(0); setZoomLevel(1); setError('');
-    };
-    img.onerror = () => setError('Unable to decode this image.');
-    img.src = url;
+  const openImage = async (file: File) => {
+    try {
+      const validation = await validateBrowserFile(file, SEED_IMAGE_POLICY);
+      if (!validation.safe) throw new Error(validation.failures.join(' '));
+      const url = URL.createObjectURL(file);
+      if (imageUrlRef.current) URL.revokeObjectURL(imageUrlRef.current);
+      imageUrlRef.current = url;
+      const img = new Image();
+      img.onload = () => {
+        if (img.naturalWidth * img.naturalHeight > SEED_IMAGE_MAX_PIXELS) {
+          URL.revokeObjectURL(url);
+          if (imageUrlRef.current === url) imageUrlRef.current = null;
+          setError('Seed image exceeds the safe pixel processing limit.');
+          return;
+        }
+        renderSettingsRef.current = DEFAULT_STATE;
+        setImage(img); setImageName(file.name); setSettings(DEFAULT_STATE); setAdvanced(cloneAdvanced(DEFAULT_ADVANCED));
+        setHistory([{ basic: DEFAULT_STATE, advanced: cloneAdvanced(DEFAULT_ADVANCED) }]); setHistoryIndex(0); setZoomLevel(1); setError('');
+      };
+      img.onerror = () => setError('Unable to decode this image.');
+      img.src = url;
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Seed image failed safety validation.');
+    }
   };
-  const openDoubleExposure = (file: File) => {
-    if (!file.type.startsWith('image/')) { setError('Choose an image for the exposure layer.'); return; }
-    const url = URL.createObjectURL(file);
-    if (doubleExposureUrlRef.current) URL.revokeObjectURL(doubleExposureUrlRef.current);
-    doubleExposureUrlRef.current = url;
-    const layer = new Image();
-    layer.onload = () => updateAdvanced('doubleExposure', layer);
-    layer.onerror = () => setError('Unable to decode the exposure layer.');
-    layer.src = url;
+  const openDoubleExposure = async (file: File) => {
+    try {
+      const validation = await validateBrowserFile(file, SEED_IMAGE_POLICY);
+      if (!validation.safe) throw new Error(validation.failures.join(' '));
+      const url = URL.createObjectURL(file);
+      if (doubleExposureUrlRef.current) URL.revokeObjectURL(doubleExposureUrlRef.current);
+      doubleExposureUrlRef.current = url;
+      const layer = new Image();
+      layer.onload = () => updateAdvanced('doubleExposure', layer);
+      layer.onerror = () => setError('Unable to decode the exposure layer.');
+      layer.src = url;
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Exposure layer failed safety validation.');
+    }
   };
   const addBrushPoint = (event: React.PointerEvent<HTMLCanvasElement>) => {
     if (!image || advanced.brushStrength === 0) return;
