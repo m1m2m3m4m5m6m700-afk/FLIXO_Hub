@@ -1,15 +1,21 @@
 # FLIXO Final Certification Attestation
 
-Status: PENDING / NO CERTIFICATION
+STATUS: NOT READY
+REPOSITORY: m1m2m3m4m5m6m700-afk/FLIXO_Hub
+EXECUTION_BRANCH: execution
+INTEGRATION_PR: #1002
 
-This attestation is a post-merge evidence record, not a certification source.
+No final attestation is valid until Prompt 19 completes on one exact candidate SHA and Prompt 20 verifies promotion through the protected `main` branch.
 
-Required sequence:
-1. Prompt 19 certifies one exact execution candidate.
-2. Owner-approved promotion moves `execution -> main`.
-3. The new main SHA is independently verified by canonical CI and exact-SHA checks.
-4. Production deployment identity is verified against that main SHA.
-5. Production browser smoke is run against the verified deployment.
-6. Only then may this attestation be changed to a final PASS record.
+Required attestation identities:
+- CURRENT_SHA
+- TESTED_SHA
+- BUILT_SHA
+- BROWSER_VERIFIED_SHA
+- SECURITY_VERIFIED_SHA
+- COVERAGE_VERIFIED_SHA
+- RED_TEAM_VERIFIED_SHA
+- CERTIFIED_SHA
+- DEPLOYED_SHA when applicable
 
-No current SHA is embedded here until the required post-merge evidence exists.
+Current known blocker: the GitHub main ruleset is weaker than the policy required by Prompt 12. Historical attestation data must not be reused.
