@@ -35,7 +35,7 @@ export type ToolSource = Readonly<{
 // ToolConfig is the canonical source shape consumed by the definition builder.
 type ToolConfig = ToolSource;
 
-const createImageToolkitComponent = (toolId: Exclude<LocalToolId, 'ai-image-generator' | 'image-compressor'>) =>
+const createImageToolkitComponent = (toolId: Exclude<LocalToolId, 'image-compressor'>) =>
   lazy(() =>
     import('@/tools/image-toolkit').then((m) => ({
       default: ((props: Record<string, unknown>) => createElement(m.ImageToolPage, { ...props, toolId })) as ComponentType,
@@ -93,7 +93,6 @@ const IMAGE_TOOL_CONFIGS: readonly ToolSource[] = Object.freeze([
   { id: 'mockup-generator', title: 'Mockup Generator', path: '/en/mockup-generator', description: 'Place images inside a simple device mockup.', category: 'Images', isReady: true, component: lazy(() => import('@/tools/mockup-generator')) },
   { id: 'seed', title: 'Seed', path: '/en/seed', description: 'Non-destructive GPU image adjustments with WebGL.', category: 'Images', isReady: true, component: lazy(() => import('@/tools/seed')) },
   { id: 'pix', title: 'Pix Studio', path: '/en/pix', description: 'Professional browser-based image editor with tune, liquify, dispersion, text, history, and PNG export.', category: 'Images', isReady: true, component: lazy(() => import('@/tools/pix')) },
-  { id: 'ai-image-generator', title: 'AI Image Generator', path: '/en/ai-image-generator', description: 'Generate images through a configured image endpoint.', category: 'Images', isReady: false, component: lazy(() => import('@/tools/ai-image-generator').then((m) => ({ default: m.AiImageGeneratorTool }))) },
   { id: 'photo-colorizer', title: 'Photo Colorizer', path: '/en/photo-colorizer', description: 'Colorize photos through a configured AI endpoint.', category: 'Images', isReady: false, component: lazy(() => import('@/tools/photo-colorizer')) },
   { id: 'image-rotate', title: 'Rotate Image', path: '/en/image-rotate', description: 'Rotate images locally in your browser.', category: 'Images', isReady: true, component: createImageToolkitComponent('image-rotate') },
   { id: 'image-flip-horizontal', title: 'Flip Image Horizontal', path: '/en/image-flip-horizontal', description: 'Flip images horizontally locally.', category: 'Images', isReady: true, component: createImageToolkitComponent('image-flip-horizontal') },
@@ -163,7 +162,6 @@ const TOOL_INTENTS: Readonly<Record<string, readonly string[]>> = {
   'pix': ['pix studio', 'photo editor', 'image editor', 'تحرير الصورة', 'محرر الصور'],
   'watermark-remover': ['remove watermark', 'erase watermark', 'إزالة العلامة المائية'],
   'object-remover': ['remove object', 'erase object', 'delete object', 'إزالة عنصر', 'حذف عنصر'],
-  'ai-image-generator': ['generate image', 'create image with ai', 'text to image', 'make an image', 'إنشاء صورة بالذكاء الاصطناعي'],
   'image-rotate': ['rotate image','turn image','تدوير الصورة'],
   'image-flip-horizontal': ['flip horizontal','mirror image','قلب أفقي','عكس أفقي'],
   'image-flip-vertical': ['flip vertical','قلب رأسي','عكس رأسي'],
@@ -250,7 +248,7 @@ export function toToolDefinition(tool: ToolConfig): ToolDefinition {
   const routes = Object.fromEntries(LOCALES.map((locale) => [locale, localizedRoute(tool.path, locale)])) as Record<Locale, string>;
   const canonicalCapability = getCanonicalCapabilityDefinition(tool.id) as CanonicalCapabilityDefinition | undefined;
   const capabilityState = canonicalCapability?.state ?? stateFor(tool);
-  const executionMode: ExecutionMode = canonicalCapability?.executionMode ?? (tool.id === 'ai-image-generator' || tool.id === 'photo-colorizer' ? 'CLOUD' : 'LOCAL');
+  const executionMode: ExecutionMode = canonicalCapability?.executionMode ?? (tool.id === 'photo-colorizer' ? 'CLOUD' : 'LOCAL');
   const parameterSchema = canonicalCapability?.parameterSchema ?? PARAMETER_SCHEMAS[tool.id] ?? COMMON_PARAMETERS;
   const safetyLimits = canonicalCapability?.safetyLimits ?? Object.freeze(tool.id.startsWith('video-')
     ? { maxPixels: 64_000_000, maxFileSizeBytes: 512 * 1024 * 1024, timeoutMs: 10 * 60 * 1000 }
