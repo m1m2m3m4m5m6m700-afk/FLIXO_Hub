@@ -33,6 +33,9 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
 
+      - name: Install project dependencies
+        run: npm ci --ignore-scripts
+
       - name: Verify trigger identity
         shell: bash
         run: |
