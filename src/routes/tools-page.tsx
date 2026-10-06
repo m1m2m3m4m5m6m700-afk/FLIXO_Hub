@@ -17,7 +17,7 @@ const TOOL_ICONS = {
 } as const;
 
 const FILTERS = [
-  ['all', 'الكل', 'All'], ['image', 'الصور', 'Images'], ['ai', 'AI', 'AI'], ['files', 'الملفات', 'Files'], ['utilities', 'الأدوات', 'Utilities'],
+  ['all', 'الكل', 'All'], ['image', 'الصور', 'Images'], ['video', 'الفيديو', 'Video'], ['ai', 'AI', 'AI'], ['files', 'الملفات', 'Files'], ['utilities', 'الأدوات', 'Utilities'],
 ] as const;
 
 function getToolIcon(toolId: string) { return TOOL_ICONS[toolId as keyof typeof TOOL_ICONS] ?? Settings2; }
@@ -27,7 +27,7 @@ export function ToolsPage({ locale = 'en' as Locale }: { locale?: Locale }) {
   const [filter, setFilter] = useState('all');
   const ar = locale === 'ar';
 
-  const tools = useMemo(() => TOOL_CATALOG.ready.map((tool) => {
+  const tools = useMemo(() => TOOL_CATALOG.ready.filter((tool) => tool.capability.state === 'EXECUTABLE').map((tool) => {
     const title = getAuthoritativeToolSeoName(tool, locale) ?? tool.title;
     return { ...tool, title, description: localizeToolDescription(locale, title, tool.category), path: tool.path.replace(/^\/en\//, locale === 'ar' ? '/ar/' : '/en/') };
   }).filter((tool) => {
@@ -36,6 +36,7 @@ export function ToolsPage({ locale = 'en' as Locale }: { locale?: Locale }) {
     const category = String(tool.category ?? '').toLowerCase();
     const categoryMatch = filter === 'all' ||
       (filter === 'image' && category.includes('image')) ||
+      (filter === 'video' && category.includes('video')) ||
       (filter === 'ai' && category.includes('ai')) ||
       (filter === 'files' && (category.includes('file') || category.includes('pdf'))) ||
       (filter === 'utilities' && (category.includes('utility') || category.includes('converter')));
@@ -52,7 +53,7 @@ export function ToolsPage({ locale = 'en' as Locale }: { locale?: Locale }) {
       </header>
       <div className="tools-modern-container">
         <section className="tools-modern-hero" aria-labelledby="tools-title">
-          <div className="tools-modern-hero-topline"><span>WORKSPACE · MANUAL TOOLS</span><span>{tools.length} {ar ? 'متاحة الآن' : 'available now'}</span></div>
+          <div className="tools-modern-hero-topline"><span>WORKSPACE · MANUAL TOOLS</span><span>{tools.length} {ar ? 'أدوات معتمدة للتشغيل' : 'admitted tools'}</span></div>
           <div>
             <h1 id="tools-title">{ar ? 'مساحة الأدوات.' : 'Tool workspace.'}</h1>
             <p>{ar ? 'سطح واحد لاكتشاف وتشغيل الأدوات اليدوية المنشورة فعليًا في FLIXO. لا أدوات وهمية، ولا مسار وكيل.' : 'One surface for discovering and launching the tools actually published in FLIXO Hub. No phantom tools, no agent execution path.'}</p>
