@@ -63,19 +63,24 @@ self.onmessage = async (event: MessageEvent<{ file: File; options: WorkerCompres
       if (size.width * size.height > MAX_OUTPUT_PIXELS) throw new Error('The requested output is too large for safe browser processing. Reduce the dimensions and try again.');
 
       const canvas = new OffscreenCanvas(size.width, size.height);
-      const context = canvas.getContext('2d', { alpha: true });
-      if (!context) throw new Error('OffscreenCanvas is unavailable');
-      context.imageSmoothingEnabled = true;
-      context.imageSmoothingQuality = 'high';
-      if (options.format === 'image/jpeg') {
-        context.fillStyle = '#ffffff';
-        context.fillRect(0, 0, size.width, size.height);
-      }
-      context.drawImage(bitmap, 0, 0, size.width, size.height);
+      try {
+        const context = canvas.getContext('2d', { alpha: true });
+        if (!context) throw new Error('OffscreenCanvas is unavailable');
+        context.imageSmoothingEnabled = true;
+        context.imageSmoothingQuality = 'high';
+        if (options.format === 'image/jpeg') {
+          context.fillStyle = '#ffffff';
+          context.fillRect(0, 0, size.width, size.height);
+        }
+        context.drawImage(bitmap, 0, 0, size.width, size.height);
 
-      const targetBytes = options.targetSizeKB && options.targetSizeKB > 0 ? options.targetSizeKB * 1024 : undefined;
-      const encoded = await encodeToTarget(canvas, options.format, options.quality, targetBytes);
-      self.postMessage({ ok: true, result: { blob: encoded.blob, width: size.width, height: size.height, mimeType: options.format, qualityUsed: encoded.qualityUsed } });
+        const targetBytes = options.targetSizeKB && options.targetSizeKB > 0 ? options.targetSizeKB * 1024 : undefined;
+        const encoded = await encodeToTarget(canvas, options.format, options.quality, targetBytes);
+        self.postMessage({ ok: true, result: { blob: encoded.blob, width: size.width, height: size.height, mimeType: options.format, qualityUsed: encoded.qualityUsed } });
+      } finally {
+        canvas.width = 0;
+        canvas.height = 0;
+      }
     } finally {
       bitmap.close();
     }
