@@ -59,8 +59,8 @@ test('certification artifacts: attestation markdown lives outside the primary do
   ];
 
   for (const name of names) {
-    assert.equal(existsSync(`docs/\${name}`), false, `legacy attestation path still exists: \${name}`);
-    assert.equal(existsSync(`docs/attestations/\${name}`), true, `moved attestation is missing: \${name}`);
+    assert.equal(existsSync(`docs/${name}`), false, `legacy attestation path still exists: ${name}`);
+    assert.equal(existsSync(`docs/attestations/${name}`), true, `moved attestation is missing: ${name}`);
   }
 
   const evidenceScript = read('scripts/ci/generate-build-evidence.mjs');
