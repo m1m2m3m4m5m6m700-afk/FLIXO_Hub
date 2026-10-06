@@ -14,6 +14,7 @@ export const VIDEO_LIMITS = Object.freeze({
 
 const VIDEO_SIGNATURES: Record<string, MagicByteSignature> = {
   webm: { name: 'WebM/EBML', bytes: [0x1a, 0x45, 0xdf, 0xa3] },
+  matroska: { name: 'Matroska/EBML', bytes: [0x1a, 0x45, 0xdf, 0xa3] },
   mp4: { name: 'MP4/ISO-BMFF', bytes: [0x66, 0x74, 0x79, 0x70], offset: 4 },
   quicktime: { name: 'QuickTime/ISO-BMFF', bytes: [0x66, 0x74, 0x79, 0x70], offset: 4 },
   ogg: { name: 'Ogg', bytes: [0x4f, 0x67, 0x67, 0x53] },
@@ -21,6 +22,7 @@ const VIDEO_SIGNATURES: Record<string, MagicByteSignature> = {
 
 const MIME_TO_SIGNATURE = Object.freeze({
   'video/webm': 'webm',
+  'video/x-matroska': 'matroska',
   'video/mp4': 'mp4',
   'video/quicktime': 'quicktime',
   'video/ogg': 'ogg',
