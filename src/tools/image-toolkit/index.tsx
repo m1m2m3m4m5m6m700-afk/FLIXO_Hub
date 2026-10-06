@@ -11,7 +11,7 @@ import { getToolSeo } from '../../lib/seo/tool-seo';
 import { getAuthoritativeToolSeoName } from '../../config/tool-seo-name-resolver';
 import type { LocalToolId } from './engine';
 
-const DEFINITIONS: Record<Exclude<LocalToolId, 'image-compressor'>, { title: string; description: string; accept: string }> = {
+const DEFINITIONS: Record<SharedImageToolId, { title: string; description: string; accept: string }> = {
   'background-remover': { title: 'Background Remover', description: 'Remove connected, uniform backgrounds locally in your browser with edge-aware flood fill.', accept: 'image/png,image/jpeg,image/webp,image/svg+xml' },
   'image-upscaler': { title: 'Image Upscaler', description: 'Increase image dimensions with high-quality browser resampling and controlled sharpening.', accept: 'image/png,image/jpeg,image/webp' },
   'image-converter': { title: 'Image Converter', description: 'Convert images between PNG, JPG, and WebP without uploading them.', accept: 'image/png,image/jpeg,image/webp' },
@@ -149,7 +149,7 @@ export function ImageToolPage({ toolId }: Props) {
     try {
       if (toolId === 'image-upscaler') { const factor = Number(scale); if (!Number.isFinite(factor) || factor < 1 || factor > 8) throw new Error('Scale must be between 1 and 8.'); }
       if (!file) throw new Error(ui.chooseImageFirst);
-      await validateSharedImageInput(file, toolId);
+      if (toolId !== 'ai-image-generator') await validateSharedImageInput(file, toolId);
       let blob: Blob; let fileName = baseName(file.name); let info: Result['info'];
       if (toolId === 'background-remover') { const output = await executeCanonicalTool('background-remover', { blob: file, fileName: file.name }, { tolerance: Number(tolerance) || 42 }); blob = output.blob; fileName = output.fileName; }
       else if (toolId === 'image-upscaler') { const factor = Number(scale); const output = await executeCanonicalTool('image-upscaler', { blob: file, fileName: file.name }, { scale: factor }); blob = output.blob; fileName = output.fileName; }
