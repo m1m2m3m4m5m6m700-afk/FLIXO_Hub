@@ -1,0 +1,105 @@
+name: Harden main Ruleset once
+
+on:
+  push:
+    branches:
+      - redteam-rt3-closure-v8-direct-seroval-20261006
+
+permissions:
+  administration: write
+  contents: write
+
+jobs:
+  harden:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify exact source and branch
+        env:
+          EXPECTED_BRANCH: redteam-rt3-closure-v8-direct-seroval-20261006
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = "$EXPECTED_BRANCH"
+          test "$GITHUB_REPOSITORY" = "m1m2m3m4m5m6m700-afk/FLIXO_Hub"
+
+      - name: Harden FLIXO main Ruleset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          api="https://api.github.com/repos/$GITHUB_REPOSITORY/rulesets/23854302"
+
+          current="$(curl --fail-with-body --silent --show-error --location             -H "Accept: application/vnd.github+json"             -H "Authorization: Bearer $GH_TOKEN"             -H "X-GitHub-Api-Version: 2026-03-10"             "$api")"
+
+          test "$(printf '%s' "$current" | jq -r '.id')" = "23854302"
+          test "$(printf '%s' "$current" | jq -r '.name')" = "FLIXO-MAIN-PROTECTION"
+          test "$(printf '%s' "$current" | jq -r '.source')" = "m1m2m3m4m5m6m700-afk/FLIXO_Hub"
+          test "$(printf '%s' "$current" | jq -r '.conditions.ref_name.include[0]')" = "refs/heads/main"
+
+          payload="$(jq -n '{
+            name: "FLIXO-MAIN-PROTECTION",
+            target: "branch",
+            source_type: "Repository",
+            source: "m1m2m3m4m5m6m700-afk/FLIXO_Hub",
+            enforcement: "active",
+            conditions: {
+              ref_name: {
+                include: ["refs/heads/main"],
+                exclude: []
+              }
+            },
+            rules: [
+              {type: "deletion"},
+              {type: "non_fast_forward"},
+              {
+                type: "pull_request",
+                parameters: {
+                  required_approving_review_count: 1,
+                  dismiss_stale_reviews_on_push: true,
+                  required_reviewers: [],
+                  require_code_owner_review: true,
+                  require_last_push_approval: true,
+                  required_review_thread_resolution: true,
+                  require_extra_approval_for_unattributed_changes: true,
+                  allowed_merge_methods: ["merge", "squash", "rebase"]
+                }
+              },
+              {
+                type: "required_status_checks",
+                parameters: {
+                  strict_required_status_checks_policy: true,
+                  do_not_enforce_on_create: false,
+                  required_status_checks: [
+                    {context: "trust-gate"},
+                    {context: "Exact-SHA promotion proof"}
+                  ]
+                }
+              }
+            ],
+            bypass_actors: []
+          }')"
+
+          updated="$(curl --fail-with-body --silent --show-error --location             -X PUT "$api"             -H "Accept: application/vnd.github+json"             -H "Authorization: Bearer $GH_TOKEN"             -H "X-GitHub-Api-Version: 2026-03-10"             -H "Content-Type: application/json"             --data "$payload")"
+
+          test "$(printf '%s' "$updated" | jq -r '.id')" = "23854302"
+          test "$(printf '%s' "$updated" | jq -r '.enforcement')" = "active"
+          test "$(printf '%s' "$updated" | jq -r '.rules[] | select(.type=="pull_request") | .parameters.required_approving_review_count')" = "1"
+          test "$(printf '%s' "$updated" | jq -r '.rules[] | select(.type=="pull_request") | .parameters.dismiss_stale_reviews_on_push')" = "true"
+          test "$(printf '%s' "$updated" | jq -r '.rules[] | select(.type=="pull_request") | .parameters.require_code_owner_review')" = "true"
+          test "$(printf '%s' "$updated" | jq -r '.rules[] | select(.type=="pull_request") | .parameters.require_last_push_approval')" = "true"
+          test "$(printf '%s' "$updated" | jq -r '.rules[] | select(.type=="pull_request") | .parameters.required_review_thread_resolution')" = "true"
+          test "$(printf '%s' "$updated" | jq -r '.rules[] | select(.type=="required_status_checks") | .parameters.strict_required_status_checks_policy')" = "true"
+          echo "MAIN_RULESET_HARDEN=PASS"
+
+      - name: Remove one-shot workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          file_url="https://api.github.com/repos/$GITHUB_REPOSITORY/contents/.github/workflows/harden-main-ruleset-once.yml"
+          blob_sha="$(curl --fail-with-body --silent --show-error --location             -H "Accept: application/vnd.github+json"             -H "Authorization: Bearer $GH_TOKEN"             -H "X-GitHub-Api-Version: 2026-03-10"             "$file_url?ref=$GITHUB_REF_NAME" | jq -r '.sha')"
+          test -n "$blob_sha" && test "$blob_sha" != "null"
+          curl --fail-with-body --silent --show-error --location             -X DELETE "$file_url"             -H "Accept: application/vnd.github+json"             -H "Authorization: Bearer $GH_TOKEN"             -H "X-GitHub-Api-Version: 2026-03-10"             -H "Content-Type: application/json"             --data "$(jq -n --arg message "ci: remove one-shot main ruleset hardener" --arg sha "$blob_sha" --arg branch "$GITHUB_REF_NAME" '{message:$message,sha:$sha,branch:$branch}')"
+          echo "ONE_SHOT_WORKFLOW_REMOVED=PASS"
