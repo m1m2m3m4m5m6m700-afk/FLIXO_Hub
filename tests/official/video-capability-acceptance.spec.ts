@@ -139,7 +139,8 @@ test.describe('MVP video capability individual acceptance', () => {
           );
 
           if (duration === undefined) throw new Error('VIDEO_OUTPUT_DURATION_INVALID');
-          return { size: blob.size, type: blob.type, duration, width: video.videoWidth, height: video.videoHeight };
+          const signatureBytes = Array.from(new Uint8Array(await blob.slice(0, 4).arrayBuffer()));
+          return { size: blob.size, type: blob.type, duration, width: video.videoWidth, height: video.videoHeight, signatureBytes };
         } finally {
           URL.revokeObjectURL(objectUrl);
           video.removeAttribute('src');
@@ -149,6 +150,7 @@ test.describe('MVP video capability individual acceptance', () => {
 
       expect(metadata.size).toBeGreaterThan(4);
       expect(metadata.type).toBe('video/webm');
+      expect(metadata.signatureBytes).toEqual([0x1a, 0x45, 0xdf, 0xa3]);
       expect(metadata.duration).toBeGreaterThan(0);
       expect(metadata.width).toBeGreaterThan(0);
       expect(metadata.height).toBeGreaterThan(0);
@@ -171,6 +173,32 @@ test.describe('MVP video capability individual acceptance', () => {
       const download = await downloadPromise;
       expect(await download.failure()).toBeNull();
       expect(download.suggestedFilename()).toBe('flixo-video-output.webm');
+
+      if (videoCase.id === 'video-compressor') {
+        await page.getByRole('button', { name: 'Process video' }).click();
+        await expect(page.getByRole('link', { name: 'Download result' })).toBeVisible({ timeout: 30_000 });
+      }
     });
+  }
+
+  test('video red-team rejects malformed WebM, MIME spoofing, and magic-byte mismatch in real Chromium', async ({ page }) => {
+    const cases = [
+      { name: 'spoofed.mp4', mimeType: 'video/mp4', buffer: Buffer.from([0x1a, 0x45, 0xdf, 0xa3, 0, 1, 2, 3]) },
+      { name: 'mismatch.webm', mimeType: 'video/webm', buffer: Buffer.from([0x00, 0x01, 0x02, 0x03, 0x04, 0x05]) },
+      { name: 'malformed.webm', mimeType: 'video/webm', buffer: Buffer.from([0x1a, 0x45, 0xdf, 0xa3, 0x00, 0x00, 0x00, 0x00]) },
+    ] as const;
+
+    for (const adversarial of cases) {
+      await page.goto('/en/video-trimmer');
+      await expect(page.getByRole('heading', { name: 'Local video processing' })).toBeVisible();
+      await page.getByLabel('Choose video').setInputFiles({
+        name: adversarial.name,
+        mimeType: adversarial.mimeType,
+        buffer: adversarial.buffer,
+      });
+      await page.getByRole('button', { name: 'Process video' }).click();
+      await expect(page.getByRole('alert')).toBeVisible({ timeout: 10_000 });
+      await expect(page.getByRole('link', { name: 'Download result' })).toHaveCount(0);
+    }
   }
 });
