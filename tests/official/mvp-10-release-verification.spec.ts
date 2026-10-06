@@ -118,7 +118,8 @@ async function executeManualImage(page: Page, toolId: (typeof IMAGE_TOOL_IDS)[nu
   await expect(runButton).toBeEnabled({ timeout: 10_000 });
   await runButton.click();
   const runtimeError = await page.locator('[role="alert"]').allTextContents();
-  await expect(page.locator('a[download]').first(), `manual/${toolId} output missing; visible runtime errors: ${runtimeError.join(' | ')}`).toBeVisible({ timeout: 20_000 });
+  const downloadControl = page.getByRole('button', { name: /Download now/i }).or(page.locator('a[download]').first());
+  await expect(downloadControl, `manual/${toolId} output missing; visible runtime errors: ${runtimeError.join(' | ')}`).toBeVisible({ timeout: 20_000 });
 }
 
 async function executeManualVideo(page: Page, toolId: (typeof VIDEO_TOOL_IDS)[number]) {
@@ -129,7 +130,8 @@ async function executeManualVideo(page: Page, toolId: (typeof VIDEO_TOOL_IDS)[nu
   await expect(page.getByRole('button', { name: /Process video/i })).toBeEnabled({ timeout: 10_000 });
   await page.getByRole('button', { name: /Process video/i }).click();
   const runtimeError = await page.locator('[role="alert"]').allTextContents();
-  await expect(page.locator('a[download]').first(), `manual/${toolId} output missing; visible runtime errors: ${runtimeError.join(' | ')}`).toBeVisible({ timeout: 30_000 });
+  const downloadControl = page.getByRole('link', { name: /Download result/i }).or(page.locator('a[download]').first());
+  await expect(downloadControl, `manual/${toolId} output missing; visible runtime errors: ${runtimeError.join(' | ')}`).toBeVisible({ timeout: 30_000 });
 }
 
 async function planAndExecuteAgent(page: Page, prompt: string, expectedToolId: string, language: 'ar' | 'en', fixture: unknown) {
@@ -187,7 +189,7 @@ test.describe('FLIXO ten-tool release verification', () => {
   }
 
   test('manual/background-remover does not send raw fixture bytes over the network', async ({ page }) => {
-    const fixture = imageFixture();
+    const fixture = await meaningfulImageFixture(page);
     const unexpected: Array<{ url: string; method: string; reason: string }> = [];
     const fixtureBase64 = fixture.buffer.toString('base64');
     const fixtureBuffer = fixture.buffer;
