@@ -134,10 +134,12 @@ jobs:
         env:
           VERIFY_RESULT: ${{ needs.verify.result }}
           BROWSER_RESULT: ${{ needs.browser.result }}
+          BRANCH_RESULT: ${{ needs.branch-policy.result }}
         run: |
           set -euo pipefail
           test "$VERIFY_RESULT" = success
           test "$BROWSER_RESULT" = success
+          test "$BRANCH_RESULT" = success
           echo 'TRUST_GATE=PASS'
 
   promotion-proof:
