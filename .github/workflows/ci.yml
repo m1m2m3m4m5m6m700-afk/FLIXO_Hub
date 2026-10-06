@@ -167,7 +167,7 @@ jobs:
 
   trust-gate:
     name: trust-gate
-    needs: [verify, browser, branch-policy]
+    needs: [verify, browser, branch-policy, coverage]
     if: ${{ always() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -176,11 +176,13 @@ jobs:
         env:
           VERIFY_RESULT: ${{ needs.verify.result }}
           BROWSER_RESULT: ${{ needs.browser.result }}
+          COVERAGE_RESULT: ${{ needs.coverage.result }}
           BRANCH_RESULT: ${{ needs.branch-policy.result }}
         run: |
           set -euo pipefail
           test "$VERIFY_RESULT" = success
           test "$BROWSER_RESULT" = success
+          test "$COVERAGE_RESULT" = success
           test "$BRANCH_RESULT" = success
           echo 'TRUST_GATE=PASS'
 
