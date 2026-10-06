@@ -74,3 +74,28 @@ test('production security policy denies unused high-impact browser permissions',
   assert.equal(rootHeaders.find((entry) => entry.key === 'X-Content-Type-Options')?.value, 'nosniff');
   assert.equal(rootHeaders.find((entry) => entry.key === 'X-Frame-Options')?.value, 'DENY');
 });
+
+test('branch authority remains main-only for production and execution-only for promotion', () => {
+  const ci = readFileSync('.github/workflows/ci.yml', 'utf8');
+  const branchPolicy = readFileSync('scripts/ci/verify-branch-policy.mjs', 'utf8');
+  const authority = readFileSync('scripts/verify-branch-authority.mjs', 'utf8');
+
+  assert.match(ci, /if: github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'/u);
+  assert.match(ci, /HEAD_BRANCH != "execution" && ACTOR != "dependabot\[bot\]"/u);
+  assert.match(branchPolicy, /refs\/heads\/main/uo);
+  assert.match(branchPolicy, /refs\/heads\/execution/uo);
+  assert.match(branchPolicy, /controlledAgent/u);
+  assert.match(branchPolicy, /Unknown branch refs are untrusted/u);
+  assert.doesNotMatch(ci, /production-deploy[\s\S]{0,12000}refs\/heads\/agent[-/]/u);
+  assert.match(authority, /return 'unknown'/u);
+});
+
+test('certification lineage guard fails closed on stale current claims', () => {
+  const lineage = readFileSync('scripts/verify-certification-lineage.mjs', 'utf8');
+  assert.match(lineage, /m1m2m3m4m5m6m700-afk\/FLIXO_Hub/u);
+  assert.match(lineage, /FLIXO-AI-TOOLS/u);
+  assert.match(lineage, /LINEAGE_STALE_IDENTIFIER_ACTIVE/u);
+  assert.match(lineage, /LINEAGE_RETIRED_PR_ACTIVE/u);
+  assert.match(lineage, /Candidate SHA: \`REQUIRED\`/u);
+  assert.match(lineage, /CURRENT_WORKFLOW_RUN: \`REQUIRED\`/u);
+});
