@@ -138,3 +138,12 @@ test('canonical video output verification releases its object URL', () => {
   const executor = readFileSync(resolve(root, 'src/lib/execution/canonical-executor.ts'), 'utf8');
   assert.match(executor, /video\.removeAttribute\('src'\)[\s\S]*URL\.revokeObjectURL\(url\)/u);
 });
+
+test('video renderer cleans active media resources on every terminal path', () => {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+  const executor = readFileSync(resolve(root, 'src/lib/video/video-executor.ts'), 'utf8');
+  assert.match(executor, /if \(recorder && recorder\.state !== 'inactive'\)[\s\S]*recorder\.stop\(\)/u);
+  assert.match(executor, /canvasStream\?\.getTracks\(\)\.forEach\(\(track\) => track\.stop\(\)\)/u);
+  assert.match(executor, /sourceStream\?\.getTracks\(\)\.forEach\(\(track\) => track\.stop\(\)\)/u);
+  assert.match(executor, /if \(frameHandle\) cancelAnimationFrame\(frameHandle\)/u);
+});
