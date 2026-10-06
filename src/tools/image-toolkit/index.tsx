@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from '@tanstack/react-router';
-import { applyBasicImageEffect, convertImage, cropResizeImage, flipImage, imageInfo, removeBackground, rasterToSvg, resizeImage, rotateImage, watermarkRemove, fillRemoveRegion } from './engine';
+import { applyBasicImageEffect, cropResizeImage, flipImage, imageInfo, rasterToSvg, rotateImage, watermarkRemove, fillRemoveRegion } from './engine';
+import { executeCanonicalTool } from '../../lib/execution/canonical-executor';
 import { recognizeWithOcrWorker } from './ocr-worker-client';
 import { assertImageCropperOutputIntegrity } from '../image-cropper/output-integrity';
-import { assertImageConverterOutputIntegrity } from '../image-converter/output-integrity';
 import { validateFileSafety } from '../../lib/contracts/file-safety';
 import { validateUploadBoundary } from '../../lib/contracts/upload-boundary';
 import { LOCALE_METADATA, isLocale } from '../../lib/i18n';
@@ -31,6 +31,11 @@ const DEFINITIONS: Record<Exclude<LocalToolId, 'ai-image-generator' | 'image-com
   'image-sepia': { title: 'Sepia', description: 'Apply a sepia effect locally.', accept: 'image/png,image/jpeg,image/webp' },
   'image-blur': { title: 'Blur', description: 'Apply a local blur effect.', accept: 'image/png,image/jpeg,image/webp' },
   'image-sharpen': { title: 'Sharpen', description: 'Sharpen an image locally.', accept: 'image/png,image/jpeg,image/webp' },
+  'image-resizer': { title: 'Resize Image', description: 'Resize an image locally with deterministic browser resampling.', accept: 'image/png,image/jpeg,image/webp' },
+  'image-hue': { title: 'Hue', description: 'Shift image hue locally in the browser.', accept: 'image/png,image/jpeg,image/webp' },
+  'image-pixelate': { title: 'Pixelate Image', description: 'Pixelate an image locally without uploading it.', accept: 'image/png,image/jpeg,image/webp' },
+  'image-padding': { title: 'Image Padding', description: 'Add transparent padding around an image locally.', accept: 'image/png,image/jpeg,image/webp' },
+  'image-rounded-corners': { title: 'Rounded Corners', description: 'Add rounded transparent corners to an image locally.', accept: 'image/png,image/jpeg,image/webp' },
 };
 
 type Props = { toolId: Exclude<LocalToolId, 'image-compressor'> };
@@ -158,9 +163,9 @@ export function ImageToolPage({ toolId }: Props) {
       if (!file) throw new Error(ui.chooseImageFirst);
       await validateSharedImageInput(file, toolId);
       let blob: Blob; let fileName = baseName(file.name); let info: Result['info'];
-      if (toolId === 'background-remover') { const toleranceValue = Number(tolerance); if (!Number.isFinite(toleranceValue) || !Number.isInteger(toleranceValue) || toleranceValue < 0 || toleranceValue > 255) throw new Error('Background tolerance must be an integer between 0 and 255.'); blob = await removeBackground(file, toleranceValue); fileName += '-no-background.png'; }
-      else if (toolId === 'image-upscaler') { const factor = Number(scale); blob = await resizeImage(file, factor); fileName += `-upscaled-${factor}x.png`; }
-      else if (toolId === 'image-converter') { blob = await convertImage(file, outputFormat); info = await imageInfo(blob); assertImageConverterOutputIntegrity(blob, info); fileName += outputFormat === 'image/jpeg' ? '.jpg' : outputFormat === 'image/png' ? '.png' : '.webp'; }
+      if (toolId === 'background-remover') { const output = await executeCanonicalTool('background-remover', { blob: file, fileName: file.name }, { tolerance: Number(tolerance) || 42 }); blob = output.blob; fileName = output.fileName; }
+      else if (toolId === 'image-upscaler') { const factor = Number(scale); const output = await executeCanonicalTool('image-upscaler', { blob: file, fileName: file.name }, { scale: factor }); blob = output.blob; fileName = output.fileName; }
+      else if (toolId === 'image-converter') { const output = await executeCanonicalTool('image-converter', { blob: file, fileName: file.name }, { format: outputFormat }); blob = output.blob; fileName = output.fileName; info = await imageInfo(blob); }
       else if (toolId === 'image-to-text') { const prepared = await preprocessForOcr(file); const ocr = await recognizeWithOcrWorker(prepared, 'eng+ara'); replaceResult(await createResult(new Blob([ocr.text], { type: 'text/plain;charset=utf-8' }), `${baseName(file.name)}.txt`, undefined, ocr.text)); return; }
       else if (toolId === 'object-remover') { blob = await fillRemoveRegion(file, { x: Number(cropX), y: Number(cropY), width: Number(cropW), height: Number(cropH) }); fileName += '-object-removed.png'; }
       else if (toolId === 'watermark-remover') { blob = await watermarkRemove(file, { x: Number(cropX), y: Number(cropY), width: Number(cropW), height: Number(cropH) }); fileName += '-watermark-removed.png'; }
@@ -176,6 +181,11 @@ export function ImageToolPage({ toolId }: Props) {
       else if (toolId === 'image-sepia') { blob = await applyBasicImageEffect(file, 'sepia', 100); fileName += '-sepia.png'; }
       else if (toolId === 'image-blur') { blob = await applyBasicImageEffect(file, 'blur', 80); fileName += '-blur.png'; }
       else if (toolId === 'image-sharpen') { blob = await applyBasicImageEffect(file, 'sharpen', 110); fileName += '-sharpen.png'; }
+      else if ((toolId as string) === 'image-effects') {
+        const output = await executeCanonicalTool('image-effects', { blob: file, fileName: file.name }, { contrast: 110 });
+        blob = output.blob;
+        fileName = output.fileName;
+      }
       else { blob = await rasterToSvg(file, Number(columns) || 48); fileName += '.svg'; }
       if (blob.type.startsWith('image/') && !info) info = await imageInfo(blob);
       replaceResult(await createResult(blob, fileName, info));
