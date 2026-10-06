@@ -1,88 +1,48 @@
 # FLIXO Execution Ledger
 
-This ledger records live execution tasks on the `execution` integration line. A task is not DONE unless implementation, verification, and auditable evidence are all present.
+This ledger records execution coordination metadata on the `execution` integration line. It is not a certification authority.
 
 ## Current candidate
+
 - Branch: `execution`
-- Current candidate SHA at this ledger reconciliation: `d7d0c2e6b7a07a044c3772f8382c3b5a1e4ac440`
-- Integration PR: #1002
+- CURRENT_SHA=REQUIRED
+- CURRENT_WORKFLOW_RUN=REQUIRED
+- CURRENT_EVIDENCE=REQUIRED
+- Integration PR: `REQUIRED`
 - Production truth branch: `main`
-- Current main SHA: `263827228cbe5f4851470297fde5f2858ff844de`
-- Exact-SHA evidence must be regenerated after any further execution mutation.
+- Production identity: `REQUIRED`
+- Exact-SHA evidence must be regenerated after any execution mutation.
 
 | TASK_ID | OWNER | STATUS | FILES_CHANGED | DEPENDENCIES | VALIDATION | EVIDENCE | NEXT_ACTION |
 |---|---|---|---|---|---|---|---|
-| EXEC-PROMPT-10-SECURITY-001 | AGENT-3/Security | IN PROGRESS | `.github/CODEOWNERS`, `src/worker.ts`, `vercel.json`, `tests/worker-production-boundary.test.ts`, `tests/security-governance.test.ts`, `package.json`, `docs/FLIXO-PROMPT-10-STATE.md` | Prompt 10 security closure | Fixed stale CODEOWNER target; denied unused camera permission; added exact policy regression coverage; syntax-checked new security test; exact-SHA CI/security revalidation pending on final SHA | d7d0c2e6b7a07a044c3772f8382c3b5a1e4ac440 | Close only after current-SHA security gates pass |
-| EXEC-VIDEO-RACE-001 | AGENT-1/Runtime | VERIFIED-STATIC | `src/lib/video/video-executor.ts`, `src/lib/execution/canonical-executor.ts` | Browser media events | Static contract checks added; current candidate browser/Red Team evidence is PASS | Exact current-candidate CI/Red Team runs | Retain serial video E2E isolation and monitor current candidate |
-| EXEC-SCOPE-001 | AGENT-3/QA | IMPLEMENTED | `tests/official/image-toolkit-wave1.spec.ts` | MVP scope registry | Scope regression test exists | Current candidate CI child jobs PASS | Keep exact-SHA scope regression in final gate |
-| EXEC-FILE-SAFETY-001 | AGENT-1/Runtime | VERIFIED-STATIC | `src/lib/execution/canonical-executor.ts`, contract tests | File Safety contract semantics | Bounded signature probe and full Blob size checks implemented | Current candidate Red Team/CI PASS | No mutation unless a new gap appears |
-| EXEC-IMG-WORKER-001 | AGENT-1/Runtime | VERIFIED-STATIC | `src/lib/execution/canonical-executor.ts`, `src/lib/execution/image-effects.worker.ts` | Worker availability, OffscreenCanvas | Worker boundary, bounded timeout, abort cleanup and fallback implemented | Current candidate Red Team/CI PASS | No mutation unless a new gap appears |
-| EXEC-VIDEO-DOM-001 | AGENT-3/Security | VERIFIED-STATIC | `src/lib/execution/canonical-executor.ts`, `src/lib/video/video-executor.ts`, `src/lib/video/blob-video-source.ts` | Video source lifecycle | Canonical verifier/renderer use shared blob-backed source adapter | Current candidate CodeQL/Red Team evidence PASS | No mutation unless a new gap appears |
-| EXEC-SCOPE-CONSISTENCY-001 | AGENT-3/QA | VERIFIED-STATIC | `tests/mvp-scope-contradiction.test.ts` | Canonical capability definitions and registry | Exact ten-tool parity, executor/output contract bindings, LOCAL/network=false, schemas/verifiers, documentation alignment | Current candidate CI PASS | Keep locked |
-| EXEC-SCOPE-CLAIMS-001 | AGENT-3/QA | VERIFIED-STATIC | `docs/FLIXO-PUBLIC-CLAIMS-ALLOWLIST.md` | Current ten-tool MVP scope | Public claims aligned to ten canonical executable capabilities | Current candidate scope test/build PASS | Keep locked |
-| EXEC-PROMPT-02-001 | AGENT-3/QA | IN_PROGRESS | `docs/FLIXO-PROMPT-02-STATE.md`, scope test, public claims | Prompt 02 exact-SHA verification | Runtime contract alignment is implemented; final certification evidence remains governance-blocked | Current candidate CI/coverage/browser/Red Team/security PASS except branch-policy governance | Close after governance blocker is legitimately removed and final certification rerun |
-| EXEC-MVP-NEG-ASSERT-001 | AGENT-3/QA | VERIFIED | `tests/mvp-acceptance-corpus.test.ts` | Node assert.throws behavior | Negative corpus assertion explicitly validates the thrown Error and required message classes | bfa98f6da5bdc28b21c4f22a926d4c219a7230a2; CI + Prompt 17 PASS | Re-run exact-SHA gates after any later mutation |
-| EXEC-CERT-BLOCKER-001 | AGENT-3/Certification | BLOCKED | GitHub ruleset / PR review state | External repository governance | Live main ruleset has 0 required approvals and non-strict required checks; PR #1002 has no human approving review | Live ruleset inspection + PR review list | Harden Ruleset 23854302 and obtain legitimate independent approval |
-| EXEC-DOCS-AUDIT-001 | AGENT-2/Product | IMPLEMENTED | `docs/TOOL-EXPANSION-AUDIT.md` | Exact execution candidate | Audit reconciled to active PR #1002 | Latest exact candidate requires state refresh after every mutation | Refresh only as candidate advances |
+| EXEC-PROMPT-10-SECURITY-001 | AGENT-3/Security | IN PROGRESS | `.github/CODEOWNERS`, `src/worker.ts`, `vercel.json`, `tests/worker-production-boundary.test.ts`, `tests/security-governance.test.ts`, `package.json`, `docs/FLIXO-PROMPT-10-STATE.md` | Prompt 10 security closure | Security fixes exist; final exact-SHA security evidence must be regenerated after the current lineage mutation | REQUIRED_CURRENT_EVIDENCE | Close only after current-SHA security gates pass |
+| EXEC-VIDEO-RACE-001 | AGENT-1/Runtime | VERIFIED-STATIC | `src/lib/video/video-executor.ts`, `src/lib/execution/canonical-executor.ts` | Browser media events | Static contract checks exist; candidate-specific runtime evidence must be current before certification | REQUIRED_CURRENT_EVIDENCE | Revalidate on the final frozen candidate |
+| EXEC-SCOPE-001 | AGENT-3/QA | IMPLEMENTED | `tests/official/image-toolkit-wave1.spec.ts` | MVP scope registry | Scope regression exists | REQUIRED_CURRENT_EVIDENCE | Keep exact-SHA scope regression in final gate |
+| EXEC-FILE-SAFETY-001 | AGENT-1/Runtime | VERIFIED-STATIC | `src/lib/execution/canonical-executor.ts`, contract tests | File Safety contract semantics | Bounded file-signature and size checks exist | REQUIRED_CURRENT_EVIDENCE | Revalidate on the final frozen candidate |
+| EXEC-IMG-WORKER-001 | AGENT-1/Runtime | VERIFIED-STATIC | `src/lib/execution/canonical-executor.ts`, `src/lib/execution/image-effects.worker.ts` | Worker availability, OffscreenCanvas | Worker boundary, timeout, abort cleanup, and fallback exist | REQUIRED_CURRENT_EVIDENCE | Revalidate on the final frozen candidate |
+| EXEC-VIDEO-DOM-001 | AGENT-3/Security | VERIFIED-STATIC | `src/lib/execution/canonical-executor.ts`, `src/lib/video/video-executor.ts`, `src/lib/video/blob-video-source.ts` | Video source lifecycle | Canonical verifier/renderer use shared blob-backed source adapter | REQUIRED_CURRENT_EVIDENCE | Revalidate on the final frozen candidate |
+| EXEC-SCOPE-CONSISTENCY-001 | AGENT-3/QA | VERIFIED-STATIC | `tests/mvp-scope-contradiction.test.ts` | Canonical capability definitions and registry | Exact ten-tool parity and contract bindings are regression-tested | REQUIRED_CURRENT_EVIDENCE | Keep locked |
+| EXEC-SCOPE-CLAIMS-001 | AGENT-3/QA | VERIFIED-STATIC | `docs/FLIXO-PUBLIC-CLAIMS-ALLOWLIST.md` | Current ten-tool MVP scope | Public claims are constrained to canonical MVP scope | REQUIRED_CURRENT_EVIDENCE | Keep locked |
+| EXEC-PROMPT-02-001 | AGENT-3/QA | IN PROGRESS | `docs/FLIXO-PROMPT-02-STATE.md`, scope test, public claims | Prompt 02 exact-SHA verification | Runtime contract alignment exists; final evidence remains candidate-sensitive | REQUIRED_CURRENT_EVIDENCE | Close after exact-SHA revalidation and external governance resolution |
+| EXEC-MVP-NEG-ASSERT-001 | AGENT-3/QA | VERIFIED | `tests/mvp-acceptance-corpus.test.ts` | Node assert.throws behavior | Negative corpus assertions are explicit | REQUIRED_CURRENT_EVIDENCE | Re-run exact-SHA gates after mutation |
+| EXEC-CERT-BLOCKER-001 | AGENT-3/Certification | BLOCKED | GitHub ruleset / PR review state | External repository governance | Main governance must be verified live; no historical review state can be reused | REQUIRED_CURRENT_EVIDENCE | Resolve only through legitimate repository administration and independent review |
+| EXEC-DOCS-AUDIT-001 | AGENT-2/Product | IMPLEMENTED | `docs/TOOL-EXPANSION-AUDIT.md` | Exact execution candidate | Audit exists; candidate identity must advance with the current head | REQUIRED_CURRENT_EVIDENCE | Refresh only as candidate advances |
 
-## Last fully verified exact-SHA CI evidence — candidate `a44958a97126b2e050746010947aef2cfa286729`
+## Exact-SHA invalidation rule
 
-Exact candidate evidence before this documentation rollover:
-- Typecheck/lint/core contracts/build: PASS.
-- Exact-SHA internal coverage: PASS.
-- Red Team adversarial regression: PASS.
-- Prompt 17 clean-clone final adversarial gate: PASS.
-- FLIXO CodeQL: PASS.
-- Gitleaks / Secret Scan: PASS.
-- TestSprite execution fallback: PASS.
-- Execution-push branch policy: PASS with main governance intentionally deferred.
-- PR-to-main branch policy: FAIL CLOSED because live ruleset 23854302 does not satisfy Prompt 12.
-- Chromium browser smoke: PASS.
-- Trust-gate / promotion proof: governance remains blocked by live main ruleset and missing independent human review.
-- Production exact-SHA deployment: not applicable on execution by design; production truth begins on main after protected promotion.
-All evidence above is tied to `bfa98f6da5bdc28b21c4f22a926d4c219a7230a2`. This This documentation rollover creates a new SHA, so candidate-specific PASS evidence remains bound to `a44958a97126b2e050746010947aef2cfa286729` until regenerated on the new head.
+When `execution` advances, all prior candidate-specific runtime, CI, browser, security, coverage, Red Team, deployment, and certification evidence becomes stale unless it explicitly references and validates the new head SHA.
 
-## Prompt-state reconciliation — current candidate
-- Prompt 01: BLOCKED_BY_EXTERNAL_GOVERNANCE — live execution/main state reconciled at `a44958a97126b2e050746010947aef2cfa286729`.
-- Prompt 02: VERIFIED-IMPLEMENTATION / exact final certification pending.
-- Prompt 03: VERIFIED by canonical registry/executor/verifier/output-contract regression.
-- Prompt 04: VERIFIED by Agent Guided + Manual browser/local execution coverage.
-- Prompt 05: VERIFIED by trust-boundary and adversarial regression suites.
-- Prompt 06: VERIFIED by browser-local media bounds, abort/timeout, signature, MIME, and output checks.
-- Prompt 07: VERIFIED by deterministic positive/negative MVP acceptance corpus.
-- Prompt 08: VERIFIED by output-integrity and capability-verifier coverage.
-- Prompt 09: VERIFIED-IMPLEMENTATION by canonical Agent Guided runtime tests and exact-SHA CI.
-- Prompt 10: VERIFIED for repository security gates; production governance remains blocked by Prompt 12.
-- Prompt 11: VERIFIED for the current CI/release workflow graph.
-- Prompt 12: BLOCKED — live ruleset 23854302 is under-hardened; connected GitHub mutation surface is read-only for ruleset administration.
-- Prompt 13: VERIFIED by current repository hygiene and branch coordination policy.
-- Prompt 14: VERIFIED-DOCS-ALIGNMENT — current-state documents reconciled without changing runtime authority.
-- Prompt 15: BLOCKED until protected-main promotion and post-merge production identity verification.
-- Prompt 16: VERIFIED — active MVP file-editing path is persistence-independent; Supabase remains outside raw MVP file execution.
-- Prompt 17: VERIFIED on `a44958a97126b2e050746010947aef2cfa286729` — clean-clone gate PASS.
-- Prompt 18: BLOCKED until Prompt 12 and the post-mutation exact candidate gates are closed.
-- Prompt 19: BLOCKED until Prompt 12 and Prompt 18 conditions are satisfied.
-- Prompt 20: BLOCKED until legitimate review/governance and protected promotion are available.
+## HISTORICAL / INVALIDATED — NOT CURRENT CERTIFICATION
 
-## Governance blocker
+STATUS=HISTORICAL — NOT CURRENT CERTIFICATION
 
-GitHub ruleset `FLIXO-MAIN-PROTECTION` (ID 23854302) is active for `main` but does not meet the Prompt-12 policy:
-- required approving reviews = 0; required = 1
-- dismiss stale reviews on push = false; required = true
-- Code Owner review = false; required = true
-- latest-push approval = false; required = true
-- review-thread resolution = false; required = true
-- strict required status checks = false; required = true
-
-PR #1002 has no independent human APPROVE. The connected execution tool surface exposes ruleset administration as read-only, so this cannot be legitimately repaired through the current interface.
-
-## Exact-SHA rule
-
-When `execution` advances, all prior runtime/CI/certification evidence becomes stale unless it explicitly references and validates the new head SHA.
-
-## Status semantics
-
-`IMPLEMENTED` means code/documentation exists.
-`VERIFIED-STATIC` means repository-level deterministic verification exists.
-`VERIFIED` means live runtime/CI evidence exists for the exact current SHA.
-`CERTIFIED` is the only DONE state for release purposes.
+The following lineage data is retained from earlier execution reconciliations:
+- Historical ledger reconciliation candidate: `d7d0c2e6b7a07a044c3772f8382c3b5a1e4ac440`
+- Historical fully verified candidate: `a44958a97126b2e050746010947aef2cfa286729`
+- Historical evidence record commit: `bfa98f6da5bdc28b21c4f22a926d4c219a7230a2`
+- Historical main SHA: `263827228cbe5f4851470297fde5f2858ff844de`
+- Historical integration reference: PR #1002
+- Historical Prompt 17 workflow run: 37437187406 / run #239
+- Historical negative-corpus evidence commit: `bfa98f6da5bdc28b21c4f22a926d4c219a7230a2`
+- Historical governance ruleset reference: 23854302
+- Historical current-candidate rows and PASS claims are retained here only as archaeology and are invalid for the current candidate.
