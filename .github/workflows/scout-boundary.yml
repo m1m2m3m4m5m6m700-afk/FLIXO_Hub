@@ -16,7 +16,7 @@ concurrency:
 jobs:
   scout-boundary:
     name: Scout boundary
-    if: startsWith(github.head_ref || github.ref_name, 'scout/')
+    if: ${{ github.event_name == 'push' || startsWith(github.head_ref || github.ref_name, 'scout/') }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
