@@ -142,6 +142,8 @@ test('edge source and config retain explicit custom OIDC boundary', async () => 
   assert.match(source, /GITHUB_OIDC_ISSUER = "https:\/\/token\.actions\.githubusercontent\.com"/u);
   assert.match(source, /jwtVerify\(token, GITHUB_OIDC_JWKS, \{[\s\S]*issuer: GITHUB_OIDC_ISSUER,[\s\S]*audience: GITHUB_OIDC_AUDIENCE/u);
   assert.match(source, /const token = requireBearerToken\(req\.headers\.get\("authorization"\)\)/u);
+  assert.match(source, /function constantTimeEqual[\s\S]*timingSafeEqual/u);
+  assert.match(source, /constantTimeEqual\(token, expected\)/u);
   assert.match(config, /\[functions\.flixo-council-runtime\][\s\S]*verify_jwt = false/u);
   assert.doesNotMatch(source, /if \(!token\)\s*return true/u);
 });
