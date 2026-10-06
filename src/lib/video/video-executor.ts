@@ -31,7 +31,6 @@ export const VIDEO_MAX_AUDIO_BITRATE = 512_000;
 
 const VIDEO_MIME_SIGNATURES: Readonly<Record<string, readonly number[]>> = Object.freeze({
   "video/webm": [0x1a, 0x45, 0xdf, 0xa3],
-  "video/mp4": [0x00, 0x00, 0x00, 0x18],
   "video/ogg": [0x4f, 0x67, 0x67, 0x53],
 });
 
@@ -272,14 +271,10 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
 
     await seek(video, startSec, options.signal);
 
-    timeoutId = setTimeout(() => {
-      if (!options.signal?.aborted) {
-        // The public API surfaces this as a deterministic operation timeout via the abort controller below.
-        controller.abort();
-      }
-    }, options.timeoutMs ?? VIDEO_DEFAULT_TIMEOUT_MS);
-
     const controller = new AbortController();
+    timeoutId = setTimeout(() => {
+      if (!options.signal?.aborted) controller.abort();
+    }, options.timeoutMs ?? VIDEO_DEFAULT_TIMEOUT_MS);
     const onCallerAbort = () => controller.abort();
     options.signal?.addEventListener("abort", onCallerAbort, { once: true });
 
