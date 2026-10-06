@@ -55,7 +55,7 @@ test.describe('MVP manual image workflows', () => {
     await page.goto('/en/image-upscaler');
     const fixture = await buildImageFixture(page);
     await prepareImage(page, fixture);
-    await page.getByLabel('Scale').first().fill('2');
+    await page.locator('input[aria-label="Scale"]').fill('2');
     await page.getByRole('button', { name: 'Run tool' }).click();
     await expect(page.locator('img[alt="Tool result"]')).toBeVisible({ timeout: 30_000 });
     await assertDownloadArtifact(page);
