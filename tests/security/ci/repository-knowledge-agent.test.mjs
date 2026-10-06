@@ -163,7 +163,9 @@ test('scanner produces an exact-SHA report with zero uncovered authored lines', 
   assert.match(report, new RegExp('Exact SHA: ' + result.sha));
   assert.match(report, /## Main branch read snapshot/);
   assert.match(report, /Main SHA:/);
-  assert.match(report, /## Semantic comparison: main vs execution/);\n  assert.match(report, /Source files with AST semantic comparison:/);\n  assert.match(report, /## Dependency graph/);
+  assert.match(report, /## Semantic comparison: main vs execution/);
+  assert.match(report, /Source files with AST semantic comparison:/);
+  assert.match(report, /## Dependency graph/);
   assert.match(report, /## Symbol index/);
   assert.match(report, /## Change delta/);
   assert.match(report, /## Capability boundary/);
