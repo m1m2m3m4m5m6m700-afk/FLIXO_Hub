@@ -117,19 +117,6 @@ const DEFAULT_TIMEOUT_MS = 30_000;
 const MIME_TYPES = ['image/webp', 'image/jpeg', 'image/png'] as const;
 const COMMON_PARAMETERS = z.record(z.string().max(64), z.union([z.string(), z.number().finite(), z.boolean()]));
 
-const PARAMETER_SCHEMAS: Readonly<Record<string, ZodType>> = {
-  'background-remover': z.object({ tolerance: z.number().finite().min(0).max(255).optional() }).strict(),
-  'image-upscaler': z.object({ scale: z.number().finite().positive().max(8).optional() }).strict(),
-  'image-cropper': z.object({ x: z.number().int().nonnegative().max(40_000).optional(), y: z.number().int().nonnegative().max(40_000).optional(), cropWidth: z.number().int().positive().max(40_000).optional(), cropHeight: z.number().int().positive().max(40_000).optional(), width: z.number().int().positive().max(4000).optional(), height: z.number().int().positive().max(4000).optional(), aspectRatio: z.string().regex(/^\d{1,3}:\d{1,3}$/).optional(), mode: z.literal('exact').optional() }).strict(),
-  'image-compressor': z.object({ quality: z.number().finite().min(0.01).max(1).optional(), format: z.enum(MIME_TYPES).optional(), targetSizeKB: z.number().finite().int().positive().max(64 * 1024).optional(), maxWidth: z.number().int().positive().max(4000).optional(), maxHeight: z.number().int().positive().max(4000).optional() }).strict(),
-  'image-converter': z.object({ format: z.enum(MIME_TYPES) }).strict(),
-  'image-effects': z.object({ brightness: z.number().finite().min(0).max(200).optional(), contrast: z.number().finite().min(0).max(200).optional(), saturate: z.number().finite().min(0).max(200).optional(), grayscale: z.number().finite().min(0).max(100).optional() }).strict(),
-  'video-trimmer': z.object({ startSec: z.number().finite().min(0).max(86_400).optional(), endSec: z.number().finite().min(0).max(86_400).optional() }).strict(),
-  'video-cropper': z.object({ x: z.number().finite().min(0).max(20_000).optional(), y: z.number().finite().min(0).max(20_000).optional(), width: z.number().int().positive().max(20_000), height: z.number().int().positive().max(20_000) }).strict(),
-  'video-resizer': z.object({ width: z.number().int().positive().max(8000), height: z.number().int().positive().max(8000), fps: z.number().finite().positive().max(120).optional() }).strict(),
-  'video-compressor': z.object({ videoBitsPerSecond: z.number().int().positive().max(50_000_000).optional(), audioBitsPerSecond: z.number().int().positive().max(512_000).optional() }).strict(),
-};
-
 const TOOL_INTENTS: Readonly<Record<string, readonly string[]>> = {
   'filter-mask': ['live filter', 'camera filter', 'live camera', 'filters', 'فلتر مباشر', 'فلاتر الكاميرا'],
   'image-compressor': ['compress', 'smaller', 'reduce size', 'file size', 'lighter', 'ضغط الصور', 'تصغير حجم الصورة'],
@@ -231,7 +218,7 @@ export function toToolDefinition(tool: ToolConfig): ToolDefinition {
   const canonicalCapability = getCanonicalCapabilityDefinition(tool.id) as CanonicalCapabilityDefinition | undefined;
   const capabilityState = canonicalCapability?.state ?? stateFor(tool);
   const executionMode: ExecutionMode = canonicalCapability?.executionMode ?? (tool.id === 'ai-image-generator' || tool.id === 'photo-colorizer' ? 'CLOUD' : 'LOCAL');
-  const parameterSchema = canonicalCapability?.parameterSchema ?? PARAMETER_SCHEMAS[tool.id] ?? COMMON_PARAMETERS;
+  const parameterSchema = canonicalCapability?.parameterSchema ?? COMMON_PARAMETERS;
   const safetyLimits = canonicalCapability?.safetyLimits ?? Object.freeze(tool.id.startsWith('video-')
     ? { maxPixels: 64_000_000, maxFileSizeBytes: 512 * 1024 * 1024, timeoutMs: 10 * 60 * 1000 }
     : { maxPixels: DEFAULT_MAX_PIXELS, maxFileSizeBytes: DEFAULT_MAX_FILE_SIZE_BYTES, timeoutMs: DEFAULT_TIMEOUT_MS });
