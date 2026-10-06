@@ -108,10 +108,9 @@ async function preflightInput(
   }
 
   if (typeof document === 'undefined') throw new Error('VIDEO_BROWSER_RUNTIME_REQUIRED');
-  const url = URL.createObjectURL(input.blob);
   const video = document.createElement('video');
   video.preload = 'metadata';
-  video.src = url;
+  video.srcObject = input.blob;
   try {
     await withDeadline(
       new Promise<void>((resolve, reject) => {
@@ -131,8 +130,7 @@ async function preflightInput(
       throw new Error('Execution denied: video dimensions exceed the canonical pixel budget.');
     }
   } finally {
-    URL.revokeObjectURL(url);
-    video.removeAttribute('src');
+    video.srcObject = null;
     video.load();
   }
 }
@@ -298,10 +296,9 @@ async function verifyOutputContract(
   if (variant.validateDimensions) {
     if (tool.family === 'video') {
       if (typeof document === 'undefined') throw new Error('Browser runtime required for video output verification.');
-      const url = URL.createObjectURL(output.blob);
       const video = document.createElement('video');
       video.preload = 'metadata';
-      video.src = url;
+      video.srcObject = output.blob;
       try {
         await withDeadline(
           new Promise<void>((resolve, reject) => {
@@ -313,8 +310,7 @@ async function verifyOutputContract(
         );
         dimensions = { width: video.videoWidth, height: video.videoHeight };
       } finally {
-        URL.revokeObjectURL(url);
-        video.removeAttribute('src');
+        video.srcObject = null;
         video.load();
       }
     } else {
