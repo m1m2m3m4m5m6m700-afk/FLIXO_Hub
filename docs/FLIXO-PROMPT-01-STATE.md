@@ -5,11 +5,11 @@ PROMPT_ID: 01
 SCOPE: READ_ONLY_STATE_RECORD
 RECORDED_AT_UTC: 2026-10-06
 START_SHA: 52413f0f610c34cc988ecfc523134247c6cae135
-END_SHA: PENDING_THIS_RECORD_COMMIT
+END_SHA: DOCUMENTATION_ROLLOVER_HEAD_IS_DYNAMIC
 CURRENT_MAIN_SHA: 263827228cbe5f4851470297fde5f2858ff844de
 CURRENT_EXECUTION_SHA_AT_RECONCILIATION: 52413f0f610c34cc988ecfc523134247c6cae135
-PR: #1002
-PR_HEAD_SHA_AT_RECONCILIATION: 52413f0f610c34cc988ecfc523134247c6cae135
+PR: RESOLVE_LIVE_ACTIVE_PR_AT_VERIFICATION_TIME
+PR_HEAD_SHA_AT_RECONCILIATION: ARCHIVAL_ONLY
 PR_BASE_SHA: 263827228cbe5f4851470297fde5f2858ff844de
 PRIMARY_BRANCH: execution
 INTEGRATION_PATH: execution -> main
@@ -27,7 +27,7 @@ INTEGRATION_PATH: execution -> main
 
 ## Current candidate evidence state
 
-Exact current execution candidate at last reconciliation: 52413f0f610c34cc988ecfc523134247c6cae135.
+The historical reconciliation SHA above is archival only; resolve and verify the live `execution` HEAD before using candidate-specific evidence.
 This state record is coordination metadata only; every mutation invalidates prior exact-SHA evidence.
 Latest observed evidence on the current exact candidate before this documentation correction:
 - Typecheck, lint, core contracts, production dependency audit, and build: PASS (FLIXO CI run 37440599986).
@@ -55,7 +55,7 @@ Required status contexts are present:
 - trust-gate
 - Exact-SHA promotion proof
 
-PR #1002 currently has no independent human APPROVE. Existing reviews are automated COMMENTED reviews from github-advanced-security and do not satisfy the independent approval requirement.
+No fixed PR number is authoritative for the current candidate. Historical review state must not be reused as current evidence. Existing reviews are automated COMMENTED reviews from github-advanced-security and do not satisfy the independent approval requirement.
 
 ## Agent-3 coordination repair applied
 
