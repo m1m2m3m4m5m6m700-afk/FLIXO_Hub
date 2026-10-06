@@ -5,6 +5,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { MVP_EXECUTABLE_TOOL_IDS, CAPABILITY_DEFINITIONS } from '../src/config/manual-capability-definition.ts';
+import { FLIXO_MVP_SCOPE } from '../src/lib/contracts/mvp-scope.ts';
 import { TOOL_REGISTRY } from '../src/config/registry.ts';
 
 const EXPECTED_MVP = Object.freeze([
@@ -52,17 +53,21 @@ test('one canonical ten-tool MVP scope is mechanically enforced across authority
   }
 
   const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
-  const scope = readFileSync(resolve(root, 'docs/MVP-SCOPE-DECISION.md'), 'utf8');
-  const plan = readFileSync(resolve(root, 'docs/FLIXO-MVP-EXECUTION-AND-CERTIFICATION-PLAN.md'), 'utf8');
+  const directive = readFileSync(resolve(root, 'GPT'), 'utf8');
   const claims = readFileSync(resolve(root, 'docs/FLIXO-PUBLIC-CLAIMS-ALLOWLIST.md'), 'utf8');
 
+  assert.equal(FLIXO_MVP_SCOPE.workflow.agentGuided, false);
+  assert.equal(FLIXO_MVP_SCOPE.workflow.manualStandalone, true);
+  assert.equal(FLIXO_MVP_SCOPE.processing.executionLocation, 'BROWSER_ONLY');
+  assert.equal(FLIXO_MVP_SCOPE.processing.userFileBytesMayCrossNetwork, false);
+  assert.match(directive, /FLIXO Manual-Only Product Directive/u);
+  assert.match(directive, /No public or internal AI agent runtime/u);
+
   for (const id of EXPECTED_MVP) {
-    assert.ok(scope.includes(id), `scope decision missing ${id}`);
-    assert.ok(plan.includes(id), `execution plan missing ${id}`);
     assert.ok(claims.includes(id), `public claims allowlist missing ${id}`);
   }
 
-  for (const document of [scope, plan, claims]) {
+  for (const document of [directive, claims]) {
     assert.doesNotMatch(document, /20-tool|twenty-tool|20 executable/iu);
     assert.doesNotMatch(document, /only the six|six canonical executable MVP capabilities/iu);
   }
