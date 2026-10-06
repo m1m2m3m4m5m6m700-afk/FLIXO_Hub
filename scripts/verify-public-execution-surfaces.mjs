@@ -1,1 +1,51 @@
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';\nimport { resolve } from 'node:path';\n\nconst root = resolve('public');\nconst forbidden = ['flixo-tool-template.html'];\nconst executablePatterns = [\n  /createImageBitmap\s*\(/u,\n  /canvas\.toBlob\s*\(/u,\n  /<input[^>]+type=["']file["']/iu,\n];\nconst failures = [];\n\nfor (const relative of forbidden) {\n  if (existsSync(resolve(root, relative))) failures.push('retired public executable exists: public/' + relative);\n}\n\nfunction walk(dir) {\n  if (!existsSync(dir)) return;\n  for (const entry of readdirSync(dir)) {\n    const path = resolve(dir, entry);\n    const stat = statSync(path);\n    if (stat.isDirectory()) {\n      walk(path);\n      continue;\n    }\n    if (!/\.(html|js|jsx)$/u.test(entry)) continue;\n    const source = readFileSync(path, 'utf8');\n    if (executablePatterns.some((pattern) => pattern.test(source))) {\n      failures.push('public executable primitive detected: ' + path.replace(root + '/', 'public/').replace(/\\/g, '/'));\n    }\n  }\n}\n\nwalk(root);\nif (failures.length) {\n  console.error('[public-execution-surfaces] BLOCKED');\n  for (const failure of failures) console.error(' - ' + failure);\n  process.exit(1);\n}\nconsole.log('[public-execution-surfaces] PASS');
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { relative, resolve } from 'node:path';
+
+const root = resolve('public');
+const failures = [];
+const retiredFiles = ['flixo-tool-template.html'];
+const executablePatterns = [
+  ['createImageBitmap decode', /\bcreateImageBitmap\s*\(/u],
+  ['canvas export', /\bcanvas\.toBlob\s*\(/u],
+  ['file chooser', /<input\b[^>]+\btype\s*=\s*["']file["']/iu],
+  ['FileReader', /\bnew\s+FileReader\s*\(/u],
+  ['file object URL', /\bURL\.createObjectURL\s*\(/u],
+  ['web worker', /\bnew\s+Worker\s*\(/u],
+  ['OffscreenCanvas', /\bOffscreenCanvas\b/u],
+];
+
+for (const relativePath of retiredFiles) {
+  if (existsSync(resolve(root, relativePath))) {
+    failures.push(`retired public executable exists: public/${relativePath}`);
+  }
+}
+
+function walk(dir) {
+  if (!existsSync(dir)) return;
+  for (const entry of readdirSync(dir)) {
+    const filePath = resolve(dir, entry);
+    const stat = statSync(filePath);
+    if (stat.isDirectory()) {
+      walk(filePath);
+      continue;
+    }
+    if (!/\.(html|js|jsx)$/iu.test(entry)) continue;
+
+    const source = readFileSync(filePath, 'utf8');
+    for (const [label, pattern] of executablePatterns) {
+      if (pattern.test(source)) {
+        failures.push(`public executable primitive (${label}): ${relative(process.cwd(), filePath).replace(/\\/g, '/')}`);
+      }
+    }
+  }
+}
+
+walk(root);
+
+if (failures.length) {
+  console.error('[public-execution-surfaces] BLOCKED');
+  for (const failure of failures) console.error(' - ' + failure);
+  process.exit(1);
+}
+
+console.log('[public-execution-surfaces] PASS: public static surface contains no standalone file-processing executor primitives');
