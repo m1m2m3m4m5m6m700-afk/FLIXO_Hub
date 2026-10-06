@@ -22,17 +22,19 @@ async function github(path) {
 }
 
 const rulesets = await github(`/repos/${repo}/rulesets?per_page=100`);
-const candidates = (rulesets ?? []).filter((ruleset) =>
-  ruleset.target === 'branch' &&
-  ruleset.enforcement === 'active' &&
-  ruleset.conditions?.ref_name?.include?.includes('refs/heads/main'),
+const activeBranchRulesets = (rulesets ?? []).filter((ruleset) =>
+  ruleset.target === 'branch' && ruleset.enforcement === 'active',
 );
+const candidates = [];
+for (const summary of activeBranchRulesets) {
+  const detail = await github(`/repos/${repo}/rulesets/${summary.id}`);
+  if (detail.conditions?.ref_name?.include?.includes('refs/heads/main')) candidates.push(detail);
+}
 assert.ok(candidates.length > 0, 'an active ruleset targeting refs/heads/main must exist');
 
 let satisfied = null;
 const observations = [];
-for (const summary of candidates) {
-  const ruleset = await github(`/repos/${repo}/rulesets/${summary.id}`);
+for (const ruleset of candidates) {
   const pullRequest = (ruleset.rules ?? []).find((rule) => rule.type === 'pull_request')?.parameters;
   const status = (ruleset.rules ?? []).find((rule) => rule.type === 'required_status_checks')?.parameters;
   const requiredContexts = new Set((status?.required_status_checks ?? []).map((check) => check.context));
