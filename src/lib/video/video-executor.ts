@@ -105,7 +105,7 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
     // Attach the Blob through the shared safe media-source adapter; no DOM object URL is created here.
     releaseSource = await attachVideoBlobSource(video, inputBlob, options.signal);
     await metadataReady;
-    const duration = getBoundedVideoDuration(video, 10 * 60);
+    const duration = await getBoundedVideoDuration(video, 10 * 60, options.signal);
 
     const startSec = Math.max(0, Math.min(options.startSec ?? 0, Math.max(0, duration - 0.001)));
     const endSec = Math.max(startSec + 0.001, Math.min(options.endSec ?? duration, duration));
