@@ -15,6 +15,7 @@ const VIDEO_TOOL_IDS = [
   'video-resizer',
   'video-compressor',
 ] as const;
+const VIDEO_FIXTURE_DURATION_MS = 2_400;
 
 function imageFixture() {
   return {
@@ -74,12 +75,12 @@ async function videoFixture(page: Page) {
     recorder.start(100);
 
     const start = performance.now();
-    while (performance.now() - start < 800) {
+    while (performance.now() - start < VIDEO_FIXTURE_DURATION_MS) {
       const t = performance.now() - start;
       context.fillStyle = '#123';
       context.fillRect(0, 0, canvas.width, canvas.height);
       context.fillStyle = '#fff';
-      context.fillRect(20 + Math.round((t / 800) * 200), 60, 40, 40);
+      context.fillRect(20 + Math.round((t / VIDEO_FIXTURE_DURATION_MS) * 200), 60, 40, 40);
       await new Promise<void>((resolve) => setTimeout(resolve, 100));
     }
 
