@@ -7,7 +7,7 @@ import { LOCALES, type Locale } from '../../lib/i18n';
 import './ToolWorkbench.css';
 import { localizeToolUiValue } from '../../lib/i18n/tool-ui-runtime-completeness';
 import { ImageJob } from '../../image-core/job';
-import { validateFileSafety, MAGIC_BYTE_SIGNATURES, type FileSafetyPolicy } from '../../lib/contracts/file-safety';
+import { validateFileSafety, type FileSafetyPolicy } from '../../lib/contracts/file-safety';
 import { validateBrowserFile, IMAGE_BROWSER_FILE_POLICY } from '../../lib/contracts/browser-file-safety';
 import { validateOutputIntegrity } from '../../lib/contracts/output-integrity';
 
