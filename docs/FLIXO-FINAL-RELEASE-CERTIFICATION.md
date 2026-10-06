@@ -2,7 +2,7 @@
 
 STATUS: NOT READY
 
-The active release candidate is tracked by PR #1002 on branch `execution`.
+No fixed PR number is authoritative for the active release candidate. Resolve the candidate from the live `execution` HEAD and the active integration pull request at verification time. PR #1002 is retained only as historical release-line context and must not be used as current exact-SHA evidence.
 
 This file intentionally contains no PASS or RELEASE VERIFIED claim. Final certification requires:
 1. Prompt 17 clean-clone Red Team PASS.
