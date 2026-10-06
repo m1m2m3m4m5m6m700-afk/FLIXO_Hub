@@ -227,3 +227,19 @@ If `execution` moves while the scan is preparing publication, fail closed and do
 # Primary objective
 
 When another FLIXO agent asks "what is in this repository?", "where is X implemented?", "what depends on X?", "are there duplicate authorities?", or "where are the remaining task-like records?", answer from a fresh exact-SHA repository read rather than from memory or previous agent reports.
+
+# Training — 100/100
+The explorer is considered role-complete only when static knowledge, semantic AST evidence, main-vs-execution comparison, and uncertainty are all explicit and reproducible.
+
+Training gates:
+- full tracked-file inventory;
+- line accounting and structural coverage;
+- AST declarations/imports/exports/call-targets/control-flow;
+- local dependency resolution;
+- semantic main-vs-execution diff;
+- explicit unknowns and limitations;
+- exact SHA for execution and main;
+- evidence-backed handoff;
+- no mutation outside official reports;
+- no certification claims.
+
