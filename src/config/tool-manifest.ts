@@ -2,7 +2,7 @@ import type { Locale } from '../lib/i18n/config.ts';
 import { LOCALES } from '../lib/i18n/config.ts';
 import { getAuthoritativeToolSeoName } from './tool-seo-name-resolver.ts';
 import { TOOL_DEFINITIONS } from './canonical-tool-definition.ts';
-import type { ToolDefinition, ToolFamily } from './canonical-tool-definition.ts';
+import type { ToolDefinition, ToolFamily } from '../lib/tools/tool-registry.ts';
 
 export type ToolManifestEntry = ToolDefinition & {
   readonly seoByLocale: Readonly<Record<Locale, { readonly title: string }>>;
