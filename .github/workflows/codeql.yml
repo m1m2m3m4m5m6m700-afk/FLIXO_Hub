@@ -20,6 +20,7 @@ jobs:
     permissions:
       contents: read
       actions: read
+      security-events: write
     strategy:
       fail-fast: false
       matrix:
@@ -37,8 +38,8 @@ jobs:
         with:
           languages: ${{ matrix.language }}
 
-      - name: Analyze CodeQL without SARIF upload
+      - name: Analyze CodeQL with SARIF persistence
         uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
         with:
           category: "/language:${{ matrix.language }}"
-          upload: never
+          upload: always
