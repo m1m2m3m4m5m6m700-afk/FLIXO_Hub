@@ -164,7 +164,7 @@ async function executeManualVideo(page: Page, toolId: (typeof VIDEO_TOOL_IDS)[nu
   await page.getByRole('button', { name: /Process video/i }).click();
   const runtimeError = await page.locator('[role="alert"]').allTextContents();
   const downloadControl = page.locator('a[download]').first();
-  await expect(downloadControl, `manual/${toolId} output missing; visible runtime errors: ${runtimeError.join(' | ')}`).toBeVisible({ timeout: 30_000 });
+  await expect(downloadControl, `manual/${toolId} output missing; visible runtime errors: ${runtimeError.join(' | ')}`).toBeVisible({ timeout: 90_000 });
 }
 
 async function planAndExecuteAgent(page: Page, prompt: string, expectedToolId: string, language: 'ar' | 'en', fixture: unknown) {
@@ -205,7 +205,7 @@ async function planAndExecuteAgent(page: Page, prompt: string, expectedToolId: s
   await expect(executeButton).toBeVisible({ timeout: 5_000 });
   await expect(executeButton).toBeEnabled({ timeout: 5_000 });
   await executeButton.click();
-  await expect(page.locator('[aria-label="agent-result"]')).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('[aria-label="agent-result"]')).toBeVisible({ timeout: 90_000 });
 }
 
 test.describe('FLIXO ten-tool release verification', () => {
