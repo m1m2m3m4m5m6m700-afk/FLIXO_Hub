@@ -102,7 +102,7 @@ async function buildFixture(page: Page, durationMs = 2_400): Promise<Buffer> {
       throw new Error('VIDEO_FIXTURE_SIGNATURE_INVALID');
     }
     return btoa(String.fromCharCode(...new Uint8Array(await blob.arrayBuffer())));
-  }, duration).then((base64) => Buffer.from(base64, 'base64'));
+  }, durationMs).then((base64) => Buffer.from(base64, 'base64'));
 }
 
 async function outputMetadata(page: Page) {
