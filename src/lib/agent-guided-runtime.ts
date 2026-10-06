@@ -36,6 +36,26 @@ function assertSupportedFile(file: File): void {
   }
 }
 
+function matchedTools(prompt: string, file: File): Array<{ toolId: string; intent: string }> {
+  const normalized = normalize(prompt);
+  if (file.type.startsWith('image/')) {
+    if (normalized.includes('compress') && normalized.includes('convert')) {
+      return [
+        { toolId: 'image-converter', intent: 'convert format' },
+        { toolId: 'image-compressor', intent: 'compress' },
+      ];
+    }
+    if ((normalized.includes('product') || normalized.includes('shop')) && (normalized.includes('square') || normalized.includes('shop'))) {
+      return [
+        { toolId: 'background-remover', intent: 'remove background' },
+        { toolId: 'image-cropper', intent: 'crop' },
+      ];
+    }
+  }
+  const single = matchedTool(prompt);
+  return [single];
+}
+
 function matchedTool(prompt: string): { toolId: string; intent: string } {
   const mvpIds = new Set<string>(MVP_EXECUTABLE_TOOL_IDS);
   const primary = findToolIntent(prompt, TOOL_CATALOG.ready).filter(({ tool }) => mvpIds.has(tool.id));
@@ -122,12 +142,26 @@ function parametersFor(toolId: string, prompt: string): CanonicalCapabilityParam
     case 'image-converter':
       params.format = normalized.includes('png') ? 'image/png' : normalized.includes('jpg') || normalized.includes('jpeg') ? 'image/jpeg' : 'image/webp';
       break;
-    case 'image-effects':
-      params.brightness = percentParameter(prompt, 'brightness') ?? 100;
-      params.contrast = percentParameter(prompt, 'contrast') ?? 115;
-      params.saturate = percentParameter(prompt, 'saturation') ?? 100;
-      if (/grayscale|black and white|أبيض وأسود|تدرج رمادي/u.test(normalized)) params.grayscale = 100;
+    case 'image-effects': {
+      const hasBrightness = /brightness|سطوع/iu.test(normalized);
+      const hasContrast = /contrast|تباين/iu.test(normalized);
+      const hasSaturation = /saturation|تشبع/iu.test(normalized);
+      const hasGrayscale = /grayscale|black and white|أبيض وأسود|تدرج رمادي/iu.test(normalized);
+      const brightness = percentParameter(prompt, 'brightness');
+      const contrast = percentParameter(prompt, 'contrast');
+      const saturation = percentParameter(prompt, 'saturation');
+      if ((hasBrightness && brightness === undefined) || (hasContrast && contrast === undefined) || (hasSaturation && saturation === undefined)) {
+        throw new Error('Request is ambiguous. Specify the numeric adjustment for brightness, contrast, or saturation.');
+      }
+      if (!hasBrightness && !hasContrast && !hasSaturation && !hasGrayscale) {
+        throw new Error('Request is ambiguous. Specify a measurable image effect.');
+      }
+      params.brightness = brightness ?? 100;
+      params.contrast = contrast ?? 100;
+      params.saturate = saturation ?? 100;
+      if (hasGrayscale) params.grayscale = 100;
       break;
+    }
     case 'video-trimmer': {
       const firstSeconds = normalized.match(/(?:first|أول|الأولى)\s*(\d{1,5})\s*(?:seconds?|ثواني?)/u);
       if (firstSeconds) params.endSec = Number(firstSeconds[1]);
@@ -195,18 +229,19 @@ export function planAgentRequest(prompt: string, file: File): AgentPlan {
     throw new Error('Prompt must contain between 1 and 2,000 characters.');
   }
 
-  const { toolId, intent } = matchedTool(trimmed);
-  const tool = getToolById(toolId);
-  if (!tool) throw new Error('Agent could not resolve a canonical MVP capability.');
-  if (tool.family === 'image' && !file.type.startsWith('image/')) throw new Error('This capability requires an image file.');
-  if (tool.family === 'video' && !file.type.startsWith('video/')) throw new Error('This capability requires a video file.');
-
-  const params = parametersFor(toolId, trimmed);
+  const matches = matchedTools(trimmed, file);
+  const steps = matches.map(({ toolId }) => {
+    const tool = getToolById(toolId);
+    if (!tool) throw new Error('Agent could not resolve a canonical MVP capability.');
+    if (tool.family === 'image' && !file.type.startsWith('image/')) throw new Error('This capability requires an image file.');
+    if (tool.family === 'video' && !file.type.startsWith('video/')) throw new Error('This capability requires a video file.');
+    return { toolId, params: parametersFor(toolId, trimmed) };
+  });
   const plan = parseExecutionPlan({
-    workflowName: 'FLIXO Agent — ' + toolId,
+    workflowName: 'FLIXO Agent — ' + steps.map((step) => step.toolId).join(' -> '),
     confidence: 0.9,
     catalogFingerprint: TOOL_CATALOG.fingerprint,
-    steps: [{ toolId, params }],
+    steps,
   });
 
   const result = Object.freeze({
