@@ -23,18 +23,23 @@ type OcrWorkerGlobal = {
   OffscreenCanvas?: new (width: number, height: number) => OcrWorkerCanvas;
 };
 
+const MAX_OCR_PIXELS = 16_000_000;
 const ocrWorkerScope = self as unknown as OcrWorkerScope;
 const ocrWorkerGlobal = globalThis as unknown as OcrWorkerGlobal;
 
 ocrWorkerScope.onmessage = async (event: MessageEvent<OcrWorkerMessage>) => {
+  let image: ImageBitmap | undefined;
+  let canvas: OcrWorkerCanvas | undefined;
   try {
     if (!ocrWorkerGlobal.OffscreenCanvas) throw new Error('OffscreenCanvas is unavailable.');
-    const image = await ocrWorkerGlobal.createImageBitmap(event.data.blob);
+    image = await ocrWorkerGlobal.createImageBitmap(event.data.blob);
     const scale = Math.min(2.5, Math.max(1, 1600 / Math.max(image.width, image.height)));
-    const canvas = new ocrWorkerGlobal.OffscreenCanvas(
-      Math.max(1, Math.round(image.width * scale)),
-      Math.max(1, Math.round(image.height * scale)),
-    );
+    const width = Math.max(1, Math.round(image.width * scale));
+    const height = Math.max(1, Math.round(image.height * scale));
+    if (width * height > MAX_OCR_PIXELS) {
+      throw new Error('OCR preprocessing output is too large for safe browser processing.');
+    }
+    canvas = new ocrWorkerGlobal.OffscreenCanvas(width, height);
     const context = canvas.getContext('2d', { willReadFrequently: true });
     if (!context) throw new Error('OCR worker canvas is unavailable.');
 
@@ -55,5 +60,11 @@ ocrWorkerScope.onmessage = async (event: MessageEvent<OcrWorkerMessage>) => {
       ok: false,
       error: error instanceof Error ? error.message : 'OCR preprocessing worker failed.',
     });
+  } finally {
+    image?.close();
+    if (canvas) {
+      canvas.width = 0;
+      canvas.height = 0;
+    }
   }
 };
