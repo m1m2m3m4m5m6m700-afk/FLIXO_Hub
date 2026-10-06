@@ -132,3 +132,9 @@ test('active MVP UI paths do not expose a direct engine execution bypass', () =>
     false,
   );
 });
+
+test('canonical video output verification releases its object URL', () => {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+  const executor = readFileSync(resolve(root, 'src/lib/execution/canonical-executor.ts'), 'utf8');
+  assert.match(executor, /video\.removeAttribute\('src'\)[\s\S]*URL\.revokeObjectURL\(url\)/u);
+});
