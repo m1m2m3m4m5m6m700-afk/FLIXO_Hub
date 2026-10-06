@@ -62,3 +62,10 @@
 - `scripts/agent-learning/evaluate-agent-readiness.mjs` يقيس الجاهزية.
 - `scripts/agent-learning/run-role-drills.mjs` ينفذ امتحانات الأدوار.
 - `tests/security/ci/agent-readiness-evaluator.test.mjs` يمنع أي نتيجة أقل من 100 في العقد القابل للاختبار.
+## حزم الوكلاء الأساسية
+
+- i18n Agent: `الوكلاء/i18n Agent/`
+- Maintainer Agent: `الوكلاء/Maintainer Agent/`
+- QA Agent: `الوكلاء/QA Agent/`
+
+كل حزمة تحتوي على عقد canonical منفصل عن تسجيل GitHub، مع تقرير معزول وتمرين دور في نظام التدريب.
