@@ -170,7 +170,8 @@ async function executeImageEffectsInWorker(
   timeoutMs: number,
   signal?: AbortSignal,
 ): Promise<Blob> {
-  if (typeof Worker === 'undefined') {
+  const canUseWorkerCanvas = typeof Worker !== 'undefined' && typeof OffscreenCanvas !== 'undefined';
+  if (!canUseWorkerCanvas) {
     return executeImageEffectsFallback(input, effects);
   }
 
@@ -193,7 +194,9 @@ async function executeImageEffectsInWorker(
     );
     const onAbort = () => finish(() => reject(cancelledError()));
     signal?.addEventListener('abort', onAbort, { once: true });
-    worker.onerror = () => finish(() => reject(new Error('IMAGE_EFFECTS_WORKER_FAILED')));
+    worker.onerror = () => {
+      finish(() => reject(new Error('IMAGE_EFFECTS_WORKER_FAILED')));
+    };
     worker.onmessage = (event: MessageEvent<{ ok: boolean; blob?: Blob; error?: string }>) => {
       const data = event.data;
       if (data?.ok && data.blob instanceof Blob && data.blob.size > 0) {
@@ -207,6 +210,9 @@ async function executeImageEffectsInWorker(
     } catch (error) {
       finish(() => reject(error instanceof Error ? error : new Error('IMAGE_EFFECTS_WORKER_FAILED')));
     }
+  }).catch(async (error) => {
+    if (signal?.aborted) throw error;
+    return executeImageEffectsFallback(input, effects);
   });
 }
 

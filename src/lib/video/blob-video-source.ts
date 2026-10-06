@@ -1,62 +1,19 @@
 export type VideoSourceCleanup = () => void;
 
-type MediaSourceCtor = typeof MediaSource;
-
 function cancelled(): Error {
   return typeof DOMException === 'function'
     ? new DOMException('Video media source attachment aborted.', 'AbortError')
     : new Error('Video media source attachment aborted.');
 }
 
-function supportsMediaSource(mime: string): boolean {
-  const ctor = globalThis.MediaSource as MediaSourceCtor | undefined;
-  return Boolean(
-    ctor
-    && typeof ctor.isTypeSupported === 'function'
-    && ctor.isTypeSupported(mime || 'video/webm'),
-  );
-}
-
-async function appendBlobToSourceBuffer(
-  sourceBuffer: SourceBuffer,
-  blob: Blob,
-  signal?: AbortSignal,
-): Promise<void> {
-  const chunkSize = 4 * 1024 * 1024;
-  for (let offset = 0; offset < blob.size; offset += chunkSize) {
-    if (signal?.aborted) throw cancelled();
-    const bytes = await blob.slice(offset, Math.min(blob.size, offset + chunkSize)).arrayBuffer();
-    await new Promise<void>((resolve, reject) => {
-      const onAbort = () => {
-        cleanup();
-        reject(cancelled());
-      };
-      const onUpdateEnd = () => {
-        cleanup();
-        resolve();
-      };
-      const onError = () => {
-        cleanup();
-        reject(new Error('VIDEO_MEDIA_SOURCE_APPEND_FAILED'));
-      };
-      const cleanup = () => {
-        sourceBuffer.removeEventListener('updateend', onUpdateEnd);
-        sourceBuffer.removeEventListener('error', onError);
-        signal?.removeEventListener('abort', onAbort);
-      };
-      sourceBuffer.addEventListener('updateend', onUpdateEnd, { once: true });
-      sourceBuffer.addEventListener('error', onError, { once: true });
-      signal?.addEventListener('abort', onAbort, { once: true });
-      try {
-        sourceBuffer.appendBuffer(bytes);
-      } catch (error) {
-        cleanup();
-        reject(error instanceof Error ? error : new Error('VIDEO_MEDIA_SOURCE_APPEND_FAILED'));
-      }
-    });
-  }
-}
-
+/**
+ * Attach a local Blob/File to a video element without any network request.
+ *
+ * Blob URLs are deliberately preferred over MediaSource here. A recorded WebM/Blob
+ * is already a complete browser-readable media resource; feeding the complete file
+ * through SourceBuffer introduces an unnecessary MSE compatibility boundary.
+ * The URL is always revoked by the returned cleanup function.
+ */
 export async function attachVideoBlobSource(
   video: HTMLVideoElement,
   blob: Blob,
@@ -65,62 +22,46 @@ export async function attachVideoBlobSource(
   if (!blob.size) throw new Error('VIDEO_INPUT_EMPTY');
   if (signal?.aborted) throw cancelled();
 
-  const mime = blob.type || 'video/webm';
-  const MediaSourceClass = globalThis.MediaSource as MediaSourceCtor | undefined;
-
-  if (MediaSourceClass && supportsMediaSource(mime)) {
-    const mediaSource = new MediaSourceClass();
+  if (typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function') {
+    const url = URL.createObjectURL(blob);
     let closed = false;
-    function cleanup() {
+
+    const cleanup = () => {
       if (closed) return;
       closed = true;
       signal?.removeEventListener('abort', abortListener);
-      video.srcObject = null;
-      if (mediaSource.readyState === 'open') {
-        try { mediaSource.endOfStream(); } catch { /* source may already be closing */ }
-      }
-    }
+      video.removeAttribute('src');
+      video.load();
+      URL.revokeObjectURL(url);
+    };
+
     const abortListener = () => cleanup();
     signal?.addEventListener('abort', abortListener, { once: true });
-    video.srcObject = mediaSource;
 
     try {
-      await new Promise<void>((resolve, reject) => {
-        const onSourceOpen = async () => {
-          mediaSource.removeEventListener('sourceopen', onSourceOpen);
-          try {
-            if (signal?.aborted) throw cancelled();
-            const sourceBuffer = mediaSource.addSourceBuffer(mime);
-            await appendBlobToSourceBuffer(sourceBuffer, blob, signal);
-            if (mediaSource.readyState === 'open') mediaSource.endOfStream();
-            resolve();
-          } catch (error) {
-            reject(error instanceof Error ? error : new Error('VIDEO_MEDIA_SOURCE_FAILED'));
-          }
-        };
-        const onSourceEnded = () => {
-          mediaSource.removeEventListener('sourceopen', onSourceOpen);
-          reject(new Error('VIDEO_MEDIA_SOURCE_CLOSED'));
-        };
-        mediaSource.addEventListener('sourceopen', onSourceOpen, { once: true });
-        mediaSource.addEventListener('sourceended', onSourceEnded, { once: true });
-        if (mediaSource.readyState === 'open') void onSourceOpen();
-      });
+      video.src = url;
       return cleanup;
     } catch (error) {
       cleanup();
-      throw error;
+      throw error instanceof Error ? error : new Error('VIDEO_BLOB_SOURCE_ATTACH_FAILED');
     }
   }
 
   if ('srcObject' in video) {
-    video.srcObject = blob;
-    return () => {
+    try {
+      video.srcObject = blob;
+      const cleanup = () => {
+        video.srcObject = null;
+        video.removeAttribute('src');
+        video.load();
+      };
+      signal?.addEventListener('abort', cleanup, { once: true });
+      return cleanup;
+    } catch (error) {
       video.srcObject = null;
-      video.removeAttribute('src');
-      video.load();
-    };
+      throw error instanceof Error ? error : new Error('VIDEO_BLOB_SOURCE_ATTACH_FAILED');
+    }
   }
 
-  throw new Error('VIDEO_MEDIA_SOURCE_UNAVAILABLE');
+  throw new Error('VIDEO_BLOB_SOURCE_UNAVAILABLE');
 }
