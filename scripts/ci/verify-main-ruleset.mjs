@@ -83,8 +83,8 @@ for (const summary of candidates) {
 const ci = readFileSync(resolve(process.cwd(), '.github/workflows/ci.yml'), 'utf8');
 const sourceRestrictionViaRequiredCheck = Boolean(
   satisfied &&
-  /\[\"\$BASE_BRANCH\" = \"main\"\][\s\S]{0,800}\[\"\$HEAD_BRANCH\" != \"execution\"\][\s\S]{0,800}\[\"\$ACTOR\" != \"dependabot\[bot\]\"\]/u.test(ci) ||
-  (satisfied && /HEAD_BRANCH.*execution.*dependabot\[bot\]/su.test(ci)),
+  ci.includes('if [ "$BASE_BRANCH" = "main" ]; then') &&
+  ci.includes('if [ "$HEAD_BRANCH" != "execution" ] && [ "$ACTOR" != "dependabot[bot]" ]; then'),
 );
 
 console.log(JSON.stringify({
