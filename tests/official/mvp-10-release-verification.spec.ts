@@ -163,7 +163,7 @@ test.describe('FLIXO ten-tool release verification', () => {
     await expect(page.getByRole('alert')).toContainText(/ambiguous/i);
   });
 
-  test('agent/compound request generates a multi-step plan and fails closed to manual fallback', async ({ page }) => {
+  test('agent/compound request generates and executes a multi-step canonical plan', async ({ page }) => {
     await page.goto('/agent', { waitUntil: 'domcontentloaded' });
     await page.locator('#agent-prompt').fill('compress this image under 200KB and convert to WebP');
     await page.locator('#agent-file').setInputFiles(imageFixture());
@@ -172,9 +172,10 @@ test.describe('FLIXO ten-tool release verification', () => {
     await expect(plan).toContainText('image-converter');
     await expect(plan).toContainText('image-compressor');
     await page.getByTestId('agent-confirmation').check();
+    await expect(page.getByTestId('agent-execute')).toBeEnabled();
     await page.getByTestId('agent-execute').click();
-    await expect(page.getByRole('alert')).toContainText(/bounded to one canonical tool step/i);
-    await expect(page.locator('[aria-label="agent-result"]')).toHaveCount(0);
+    await expect(page.locator('[aria-label="agent-result"]')).toBeVisible({ timeout: 30_000 });
+    await expect(page.locator('[aria-label="agent-result"] a[download]')).toHaveAttribute('download', 'flixo-image-compressor.webp');
   });
 
   test('agent/unsupported operation fails closed without creating a plan', async ({ page }) => {
