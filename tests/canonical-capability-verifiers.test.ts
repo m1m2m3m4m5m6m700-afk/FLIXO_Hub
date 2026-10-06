@@ -80,7 +80,27 @@ test('canonical MVP capability verifiers accept measurable valid artifacts and r
     preload = '';
     onloadedmetadata: (() => void) | null = null;
     onerror: (() => void) | null = null;
+    private _srcObject: Blob | null = null;
     private _src = '';
+
+    set srcObject(value: Blob | null) {
+      this._srcObject = value;
+      queueMicrotask(() => {
+        const meta = this._srcObject ? videoMetadata.get(this._srcObject) : undefined;
+        if (!meta) {
+          this.onerror?.();
+          return;
+        }
+        this.duration = meta.duration;
+        this.videoWidth = meta.width;
+        this.videoHeight = meta.height;
+        this.onloadedmetadata?.();
+      });
+    }
+
+    get srcObject() {
+      return this._srcObject;
+    }
 
     set src(value: string) {
       this._src = value;
@@ -188,7 +208,7 @@ test('canonical MVP capability verifiers accept measurable valid artifacts and r
 });
 
 
-test('canonical MVP contains exactly ten executable browser-local capabilities with complete contracts', async () => {
+test('canonical MVP contains exactly ten executable local capabilities with complete contracts', async () => {
   const { MVP_EXECUTABLE_TOOL_IDS, CAPABILITY_DEFINITIONS } = await import('../src/config/manual-capability-definition.ts');
   assert.equal(MVP_EXECUTABLE_TOOL_IDS.length, 10);
   assert.equal(new Set(MVP_EXECUTABLE_TOOL_IDS).size, 10);
