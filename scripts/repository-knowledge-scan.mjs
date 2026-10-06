@@ -125,7 +125,7 @@ function collect() {
     });
   }
 
-  const reportDir = join(root, 'reports', 'repository-knowledge');
+  const reportDir = join(root, '0(التقارير)');
   mkdirSync(reportDir, { recursive: true });
   const reportPath = join(reportDir, `${sha}.md`);
 
