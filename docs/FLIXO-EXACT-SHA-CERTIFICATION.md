@@ -4,7 +4,7 @@ STATUS: LAST-VERIFIED-CANDIDATE / BLOCKED_ON_GOVERNANCE
 UPDATED: 2026-10-06
 REPOSITORY: m1m2m3m4m5m6m700-afk/FLIXO_Hub
 EXECUTION_BRANCH: execution
-INTEGRATION_PR: #1002
+INTEGRATION_PR: RESOLVE_LIVE_ACTIVE_PR_AT_VERIFICATION_TIME
 MAIN_SHA: 263827228cbe5f4851470297fde5f2858ff844de
 LAST_VERIFIED_CANDIDATE_SHA: a44958a97126b2e050746010947aef2cfa286729
 
@@ -35,7 +35,7 @@ Additional exact-candidate execution evidence:
 
 ## Current release identities
 
-CURRENT_SHA=NEW_HEAD_CREATED_BY_THIS_DOCUMENTATION_ROLLOVER
+CURRENT_SHA=PENDING — resolve live execution HEAD at verification time
 TESTED_SHA=a44958a97126b2e050746010947aef2cfa286729
 BUILT_SHA=a44958a97126b2e050746010947aef2cfa286729
 BROWSER_VERIFIED_SHA=a44958a97126b2e050746010947aef2cfa286729
@@ -60,13 +60,13 @@ GitHub ruleset `FLIXO-MAIN-PROTECTION` (ID 23854302) is active but does not sati
 - required review thread resolution: false (required true)
 - strict required status checks: false (required true)
 
-PR #1002 currently has no legitimate independent human APPROVE review.
+No fixed PR number is authoritative. Any historical PR review state must not be reused as current evidence.
 
 The connected execution environment exposes ruleset state read-only; no ruleset mutation action is available. No governance bypass, self-approval, or weakened verifier is permitted.
 
 ## Certification state
 
-Prompt 17 = PASS on `a44958a97126b2e050746010947aef2cfa286729`; any documentation mutation after this point creates a new SHA and invalidates that evidence.
+Prompt 17 = PASS on historical candidate `a44958a97126b2e050746010947aef2cfa286729`; this is archival evidence only. any documentation mutation after this point creates a new SHA and invalidates that evidence.
 Prompt 18 = BLOCKED by live main-governance policy; exact-SHA evidence is required again on the post-rollover head.
 Prompt 19 = NOT READY — governance blocker remains.
 Prompt 20 = NOT READY — requires legitimate owner approval and protected promotion.
@@ -83,4 +83,4 @@ SCORE = NOT 100/100
 
 ## Rule
 
-Any subsequent mutation creates another candidate SHA and requires complete exact-SHA evidence regeneration before certification.
+Any mutation creates a new candidate SHA. Current evidence must be regenerated on that exact head before certification.
