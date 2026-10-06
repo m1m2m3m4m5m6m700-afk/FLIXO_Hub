@@ -4,12 +4,12 @@ STATUS: LAST-VERIFIED-CANDIDATE RECORD — GOVERNANCE BLOCKED
 PROMPT_ID: 01
 SCOPE: READ_ONLY_STATE_RECORD
 RECORDED_AT_UTC: 2026-10-06
-START_SHA: a44958a97126b2e050746010947aef2cfa286729
+START_SHA: 52413f0f610c34cc988ecfc523134247c6cae135
 END_SHA: PENDING_THIS_RECORD_COMMIT
 CURRENT_MAIN_SHA: 263827228cbe5f4851470297fde5f2858ff844de
-CURRENT_EXECUTION_SHA_AT_RECONCILIATION: a44958a97126b2e050746010947aef2cfa286729
+CURRENT_EXECUTION_SHA_AT_RECONCILIATION: 52413f0f610c34cc988ecfc523134247c6cae135
 PR: #1002
-PR_HEAD_SHA_AT_RECONCILIATION: a44958a97126b2e050746010947aef2cfa286729
+PR_HEAD_SHA_AT_RECONCILIATION: 52413f0f610c34cc988ecfc523134247c6cae135
 PR_BASE_SHA: 263827228cbe5f4851470297fde5f2858ff844de
 PRIMARY_BRANCH: execution
 INTEGRATION_PATH: execution -> main
@@ -27,21 +27,19 @@ INTEGRATION_PATH: execution -> main
 
 ## Current candidate evidence state
 
-Exact current execution candidate at last verification: a44958a97126b2e050746010947aef2cfa286729.
+Exact current execution candidate at last reconciliation: 52413f0f610c34cc988ecfc523134247c6cae135.
 This state record is coordination metadata only; every mutation invalidates prior exact-SHA evidence.
-Latest observed evidence before this documentation mutation:
-- Typecheck, lint, core contracts, build: PASS (CI run 37437187385).
-- Exact-SHA internal coverage: PASS (CI job 112184761277).
-- Red Team adversarial regression: PASS (CI job 112184332370).
-- Prompt 17 clean-clone final adversarial gate: PASS (run 37437187406 / run #239).
-- FLIXO CodeQL: PASS (run 37437187434 / run #1544).
-- Gitleaks / Secret Scan: PASS (run 37437187409 / run #1540).
-- Chromium/browser smoke: PASS (CI job 112184761227).
-- Current FLIXO CI on the documentation rollover parent still FAIL-CLOSED only at main governance, trust-gate, and promotion proof.
-- PR branch-policy on base main: FAIL because live main ruleset 23854302 does not satisfy Prompt 12.
-- Execution-push branch-policy: PASS with main governance verification intentionally deferred.
-- Trust-gate / Exact-SHA promotion proof: not certifiable until browser and main-governance gates are satisfied.
-Evidence from older SHAs remains historical and stale; the record is a snapshot of the parent candidate a44958a9… before this documentation rollover.
+Latest observed evidence on the current exact candidate before this documentation correction:
+- Typecheck, lint, core contracts, production dependency audit, and build: PASS (FLIXO CI run 37440599986).
+- Exact-SHA internal coverage: PASS (FLIXO CI run 37440599986, coverage job 112193558491).
+- Red Team adversarial regression: PASS (FLIXO CI run 37440599986, job 112193139561).
+- FLIXO CodeQL: PASS (run 37440599974).
+- Gitleaks / Secret Scan: PASS (run 37440599929).
+- Chromium/browser smoke: IN_PROGRESS at the time of this correction.
+- Prompt 17 clean-clone final adversarial gate: IN_PROGRESS at the time of this correction.
+- FLIXO CI overall remains FAIL-CLOSED because Branch policy fails the live main-governance verification.
+- Main-governance verification fails because live ruleset 23854302 has required approvals and review/status protections below Prompt-12 policy.
+- Evidence from older SHAs remains historical and stale; this record is intentionally tied to the current documentation candidate and must itself be treated as invalidated once this commit lands.
 
 ## Governance evidence
 
@@ -87,8 +85,8 @@ OWNER=AGENT-3
 STATUS=BLOCKED
 FILES_CHANGED=none
 DEPENDENCIES=repository ruleset administration;independent human approval
-VALIDATION=live ruleset read;verify-main-ruleset.mjs failure reproduced
-EVIDENCE=ruleset 23854302;PR #1002
+VALIDATION=live ruleset read;verify-main-ruleset.mjs failure reproduced on exact candidate
+EVIDENCE=ruleset 23854302;PR #1002;FLIXO CI job 112193139730
 NEXT_ACTION=owner/admin must harden the ruleset and obtain legitimate independent approval
 
 ## Hard blockers
