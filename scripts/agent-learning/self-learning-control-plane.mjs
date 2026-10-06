@@ -40,40 +40,49 @@ export function validateSubmission(submission, currentSha) {
       if (submission.coveragePercent !== 100) failures.push('explorer coveragePercent must be 100');
       if (!Array.isArray(submission.dependencies)) failures.push('explorer dependencies must be an array');
       if (!Array.isArray(submission.semanticDiff)) failures.push('explorer semanticDiff must be an array');
+      if (!Array.isArray(submission.authorityChain) || submission.authorityChain.length < 4) failures.push('explorer authorityChain must include the execution path');
+      if (!isSha(submission.mainSha)) failures.push('explorer mainSha must be an exact 40-character SHA');
       break;
     case 'falsification':
       if (!submission.targetClaim) failures.push('targetClaim is required');
       if (!Array.isArray(submission.alternatives) || submission.alternatives.length < 1) failures.push('at least one alternative explanation is required');
       if (!DECISIONS.includes(submission.conclusion)) failures.push('conclusion must be an adjudication state');
+      if (!Array.isArray(submission.alternativeEvidence) || submission.alternativeEvidence.length < 1) failures.push('falsifier must preserve alternative evidence');
       break;
     case 'external-comparison':
       if (!isSha(submission.referenceSha)) failures.push('referenceSha must be an exact 40-character SHA');
       if (!Array.isArray(submission.comparisons) || submission.comparisons.length === 0) failures.push('comparisons are required');
       if (!Array.isArray(submission.priorities)) failures.push('priorities must be an array');
+      if (!submission.referenceRevalidated) failures.push('developer reference must be explicitly revalidated');
       break;
     case 'localization':
       if (!Array.isArray(submission.localeChecks) || submission.localeChecks.length === 0) failures.push('localeChecks are required');
       if (submission.rtlChecked !== true || submission.ltrChecked !== true) failures.push('both RTL and LTR must be checked');
       if (submission.seoChecked !== true) failures.push('SEO must be checked');
+      if (submission.localeCount !== 20) failures.push('i18n canonical locale count must be 20');
       break;
     case 'maintenance':
       if (!Array.isArray(submission.authorityChecks) || submission.authorityChecks.length === 0) failures.push('authorityChecks are required');
       if (!Array.isArray(submission.driftChecks) || submission.driftChecks.length === 0) failures.push('driftChecks are required');
+      if (submission.officialAgentCount !== 8) failures.push('maintainer must audit all eight official agents');
       break;
     case 'verification':
       if (!Array.isArray(submission.commands) || submission.commands.length === 0) failures.push('commands are required');
       if (!Array.isArray(submission.statuses) || submission.statuses.length === 0) failures.push('statuses are required');
       if (submission.staleEvidenceRejected !== true) failures.push('stale evidence must be rejected');
+      if (!['PASS','NOT_PASS'].includes(submission.decision)) failures.push('QA must explicitly classify the evidence');
       break;
     case 'independent-challenge':
       if (!submission.challenge) failures.push('challenge is required');
       if (!submission.reproduction) failures.push('reproduction details are required');
       if (!['CONFIRMED', 'BLOCKED', 'NOT_REPRODUCED', 'UNKNOWN'].includes(submission.outcome)) failures.push('challenge outcome is invalid');
+      if (submission.scopeBoundaryTested !== true) failures.push('red team must test the authority boundary');
       break;
     case 'counterexample':
       if (!submission.targetFinding) failures.push('targetFinding is required');
       if (!submission.counterexample) failures.push('counterexample is required');
       if (!['CONFIRMED', 'REFUTED', 'DISPUTED', 'NOT_REPRODUCED', 'UNKNOWN'].includes(submission.outcome)) failures.push('counterexample outcome is invalid');
+      if (submission.alternativeHypothesis !== true) failures.push('red team 2 must test an alternative hypothesis');
       break;
     default:
       failures.push('unknown training drill');
