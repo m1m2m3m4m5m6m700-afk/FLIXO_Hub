@@ -1,9 +1,12 @@
 import { createElement, lazy } from 'react';
 import { z, type ZodType } from 'zod';
 import { LOCALES, type Locale } from '../lib/i18n/config.ts';
-import { getCanonicalCapabilityDefinition, MVP_EXECUTABLE_TOOL_IDS as CANONICAL_MVP_IDS, PARAMETER_SCHEMAS, type CanonicalCapabilityDefinition, type CanonicalCapabilityState, type CanonicalExecutionMode, type CanonicalCapabilityParameters, type CanonicalCapabilityVerifier, type CanonicalCapabilityLimits } from '../lib/tools/tool-registry.ts';
+import { getCanonicalCapabilityDefinition, MVP_EXECUTABLE_TOOL_IDS as CANONICAL_MVP_IDS, PARAMETER_SCHEMAS, type CanonicalCapabilityDefinition, type CanonicalCapabilityState, type CanonicalExecutionMode, type CanonicalCapabilityParameters, type CanonicalCapabilityVerifier, type CanonicalCapabilityLimits, type ToolDefinition as UnifiedToolDefinition, type ToolFamily, type ToolCategory, type ToolLifecycle, type ToolExecution, type ToolContractLevel, type ToolRecoveryPolicy, type ToolRequirements, type ToolOperationalProfile } from '../lib/tools/tool-registry.ts';
 import type { ComponentType, LazyExoticComponent } from 'react';
 import type { LocalToolId } from '../tools/image-toolkit/engine.ts';
+
+export type ToolDefinition = UnifiedToolDefinition;
+export type { ToolFamily, ToolCategory, ToolLifecycle, ToolExecution, ToolContractLevel, ToolRecoveryPolicy, ToolRequirements, ToolOperationalProfile };
 
 export type ToolFamily = 'image' | 'video' | 'audio' | 'ai' | 'editor';
 export type ToolCategory = 'Images' | 'Video' | 'Audio' | 'AI' | 'Editor';
