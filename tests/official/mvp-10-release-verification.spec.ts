@@ -142,6 +142,39 @@ test.describe('FLIXO ten-tool release verification', () => {
     await planAndExecuteAgent(page, 'إزالة الخلفية', 'background-remover', 'ar', imageFixture());
   });
 
+  test('agent/ambiguous contrast rejects guessing', async ({ page }) => {
+    await page.goto('/agent', { waitUntil: 'domcontentloaded' });
+    await page.locator('#agent-prompt').fill('increase contrast');
+    await page.locator('#agent-file').setInputFiles(imageFixture());
+    await page.getByTestId('agent-build-plan').click();
+    await expect(page.locator('[aria-label="agent-plan"]')).toHaveCount(0);
+    await expect(page.getByRole('alert')).toContainText(/ambiguous/i);
+  });
+
+  test('agent/compound request generates a multi-step plan and fails closed to manual fallback', async ({ page }) => {
+    await page.goto('/agent', { waitUntil: 'domcontentloaded' });
+    await page.locator('#agent-prompt').fill('compress this image under 200KB and convert to WebP');
+    await page.locator('#agent-file').setInputFiles(imageFixture());
+    await page.getByTestId('agent-build-plan').click();
+    const plan = page.locator('[aria-label="agent-plan"]');
+    await expect(plan).toContainText('image-converter');
+    await expect(plan).toContainText('image-compressor');
+    await page.getByTestId('agent-confirmation').check();
+    await page.getByTestId('agent-execute').click();
+    await expect(page.getByRole('alert')).toContainText(/bounded to one canonical tool step/i);
+    await expect(page.locator('[aria-label="agent-result"]')).toHaveCount(0);
+  });
+
+  test('agent/unsupported operation fails closed without creating a plan', async ({ page }) => {
+    await page.goto('/agent', { waitUntil: 'domcontentloaded' });
+    await page.locator('#agent-prompt').fill('remove the object from this image');
+    await page.locator('#agent-file').setInputFiles(imageFixture());
+    await page.getByTestId('agent-build-plan').click();
+    await expect(page.locator('[aria-label="agent-plan"]')).toHaveCount(0);
+    await expect(page.getByRole('alert')).toContainText(/No admitted FLIXO MVP capability/i);
+  });
+
+
   const imageAgentCases: ReadonlyArray<readonly [string, string]> = [
     ['image-upscaler', 'upscale this image 2x'],
     ['image-cropper', 'crop this image to square'],
