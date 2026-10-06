@@ -185,7 +185,7 @@ function validateDocument({ path, content, requireCurrentPlaceholders, stateReco
 
   if (requireCurrentPlaceholders) {
     for (const [field, expected] of CURRENT_PLACEHOLDER_FIELDS) {
-      const pattern = new RegExp('(?:^|\\n)\\s*' + field + '\\s*[:=]\\s*' + expected + '\\s*
+      const pattern = new RegExp('^\\s*' + field + '\\s*[:=]\\s*' + expected + '\\s*$', 'imu');
       if (!pattern.test(currentText)) {
         errors.push(path + ': missing fail-closed current identity placeholder ' + field + '=' + expected);
       }
