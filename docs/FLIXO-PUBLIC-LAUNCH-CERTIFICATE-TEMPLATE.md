@@ -1,12 +1,12 @@
-# FLIXO Public Launch Certificate
+# FLIXO Hub — Public Launch Certificate Template
 
 Status: NOT CERTIFIED
 
-This document becomes a certificate only after all required evidence is verified against one exact release SHA.
+This is a template only. It is not a current certification and contains no release SHA claim.
 
-## Identity
+## Current identity
 
-- Repository: `m1m2m3m4m5m6m700-afk/FLIXO-AI-TOOLS`
+- Repository: `m1m2m3m4m5m6m700-afk/FLIXO_Hub`
 - Release SHA: `REQUIRED`
 - Release tag: `REQUIRED`
 - Production deployment ID: `REQUIRED`
