@@ -44,7 +44,6 @@
       "entity_key": "bounded-contexts::architecture",
       "repo_refs": [
         "src/config/registry.ts",
-        "src/config/tool-definitions",
         "src/lib/contracts/tool-output-contracts.ts"
       ],
       "proposal": "Assess bounded-context seams around capability registration and execution contracts before global expansion.",
