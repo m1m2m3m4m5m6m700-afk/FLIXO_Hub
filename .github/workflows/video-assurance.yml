@@ -40,6 +40,8 @@ jobs:
         run: npm run typecheck
       - name: Targeted video/media adversarial tests
         run: npm run test:video-assurance
+      - name: Build exact candidate for preview
+        run: npm run build
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Real Chromium video capability acceptance
