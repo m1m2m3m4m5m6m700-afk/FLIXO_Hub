@@ -162,6 +162,61 @@ function numberOr(value: unknown, fallback: number): number {
   return Number.isFinite(number) ? number : fallback;
 }
 
+async function executeImageEffectsInWorker(
+  input: Blob,
+  effects: ReadonlyArray<readonly ['brightness' | 'contrast' | 'saturation' | 'grayscale', number]>,
+  timeoutMs: number,
+  signal?: AbortSignal,
+): Promise<Blob> {
+  if (typeof Worker === 'undefined') {
+    return executeImageEffectsFallback(input, effects);
+  }
+
+  const worker = new Worker(new URL('./image-effects.worker.ts', import.meta.url), { type: 'module' });
+  return new Promise<Blob>((resolve, reject) => {
+    let settled = false;
+    const finish = (fn: () => void) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', onAbort);
+      worker.onmessage = null;
+      worker.onerror = null;
+      worker.terminate();
+      fn();
+    };
+    const timer = setTimeout(
+      () => finish(() => reject(new Error('Image effects worker timed out.'))),
+      Math.max(1, Math.min(timeoutMs, 30_000)),
+    );
+    const onAbort = () => finish(() => reject(cancelledError()));
+    signal?.addEventListener('abort', onAbort, { once: true });
+    worker.onerror = () => finish(() => reject(new Error('IMAGE_EFFECTS_WORKER_FAILED')));
+    worker.onmessage = (event: MessageEvent<{ ok: boolean; blob?: Blob; error?: string }>) => {
+      const data = event.data;
+      if (data?.ok && data.blob instanceof Blob && data.blob.size > 0) {
+        finish(() => resolve(data.blob!));
+        return;
+      }
+      finish(() => reject(new Error(data?.error || 'IMAGE_EFFECTS_WORKER_FAILED')));
+    };
+    try {
+      worker.postMessage({ blob: input, effects });
+    } catch (error) {
+      finish(() => reject(error instanceof Error ? error : new Error('IMAGE_EFFECTS_WORKER_FAILED')));
+    }
+  });
+}
+
+async function executeImageEffectsFallback(
+  input: Blob,
+  effects: ReadonlyArray<readonly ['brightness' | 'contrast' | 'saturation' | 'grayscale', number]>,
+): Promise<Blob> {
+  let current = input;
+  current = await executeImageEffectsInWorker(input, effects, 30_000);
+  return current;
+}
+
 async function executeImageEffects(input: Blob, parameters: CanonicalCapabilityParameters): Promise<Blob> {
   let current = input;
   const effects: Array<['brightness' | 'contrast' | 'saturation' | 'grayscale', number]> = [];
