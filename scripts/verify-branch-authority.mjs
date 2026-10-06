@@ -43,7 +43,7 @@ const finalRedTeam = await fs.readFile('.github/workflows/final-red-team.yml', '
 if (!ci.includes("if: github.event_name == 'push' && github.ref == 'refs/heads/main'")) {
   throw new Error('PRODUCTION_AUTHORITY_NOT_MAIN_ONLY');
 }
-if (!/HEAD_BRANCH[^\n]+execution[^\n]+dependabot\\[bot\\]/u.test(ci)) {
+if (!/HEAD_BRANCH[^\n]+execution[^\n]+dependabot\[bot\]/u.test(ci)) {
   throw new Error('MAIN_PROMOTION_SOURCE_NOT_EXECUTION_ONLY');
 }
 if (/production-deploy[\s\S]{0,12000}refs\/heads\/agent[-/]/u.test(ci)) {
