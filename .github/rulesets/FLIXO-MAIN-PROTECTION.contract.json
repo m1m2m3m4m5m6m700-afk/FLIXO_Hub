@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "name": "FLIXO-MAIN-PROTECTION",
+  "status": "DESIRED_LIVE_POLICY_CONTRACT",
+  "liveState": "MUST_BE_READ_FROM_GITHUB_RULESETS_API",
+  "appliesTo": [
+    "refs/heads/main"
+  ],
+  "requirements": {
+    "pullRequest": {
+      "requiredApprovingReviewCount": 1,
+      "dismissStaleReviewsOnPush": true,
+      "requireCodeOwnerReview": true,
+      "requireLastPushApproval": true,
+      "requiredReviewThreadResolution": true
+    },
+    "requiredStatusChecks": {
+      "strictRequiredStatusChecksPolicy": true,
+      "contexts": [
+        "trust-gate",
+        "Exact-SHA promotion proof"
+      ]
+    }
+  },
+  "evidenceRules": [
+    "This file is not live governance evidence.",
+    "A mock matching this contract cannot be reported as live PASS.",
+    "Live verification must read the repository rulesets API."
+  ]
+}

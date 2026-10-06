@@ -7,8 +7,8 @@ import { getLocalizedToolPath } from '../src/lib/routing/route-resolver.ts';
 const DIST_DIR = process.env.FLIXO_DIST_DIR ?? 'dist';
 const INDEX_FILE = join(DIST_DIR, 'index.html');
 
-const readyTools = TOOL_MANIFEST.filter((tool) => tool.isReady);
-if (!readyTools.length) throw new Error('Static route generation requires at least one ready tool.');
+const executableTools = TOOL_MANIFEST.filter((tool) => tool.isReady && tool.capability.state === 'EXECUTABLE');
+if (!executableTools.length) throw new Error('Static route generation requires at least one executable tool.');
 
 const copyEntry = (route) => {
   const normalizedRoute = route.replace(/^\//u, '').replace(/\/$/u, '');
@@ -35,9 +35,9 @@ for (const file of ['boundary.ts', 'centers.ts', 'execution-preview.ts', 'overvi
 for (const locale of LOCALES) {
   copyEntry(`/${locale}`);
 
-  for (const tool of readyTools) {
+  for (const tool of executableTools) {
     copyEntry(getLocalizedToolPath(tool, locale));
   }
 }
 
-console.log(`G1 static route entries generated: ready=${readyTools.length}, locales=${LOCALES.length}, routes=${readyTools.length * LOCALES.length + LOCALES.length + 1}, adminApi=5`);
+console.log(`G1 static route entries generated: executable=${executableTools.length}, locales=${LOCALES.length}, routes=${executableTools.length * LOCALES.length + LOCALES.length + 1}, adminApi=5`);

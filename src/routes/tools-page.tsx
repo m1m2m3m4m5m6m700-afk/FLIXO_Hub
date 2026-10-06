@@ -13,7 +13,7 @@ const TOOL_ICONS = {
   'image-to-svg': FileImage, 'image-ocr': ScanText, 'background-blur': SlidersHorizontal, 'passport-photo-maker': Camera,
   'watermark-adder': Stamp, 'meme-generator': Type, 'collage-maker': Grid2X2, 'image-effects': Sparkles,
   'exif-cleaner': Settings2, 'svg-optimizer': Blend, 'mockup-generator': MonitorSmartphone, seed: SlidersHorizontal,
-  pix: Layers2, 'ai-image-generator': Sparkles, 'photo-colorizer': Palette,
+  pix: Layers2, 'photo-colorizer': Palette,
 } as const;
 
 const FILTERS = [

@@ -1,0 +1,114 @@
+version: 4
+title: FLIXO Engineering Intelligence Proposal
+type: object
+additionalProperties: false
+required:
+  - id
+  - category
+  - title
+  - status
+  - entity_key
+  - lifecycle
+  - source
+  - evidence
+  - inference
+  - triage
+properties:
+  id:
+    type: string
+    pattern: "^[A-Z][A-Z0-9_-]{1,31}-[0-9]{2,8}$"
+    maxLength: 64
+  category:
+    type: string
+    pattern: "^[a-z][a-z0-9._-]{1,63}$"
+    maxLength: 64
+  title:
+    type: string
+    minLength: 1
+    maxLength: 200
+  status:
+    type: string
+    enum: [inbox, triaged, queued, approved, rejected, expired]
+  entity_key:
+    type: string
+    pattern: "^[a-z0-9][a-z0-9._:/-]{1,127}$"
+    maxLength: 128
+  lifecycle:
+    type: object
+    additionalProperties: false
+    required: [created_at, expires_at, last_viewed_by_human]
+    properties:
+      created_at:
+        type: string
+        format: iso8601-z
+      expires_at:
+        type: string
+        format: iso8601-z
+      last_viewed_by_human:
+        type: string
+        format: iso8601-z
+  source:
+    type: object
+    additionalProperties: false
+    required: [snapshot_id, vendor_affiliated]
+    properties:
+      snapshot_id:
+        type: string
+        pattern: "^[A-Za-z0-9][A-Za-z0-9._-]{0,95}$"
+        maxLength: 96
+      vendor_affiliated:
+        type: boolean
+  evidence:
+    type: object
+    additionalProperties: false
+    required: [quote]
+    properties:
+      quote:
+        type: string
+        minLength: 1
+        maxLength: 8192
+  inference:
+    type: object
+    additionalProperties: false
+    required: [current_state, proposal, rollback]
+    properties:
+      current_state:
+        type: object
+        additionalProperties: false
+        required: [repo_refs]
+        properties:
+          repo_refs:
+            type: array
+            minItems: 1
+            maxItems: 64
+            items:
+              type: string
+              maxLength: 512
+      proposal:
+        type: string
+        minLength: 1
+        maxLength: 8192
+      rollback:
+        type: string
+        minLength: 1
+        maxLength: 4096
+  triage:
+    type: object
+    additionalProperties: false
+    required: [impact_score, complexity_score, final_priority_score, lane]
+    properties:
+      impact_score:
+        type: number
+        minimum: 0
+        maximum: 100
+      complexity_score:
+        type: number
+        minimum: 0
+        maximum: 100
+      final_priority_score:
+        type: number
+        minimum: 0
+        maximum: 100
+      lane:
+        type: string
+        enum: [architecture, technology, ecosystem, security, performance, reliability, developer-experience, watch]

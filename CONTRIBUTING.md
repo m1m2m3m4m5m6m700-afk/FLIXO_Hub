@@ -1,4 +1,4 @@
-# Contributing to FLIXO-AI-TOOLS
+# Contributing to FLIXO_Hub
 
 ## Branch policy
 
@@ -6,10 +6,22 @@ The repository uses two operational branches only:
 
 - `main` — production/reference branch. Changes reach it through a pull request after the required certification gates pass.
 - `execution` — the sole development, repair, testing, and integration line.
-- No other development, repair, test, diagnostic, agent, or temporary branch may be created or used.
+- No other implementation, repair, test, diagnostic, agent, or temporary branch may be created or used. Short-lived scout/* branches are the sole research exception: they may change only التطوير.md, must target execution, and may never target main.
 - `main` is the production/reference destination and is never mutated directly.
 
 Promotion is exclusively `execution → main`. Historical refs are not execution paths.
+
+### Moving execution HEAD and agent work
+
+The live `execution` HEAD may move while an agent is preparing a repair.
+
+- A stale candidate must not retain certification authority.
+- Agent work may be preserved as a durable Patch Capsule in the trusted control plane.
+- Patch Capsules are reconciled onto the current `execution` HEAD before publication.
+- Publication is serialized through the deterministic `assistantController` lane.
+- Publication is non-force and fast-forward only; a moved head causes retry/reconciliation, never overwrite.
+- No temporary or third development branch is permitted.
+- The Patch Capsule workflow is documented in `docs/AGENT-PATCH-CAPSULE-AND-CAS.md`.
 
 ## Delivery lifecycle
 
@@ -71,9 +83,7 @@ Gates should be independently executable where practical. When a gate fails, re-
 
 Do not commit secrets, disable security gates to obtain green CI, or use forceful dependency changes as a blind workaround. External service failures such as deployment quotas must be classified separately from application-code failures.
 
-The normal CI Socket check may be skipped when `SOCKET_SECURITY_API_KEY` is not configured. Release certification is stricter: configure `SOCKET_SECURITY_API_KEY` as a GitHub Actions repository/environment secret so the blocking Socket supply-chain gate can pass.
-
-Never place the Socket credential in source code, workflow literals, committed `.env` files, or client-side configuration.
+The current release gate does not rely on a Socket workflow. The blocking security path is defined by the active CI/release plan (dependency audit, CodeQL, secret scanning, and Red-Team checks). Any future third-party supply-chain scanner must be explicitly added to the release plan and required workflow before it becomes a release gate.
 
 ## Tool lifecycle
 
@@ -86,3 +96,16 @@ A public tool must have a real runtime and the applicable automated regression/c
 ## Definition of done
 
 A change is complete when its implementation, tests, build/contracts, Evidence, certification decision, documentation, and release scope are all consistent with the repository policy.
+
+
+## Research Scout Boundary
+
+The three research Scouts are advisory-only GitHub Copilot custom agents:
+- Architecture Scout
+- Technology Scout
+- Ecosystem Scout
+
+Their tools are restricted to read, search, and edit. They have no shell/execute/agent-delegation capability. Their only writable file is التطوير.md.
+
+Scout branches use scout/*, target execution, and are blocked by CI if they change any file other than التطوير.md or attempt to target main.
+

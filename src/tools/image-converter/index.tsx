@@ -4,7 +4,7 @@ import { ImageJob } from '../../image-core/job';
 import { getToolDefinition } from '../../config/canonical-tool-definition';
 import { validateUploadBoundary } from '../../lib/contracts/upload-boundary';
 import { validateOutputIntegrity } from '../../lib/contracts/output-integrity';
-import { convertImage } from '../image-toolkit/engine';
+import { executeCanonicalTool } from '../../lib/execution/canonical-executor';
 import { imageConverterIntegritySpec } from './output-integrity';
 import { localizeToolUiValue } from '../../lib/i18n/tool-ui-runtime-completeness';
 
@@ -55,8 +55,8 @@ export function ImageConverterTool({ locale }: { locale?: string }) {
           assetStore,
           parameters: next,
           processor: async (input) => {
-            const blob = await convertImage(input.blob, next.format);
-            return { blob, width: input.width, height: input.height, name: `flixo-converted.${next.format === 'image/jpeg' ? 'jpg' : next.format === 'image/webp' ? 'webp' : 'png'}` };
+            const output = await executeCanonicalTool('image-converter', { blob: input.blob, fileName: input.name ?? 'image' }, next);
+            return { blob: output.blob, width: input.width, height: input.height, name: output.fileName };
           },
           verifier: async (_input, output, params) => {
             const selected = (params as Parameters).format;

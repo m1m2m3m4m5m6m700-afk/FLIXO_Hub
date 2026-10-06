@@ -1,48 +1,57 @@
-# FLIXO Architecture Boundaries
+# FLIXO Hub Architecture Boundaries
 
-## Purpose
+## Current application boundary
 
-This document defines the dependency direction for the repository while the monorepo migration is performed incrementally.
+- `src/` is the primary Vite application and current public product runtime.
+- The certified MVP Agent UI is `src/routes/agent.tsx` and its deterministic local runtime is `src/lib/agent-guided-runtime.ts`.
+- Manual tools remain under `src/tools/` and are independently executable through the canonical execution authority.
+- The current release candidate does not use `apps/agent-editor/` or `packages/agent-runtime/` as runtime authorities. Historical migration text must not be treated as a current import contract.
 
-## Application boundaries
+## Canonical dependency direction
 
-- `src/` is the current primary Vite application.
-- `apps/agent-editor/` is a separate Next.js application.
-- Neither application may import implementation details from the other.
-- Shared runtime/domain code must move behind explicit package boundaries before cross-application reuse is introduced.
-
-## Agent ownership
-
-The canonical Agent domain is `packages/agent-runtime/`. The legacy `src/lib/agent/` surface is migration-only and receives no new shared runtime features.
-
-`apps/agent-editor/lib/agent/` is application-local orchestration code and must not become a second canonical Agent runtime.
-
-During migration:
-1. New shared Agent contracts belong in `packages/contracts/`.
-2. Shared Agent runtime belongs in `packages/agent-runtime/`.
-3. New shared Agent state/profile/discovery/task lifecycle code must not be added to `src/lib/agent/`.
-4. Application adapters remain inside their owning app.
-5. Migrated runtime compatibility shims are not valid import targets; consumers must import from `@flixo/agent-runtime`.
-
-## Dependency direction
-
-```
-apps/*  -> packages/*
-packages/* -> packages/* (only through declared contracts)
-apps/*  -X-> other apps
-packages/* -X-> apps/*
+```text
+UI/routes -> canonical contracts/config -> canonical executor -> local tool engines
+                       \
+                        -> output contracts/verifiers
 ```
 
-The `-X->` edges are prohibited.
+Prohibited edges:
 
-## Migration gates
+- UI -> provider-controlled media execution
+- UI -> direct tool-engine invocation that bypasses the canonical executor
+- Agent/LLM output -> executor without canonical plan validation and explicit confirmation
+- Provider/backend -> raw user File/Blob bytes for MVP processing
+- Secondary registry -> canonical runtime decisions
 
-A migration step is complete only when:
-- typecheck passes;
-- lint passes;
-- unit/core tests pass;
-- agent-editor typecheck/build pass;
-- browser tests pass when the changed surface requires them;
-- no new cross-app imports are introduced.
+## Agent boundary
 
-This file is an architectural contract, not a claim that the final package extraction is already complete.
+The Agent is a proposal/planning surface only.
+
+`src/lib/agent-guided-runtime.ts`:
+- resolves requests only against the ten admitted MVP executable IDs;
+- validates parameters against canonical schemas;
+- binds plans to the current catalog fingerprint;
+- requires a per-file, per-plan confirmation receipt;
+- delegates actual work to `executeCanonicalTool`.
+
+No Agent module may become a second executor or registry.
+
+## Manual boundary
+
+Manual tool routes call the canonical execution boundary directly. They must remain usable when the Agent route is unavailable.
+
+## Media boundary
+
+MVP media processing is browser-local. Input validation occurs before expensive processing. The canonical executor enforces file-size, pixel/duration, MIME/container, timeout, abort, output-contract, and verifier gates.
+
+Video rendering relies on browser media APIs; where those APIs do not permit safe worker execution, the renderer remains bounded and explicitly fail-closed rather than creating a second execution path.
+
+## Persistence boundary
+
+The MVP media-editing path must not require Supabase or another persistence service. Persistence may exist outside the local-editing path, but importing or calling persistence from the canonical MVP execution surface is prohibited.
+
+## Documentation rule
+
+Architecture documents are descriptive contracts. They do not authorize a runtime path, registry, executor, merge, or certification state. The current source code and exact-SHA verification evidence are authoritative for what actually exists.
+
+A migration task is complete only when affected typecheck/lint/tests/build/browser checks pass on the same candidate SHA.

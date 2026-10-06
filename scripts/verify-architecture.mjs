@@ -64,9 +64,83 @@ for (const root of sourceRoots) {
   if (existsSync(root)) walk(root);
 }
 
+const codeownersPath = '.github/CODEOWNERS';
+const requiredOwnerPaths = [
+  '/.github/workflows/',
+  '/scripts/ci/',
+  '/src/lib/contracts/',
+  '/src/lib/execution/',
+  '/src/config/registry.ts',
+  '/src/server/admin/',
+  '/api/admin/',
+  '/src/worker.ts',
+  '/wrangler.jsonc',
+  '/vercel.json',
+];
+
+const codeownersViolations = [];
+if (!existsSync(codeownersPath)) {
+  codeownersViolations.push('missing .github/CODEOWNERS');
+} else {
+  const codeowners = readFileSync(codeownersPath, 'utf8');
+  for (const ownerPath of requiredOwnerPaths) {
+    if (!codeowners.split(/\r?\n/u).some((line) => line.trim().startsWith(ownerPath))) {
+      codeownersViolations.push('CODEOWNERS missing explicit protected path: ' + ownerPath);
+    }
+  }
+}
+
+const authorityChecks = [
+  {
+    path: 'src/config/registry.ts',
+    pattern: /export const TOOL_REGISTRY\b/gu,
+    expected: 1,
+    label: 'canonical TOOL_REGISTRY definition',
+  },
+  {
+    path: 'src/config/canonical-tool-definition.ts',
+    pattern: /export const TOOL_DEFINITIONS\b/gu,
+    expected: 1,
+    label: 'canonical TOOL_DEFINITIONS definition',
+  },
+  {
+    path: 'src/lib/execution/canonical-executor.ts',
+    pattern: /export async function executeCanonicalTool\b/gu,
+    expected: 1,
+    label: 'canonical execution entrypoint',
+  },
+];
+
+const authorityViolations = [];
+for (const check of authorityChecks) {
+  const source = readFileSync(check.path, 'utf8');
+  const matches = source.match(check.pattern) ?? [];
+  if (matches.length !== check.expected) {
+    authorityViolations.push(
+      check.path + ' -> ' + check.label + ' expected=' + check.expected + ' actual=' + matches.length,
+    );
+  }
+}
+
+if (existsSync('src/lib/media/media-safety.ts')) {
+  authorityViolations.push('src/lib/media/media-safety.ts -> duplicate media safety authority must remain removed');
+}
+
 if (importViolations.length) {
   console.error("Architecture gate: migrated Agent runtime compatibility imports are forbidden.");
   for (const violation of importViolations) console.error(violation);
+  process.exit(1);
+}
+
+if (codeownersViolations.length) {
+  console.error("Architecture gate: CODEOWNERS coverage is incomplete.");
+  for (const violation of codeownersViolations) console.error(violation);
+  process.exit(1);
+}
+
+if (authorityViolations.length) {
+  console.error("Architecture gate: canonical authority invariants failed.");
+  for (const violation of authorityViolations) console.error(violation);
   process.exit(1);
 }
 

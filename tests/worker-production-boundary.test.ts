@@ -9,13 +9,37 @@ test('deployment identity resolver requires an exact 40-character SHA match', ()
   assert.equal(resolveDeploymentIdentity(sha, 'a'.repeat(39)), null);
 });
 
+test('production worker applies the complete security-header contract', async () => {
+  const response = await worker.fetch(
+    new Request('https://flixoai.example/'),
+    {
+      ASSETS: {
+        fetch: async () =>
+          new Response('<html></html>', {
+            status: 200,
+            headers: { 'content-type': 'text/html' },
+          }),
+      },
+    },
+  );
 
-test('production worker applies security headers', async () => {
-  const response = await worker.fetch(new Request('https://flixoai.example/'), { ASSETS: { fetch: async () => new Response('<html></html>', { status: 200, headers: { 'content-type': 'text/html' } }) } });
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
   assert.equal(response.headers.get('x-frame-options'), 'DENY');
-  assert.equal(response.headers.get('strict-transport-security'), 'max-age=63072000; includeSubDomains; preload');
+  assert.equal(response.headers.get('referrer-policy'), 'strict-origin-when-cross-origin');
+  assert.equal(
+    response.headers.get('strict-transport-security'),
+    'max-age=63072000; includeSubDomains; preload',
+  );
+  assert.equal(
+    response.headers.get('permissions-policy'),
+    'geolocation=(), microphone=(), camera=()',
+  );
+  const csp = response.headers.get('content-security-policy') ?? '';
+  assert.match(csp, /default-src 'self'/u);
+  assert.match(csp, /object-src 'none'/u);
+  assert.match(csp, /frame-ancestors 'none'/u);
+  assert.match(csp, /worker-src 'self' blob:/u);
 });
 
 test('production worker returns JSON 404 for API paths instead of SPA HTML', async () => {
@@ -23,6 +47,8 @@ test('production worker returns JSON 404 for API paths instead of SPA HTML', asy
   assert.equal(response.status, 404);
   assert.equal((response.headers.get('content-type') ?? '').includes('application/json'), true);
   assert.equal((await response.json() as { error: string }).error, 'API_NOT_EXPOSED_ON_STATIC_PRODUCTION_WORKER');
+  assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+  assert.equal(response.headers.get('x-frame-options'), 'DENY');
 });
 
 test('production worker rejects identity before deploy-time SHA binding', async () => {

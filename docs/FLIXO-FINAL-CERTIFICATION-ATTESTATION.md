@@ -1,12 +1,21 @@
-# FLIXO Final Certification Attestation — Pending Evidence
+# FLIXO Final Certification Attestation
 
-Status: PENDING / AWAITING POST-MERGE PRODUCTION EVIDENCE
+STATUS: NOT READY
+REPOSITORY: m1m2m3m4m5m6m700-afk/FLIXO_Hub
+EXECUTION_BRANCH: execution
+INTEGRATION_PR: #1002
 
-This attestation is intentionally not a certification. It records the exact main lineage that must receive post-merge CI, Cloudflare deployment, immutable production identity, and production browser evidence.
+No final attestation is valid until Prompt 19 completes on one exact candidate SHA and Prompt 20 verifies promotion through the protected `main` branch.
 
-- Main SHA at preparation: `0df58b583430208d06020700c4d7dac0c6f93310`
-- Required production origin: `https://flixoai.m1m2m3m4m5m6m700.workers.dev`
-- Integration lane: `execution -> main`
-- Direct main writes: prohibited
+Required attestation identities:
+- CURRENT_SHA
+- TESTED_SHA
+- BUILT_SHA
+- BROWSER_VERIFIED_SHA
+- SECURITY_VERIFIED_SHA
+- COVERAGE_VERIFIED_SHA
+- RED_TEAM_VERIFIED_SHA
+- CERTIFIED_SHA
+- DEPLOYED_SHA when applicable
 
-Certification is issued only after exact-SHA production evidence is independently verified.
+Current known blocker: the GitHub main ruleset is weaker than the policy required by Prompt 12. Historical attestation data must not be reused.

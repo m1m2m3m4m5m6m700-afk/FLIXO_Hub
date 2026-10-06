@@ -28,7 +28,7 @@ const ALIASES: Record<string, readonly string[]> = {
   seed: ['gpu image editor', 'advanced image adjustments', 'تحسينات متقدمة للصورة'],
   'video-trimmer': ['trim video', 'cut video', 'video trim', 'trim first', 'اقتطع الفيديو', 'اقتطع أول', 'اقتطاع الفيديو'],
   'video-cropper': ['crop video', 'video crop', 'قص الفيديو من الأطراف', 'قص الفيديو من الاطراف'],
-  'video-resizer': ['resize video', 'change video resolution', 'video dimensions', 'تغيير حجم الفيديو', 'تغيير دقة الفيديو'],
+  'video-resizer': ['resize video', 'change video resolution', 'video dimensions', 'تغيير حجم الفيديو', 'غيّر حجم الفيديو', 'تغيير دقة الفيديو'],
   'video-compressor': ['compress video', 'reduce video size', 'video compression', 'ضغط الفيديو', 'تصغير حجم الفيديو'],
 };
 

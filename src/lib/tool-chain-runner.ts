@@ -1,4 +1,5 @@
-﻿import { executeToolChain, getToolChainAdapter, type ChainInput, type ChainOutput } from './tool-chain-adapters';
+﻿import { executeCanonicalChain } from './execution/canonical-executor';
+import type { ChainInput, ChainOutput } from './tool-chain-adapters';
 import { validateToolChain } from './tool-chain-compatibility';
 
 export async function runStoredToolChain(
@@ -8,8 +9,9 @@ export async function runStoredToolChain(
 ): Promise<ChainOutput> {
   const validation = validateToolChain(steps, input);
   if (!validation.valid) throw new Error(validation.reason ?? 'Tool chain is not compatible.');
-  for (const toolId of steps) {
-    if (!getToolChainAdapter(toolId)) throw new Error('Tool "' + toolId + '" has no local chain adapter.');
-  }
-  return executeToolChain(steps, input, onStep);
+  return executeCanonicalChain(
+    steps.map((toolId) => ({ toolId })),
+    input,
+    onStep,
+  );
 }

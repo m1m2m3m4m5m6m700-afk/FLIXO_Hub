@@ -1,6 +1,7 @@
 import { createElement, lazy } from 'react';
 import { z, type ZodType } from 'zod';
 import { LOCALES, type Locale } from '../lib/i18n/config.ts';
+import { attachVideoBlobSource } from '../lib/video/blob-video-source.ts';
 import { getCanonicalCapabilityDefinition, MVP_EXECUTABLE_TOOL_IDS as CANONICAL_MVP_IDS, type CanonicalCapabilityDefinition, type CanonicalCapabilityState, type CanonicalExecutionMode, type CanonicalCapabilityParameters, type CanonicalCapabilityVerifier, type CanonicalCapabilityLimits } from './manual-capability-definition';
 import type { ComponentType, LazyExoticComponent } from 'react';
 import type { LocalToolId } from '../tools/image-toolkit/engine.ts';
@@ -34,7 +35,7 @@ export type ToolSource = Readonly<{
 // ToolConfig is the canonical source shape consumed by the definition builder.
 type ToolConfig = ToolSource;
 
-const createImageToolkitComponent = (toolId: Exclude<LocalToolId, 'ai-image-generator' | 'image-compressor'>) =>
+const createImageToolkitComponent = (toolId: Exclude<LocalToolId, 'image-compressor'>) =>
   lazy(() =>
     import('@/tools/image-toolkit').then((m) => ({
       default: ((props: Record<string, unknown>) => createElement(m.ImageToolPage, { ...props, toolId })) as ComponentType,
@@ -92,7 +93,6 @@ const IMAGE_TOOL_CONFIGS: readonly ToolSource[] = Object.freeze([
   { id: 'mockup-generator', title: 'Mockup Generator', path: '/en/mockup-generator', description: 'Place images inside a simple device mockup.', category: 'Images', isReady: true, component: lazy(() => import('@/tools/mockup-generator')) },
   { id: 'seed', title: 'Seed', path: '/en/seed', description: 'Non-destructive GPU image adjustments with WebGL.', category: 'Images', isReady: true, component: lazy(() => import('@/tools/seed')) },
   { id: 'pix', title: 'Pix Studio', path: '/en/pix', description: 'Professional browser-based image editor with tune, liquify, dispersion, text, history, and PNG export.', category: 'Images', isReady: true, component: lazy(() => import('@/tools/pix')) },
-  { id: 'ai-image-generator', title: 'AI Image Generator', path: '/en/ai-image-generator', description: 'Generate images through a configured image endpoint.', category: 'Images', isReady: true, component: lazy(() => import('@/tools/ai-image-generator').then((m) => ({ default: m.AiImageGeneratorTool }))) },
   { id: 'photo-colorizer', title: 'Photo Colorizer', path: '/en/photo-colorizer', description: 'Colorize photos through a configured AI endpoint.', category: 'Images', isReady: false, component: lazy(() => import('@/tools/photo-colorizer')) },
   { id: 'image-rotate', title: 'Rotate Image', path: '/en/image-rotate', description: 'Rotate images locally in your browser.', category: 'Images', isReady: true, component: createImageToolkitComponent('image-rotate') },
   { id: 'image-flip-horizontal', title: 'Flip Image Horizontal', path: '/en/image-flip-horizontal', description: 'Flip images horizontally locally.', category: 'Images', isReady: true, component: createImageToolkitComponent('image-flip-horizontal') },
@@ -105,6 +105,11 @@ const IMAGE_TOOL_CONFIGS: readonly ToolSource[] = Object.freeze([
   { id: 'image-sepia', title: 'Sepia', path: '/en/image-sepia', description: 'Apply a sepia effect locally.', category: 'Images', isReady: true, component: createImageToolkitComponent('image-sepia') },
   { id: 'image-blur', title: 'Blur', path: '/en/image-blur', description: 'Apply a blur effect locally.', category: 'Images', isReady: true, component: createImageToolkitComponent('image-blur') },
   { id: 'image-sharpen', title: 'Sharpen', path: '/en/image-sharpen', description: 'Sharpen images locally.', category: 'Images', isReady: true, component: createImageToolkitComponent('image-sharpen') },
+  { id: 'image-resizer', title: 'Resize Image', path: '/en/image-resizer', description: 'Resize images locally with deterministic browser resampling.', category: 'Images', isReady: false, component: createImageToolkitComponent('image-resizer') },
+  { id: 'image-hue', title: 'Hue', path: '/en/image-hue', description: 'Shift image hue locally in the browser.', category: 'Images', isReady: false, component: createImageToolkitComponent('image-hue') },
+  { id: 'image-pixelate', title: 'Pixelate Image', path: '/en/image-pixelate', description: 'Pixelate an image locally without uploading it.', category: 'Images', isReady: false, component: createImageToolkitComponent('image-pixelate') },
+  { id: 'image-padding', title: 'Image Padding', path: '/en/image-padding', description: 'Add transparent padding around an image locally.', category: 'Images', isReady: false, component: createImageToolkitComponent('image-padding') },
+  { id: 'image-rounded-corners', title: 'Rounded Corners', path: '/en/image-rounded-corners', description: 'Add rounded transparent corners to an image locally.', category: 'Images', isReady: false, component: createImageToolkitComponent('image-rounded-corners') },
   { id: 'video-trimmer', title: 'Video Trimmer', path: '/en/video-trimmer', description: 'Trim a video locally in the browser with WebCodecs-compatible playback and MediaRecorder output.', family: 'video', category: 'Video', isReady: true, component: lazy(() => import('@/tools/video-local').then((m) => ({ default: m.VideoLocalTool }))) },
   { id: 'video-cropper', title: 'Video Cropper', path: '/en/video-cropper', description: 'Crop a video locally to a deterministic rectangle.', family: 'video', category: 'Video', isReady: true, component: lazy(() => import('@/tools/video-local').then((m) => ({ default: m.VideoLocalTool }))) },
   { id: 'video-resizer', title: 'Video Resizer', path: '/en/video-resizer', description: 'Resize a video locally to exact output dimensions.', family: 'video', category: 'Video', isReady: true, component: lazy(() => import('@/tools/video-local').then((m) => ({ default: m.VideoLocalTool }))) },
@@ -124,6 +129,11 @@ const PARAMETER_SCHEMAS: Readonly<Record<string, ZodType>> = {
   'image-compressor': z.object({ quality: z.number().finite().min(0.01).max(1).optional(), format: z.enum(MIME_TYPES).optional(), targetSizeKB: z.number().finite().int().positive().max(64 * 1024).optional(), maxWidth: z.number().int().positive().max(4000).optional(), maxHeight: z.number().int().positive().max(4000).optional() }).strict(),
   'image-converter': z.object({ format: z.enum(MIME_TYPES) }).strict(),
   'image-effects': z.object({ brightness: z.number().finite().min(0).max(200).optional(), contrast: z.number().finite().min(0).max(200).optional(), saturate: z.number().finite().min(0).max(200).optional(), grayscale: z.number().finite().min(0).max(100).optional() }).strict(),
+  'image-resizer': z.object({ scale: z.number().finite().positive().min(0.1).max(8).optional() }).strict(),
+  'image-hue': z.object({ degrees: z.number().finite().min(-360).max(360).optional() }).strict(),
+  'image-pixelate': z.object({ blockSize: z.number().int().min(2).max(64).optional() }).strict(),
+  'image-padding': z.object({ padding: z.number().int().min(0).max(2000).optional() }).strict(),
+  'image-rounded-corners': z.object({ radius: z.number().int().min(0).max(4000).optional() }).strict(),
   'video-trimmer': z.object({ startSec: z.number().finite().min(0).max(86_400).optional(), endSec: z.number().finite().min(0).max(86_400).optional() }).strict(),
   'video-cropper': z.object({ x: z.number().finite().min(0).max(20_000).optional(), y: z.number().finite().min(0).max(20_000).optional(), width: z.number().int().positive().max(20_000), height: z.number().int().positive().max(20_000) }).strict(),
   'video-resizer': z.object({ width: z.number().int().positive().max(8000), height: z.number().int().positive().max(8000), fps: z.number().finite().positive().max(120).optional() }).strict(),
@@ -152,7 +162,6 @@ const TOOL_INTENTS: Readonly<Record<string, readonly string[]>> = {
   'pix': ['pix studio', 'photo editor', 'image editor', 'تحرير الصورة', 'محرر الصور'],
   'watermark-remover': ['remove watermark', 'erase watermark', 'إزالة العلامة المائية'],
   'object-remover': ['remove object', 'erase object', 'delete object', 'إزالة عنصر', 'حذف عنصر'],
-  'ai-image-generator': ['generate image', 'create image with ai', 'text to image', 'make an image', 'إنشاء صورة بالذكاء الاصطناعي'],
   'image-rotate': ['rotate image','turn image','تدوير الصورة'],
   'image-flip-horizontal': ['flip horizontal','mirror image','قلب أفقي','عكس أفقي'],
   'image-flip-vertical': ['flip vertical','قلب رأسي','عكس رأسي'],
@@ -164,6 +173,11 @@ const TOOL_INTENTS: Readonly<Record<string, readonly string[]>> = {
   'image-sepia': ['sepia','sepia effect','تأثير سيبيا'],
   'image-blur': ['blur image','soften image','تمويه الصورة','ضبابية الصورة'],
   'image-sharpen': ['sharpen image','make image sharper','زيادة حدة الصورة'],
+  'image-resizer': ['resize image','change image dimensions','تغيير حجم الصورة','تغيير أبعاد الصورة'],
+  'image-hue': ['change hue','hue shift','تغيير درجة اللون','إزاحة اللون'],
+  'image-pixelate': ['pixelate image','pixelation','بكسلة الصورة','تحويل الصورة لبكسلات'],
+  'image-padding': ['add padding','image padding','إضافة هوامش للصورة','إضافة حواف للصورة'],
+  'image-rounded-corners': ['rounded corners','round image corners','زوايا مستديرة','تدوير زوايا الصورة'],
   'video-trimmer': ['trim video', 'cut video', 'video trim', 'قص الفيديو', 'اقتطاع الفيديو'],
   'video-cropper': ['crop video', 'video crop', 'قص الفيديو من الاطراف', 'قص الفيديو من الأطراف'],
   'video-resizer': ['resize video', 'change video resolution', 'video dimensions', 'تغيير حجم الفيديو', 'تغيير دقة الفيديو'],
@@ -187,20 +201,24 @@ const verifierFor = (toolId: string): CapabilityVerifier => {
   if (toolId === 'image-converter') return formatVerifier;
   if (toolId.startsWith('video-')) return async (_inputBlob, outputBlob, _parameters, signal) => {
     if (signal?.aborted || outputBlob.size <= 0 || outputBlob.type !== 'video/webm' || typeof document === 'undefined') return false;
-    const url = URL.createObjectURL(outputBlob);
     const video = document.createElement('video');
     video.preload = 'metadata';
-    video.src = url;
+    let releaseSource: (() => void) | null = null;
     try {
-      await new Promise<void>((resolve, reject) => {
-        video.onloadedmetadata = () => resolve();
-        video.onerror = () => reject(new Error('Video output metadata could not be decoded.'));
+      const metadataReady = new Promise<void>((resolve, reject) => {
+        const onAbort = () => reject(new DOMException('Video output verification aborted.', 'AbortError'));
+        const cleanup = () => signal?.removeEventListener('abort', onAbort);
+        video.onloadedmetadata = () => { cleanup(); resolve(); };
+        video.onerror = () => { cleanup(); reject(new Error('Video output metadata could not be decoded.')); };
+        signal?.addEventListener('abort', onAbort, { once: true });
       });
+      releaseSource = await attachVideoBlobSource(video, outputBlob, signal);
+      await metadataReady;
       return Number.isFinite(video.duration) && video.duration > 0 && video.videoWidth > 0 && video.videoHeight > 0;
     } catch {
       return false;
     } finally {
-      URL.revokeObjectURL(url);
+      releaseSource?.();
       video.removeAttribute('src');
       video.load();
     }
@@ -230,7 +248,7 @@ export function toToolDefinition(tool: ToolConfig): ToolDefinition {
   const routes = Object.fromEntries(LOCALES.map((locale) => [locale, localizedRoute(tool.path, locale)])) as Record<Locale, string>;
   const canonicalCapability = getCanonicalCapabilityDefinition(tool.id) as CanonicalCapabilityDefinition | undefined;
   const capabilityState = canonicalCapability?.state ?? stateFor(tool);
-  const executionMode: ExecutionMode = canonicalCapability?.executionMode ?? (tool.id === 'ai-image-generator' || tool.id === 'photo-colorizer' ? 'CLOUD' : 'LOCAL');
+  const executionMode: ExecutionMode = canonicalCapability?.executionMode ?? (tool.id === 'photo-colorizer' ? 'CLOUD' : 'LOCAL');
   const parameterSchema = canonicalCapability?.parameterSchema ?? PARAMETER_SCHEMAS[tool.id] ?? COMMON_PARAMETERS;
   const safetyLimits = canonicalCapability?.safetyLimits ?? Object.freeze(tool.id.startsWith('video-')
     ? { maxPixels: 64_000_000, maxFileSizeBytes: 512 * 1024 * 1024, timeoutMs: 10 * 60 * 1000 }

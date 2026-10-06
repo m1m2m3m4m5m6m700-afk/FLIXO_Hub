@@ -70,7 +70,7 @@ export function ToolChainPanel({ currentToolId }: { currentToolId?: string | nul
       <div className="flixo-chain-panel__bar">
         <div>
           <strong>{copy.workspace}</strong>
-          <span>{selected.length}/8 steps</span>
+          <span>{selected.length}/4 steps</span>
         </div>
         <button type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open}>
           {open ? copy.hide : copy.open}
@@ -79,7 +79,7 @@ export function ToolChainPanel({ currentToolId }: { currentToolId?: string | nul
       {open && (
         <div className="flixo-chain-panel__body">
           <div className="flixo-chain-panel__actions">
-            <button type="button" onClick={addCurrent} disabled={!currentToolId || chain.some((step) => step.id === currentToolId) || selected.length >= 8}>
+            <button type="button" onClick={addCurrent} disabled={!currentToolId || chain.some((step) => step.id === currentToolId) || selected.length >= 4}>
               {copy.addCurrentTool}
             </button>
             <button type="button" onClick={() => { clearToolChain(); refresh(); }} disabled={selected.length === 0}>{copy.clear}</button>
@@ -105,7 +105,7 @@ export function ToolChainPanel({ currentToolId }: { currentToolId?: string | nul
           <div className="flixo-chain-panel__runner">
             <label className="flixo-chain-panel__file">
               <span>{copy.inputFile}</span>
-              <input type="file" accept="image/*" aria-label={copy.chooseFile} disabled={running} onChange={(event) => { setInputFile(event.target.files?.[0] ?? null); setError(''); setResult(null); }} />
+              <input type="file" accept="image/*,video/*" aria-label={copy.chooseFile} disabled={running} onChange={(event) => { setInputFile(event.target.files?.[0] ?? null); setError(''); setResult(null); }} />
             </label>
             <button type="button" className="flixo-chain-panel__run" onClick={() => void runChain()} disabled={!inputFile || selected.length === 0 || running}>
               {running ? `${copy.processing}… ${progress}%` : copy.runChainLocally}

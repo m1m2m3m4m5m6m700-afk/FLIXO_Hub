@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const required = [
-  'docs/FLIXO-PUBLIC-LAUNCH-EXECUTION-PLAN.md',
+  'المهام.md',
   'docs/FLIXO-PUBLIC-RELEASE-MANIFEST.md',
   'docs/FLIXO-LAUNCH-DAY-RUNBOOK.md',
   'docs/FLIXO-ANALYTICS-CONTRACT.md',

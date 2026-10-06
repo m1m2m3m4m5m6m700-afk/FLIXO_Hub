@@ -158,3 +158,73 @@ export function validateArchiveEntries(entries: readonly ArchiveEntry[], policy:
   visit(entries, 0);
   return { safe: failures.length === 0, failures };
 }
+
+
+// Media helpers reuse the canonical file-safety contract rather than creating a second safety authority.
+export const MEDIA_LIMITS = Object.freeze({
+  rasterInputBytes: 50 * 1024 * 1024,
+  rasterOutputBytes: 50 * 1024 * 1024,
+  rasterInputPixels: 100_000_000,
+  rasterOutputPixels: 100_000_000,
+  workerTimeoutMs: 8_000,
+});
+
+const IMAGE_SIGNATURE_BY_MIME: Readonly<Record<'image/png' | 'image/jpeg' | 'image/webp', string>> = Object.freeze({
+  'image/png': 'png',
+  'image/jpeg': 'jpeg',
+  'image/webp': 'webp',
+});
+
+const IMAGE_EFFECT_RANGES: Readonly<Record<string, readonly [number, number]>> = Object.freeze({
+  brightness: [0, 200],
+  contrast: [0, 200],
+  saturation: [0, 200],
+  grayscale: [0, 100],
+});
+
+export async function assertSafeRasterInput(blob: Blob): Promise<void> {
+  const allowedMime = Object.keys(IMAGE_SIGNATURE_BY_MIME) as Array<keyof typeof IMAGE_SIGNATURE_BY_MIME>;
+  const structural = validateFileSafety(
+    { name: 'raster-input', mime: blob.type, bytes: blob.size },
+    { allowedMime, maxBytes: MEDIA_LIMITS.rasterInputBytes },
+  );
+  if (!structural.safe) throw new Error(structural.failures.join('; '));
+  const header = new Uint8Array(await blob.slice(0, 64).arrayBuffer());
+  const signature = IMAGE_SIGNATURE_BY_MIME[blob.type as keyof typeof IMAGE_SIGNATURE_BY_MIME];
+  if (!signature || !verifyMagicBytesMatch(header, [signature])) {
+    throw new Error('Raster file signature does not match its declared MIME type.');
+  }
+}
+
+export async function assertRasterOutput(blob: Blob, expectedMime: string): Promise<void> {
+  if (!(expectedMime in IMAGE_SIGNATURE_BY_MIME)) throw new Error('Raster output MIME is not admitted.');
+  if (blob.type !== expectedMime) throw new Error(`Raster output MIME mismatch: expected ${expectedMime}, got ${blob.type}.`);
+  const structural = validateFileSafety(
+    { name: 'raster-output', mime: blob.type, bytes: blob.size },
+    { allowedMime: [expectedMime], maxBytes: MEDIA_LIMITS.rasterOutputBytes },
+  );
+  if (!structural.safe) throw new Error(structural.failures.join('; '));
+  const header = new Uint8Array(await blob.slice(0, 64).arrayBuffer());
+  const signature = IMAGE_SIGNATURE_BY_MIME[expectedMime as keyof typeof IMAGE_SIGNATURE_BY_MIME];
+  if (!signature || !verifyMagicBytesMatch(header, [signature])) {
+    throw new Error('Raster output signature does not match its declared MIME type.');
+  }
+}
+
+export function assertImageDimensions(width: number, height: number, maxPixels = MEDIA_LIMITS.rasterInputPixels): void {
+  if (!Number.isInteger(width) || width < 1 || !Number.isInteger(height) || height < 1) {
+    throw new Error('Image dimensions must be positive integers.');
+  }
+  if (width * height > maxPixels) throw new Error('Image dimensions exceed the safe browser processing limit.');
+}
+
+export function assertImageOutputBudget(width: number, height: number): void {
+  assertImageDimensions(width, height, MEDIA_LIMITS.rasterOutputPixels);
+}
+
+export function assertEffectParameters(effect: string, value: number): void {
+  const range = IMAGE_EFFECT_RANGES[effect];
+  if (!range || !Number.isFinite(value) || value < range[0] || value > range[1]) {
+    throw new Error(`Image effect parameter is outside the admitted range: ${effect}=${String(value)}.`);
+  }
+}

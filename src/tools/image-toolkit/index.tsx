@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from '@tanstack/react-router';
-import { applyBasicImageEffect, convertImage, cropResizeImage, flipImage, imageInfo, removeBackground, rasterToSvg, resizeImage, rotateImage, watermarkRemove, fillRemoveRegion } from './engine';
+import { applyBasicImageEffect, cropResizeImage, flipImage, imageInfo, rasterToSvg, rotateImage, watermarkRemove, fillRemoveRegion } from './engine';
+import { executeCanonicalTool } from '../../lib/execution/canonical-executor';
 import { recognizeWithOcrWorker } from './ocr-worker-client';
 import { assertImageCropperOutputIntegrity } from '../image-cropper/output-integrity';
-import { assertImageConverterOutputIntegrity } from '../image-converter/output-integrity';
 import { validateFileSafety } from '../../lib/contracts/file-safety';
 import { validateUploadBoundary } from '../../lib/contracts/upload-boundary';
 import { LOCALE_METADATA, isLocale } from '../../lib/i18n';
@@ -11,7 +11,7 @@ import { getToolSeo } from '../../lib/seo/tool-seo';
 import { getAuthoritativeToolSeoName } from '../../config/tool-seo-name-resolver';
 import type { LocalToolId } from './engine';
 
-const DEFINITIONS: Record<Exclude<LocalToolId, 'ai-image-generator' | 'image-compressor'>, { title: string; description: string; accept: string }> = {
+const DEFINITIONS: Record<SharedImageToolId, { title: string; description: string; accept: string }> = {
   'background-remover': { title: 'Background Remover', description: 'Remove connected, uniform backgrounds locally in your browser with edge-aware flood fill.', accept: 'image/png,image/jpeg,image/webp,image/svg+xml' },
   'image-upscaler': { title: 'Image Upscaler', description: 'Increase image dimensions with high-quality browser resampling and controlled sharpening.', accept: 'image/png,image/jpeg,image/webp' },
   'image-converter': { title: 'Image Converter', description: 'Convert images between PNG, JPG, and WebP without uploading them.', accept: 'image/png,image/jpeg,image/webp' },
@@ -31,6 +31,11 @@ const DEFINITIONS: Record<Exclude<LocalToolId, 'ai-image-generator' | 'image-com
   'image-sepia': { title: 'Sepia', description: 'Apply a sepia effect locally.', accept: 'image/png,image/jpeg,image/webp' },
   'image-blur': { title: 'Blur', description: 'Apply a local blur effect.', accept: 'image/png,image/jpeg,image/webp' },
   'image-sharpen': { title: 'Sharpen', description: 'Sharpen an image locally.', accept: 'image/png,image/jpeg,image/webp' },
+  'image-resizer': { title: 'Resize Image', description: 'Resize an image locally with deterministic browser resampling.', accept: 'image/png,image/jpeg,image/webp' },
+  'image-hue': { title: 'Hue', description: 'Shift image hue locally in the browser.', accept: 'image/png,image/jpeg,image/webp' },
+  'image-pixelate': { title: 'Pixelate Image', description: 'Pixelate an image locally without uploading it.', accept: 'image/png,image/jpeg,image/webp' },
+  'image-padding': { title: 'Image Padding', description: 'Add transparent padding around an image locally.', accept: 'image/png,image/jpeg,image/webp' },
+  'image-rounded-corners': { title: 'Rounded Corners', description: 'Add rounded transparent corners to an image locally.', accept: 'image/png,image/jpeg,image/webp' },
 };
 
 type Props = { toolId: Exclude<LocalToolId, 'image-compressor'> };
@@ -130,8 +135,12 @@ export function ImageToolPage({ toolId }: Props) {
   const localizedTitle = canonicalTool ? getAuthoritativeToolSeoName(canonicalTool, locale) : undefined;
   const localizedSeo = getToolSeo(locale, canonicalToolId);
   const definition = isGenerator
-    ? { title: getAuthoritativeToolSeoName(getToolSeo(locale, 'ai-image-generator')!.tool, locale) ?? 'AI Image Generator', description: localizedSeo?.description ?? 'Generate an image through the configured FLIXO image model endpoint.', accept: '' }
-    : { ...DEFINITIONS[toolId], title: localizedTitle ?? DEFINITIONS[toolId].title, description: localizedSeo?.description ?? DEFINITIONS[toolId].description };
+    ? { title: localizedTitle ?? 'AI Image Generator', description: localizedSeo?.description ?? 'Generate an image through the configured FLIXO image model endpoint.', accept: '' }
+    : (() => {
+        const sharedToolId = toolId as SharedImageToolId;
+        const sharedDefinition = DEFINITIONS[sharedToolId];
+        return { ...sharedDefinition, title: localizedTitle ?? sharedDefinition.title, description: localizedSeo?.description ?? sharedDefinition.description };
+      })();
   const [file, setFile] = useState<File | null>(null);
   const [prompt, setPrompt] = useState('');
   const [outputFormat, setOutputFormat] = useState<'image/png' | 'image/jpeg' | 'image/webp'>('image/webp');
@@ -146,21 +155,26 @@ export function ImageToolPage({ toolId }: Props) {
   const run = async () => {
     setBusy(true); setError(''); replaceResult(null);
     try {
-      if (isGenerator) {
+      if (toolId === 'ai-image-generator') {
         if (!prompt.trim()) throw new Error(ui.promptRequired);
-        const body = new FormData(); body.append('capability', 'generate-image'); body.append('prompt', prompt.trim());
+        const body = new FormData();
+        body.append('capability', 'generate-image');
+        body.append('prompt', prompt.trim());
         const response = await fetch(import.meta.env.VITE_FLIXO_AI_IMAGE_ENDPOINT || '/api/ai/image', { method: 'POST', body });
         if (!response.ok) throw new Error('AI image endpoint is not configured or returned an error.');
-        const blob = await response.blob(); if (!blob.type.startsWith('image/')) throw new Error('AI endpoint did not return an image.');
-        const info = await imageInfo(blob); replaceResult(await createResult(blob, `flixo-ai-${info.width}x${info.height}.png`, info)); return;
+        const blob = await response.blob();
+        if (!blob.type.startsWith('image/')) throw new Error('AI endpoint did not return an image.');
+        const info = await imageInfo(blob);
+        replaceResult(await createResult(blob, `flixo-ai-${info.width}x${info.height}.png`, info));
+        return;
       }
-      if (toolId === 'image-upscaler') { const factor = Number(scale); if (!Number.isFinite(factor) || factor < 0.25 || factor > 4) throw new Error('Scale must be between 0.25 and 4.'); }
+      if (toolId === 'image-upscaler') { const factor = Number(scale); if (!Number.isFinite(factor) || factor < 1 || factor > 8) throw new Error('Scale must be between 1 and 8.'); }
       if (!file) throw new Error(ui.chooseImageFirst);
       await validateSharedImageInput(file, toolId);
       let blob: Blob; let fileName = baseName(file.name); let info: Result['info'];
-      if (toolId === 'background-remover') { blob = await removeBackground(file, Number(tolerance) || 42); fileName += '-no-background.png'; }
-      else if (toolId === 'image-upscaler') { const factor = Number(scale); blob = await resizeImage(file, factor); fileName += `-upscaled-${factor}x.png`; }
-      else if (toolId === 'image-converter') { blob = await convertImage(file, outputFormat); info = await imageInfo(blob); assertImageConverterOutputIntegrity(blob, info); fileName += outputFormat === 'image/jpeg' ? '.jpg' : outputFormat === 'image/png' ? '.png' : '.webp'; }
+      if (toolId === 'background-remover') { const output = await executeCanonicalTool('background-remover', { blob: file, fileName: file.name }, { tolerance: Number(tolerance) || 42 }); blob = output.blob; fileName = output.fileName; }
+      else if (toolId === 'image-upscaler') { const factor = Number(scale); const output = await executeCanonicalTool('image-upscaler', { blob: file, fileName: file.name }, { scale: factor }); blob = output.blob; fileName = output.fileName; }
+      else if (toolId === 'image-converter') { const output = await executeCanonicalTool('image-converter', { blob: file, fileName: file.name }, { format: outputFormat }); blob = output.blob; fileName = output.fileName; info = await imageInfo(blob); }
       else if (toolId === 'image-to-text') { const prepared = await preprocessForOcr(file); const ocr = await recognizeWithOcrWorker(prepared, 'eng+ara'); replaceResult(await createResult(new Blob([ocr.text], { type: 'text/plain;charset=utf-8' }), `${baseName(file.name)}.txt`, undefined, ocr.text)); return; }
       else if (toolId === 'object-remover') { blob = await fillRemoveRegion(file, { x: Number(cropX), y: Number(cropY), width: Number(cropW), height: Number(cropH) }); fileName += '-object-removed.png'; }
       else if (toolId === 'watermark-remover') { blob = await watermarkRemove(file, { x: Number(cropX), y: Number(cropY), width: Number(cropW), height: Number(cropH) }); fileName += '-watermark-removed.png'; }
@@ -176,6 +190,11 @@ export function ImageToolPage({ toolId }: Props) {
       else if (toolId === 'image-sepia') { blob = await applyBasicImageEffect(file, 'sepia', 100); fileName += '-sepia.png'; }
       else if (toolId === 'image-blur') { blob = await applyBasicImageEffect(file, 'blur', 80); fileName += '-blur.png'; }
       else if (toolId === 'image-sharpen') { blob = await applyBasicImageEffect(file, 'sharpen', 110); fileName += '-sharpen.png'; }
+      else if ((toolId as string) === 'image-effects') {
+        const output = await executeCanonicalTool('image-effects', { blob: file, fileName: file.name }, { contrast: 110 });
+        blob = output.blob;
+        fileName = output.fileName;
+      }
       else { blob = await rasterToSvg(file, Number(columns) || 48); fileName += '.svg'; }
       if (blob.type.startsWith('image/') && !info) info = await imageInfo(blob);
       replaceResult(await createResult(blob, fileName, info));
@@ -189,9 +208,7 @@ export function ImageToolPage({ toolId }: Props) {
         <header className="image-tool-header"><div><p className="image-tool-eyebrow">{ui.imageTools}</p><h2>{definition.title}</h2><p className="image-tool-lead">{definition.description}</p></div></header>
         <section className="compressor-grid" aria-label={definition.title}>
           <div className="compressor-card">
-            {isGenerator
-              ? <label><span>{ui.prompt}</span><textarea data-testid="ai-image-prompt" value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder={ui.prompt} rows={6} /></label>
-              : <><label className="upload-zone" htmlFor="image-tool-file"><span className="upload-title">{file ? file.name : ui.chooseImage}</span><span className="upload-subtitle">{definition.accept.replaceAll('image/', '').toUpperCase() || ui.imageInput}</span></label><input id="image-tool-file" className="sr-only" type="file" accept={definition.accept} onChange={(event) => setFile(event.target.files?.[0] ?? null)} /></>}
+            {isGenerator ? <label><span>{ui.prompt}</span><textarea aria-label={ui.prompt} value={prompt} onChange={(event) => setPrompt(event.target.value)} rows={5} /> </label> : <><label className="upload-zone" htmlFor="image-tool-file"><span className="upload-title">{file ? file.name : ui.chooseImage}</span><span className="upload-subtitle">{definition.accept.replaceAll('image/', '').toUpperCase() || ui.imageInput}</span></label><input id="image-tool-file" className="sr-only" type="file" accept={definition.accept} onChange={(event) => setFile(event.target.files?.[0] ?? null)} /></>}
             {toolId === 'image-converter' && <label><span>{ui.outputFormat}</span><select aria-label={ui.outputFormat} value={outputFormat} onChange={(event) => setOutputFormat(event.target.value as typeof outputFormat)}><option value="image/webp">WebP</option><option value="image/jpeg">JPG</option><option value="image/png">PNG</option></select></label>}
             {toolId === 'image-upscaler' && <label><span>{ui.scale}</span><input aria-label={ui.scale} inputMode="decimal" value={scale} onChange={(event) => setScale(event.target.value)} /></label>}
             {toolId === 'background-remover' && <label><span>{ui.backgroundTolerance}</span><input aria-label={ui.backgroundTolerance} inputMode="numeric" value={tolerance} onChange={(event) => setTolerance(event.target.value)} /></label>}

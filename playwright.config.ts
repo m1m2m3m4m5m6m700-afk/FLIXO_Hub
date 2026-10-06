@@ -1,12 +1,13 @@
-import { defineConfig, devices } from '@playwright/test';
+﻿import { defineConfig, devices } from '@playwright/test';
 
 const isCi = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';
 const reuseExistingServer = process.env.PLAYWRIGHT_REUSE_SERVER === 'true';
 const testOrigin = process.env.VITE_TEST_ORIGIN || 'http://127.0.0.1:3000';
+process.env.SITE_URL ??= 'https://flixoai.m1m2m3m4m5m6m700.workers.dev';
+process.env.VITE_SITE_URL ??= process.env.SITE_URL;
 
 export default defineConfig({
   testDir: './tests/official',
-  testIgnore: ['**/mvp-agent-workflow-certification.spec.ts'],
   fullyParallel: true,
   forbidOnly: isCi,
   workers: isCi ? 3 : undefined,
@@ -41,3 +42,4 @@ export default defineConfig({
         },
       }),
 });
+

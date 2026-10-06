@@ -1,0 +1,39 @@
+name: FLIXO Scout Boundary
+
+on:
+  push:
+    branches: [execution]
+  pull_request:
+    branches: [execution, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flixo-scout-boundary-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  scout-boundary:
+    name: Scout boundary
+    if: ${{ github.event_name == 'push' || startsWith(github.head_ref || github.ref_name, 'scout/') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Verify Scout profiles and ledger
+        run: node scripts/verify-scout-boundary.mjs
+
+      - name: Verify Scout PR changed-file boundary
+        if: github.event_name == 'pull_request'
+        env:
+          SCOUT_BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
+        run: |
+          set -euo pipefail
+          git diff --name-only '${{ github.event.pull_request.base.sha }}' '${{ github.event.pull_request.head.sha }}' > scout-files.txt
+          export SCOUT_CHANGED_FILES="$(cat scout-files.txt)"
+          node scripts/verify-scout-boundary.mjs

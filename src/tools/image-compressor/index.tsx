@@ -6,7 +6,8 @@ import { validateOutputIntegrity } from '../../lib/contracts/output-integrity';
 import { imageCompressorOutputIntegrity } from './output-contract';
 import { assertSafeImageInput } from './file-safety';
 import type { CompressionFormat } from './engine';
-import { compressImage, MAX_FILES, MAX_INPUT_SIZE } from './engine';
+import { MAX_FILES, MAX_INPUT_SIZE } from './engine';
+import { executeCanonicalTool } from '../../lib/execution/canonical-executor';
 import { localizeToolUiValue } from '../../lib/i18n/tool-ui-runtime-completeness';
 
 type Parameters = {
@@ -49,14 +50,6 @@ const copy = {
   },
 } as const;
 
-function extensionFor(format: CompressionFormat): string {
-  return format === 'image/webp' ? 'webp' : format === 'image/png' ? 'png' : 'jpg';
-}
-
-function makeFile(input: { blob: Blob; mimeType: string; name?: string }): File {
-  return new File([input.blob], input.name ?? 'image', { type: input.mimeType });
-}
-
 export function ImageCompressor({ locale }: { locale?: string }) {
   const resolvedLocale = locale ?? (typeof document !== 'undefined' ? document.documentElement.lang : 'en');
   const lang = resolvedLocale.toLowerCase().startsWith('ar') ? 'ar' : 'en';
@@ -80,20 +73,20 @@ export function ImageCompressor({ locale }: { locale?: string }) {
       const zip = new JSZip();
       const format = parameters.format ?? 'image/webp';
       for (const file of selected) {
-        const compressed = await compressImage(file, {
+        const compressed = await executeCanonicalTool('image-compressor', { blob: file, fileName: file.name }, {
           quality: parameters.quality ?? 0.82,
           format,
-          maxWidth: parameters.maxWidth,
-          maxHeight: parameters.maxHeight,
-          targetSizeKB: parameters.targetSizeKB,
+          ...(parameters.maxWidth !== undefined ? { maxWidth: parameters.maxWidth } : {}),
+          ...(parameters.maxHeight !== undefined ? { maxHeight: parameters.maxHeight } : {}),
+          ...(parameters.targetSizeKB !== undefined ? { targetSizeKB: parameters.targetSizeKB } : {}),
         });
         const outputBytes = new Uint8Array(await compressed.blob.arrayBuffer());
-        const outputName = `${file.name.replace(/\.[^.]+$/, '') || 'image'}-flixo.${extensionFor(format)}`;
+        const outputName = compressed.fileName;
         const validation = validateOutputIntegrity(
           compressed.blob.size,
           compressed.blob.type || format,
           imageCompressorOutputIntegrity,
-          { width: compressed.width, height: compressed.height },
+          undefined,
           { filename: outputName, bytes: outputBytes },
         );
         if (!validation.valid) throw new Error(`Batch output integrity validation failed: ${validation.failures.join('; ')}`);
@@ -148,19 +141,18 @@ export function ImageCompressor({ locale }: { locale?: string }) {
           parameters: next,
           processor: async (input, params) => {
             const options = params as Parameters;
-            const compressed = await compressImage(makeFile(input), {
+            const compressed = await executeCanonicalTool('image-compressor', { blob: input.blob, fileName: input.name ?? 'image' }, {
               quality: options.quality ?? 0.82,
               format: options.format ?? 'image/webp',
-              targetSizeKB: options.targetSizeKB,
-              maxWidth: options.maxWidth,
-              maxHeight: options.maxHeight,
+              ...(options.targetSizeKB !== undefined ? { targetSizeKB: options.targetSizeKB } : {}),
+              ...(options.maxWidth !== undefined ? { maxWidth: options.maxWidth } : {}),
+              ...(options.maxHeight !== undefined ? { maxHeight: options.maxHeight } : {}),
             });
-            return {
-              blob: compressed.blob,
-              width: compressed.width,
-              height: compressed.height,
-              name: `flixo-compressed.${extensionFor(compressed.mimeType)}`,
-            };
+            const bitmap = await createImageBitmap(compressed.blob);
+            const width = bitmap.width;
+            const height = bitmap.height;
+            bitmap.close();
+            return { blob: compressed.blob, width, height, name: compressed.fileName };
           },
           verifier: async (_input, output, params) => {
             const options = params as Parameters;

@@ -1,3 +1,4 @@
+import { attachVideoBlobSource, getBoundedVideoDuration } from '../lib/video/blob-video-source.ts';
 import { z, type ZodType } from "zod";
 
 export type CanonicalCapabilityState = "RECOGNIZED" | "PLANNABLE" | "EXECUTABLE" | "UNAVAILABLE";
@@ -41,7 +42,7 @@ export type CanonicalCapabilityDefinition = Readonly<{
 const MIME_TYPES = ["image/webp", "image/jpeg", "image/png"] as const;
 const PARAMETER_SCHEMAS = {
   "background-remover": z.object({ tolerance: z.number().finite().min(0).max(255).optional() }).strict(),
-  "image-upscaler": z.object({ scale: z.number().finite().positive().max(8).optional() }).strict(),
+  "image-upscaler": z.object({ scale: z.number().finite().min(1).max(8).optional() }).strict(),
   "image-cropper": z.object({
     x: z.number().int().nonnegative().max(40_000).optional(),
     y: z.number().int().nonnegative().max(40_000).optional(),
@@ -66,6 +67,20 @@ const PARAMETER_SCHEMAS = {
     saturate: z.number().finite().min(0).max(200).optional(),
     grayscale: z.number().finite().min(0).max(100).optional(),
   }).strict(),
+  "image-rotate": z.object({}).strict(),
+  "image-flip-horizontal": z.object({}).strict(),
+  "image-flip-vertical": z.object({}).strict(),
+  "image-brightness": z.object({}).strict(),
+  "image-contrast": z.object({}).strict(),
+  "image-saturation": z.object({}).strict(),
+  "image-grayscale": z.object({}).strict(),
+  "image-invert": z.object({}).strict(),
+  "image-sepia": z.object({}).strict(),
+  "image-blur": z.object({}).strict(),
+  "image-sharpen": z.object({}).strict(),
+  "image-resizer": z.object({ scale: z.number().finite().positive().min(0.1).max(8).optional() }).strict(),
+  "image-hue": z.object({ degrees: z.number().finite().min(-360).max(360).optional() }).strict(),
+  "image-pixelate": z.object({ blockSize: z.number().int().min(2).max(64).optional() }).strict(),
   "video-trimmer": z.object({
     startSec: z.number().finite().min(0).max(86_400).optional(),
     endSec: z.number().finite().min(0).max(86_400).optional(),
@@ -98,7 +113,21 @@ const INTENTS: Record<string, readonly string[]> = {
   "image-cropper": ["crop","resize","dimensions","aspect ratio","قص الصورة","تغيير الحجم"],
   "image-compressor": ["compress","smaller","reduce size","file size","lighter","ضغط الصور","تصغير حجم الصورة"],
   "image-converter": ["convert format","jpg to png","png to jpg","webp","change format","تحويل الصيغة","تحويل الصورة"],
-  "image-effects": ["brightness","contrast","saturation","grayscale","adjust image","سطوع","تباين","تشبع"],
+  "image-effects": ["brightness","contrast","saturation","grayscale","black and white","adjust image","سطوع","تباين","تشبع","أبيض وأسود","تدرج رمادي"],
+  "image-rotate": ["rotate image","turn image","تدوير الصورة"],
+  "image-flip-horizontal": ["flip horizontal","mirror image","قلب أفقي","عكس أفقي"],
+  "image-flip-vertical": ["flip vertical","قلب رأسي","عكس رأسي"],
+  "image-brightness": ["brightness","brighten image","سطوع الصورة","تفتيح الصورة"],
+  "image-contrast": ["contrast","increase contrast","تباين الصورة"],
+  "image-saturation": ["saturation","increase saturation","تشبع الصورة"],
+  "image-grayscale": ["grayscale","black and white","أبيض وأسود","تدرج رمادي"],
+  "image-invert": ["invert colors","negative image","عكس الألوان"],
+  "image-sepia": ["sepia","sepia effect","تأثير سيبيا"],
+  "image-blur": ["blur image","soften image","تمويه الصورة","ضبابية الصورة"],
+  "image-sharpen": ["sharpen image","make image sharper","زيادة حدة الصورة"],
+  "image-resizer": ["resize image","change image dimensions","تغيير حجم الصورة","تغيير أبعاد الصورة"],
+  "image-hue": ["change hue","hue shift","تغيير درجة اللون","إزاحة اللون"],
+  "image-pixelate": ["pixelate image","pixelation","بكسلة الصورة","تحويل الصورة لبكسلات"],
   "video-trimmer": ["trim video","cut video","video trim","اقتطاع الفيديو","اقتطع الفيديو","اقتطع أول","قص أول"],
   "video-cropper": ["crop video","video crop","قص الفيديو من الاطراف","قص الفيديو من الأطراف"],
   "video-resizer": ["resize video","change video resolution","video dimensions","تغيير حجم الفيديو","تغيير دقة الفيديو"],
@@ -112,6 +141,20 @@ const META: Record<string, {title:string;description:string;category:"Images"|"V
   "image-compressor": {title:"Image Compressor",description:"Reduce JPG, PNG, and WebP file size in your browser.",category:"Images",family:"image"},
   "image-converter": {title:"Image Converter",description:"Convert common raster image formats locally.",category:"Images",family:"image"},
   "image-effects": {title:"Image Effects",description:"Apply brightness, contrast, saturation, and grayscale.",category:"Images",family:"image"},
+  "image-rotate": {title:"Rotate Image",description:"Rotate an image locally in your browser.",category:"Images",family:"image"},
+  "image-flip-horizontal": {title:"Flip Image Horizontal",description:"Flip an image horizontally in your browser.",category:"Images",family:"image"},
+  "image-flip-vertical": {title:"Flip Image Vertical",description:"Flip an image vertically in your browser.",category:"Images",family:"image"},
+  "image-brightness": {title:"Brightness",description:"Adjust image brightness locally.",category:"Images",family:"image"},
+  "image-contrast": {title:"Contrast",description:"Adjust image contrast locally.",category:"Images",family:"image"},
+  "image-saturation": {title:"Saturation",description:"Adjust image saturation locally.",category:"Images",family:"image"},
+  "image-grayscale": {title:"Grayscale",description:"Convert an image to grayscale locally.",category:"Images",family:"image"},
+  "image-invert": {title:"Invert Colors",description:"Invert image colors locally.",category:"Images",family:"image"},
+  "image-sepia": {title:"Sepia",description:"Apply a sepia effect locally.",category:"Images",family:"image"},
+  "image-blur": {title:"Blur",description:"Apply a local blur effect.",category:"Images",family:"image"},
+  "image-sharpen": {title:"Sharpen",description:"Sharpen an image locally.",category:"Images",family:"image"},
+  "image-resizer": {title:"Resize Image",description:"Resize an image locally with deterministic browser resampling.",category:"Images",family:"image"},
+  "image-hue": {title:"Hue",description:"Shift image hue locally in the browser.",category:"Images",family:"image"},
+  "image-pixelate": {title:"Pixelate Image",description:"Pixelate an image locally without uploading it.",category:"Images",family:"image"},
   "video-trimmer": {title:"Video Trimmer",description:"Trim a video locally in the browser with WebCodecs-compatible playback and MediaRecorder output.",category:"Video",family:"video"},
   "video-cropper": {title:"Video Cropper",description:"Crop a video locally to a deterministic rectangle.",category:"Video",family:"video"},
   "video-resizer": {title:"Video Resizer",description:"Resize a video locally to exact output dimensions.",category:"Video",family:"video"},
@@ -150,22 +193,24 @@ async function readImageDimensions(blob: Blob, signal?: AbortSignal): Promise<Me
 
 async function readVideoDimensions(blob: Blob, signal?: AbortSignal): Promise<MediaDimensions | undefined> {
   if (signal?.aborted || blob.type !== "video/webm" || typeof document === "undefined") return undefined;
-  const url = URL.createObjectURL(blob);
   const video = document.createElement("video");
   video.preload = "metadata";
-  video.src = url;
+  let releaseSource: (() => void) | null = null;
   try {
-    await new Promise<void>((resolve, reject) => {
+    const metadataReady = new Promise<void>((resolve, reject) => {
       const onAbort = () => reject(new DOMException("Video verification aborted.", "AbortError"));
       const cleanup = () => signal?.removeEventListener("abort", onAbort);
       video.onloadedmetadata = () => { cleanup(); resolve(); };
       video.onerror = () => { cleanup(); reject(new Error("Video output could not be decoded.")); };
       signal?.addEventListener("abort", onAbort, { once: true });
     });
-    if (!Number.isFinite(video.duration) || video.duration <= 0 || video.videoWidth <= 0 || video.videoHeight <= 0) return undefined;
-    return { width: video.videoWidth, height: video.videoHeight, duration: video.duration };
+    releaseSource = await attachVideoBlobSource(video, blob, signal);
+    await metadataReady;
+    const duration = await getBoundedVideoDuration(video, 10 * 60, signal);
+    if (video.videoWidth <= 0 || video.videoHeight <= 0) return undefined;
+    return { width: video.videoWidth, height: video.videoHeight, duration };
   } finally {
-    URL.revokeObjectURL(url);
+    releaseSource?.();
     video.removeAttribute("src");
     video.load();
   }
@@ -210,17 +255,6 @@ async function hasMeaningfulPixelChange(input: Blob, output: Blob, signal?: Abor
   }
 }
 
-const defaultVerifier: CanonicalCapabilityVerifier = async (input, output, _parameters, signal) => {
-  if (signal?.aborted || output.size <= 0 || !output.type.startsWith("image/")) return false;
-  const [inputDimensions, outputDimensions] = await Promise.all([readImageDimensions(input, signal), readImageDimensions(output, signal)]);
-  return Boolean(
-    inputDimensions &&
-    outputDimensions &&
-    outputDimensions.width > 0 &&
-    outputDimensions.height > 0,
-  );
-};
-
 const backgroundRemovalVerifier: CanonicalCapabilityVerifier = async (input, output, _parameters, signal) => {
   if (signal?.aborted || output.size <= 0 || output.type !== "image/png") return false;
   const [inputDimensions, outputDimensions] = await Promise.all([readImageDimensions(input, signal), readImageDimensions(output, signal)]);
@@ -257,17 +291,37 @@ const cropperVerifier: CanonicalCapabilityVerifier = async (input, output, param
   return outputDimensions.width === cropWidth && outputDimensions.height === cropHeight;
 };
 
+const changedImageVerifier: CanonicalCapabilityVerifier = async (input, output, _parameters, signal) => {
+  if (signal?.aborted || output.size <= 0 || output.type !== "image/png") return false;
+  const [inputDimensions, outputDimensions] = await Promise.all([readImageDimensions(input, signal), readImageDimensions(output, signal)]);
+  if (!inputDimensions || !outputDimensions || inputDimensions.width !== outputDimensions.width || inputDimensions.height !== outputDimensions.height) {
+    return false;
+  }
+  return hasMeaningfulPixelChange(input, output, signal);
+};
+
 const targetSizeVerifier: CanonicalCapabilityVerifier = async (input, output, parameters, signal) => {
   if (signal?.aborted || output.size <= 0 || !output.type.startsWith("image/")) return false;
   const target = typeof parameters.targetSizeKB === "number" ? parameters.targetSizeKB : undefined;
   if (target !== undefined && output.size > target * 1024) return false;
-  if (target === undefined && output.size > input.size && typeof parameters.quality === "number") return false;
-  return true;
+  return output.size < input.size;
 };
 
-const formatVerifier: CanonicalCapabilityVerifier = async (_input, output, parameters, signal) => {
+const formatVerifier: CanonicalCapabilityVerifier = async (input, output, parameters, signal) => {
   const format = parameters.format;
-  return !signal?.aborted && output.size > 0 && typeof format === "string" && output.type === format;
+  if (signal?.aborted || output.size <= 0 || typeof format !== "string" || output.type !== format) return false;
+  const [inputDimensions, outputDimensions] = await Promise.all([
+    readImageDimensions(input, signal),
+    readImageDimensions(output, signal),
+  ]);
+  return Boolean(
+    inputDimensions &&
+    outputDimensions &&
+    outputDimensions.width > 0 &&
+    outputDimensions.height > 0 &&
+    outputDimensions.width === inputDimensions.width &&
+    outputDimensions.height === inputDimensions.height,
+  );
 };
 
 const effectsVerifier: CanonicalCapabilityVerifier = async (input, output, parameters, signal) => {
@@ -275,6 +329,26 @@ const effectsVerifier: CanonicalCapabilityVerifier = async (input, output, param
   const [inputDimensions, outputDimensions] = await Promise.all([readImageDimensions(input, signal), readImageDimensions(output, signal)]);
   if (!inputDimensions || !outputDimensions || inputDimensions.width !== outputDimensions.width || inputDimensions.height !== outputDimensions.height) return false;
   return hasMeaningfulPixelChange(input, output, signal);
+};
+
+const videoCropperVerifier: CanonicalCapabilityVerifier = async (input, output, parameters, signal) => {
+  if (signal?.aborted || output.size <= 0 || output.type !== "video/webm") return false;
+  const [inputMeta, outputMeta] = await Promise.all([readVideoDimensions(input, signal), readVideoDimensions(output, signal)]);
+  if (!inputMeta || !outputMeta) return false;
+
+  const requestedX = Math.max(0, Number(parameters.x ?? 0));
+  const requestedY = Math.max(0, Number(parameters.y ?? 0));
+  const requestedWidth = Math.max(1, Number(parameters.width ?? inputMeta.width));
+  const requestedHeight = Math.max(1, Number(parameters.height ?? inputMeta.height));
+  const x = Math.min(requestedX, Math.max(0, inputMeta.width - 1));
+  const y = Math.min(requestedY, Math.max(0, inputMeta.height - 1));
+  const expectedWidth = Math.min(requestedWidth, inputMeta.width - x);
+  const expectedHeight = Math.min(requestedHeight, inputMeta.height - y);
+
+  return outputMeta.width === Math.max(1, Math.round(expectedWidth)) &&
+    outputMeta.height === Math.max(1, Math.round(expectedHeight)) &&
+    outputMeta.duration !== undefined &&
+    outputMeta.duration > 0;
 };
 
 const videoVerifier: CanonicalCapabilityVerifier = async (input, output, parameters, signal) => {
@@ -290,18 +364,34 @@ const videoVerifier: CanonicalCapabilityVerifier = async (input, output, paramet
     const expected = Math.max(0.001, Math.min(inputMeta.duration ?? end, end) - Math.min(Math.max(0, start), Math.max(0, (inputMeta.duration ?? 0) - 0.001)));
     if (Math.abs((outputMeta.duration ?? 0) - expected) > 0.35) return false;
   }
-  if (parameters.videoBitsPerSecond !== undefined && output.size >= input.size) return false;
+  // A trimmer with no explicit range is a valid local no-op-style render request;
+  // byte-size reduction is not a semantic requirement for trimming.
   return outputMeta.duration !== undefined && outputMeta.duration > 0;
+};
+
+const videoCompressorVerifier: CanonicalCapabilityVerifier = async (input, output, parameters, signal) => {
+  const validVideo = await videoVerifier(input, output, parameters, signal);
+  return validVideo && output.size < input.size;
 };
 
 function createCapability(id:(typeof MVP_EXECUTABLE_TOOL_IDS)[number]):CanonicalCapabilityDefinition{
   const meta=META[id];
   const isVideo=id.startsWith("video-");
-  const execution = "browser-local" as const;
+  const execution: "browser-local" | "browser-worker" = id === "image-effects" ? "browser-worker" : "browser-local";
   const safetyLimits=Object.freeze(isVideo
     ? {maxPixels:64_000_000,maxFileSizeBytes:512*1024*1024,timeoutMs:10*60*1000}
     : {maxPixels:16_000_000,maxFileSizeBytes:64*1024*1024,timeoutMs:30_000});
-  const verifier=id==="background-remover"?backgroundRemovalVerifier:id==="image-upscaler"?upscalerVerifier:id==="image-cropper"?cropperVerifier:id==="image-compressor"?targetSizeVerifier:id==="image-converter"?formatVerifier:id==="image-effects"?effectsVerifier:isVideo?videoVerifier:defaultVerifier;
+  const verifier =
+    id === "background-remover" ? backgroundRemovalVerifier :
+    id === "image-upscaler" ? upscalerVerifier :
+    id === "image-cropper" ? cropperVerifier :
+    id === "image-compressor" ? targetSizeVerifier :
+    id === "image-converter" ? formatVerifier :
+    id === "image-effects" ? effectsVerifier :
+    id === "video-cropper" ? videoCropperVerifier :
+    id === "video-compressor" ? videoCompressorVerifier :
+    isVideo ? videoVerifier :
+    changedImageVerifier;
   return Object.freeze({
     id,...meta,state:"EXECUTABLE" as const,executionMode:"LOCAL" as const,execution,
     intents:Object.freeze(INTENTS[id]),

@@ -1,39 +1,38 @@
-# FLIXO — Final Release Evidence
+# FLIXO Final Release Certification
 
-Status: NOT YET CERTIFIED / NOT YET PROMOTED
+STATUS: NOT READY
 
-## Control-plane interpretation
+This document is a certification template/state record, not a certification by itself.
+No release claim is valid until every required identity and gate is bound to the same exact SHA.
 
-This document is a policy/evidence-record template, not a self-certifying runtime source of truth.
+## Current release lineage fields
 
-The exact release-candidate SHA MUST be read from the current controlled integration PR head and the exact GitHub Actions evidence for that same SHA. This file intentionally does not embed its own Git commit SHA because doing so would be self-referential: changing this file creates a new SHA and invalidates SHA-specific evidence.
+- Repository: `m1m2m3m4m5m6m700-afk/FLIXO_Hub`
+- Candidate branch: `REQUIRED`
+- CURRENT_SHA: `REQUIRED`
+- CURRENT_WORKFLOW_RUN: `REQUIRED`
+- CURRENT_EVIDENCE: `REQUIRED`
+- Production deployment ID: `REQUIRED`
+- Production immutable identity: `REQUIRED`
+- Browser verification receipt: `REQUIRED`
+- Certification state: `NOT READY`
 
-Current integration lane:
-- Repository: m1m2m3m4m5m6m700-afk/FLIXO-AI-TOOLS
-- Integration PR: #923
-- Promotion path: execution -> main only
-- Direct main mutation: forbidden
+## Required gates
 
-Required evidence categories:
-- FLIXO CI verify/build
-- Chromium browser smoke
-- trust-gate
-- Exact-SHA promotion proof
-- Agent Editor STEP 4
-- Agent Editor Step 5-6
-- Agent Editor Coverage
-- CodeQL
-- Secret Scan/Gitleaks
-- clean-clone Red Team
-- deployment identity when applicable
+1. Clean-clone Red Team PASS on CURRENT_SHA.
+2. Release-candidate freeze bound to CURRENT_SHA.
+3. Exact-SHA evidence for CI, tests, security, coverage, and browser verification.
+4. Required GitHub governance policy on `main`.
+5. Human-authorized promotion through `execution -> main`.
+6. Post-merge exact-SHA verification and production identity verification when applicable.
 
-Current blockers remain:
-1. Main governance hardening is incomplete and cannot be changed through the connected control plane without an exposed ruleset-write capability.
-2. The model-license manifest has zero production-admitted models; release mode requires an evidenced admitted model.
-3. Prompt 17, release candidate freeze, Prompt 19 exact-SHA certification, and owner-authorized execution->main promotion remain pending.
+Any missing, mixed-SHA, stale, skipped, cancelled, neutral, expired, or unverifiable evidence is a blocker.
 
-## Final disposition
+## Historical evidence retained — NOT CURRENT RELEASE TRUTH
 
-NOT_READY — BLOCKERS ENUMERATED
+- Historical main base SHA: `263827228cbe5f4851470297fde5f2858ff844de`.
+- Historical active integration PR observed during the previous release attempt: `#1002`.
+- Historical candidate SHA: `a44958a97126b2e050746010947aef2cfa286729`.
+- Historical candidate workflow run: `37437187406`.
 
-This file must not be changed to CERTIFIED/RELEASE VERIFIED until the active execution plan's exact-SHA evidence, governance, model-admission, Red-Team, certification, promotion, and post-merge requirements are all satisfied.
+These values remain available for audit lineage only. They are not a current candidate or certification authority.

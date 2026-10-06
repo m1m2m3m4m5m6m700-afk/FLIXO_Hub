@@ -1,0 +1,109 @@
+name: FLIXO المستكشف AI Wake
+
+on:
+  push:
+    branches: [execution]
+    paths-ignore:
+      - 'الوكلاء/المستكشف AI/تقارير المستكشف/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flixo-repository-knowledge
+  cancel-in-progress: true
+
+jobs:
+  knowledge:
+    name: Read complete repository and publish SHA-bound knowledge report
+    permissions:
+      contents: write
+    env:
+      FLIXO_TARGET_BRANCH: knowledge
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact triggering SHA
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Setup Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install project dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Verify trigger identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+
+      - name: Run complete repository knowledge scan
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node scripts/repository-knowledge-scan.mjs
+
+      - name: Validate exact-trigger report
+        shell: bash
+        run: |
+          set -euo pipefail
+          REPORT="الوكلاء/المستكشف AI/تقارير المستكشف/${GITHUB_SHA}.md"
+          test -s "$REPORT"
+          grep -Fq -- "- Exact SHA: ${GITHUB_SHA}" "$REPORT"
+          grep -Fq -- "- Uncovered repository-authored text lines: 0" "$REPORT"
+
+      - name: Run strict knowledge-agent contract tests
+        env:
+          ALLOW_KNOWLEDGE_LIMITATIONS: "1"
+        run: node --test tests/security/ci/repository-knowledge-agent.test.mjs
+
+      - name: Reconcile current execution HEAD before publication
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin execution
+          REMOTE_SHA="$(git rev-parse origin/execution)"
+          test "$REMOTE_SHA" = "${GITHUB_SHA}" || {
+            echo "FAIL_CLOSED: execution moved during knowledge scan."
+            echo "TRIGGER_SHA=${GITHUB_SHA}"
+            echo "CURRENT_EXECUTION_SHA=$REMOTE_SHA"
+            exit 1
+          }
+
+      - name: Publish report to isolated knowledge branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "المستكشف AI"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          REPORT="الوكلاء/المستكشف AI/تقارير المستكشف/${GITHUB_SHA}.md"
+          test -s "$REPORT"
+          REPORT_COPY="${RUNNER_TEMP}/flixo-knowledge-${GITHUB_SHA}.md"
+          cp "$REPORT" "$REPORT_COPY"
+
+          if git ls-remote --exit-code --heads origin knowledge >/dev/null 2>&1; then
+            git fetch origin knowledge
+            git switch --create knowledge --track origin/knowledge
+          else
+            git switch --orphan knowledge
+            git rm -rf . >/dev/null 2>&1 || true
+          fi
+
+          rm -rf 'الوكلاء/المستكشف AI/تقارير المستكشف'
+          mkdir -p 'الوكلاء/المستكشف AI/تقارير المستكشف'
+          cp "$REPORT_COPY" "$REPORT"
+
+          git add 'الوكلاء/المستكشف AI/تقارير المستكشف/'
+          git diff --cached --name-only
+          test -n "$(git diff --cached --name-only)"
+          git commit -m "docs(knowledge): publish execution SHA ${GITHUB_SHA}"
+          git push origin "HEAD:knowledge"

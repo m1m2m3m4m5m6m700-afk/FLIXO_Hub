@@ -1,6 +1,6 @@
 # TestSprite verification for FLIXO
 
-TestSprite is an external browser verification layer for the manual-only FLIXO product. The execution workflow tests the checked-out `execution` SHA through a local TestSprite tunnel and fails closed.
+TestSprite is an additional external browser verification layer for the current FLIXO product. Its committed suite focuses on the Manual Standalone Workflow; it does not replace or disable the certified Agent Guided Workflow. The execution workflow tests the checked-out `execution` SHA through a local TestSprite tunnel and fails closed.
 
 ## Required repository configuration
 
@@ -15,7 +15,7 @@ The API key used for the local frontend path needs the TestSprite scopes require
 
 The committed plan templates live under `.testsprite/plans/`.
 
-They cover the current official product surface rather than the removed Agent experience:
+They cover selected manual product surfaces. The Agent Guided Workflow remains a supported certified MVP workflow and is verified by the canonical Playwright release suite rather than these TestSprite plans:
 
 1. The Arabic official homepage presents the browser-first, manual-only product and its featured executable tools.
 2. Background Remover opens directly as a standalone manual browser tool without requiring an agent/chat workflow.

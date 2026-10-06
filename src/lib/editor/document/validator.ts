@@ -8,6 +8,7 @@ const validateLayerBase = (layer: Layer): void => {
   if (layer.opacity < 0 || layer.opacity > 1 || !finite(layer.opacity)) throw new Error('LAYER_OPACITY_INVALID');
   if (!Number.isInteger(layer.zIndex)) throw new Error('LAYER_Z_INDEX_INVALID');
   if (typeof layer.visible !== 'boolean' || typeof layer.clipToBelow !== 'boolean') throw new Error('LAYER_BOOLEAN_FIELD_INVALID');
+  if (layer.locked !== undefined && typeof layer.locked !== 'boolean') throw new Error('LAYER_LOCKED_FIELD_INVALID');
   if (!finite(layer.transform.x) || !finite(layer.transform.y) || !finite(layer.transform.scaleX) || !finite(layer.transform.scaleY) || !finite(layer.transform.rotation)) {
     throw new Error('LAYER_TRANSFORM_INVALID');
   }

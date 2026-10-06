@@ -15,15 +15,39 @@ permissions:
 
 jobs:
   testsprite:
+    if: ${{ github.repository == 'm1m2m3m4m5m6m700-afk/FLIXO_Hub' && github.ref == 'refs/heads/execution' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
 
     steps:
+      - name: Fail-closed trusted TestSprite execution boundary
+        env:
+          TRUSTED_REPOSITORY: m1m2m3m4m5m6m700-afk/FLIXO_Hub
+          TRUSTED_REF: refs/heads/execution
+          EVENT_NAME: ${{ github.event_name }}
+          REPOSITORY: ${{ github.repository }}
+          REF: ${{ github.ref }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$REPOSITORY" = "$TRUSTED_REPOSITORY"
+          test "$REF" = "$TRUSTED_REF"
+          case "$EVENT_NAME" in
+            push|workflow_dispatch) ;;
+            *) echo "FAIL_CLOSED: TestSprite secrets are prohibited for event=$EVENT_NAME" >&2; exit 1 ;;
+          esac
+
       - name: Checkout exact execution SHA
-        uses: actions/checkout@v4
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
 
       - name: Setup Node 22
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: 22
           cache: npm
@@ -35,7 +59,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          nohup npm run dev -- --host 127.0.0.1 --port 3000 >/tmp/flixo-vite.log 2>&1 &
+          npm run build:runtime
+          nohup npm run preview -- --host 127.0.0.1 --port 3000 >/tmp/flixo-vite.log 2>&1 &
           echo $! >/tmp/flixo-vite.pid
           for i in {1..60}; do
             if curl -fsS http://127.0.0.1:3000/ >/dev/null; then
@@ -54,25 +79,35 @@ jobs:
       - name: Validate committed manual TestSprite plans offline
         run: testsprite test lint --plan-from-dir .testsprite/plans
 
-      - name: Verify TestSprite configuration
+      - name: Detect TestSprite credentials
+        id: testsprite-config
         env:
           TESTSPRITE_API_KEY: ${{ secrets.TESTSPRITE_API_KEY }}
           TESTSPRITE_PROJECT_ID: ${{ vars.TESTSPRITE_PROJECT_ID }}
         shell: bash
         run: |
           set -euo pipefail
-          test -n "${TESTSPRITE_API_KEY}" || {
-            echo "::error::TESTSPRITE_API_KEY repository secret is missing."
-            exit 3
-          }
-          test -n "${TESTSPRITE_PROJECT_ID}" || {
-            echo "::error::TESTSPRITE_PROJECT_ID repository variable is missing."
-            exit 4
-          }
-          testsprite --version
-          testsprite doctor
+          if [ -n "${TESTSPRITE_API_KEY}" ] && [ -n "${TESTSPRITE_PROJECT_ID}" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+            testsprite --version
+            testsprite doctor
+          else
+            echo "::warning::TestSprite credentials are unavailable; using the committed exact-SHA native E2E fallback. No TestSprite verdict will be claimed."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          fi
 
+      - name: Verify exact execution SHA
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+
+      - name: Native exact-SHA canonical ten-tool E2E fallback
+        if: steps.testsprite-config.outputs.configured != 'true'
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: node scripts/ci/testsprite-fallback.mjs
       - name: Reconcile committed manual TestSprite cases
+        if: steps.testsprite-config.outputs.configured == 'true'
         env:
           TESTSPRITE_API_KEY: ${{ secrets.TESTSPRITE_API_KEY }}
           TESTSPRITE_PROJECT_ID: ${{ vars.TESTSPRITE_PROJECT_ID }}
@@ -136,6 +171,7 @@ jobs:
           NODE
 
       - name: Run committed manual TestSprite suite against exact execution build
+        if: steps.testsprite-config.outputs.configured == 'true'
         env:
           TESTSPRITE_API_KEY: ${{ secrets.TESTSPRITE_API_KEY }}
           TESTSPRITE_PROJECT_ID: ${{ vars.TESTSPRITE_PROJECT_ID }}
@@ -188,7 +224,7 @@ jobs:
 
       - name: Upload TestSprite evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: testsprite-results-${{ github.sha }}
           path: |
@@ -197,4 +233,7 @@ jobs:
             .testsprite/manual-test-ids.txt
             .testsprite/runtime-plans
             /tmp/flixo-vite.log
+            testsprite-fallback
+            test-results
+            playwright-report/results.json
           if-no-files-found: ignore

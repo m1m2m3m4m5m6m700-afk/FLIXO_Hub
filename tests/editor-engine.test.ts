@@ -45,3 +45,44 @@ test('invalid mutations fail before state commit', () => {
   assert.equal(engine.snapshot().version, 1);
   assert.equal(engine.snapshot().document.layers.length, 0);
 });
+
+
+test('locked layers reject update, reorder, removal, and generic command mutation', () => {
+  const base = makeDocument();
+  const engine = createDocumentEngine(base);
+  engine.addLayer({ ...raster('locked-layer'), locked: true }, 1);
+
+  assert.throws(
+    () => engine.updateLayer('locked-layer', { opacity: 0.5 }, 2),
+    /LOCKED_LAYER_MUTATION/,
+  );
+  assert.throws(
+    () => engine.reorderLayer('locked-layer', 4, 2),
+    /LOCKED_LAYER_MUTATION/,
+  );
+  assert.throws(
+    () => engine.removeLayer('locked-layer', 2),
+    /LOCKED_LAYER_MUTATION/,
+  );
+  assert.throws(
+    () => engine.execute({
+      id: 'custom-locked-mutation',
+      label: 'Custom locked mutation',
+      expectedVersion: 2,
+      command: {
+        id: 'custom-locked-mutation',
+        label: 'Custom locked mutation',
+        execute: ({ document }) => ({
+          ...document,
+          layers: document.layers.map((layer) =>
+            layer.id === 'locked-layer' ? { ...layer, visible: false } : layer,
+          ),
+        }),
+        undo: ({ document }) => document,
+        serialize: () => ({ id: 'custom-locked-mutation' }),
+      },
+    }),
+    /LOCKED_LAYER_MUTATION/,
+  );
+  assert.equal(engine.snapshot().document.layers[0]?.locked, true);
+});

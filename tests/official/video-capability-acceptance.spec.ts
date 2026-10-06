@@ -42,7 +42,7 @@ async function buildVideoFixture(page: Parameters<Parameters<typeof test>[2]>[0]
         context.fillStyle = '#ffffff';
         context.font = '24px sans-serif';
         context.fillText('FLIXO VIDEO FIXTURE', 25, 165);
-        if (elapsed >= 800) {
+        if (elapsed >= 2400) {
           recorder.stop();
           resolve();
           return;
@@ -76,13 +76,14 @@ const VIDEO_CASES = [
 ] as const;
 
 test.describe('MVP video capability individual acceptance', () => {
+  test.describe.configure({ mode: 'serial', timeout: 120_000 });
   for (const videoCase of VIDEO_CASES) {
     test(videoCase.id + ' executes locally and produces a verified WebM artifact', async ({ page }) => {
       await page.goto('/en/' + videoCase.id);
       await expect(page.getByRole('heading', { name: 'Local video processing' })).toBeVisible();
 
       const fixture = await buildVideoFixture(page);
-      expect(fixture.length).toBeGreaterThan(100);
+      expect(fixture.length).toBeGreaterThan(10_000);
 
       await page.getByLabel('Choose video').setInputFiles({
         name: videoCase.id + '-fixture.webm',
@@ -106,7 +107,7 @@ test.describe('MVP video capability individual acceptance', () => {
           throw new Error('VIDEO_OUTPUT_CONTRACT_INVALID');
         }
         const video = document.createElement('video');
-        video.preload = 'metadata';
+        video.preload = 'auto';
         const objectUrl = URL.createObjectURL(blob);
         video.src = objectUrl;
         try {
@@ -114,7 +115,32 @@ test.describe('MVP video capability individual acceptance', () => {
             video.onloadedmetadata = () => resolve();
             video.onerror = () => reject(new Error('VIDEO_OUTPUT_METADATA_INVALID'));
           });
-          return { size: blob.size, type: blob.type, duration: video.duration, width: video.videoWidth, height: video.videoHeight };
+
+          if (!Number.isFinite(video.duration) || video.duration <= 0 || video.duration >= 600) {
+            try { video.currentTime = 1e9; } catch { /* bounded duration probe */ }
+            await new Promise<void>((resolve) => {
+              const done = () => {
+                video.removeEventListener('durationchange', done);
+                video.removeEventListener('timeupdate', done);
+                video.removeEventListener('progress', done);
+                resolve();
+              };
+              video.addEventListener('durationchange', done, { once: true });
+              video.addEventListener('timeupdate', done, { once: true });
+              video.addEventListener('progress', done, { once: true });
+              setTimeout(done, 2_000);
+            });
+          }
+
+          const ranges = video.buffered.length > 0 ? video.buffered : video.seekable;
+          const rangeDuration = ranges.length > 0 ? ranges.end(ranges.length - 1) : Number.NaN;
+          const duration = [video.duration, rangeDuration].find(
+            (value) => Number.isFinite(value) && value > 0 && value < 600,
+          );
+
+          if (duration === undefined) throw new Error('VIDEO_OUTPUT_DURATION_INVALID');
+          const signatureBytes = Array.from(new Uint8Array(await blob.slice(0, 4).arrayBuffer()));
+          return { size: blob.size, type: blob.type, duration, width: video.videoWidth, height: video.videoHeight, signatureBytes };
         } finally {
           URL.revokeObjectURL(objectUrl);
           video.removeAttribute('src');
@@ -124,15 +150,55 @@ test.describe('MVP video capability individual acceptance', () => {
 
       expect(metadata.size).toBeGreaterThan(4);
       expect(metadata.type).toBe('video/webm');
+      expect(metadata.signatureBytes).toEqual([0x1a, 0x45, 0xdf, 0xa3]);
       expect(metadata.duration).toBeGreaterThan(0);
       expect(metadata.width).toBeGreaterThan(0);
       expect(metadata.height).toBeGreaterThan(0);
+
+      if (videoCase.id === 'video-trimmer') {
+        expect(metadata.duration).toBeGreaterThan(0.6);
+        expect(metadata.duration).toBeLessThan(1.5);
+      } else if (videoCase.id === 'video-cropper') {
+        expect(metadata.width).toBe(160);
+        expect(metadata.height).toBe(90);
+      } else if (videoCase.id === 'video-resizer') {
+        expect(metadata.width).toBe(1280);
+        expect(metadata.height).toBe(720);
+      } else {
+        expect(metadata.size).toBeLessThan(fixture.length);
+      }
 
       const downloadPromise = page.waitForEvent('download');
       await downloadLink.click();
       const download = await downloadPromise;
       expect(await download.failure()).toBeNull();
       expect(download.suggestedFilename()).toBe('flixo-video-output.webm');
+
+      if (videoCase.id === 'video-compressor') {
+        await page.getByRole('button', { name: 'Process video' }).click();
+        await expect(page.getByRole('link', { name: 'Download result' })).toBeVisible({ timeout: 30_000 });
+      }
     });
   }
+
+  test('video red-team rejects malformed WebM, MIME spoofing, and magic-byte mismatch in real Chromium', async ({ page }) => {
+    const cases = [
+      { name: 'spoofed.mp4', mimeType: 'video/mp4', buffer: Buffer.from([0x1a, 0x45, 0xdf, 0xa3, 0, 1, 2, 3]) },
+      { name: 'mismatch.webm', mimeType: 'video/webm', buffer: Buffer.from([0x00, 0x01, 0x02, 0x03, 0x04, 0x05]) },
+      { name: 'malformed.webm', mimeType: 'video/webm', buffer: Buffer.from([0x1a, 0x45, 0xdf, 0xa3, 0x00, 0x00, 0x00, 0x00]) },
+    ] as const;
+
+    for (const adversarial of cases) {
+      await page.goto('/en/video-trimmer');
+      await expect(page.getByRole('heading', { name: 'Local video processing' })).toBeVisible();
+      await page.getByLabel('Choose video').setInputFiles({
+        name: adversarial.name,
+        mimeType: adversarial.mimeType,
+        buffer: adversarial.buffer,
+      });
+      await page.getByRole('button', { name: 'Process video' }).click();
+      await expect(page.getByRole('alert')).toBeVisible({ timeout: 10_000 });
+      await expect(page.getByRole('link', { name: 'Download result' })).toHaveCount(0);
+    }
+  });
 });
