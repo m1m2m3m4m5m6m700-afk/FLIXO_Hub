@@ -26,7 +26,7 @@ function imageFixture() {
 }
 
 async function meaningfulImageFixture(page: Page) {
-  const bytes = await page.evaluate(async () => {
+  const bytes = await page.evaluate(async (durationMs: number) => {
     const canvas = document.createElement('canvas');
     canvas.width = 128;
     canvas.height = 128;
@@ -48,7 +48,7 @@ async function meaningfulImageFixture(page: Page) {
       canvas.toBlob((value) => value ? resolve(value) : reject(new Error('could not encode fixture')), 'image/png');
     });
     return Array.from(new Uint8Array(await blob.arrayBuffer()));
-  });
+  }, VIDEO_FIXTURE_DURATION_MS);
   return {
     name: 'flixo-release-fixture.png',
     mimeType: 'image/png',
@@ -75,12 +75,12 @@ async function videoFixture(page: Page) {
     recorder.start(100);
 
     const start = performance.now();
-    while (performance.now() - start < VIDEO_FIXTURE_DURATION_MS) {
+    while (performance.now() - start < durationMs) {
       const t = performance.now() - start;
       context.fillStyle = '#123';
       context.fillRect(0, 0, canvas.width, canvas.height);
       context.fillStyle = '#fff';
-      context.fillRect(20 + Math.round((t / VIDEO_FIXTURE_DURATION_MS) * 200), 60, 40, 40);
+      context.fillRect(20 + Math.round((t / durationMs) * 200), 60, 40, 40);
       await new Promise<void>((resolve) => setTimeout(resolve, 100));
     }
 
