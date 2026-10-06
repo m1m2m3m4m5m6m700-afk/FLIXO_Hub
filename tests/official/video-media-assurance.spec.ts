@@ -44,10 +44,10 @@ async function installMediaHooks(page: Page): Promise<void> {
     };
 
     const nativeSetTimeout = window.setTimeout.bind(window);
-    window.setTimeout = ((handler: TimerHandler, delay?: number, ...args: any[]) => {
+    window.setTimeout = ((handler: TimerHandler, delay?: number) => {
       const accelerated = target.__flixoAccelerateVideoTimeout === true;
       const nextDelay = accelerated && Number(delay ?? 0) >= 500_000 ? 50 : delay;
-      return nativeSetTimeout(handler, nextDelay, ...args);
+      return nativeSetTimeout(handler, nextDelay);
     }) as typeof window.setTimeout;
   });
 }
