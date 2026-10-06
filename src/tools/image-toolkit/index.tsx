@@ -6,6 +6,7 @@ import { recognizeWithOcrWorker } from './ocr-worker-client';
 import { assertImageCropperOutputIntegrity } from '../image-cropper/output-integrity';
 import { validateFileSafety } from '../../lib/contracts/file-safety';
 import { validateUploadBoundary } from '../../lib/contracts/upload-boundary';
+import { validateOutputIntegrity } from '../../lib/contracts/output-integrity';
 import { LOCALE_METADATA, isLocale } from '../../lib/i18n';
 import { getToolSeo } from '../../lib/seo/tool-seo';
 import { getAuthoritativeToolSeoName } from '../../config/tool-seo-name-resolver';
@@ -119,6 +120,29 @@ async function preprocessForOcr(file: File): Promise<Blob> {
 }
 
 async function createResult(blob: Blob, fileName: string, info?: Result['info'], text?: string): Promise<Result> {
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  const mime = (blob.type || (text !== undefined ? 'text/plain' : 'application/octet-stream')).split(';')[0].toLowerCase();
+  const signature = mime === 'image/png' ? '89504e470d0a1a0a' : mime === 'image/jpeg' ? 'ffd8ff' : mime === 'image/webp' ? '52494646' : mime === 'application/zip' ? '504b0304' : undefined;
+  const extension = fileName.includes('.') ? fileName.slice(fileName.lastIndexOf('.') + 1).toLowerCase() : '';
+  const validation = validateOutputIntegrity(
+    blob.size,
+    mime,
+    {
+      toolId: 'image-toolkit',
+      allowedMime: [mime],
+      maxBytes: 50 * 1024 * 1024,
+      minBytes: 1,
+      ...(info ? { maxPixels: 40_000_000 } : {}),
+      ...(extension ? { allowedExtensions: [extension] } : {}),
+      ...(signature ? { signatures: [signature] } : {}),
+      ...(text !== undefined ? { parseAs: 'utf8' as const } : {}),
+      requireArtifact: true,
+      requireSafeFilename: true,
+    },
+    info,
+    { filename: fileName, bytes },
+  );
+  if (!validation.valid) throw new Error(`Output integrity validation failed: ${validation.failures.join('; ')}`);
   const objectUrl = URL.createObjectURL(blob);
   return { blob, fileName, info, text, objectUrl };
 }
