@@ -1,16 +1,21 @@
 # Security-sensitive repository control plane.
-# GitHub must separately require >=1 approving review, CODEOWNER review,
-# stale-review dismissal, latest-push approval, and an up-to-date head.
-*
+# Coverage is explicit on high-impact paths; global wildcard remains only as fallback.
+# GitHub must separately enforce >=1 approving review, CODEOWNER review,
+# stale-review dismissal, latest-push approval, resolved review threads, and strict checks.
+* /m1m2m3m4m5m6m700-afk
 /.github/workflows/ @m1m2m3m4m5m6m700-afk
 /.github/CODEOWNERS @m1m2m3m4m5m6m700-afk
+/.github/agents/ @m1m2m3m4m5m6m700-afk
 /scripts/ci/ @m1m2m3m4m5m6m700-afk
 /SECURITY.md @m1m2m3m4m5m6m700-afk
-/docs/agents/ @m1m2m3m4m5m6m700-afk
 /supabase/ @m1m2m3m4m5m6m700-afk
 /api/ @m1m2m3m4m5m6m700-afk
+/api/admin/ @m1m2m3m4m5m6m700-afk
+/src/server/admin/ @m1m2m3m4m5m6m700-afk
+/src/config/registry.ts @m1m2m3m4m5m6m700-afk
 /src/lib/contracts/ @m1m2m3m4m5m6m700-afk
 /src/lib/execution/ @m1m2m3m4m5m6m700-afk
+/src/lib/agent-guided-runtime.ts @m1m2m3m4m5m6m700-afk
 /src/worker.ts @m1m2m3m4m5m6m700-afk
 /wrangler.jsonc @m1m2m3m4m5m6m700-afk
 /vercel.json @m1m2m3m4m5m6m700-afk
