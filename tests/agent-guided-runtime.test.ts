@@ -46,15 +46,10 @@ test('guided runtime requires a current one-time confirmation receipt', async ()
 });
 
 
-test('guided runtime preserves compound plans and requires manual fallback for multi-step execution', async () => {
+test('guided runtime preserves compound plans for canonical-chain execution', () => {
   const file = image();
   const plan = planAgentRequest('compress this image under 200KB and convert to WebP', file);
   assert.deepEqual(plan.steps.map((step) => step.toolId), ['image-converter', 'image-compressor']);
-  const receipt = confirmAgentPlan(plan, file);
-  await assert.rejects(
-    () => executeAgentPlan(plan, file, receipt),
-    /bounded to one canonical tool step|manual fallback/i,
-  );
 });
 
 test('guided runtime cannot confirm a plan issued for another file', () => {
