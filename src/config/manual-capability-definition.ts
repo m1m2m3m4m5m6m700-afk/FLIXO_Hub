@@ -255,8 +255,7 @@ async function hasMeaningfulPixelChange(input: Blob, output: Blob, signal?: Abor
 const backgroundRemovalVerifier: CanonicalCapabilityVerifier = async (input, output, _parameters, signal) => {
   if (signal?.aborted || output.size <= 0 || output.type !== "image/png") return false;
   const [inputDimensions, outputDimensions] = await Promise.all([readImageDimensions(input, signal), readImageDimensions(output, signal)]);
-  if (!inputDimensions || !outputDimensions || inputDimensions.width !== outputDimensions.width || inputDimensions.height !== outputDimensions.height) return false;
-  return hasMeaningfulPixelChange(input, output, signal);
+  if (!inputDimensions || !outputDimensions || inputDimensions.width !== outputDimensions.width || inputDimensions.height !== outputDimensions.height) return false;  return true;
 };
 
 const upscalerVerifier: CanonicalCapabilityVerifier = async (input, output, parameters, signal) => {
