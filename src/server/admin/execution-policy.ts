@@ -1,3 +1,4 @@
+// Canonical admin execution policy contract; kept in the source tree because CI typechecks security tests.
 export type AdminExecutionClass =
   | 'READ'
   | 'LOW_RISK_WRITE'
