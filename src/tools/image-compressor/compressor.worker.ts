@@ -55,7 +55,7 @@ self.onmessage = async (event: MessageEvent<{ file: File; options: WorkerCompres
     const { file, options } = event.data;
     validateCompressionOptions(options);
     const header = new Uint8Array(await file.slice(0, 16).arrayBuffer());
-    assertSafeImageInput({ ...file, content: header });
+    assertSafeImageInput({ name: file.name, type: file.type, size: file.size, header });
     if (file.type === 'image/svg+xml') throw new Error('SVG worker path unavailable');
 
     const bitmap = await createImageBitmap(file);
@@ -77,6 +77,7 @@ self.onmessage = async (event: MessageEvent<{ file: File; options: WorkerCompres
 
       const targetBytes = options.targetSizeKB && options.targetSizeKB > 0 ? options.targetSizeKB * 1024 : undefined;
       const encoded = await encodeToTarget(canvas, options.format, options.quality, targetBytes);
+      if (encoded.blob.size <= 0 || encoded.blob.size > 64 * 1024 * 1024 || encoded.blob.type !== options.format) throw new Error('Compressed output failed its artifact contract');
       self.postMessage({ ok: true, result: { blob: encoded.blob, width: size.width, height: size.height, mimeType: options.format, qualityUsed: encoded.qualityUsed } });
     } finally {
       bitmap.close();
