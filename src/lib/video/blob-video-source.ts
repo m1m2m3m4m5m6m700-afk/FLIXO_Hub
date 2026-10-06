@@ -23,7 +23,7 @@ export async function getBoundedVideoDuration(
   if (signal?.aborted) throw cancelled();
 
   const previousTime = Number.isFinite(video.currentTime) ? video.currentTime : 0;
-  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timer = setTimeout(() => wake?.(), 2_000);
   const cleanup = () => {
     if (timer) clearTimeout(timer);
     video.removeEventListener('durationchange', onSignal);
@@ -40,7 +40,6 @@ export async function getBoundedVideoDuration(
   video.addEventListener('timeupdate', onSignal);
   video.addEventListener('progress', onSignal);
   signal?.addEventListener('abort', onAbort, { once: true });
-  timer = setTimeout(() => wake?.(), 2_000);
 
   try {
     try {
