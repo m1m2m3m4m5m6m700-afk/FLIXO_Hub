@@ -96,6 +96,7 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
   let recorder: MediaRecorder | undefined;
   let frameHandle = 0;
   let drawing = false;
+  let frameInterval: ReturnType<typeof setInterval> | undefined;
   let releaseSource: (() => void) | null = null;
   video.preload = 'auto';
   // Processing is programmatic; mute playback so browser autoplay policy cannot block local rendering.
@@ -186,7 +187,7 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
     // requestAnimationFrame can be throttled for an off-screen processing surface.
     // Use a bounded timer-driven sampler so resizing/cropping is independent of
     // animation scheduling while remaining fully local and resource-bounded.
-    const frameInterval = setInterval(draw, 33);
+    frameInterval = setInterval(draw, 33);
     // Do not block the recorder on the media element's play() promise.
     // Headless Chromium can leave that promise pending even though the element
     // has a decodable local source. The bounded recording timer remains authoritative.
@@ -238,7 +239,7 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
     return new Blob(chunks, { type: 'video/webm' });
   } finally {
     drawing = false;
-    clearInterval(frameInterval);
+    if (frameInterval) clearInterval(frameInterval);
     if (frameHandle) cancelAnimationFrame(frameHandle);
     video.pause();
     if (recorder && recorder.state !== 'inactive') {
