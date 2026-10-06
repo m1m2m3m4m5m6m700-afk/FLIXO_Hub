@@ -1,34 +1,15 @@
-﻿# FLIXO Prompt 01 — Exact-SHA State Reconciliation
+# FLIXO Prompt 01 — Historical Exact-SHA State Reconciliation
 
-STATUS: PASS — CURRENT EXACT-SHA EVIDENCE
+STATUS: HISTORICAL — NOT CURRENT EXACT-SHA EVIDENCE
 PROMPT_ID: 01
-CURRENT_RUNTIME_VERIFIED_SHA: $sha
-INTEGRATION_PR: #923
 
-## Current runtime candidate
-- Main SHA: af261be4476eccf293956d792bbb15e2e019061
-- Execution SHA: $sha
-- PR base: af261be4476eccf293956d792bbb15e2e019061
-- PR head: $sha
+> The prior PASS record referenced a historical candidate lineage. It is retained for audit traceability only.
 
-## Exact-SHA evidence
-- FLIXO CI verify: PASS
-- Chromium browser smoke: PASS
-- trust-gate: PASS
-- Exact-SHA promotion proof: PASS
-- Agent Editor STEP 4: PASS
-- Agent Editor Step 5-6: PASS
-- Agent Editor Coverage/internal lcov: PASS
-- CodeQL: PASS
-- Secret Scan/Gitleaks: PASS
-- production audit gate: PASS
+Historical records:
+- Historical main baseline SHA: `faf261be4476eccf293956d792bbb15e2e019061`
+- Historical integration PR: #923
+- Historical candidate SHA: recorded in the retired PR evidence, not current release truth.
 
-## Freshness rule
-These claims are valid only for the exact SHA recorded above. Any subsequent commit invalidates these SHA-specific claims until reverified.
+Any current release or security decision must use the active repository `m1m2m3m4m5m6m700-afk/FLIXO_Hub`, the current controlled branch lineage, and exact evidence from the current candidate SHA.
 
-## Current release blockers
-1. GitHub main ruleset remains under-hardened.
-2. docs/MODEL_LICENSE_MANIFEST.json contains zero admitted production models.
-3. Final certification and promotion remain blocked until governance, model admission, Prompt 17–19, and owner-authorized promotion are satisfied on one lineage.
-
-Decision: NOT READY — BLOCKERS ENUMERATED.
+Decision: NOT CURRENT — HISTORICAL RECORD ONLY.
