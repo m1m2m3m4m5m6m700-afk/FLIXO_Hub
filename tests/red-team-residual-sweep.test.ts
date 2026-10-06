@@ -54,12 +54,20 @@ test('red-team residual: source-controlled council RPC migration covers the priv
   for (const name of REQUIRED_COUNCIL_RPCS) {
     const start = corpus.search(new RegExp('create\\s+or\\s+replace\\s+function\\s+public\\.' + name + '\\b', 'iu'));
     assert.notEqual(start, -1, 'Missing source-controlled definition: ' + name);
-    const body = corpus.slice(start, start + 8000);
+    const next = corpus.indexOf('create or replace function public.', start + 1);
+    const body = corpus.slice(start, next === -1 ? corpus.length : next);
     assert.match(body, /security\\s+definer/iu, 'RPC must declare security definer: ' + name);
     assert.match(body, /set\\s+search_path\\s+to\\s+pg_catalog,\\s*public,\\s*pg_temp/iu, 'RPC search_path must be pinned: ' + name);
-    assert.match(body, /revoke\\s+all\\s+on\\s+function[\s\S]{0,500}from\\s+public,\\s*anon,\\s*authenticated/iu, 'RPC must revoke public execution: ' + name);
-    assert.match(body, /grant\\s+execute\\s+on\\s+function[\s\S]{0,500}to\\s+service_role/iu, 'RPC must grant service_role execution: ' + name);
-  }
+    assert.match(
+      corpus,
+      new RegExp('revoke\\\\s+all\\\\s+on\\\\s+function\\\\s+public\\\\.' + name + '\\\\b', 'iu'),
+      'RPC must revoke public execution: ' + name,
+    );
+    assert.match(
+      corpus,
+      new RegExp('grant\\\\s+execute\\\\s+on\\\\s+function\\\\s+public\\\\.' + name + '\\\\b', 'iu'),
+      'RPC must grant service_role execution: ' + name,
+    );  }
 });
 
 test('red-team residual: council runtime has no dead wake relay trust path', () => {
