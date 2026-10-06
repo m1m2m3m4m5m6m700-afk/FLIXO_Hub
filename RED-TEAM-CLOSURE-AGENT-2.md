@@ -49,3 +49,7 @@ Every mutation creates a new candidate. No prior CI, browser, security, coverage
 2. Update main ruleset 23854302 to strict required status checks and the intended independent review policy.
 3. Retire stale legacy branches where no longer needed.
 4. Re-run and record all exact-SHA CI/security/browser/coverage/CodeQL evidence after the final execution head is stable.
+
+## Candidate synchronization
+
+This commit intentionally changes only this evidence record to force a fresh pull-request synchronization event. All previous candidate evidence is invalidated by the new head SHA.
