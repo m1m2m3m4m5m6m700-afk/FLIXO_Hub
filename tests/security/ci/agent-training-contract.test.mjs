@@ -19,7 +19,7 @@ test('all official agents have explicit identities', () => {
     assert.ok(content.includes('name: ' + agent.name));
     assert.ok(content.includes('tools: read, search, terminal'));
     assert.doesNotMatch(content, /git push origin main|force[- ]push|write directly to main/iu);
-    assert.doesNotMatch(content, /declare PASS\\/GREEN\\/CERTIFIED|self-certif/iu);
+    assert.doesNotMatch(content, /declare PASS\/GREEN\/CERTIFIED|self-certif/iu);
     if (agent.training) assert.match(content, /100\\/100/u);
   }
 });

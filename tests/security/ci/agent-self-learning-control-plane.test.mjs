@@ -1,1 +1,95 @@
-import assert from 'node:assert/strict';\nimport test from 'node:test';\nimport {\n  DECISIONS,\n  buildExperience,\n  evaluateLessonPromotion,\n  reconcileLesson,\n  scoreSubmission,\n} from '../../../scripts/agent-learning/self-learning-control-plane.mjs';\n\nconst SHA = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';\nconst OTHER_SHA = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';\n\ntest('the harness rejects evidence from a different SHA', () => {\n  const result = scoreSubmission({\n    agent: 'fixture',\n    drill: 'repository-knowledge',\n    exactSha: SHA,\n    evidence: ['file:line'],\n    unknowns: [],\n    nextActions: ['recheck'],\n    coveragePercent: 100,\n    dependencies: ['route->registry'],\n    semanticDiff: ['changed'],\n  }, OTHER_SHA);\n  assert.equal(result.passed, false);\n  assert.ok(result.failures.includes('exactSha must equal currentSha'));\n  assert.equal(result.behavioralEvidence, 'UNPROVEN');\n});\n\ntest('a complete repository-knowledge drill reaches 100', () => {\n  const result = scoreSubmission({\n    agent: 'المستكشف AI',\n    drill: 'repository-knowledge',\n    exactSha: SHA,\n    evidence: ['report.md:L10-L20'],\n    unknowns: [],\n    nextActions: ['publish'],\n    coveragePercent: 100,\n    dependencies: ['route->registry'],\n    semanticDiff: ['added symbol'],\n  }, SHA);\n  assert.equal(result.score, 100);\n  assert.equal(result.passed, true);\n});\n\ntest('a lesson stays candidate until independent confirmation, repeats, and regression exist', () => {\n  const candidate = buildExperience({\n    id: 'exp-001',\n    agent: 'المستكشف AI',\n    exactSha: SHA,\n    drill: 'repository-knowledge',\n    result: 'failure',\n    evidence: ['report.md:L10-L20'],\n    lesson: 're-read the current SHA before deriving evidence',\n  });\n  assert.equal(evaluateLessonPromotion(candidate, SHA).status, 'CANDIDATE');\n  candidate.review = { decision: 'CONFIRMED', evidence: ['independent-report'] };\n  candidate.repeatPasses = 2;\n  candidate.regressionTest = true;\n  assert.equal(evaluateLessonPromotion(candidate, SHA).status, 'PROMOTED');\n});\n\ntest('lesson evidence becomes stale after the execution SHA changes', () => {\n  const candidate = buildExperience({\n    id: 'exp-002',\n    agent: 'FLIXO QA Agent',\n    exactSha: SHA,\n    drill: 'verification',\n    result: 'pass',\n    evidence: ['ci-run'],\n  });\n  const reconciled = reconcileLesson(candidate, OTHER_SHA);\n  assert.equal(reconciled.status, 'STALE_EVIDENCE');\n});\n\ntest('knowledge that changes repository authority can never be promoted', () => {\n  const candidate = buildExperience({\n    id: 'exp-003',\n    agent: 'Red Team 1',\n    exactSha: SHA,\n    drill: 'independent-challenge',\n    result: 'finding',\n    evidence: ['record'],\n    review: { decision: 'CONFIRMED' },\n    repeatPasses: 2,\n    regressionTest: true,\n  });\n  candidate.changesAuthority = true;\n  assert.equal(evaluateLessonPromotion(candidate, SHA).status, 'REJECTED');\n});\n\ntest('adjudication vocabulary is finite and explicit', () => {\n  assert.deepEqual(DECISIONS, ['CONFIRMED', 'REJECTED', 'DISPUTED', 'UNKNOWN']);\n});
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import {
+  DECISIONS,
+  buildExperience,
+  evaluateLessonPromotion,
+  reconcileLesson,
+  scoreSubmission,
+} from '../../../scripts/agent-learning/self-learning-control-plane.mjs';
+
+const SHA = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+const OTHER_SHA = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
+
+test('the harness rejects evidence from a different SHA', () => {
+  const result = scoreSubmission({
+    agent: 'fixture',
+    drill: 'repository-knowledge',
+    exactSha: SHA,
+    evidence: ['file:line'],
+    unknowns: [],
+    nextActions: ['recheck'],
+    coveragePercent: 100,
+    dependencies: ['route->registry'],
+    semanticDiff: ['changed'],
+  }, OTHER_SHA);
+  assert.equal(result.passed, false);
+  assert.ok(result.failures.includes('exactSha must equal currentSha'));
+  assert.equal(result.behavioralEvidence, 'UNPROVEN');
+});
+
+test('a complete repository-knowledge drill reaches 100', () => {
+  const result = scoreSubmission({
+    agent: 'المستكشف AI',
+    drill: 'repository-knowledge',
+    exactSha: SHA,
+    evidence: ['report.md:L10-L20'],
+    unknowns: [],
+    nextActions: ['publish'],
+    coveragePercent: 100,
+    dependencies: ['route->registry'],
+    semanticDiff: ['added symbol'],
+  }, SHA);
+  assert.equal(result.score, 100);
+  assert.equal(result.passed, true);
+});
+
+test('a lesson stays candidate until independent confirmation, repeats, and regression exist', () => {
+  const candidate = buildExperience({
+    id: 'exp-001',
+    agent: 'المستكشف AI',
+    exactSha: SHA,
+    drill: 'repository-knowledge',
+    result: 'failure',
+    evidence: ['report.md:L10-L20'],
+    lesson: 're-read the current SHA before deriving evidence',
+  });
+  assert.equal(evaluateLessonPromotion(candidate, SHA).status, 'CANDIDATE');
+  candidate.review = { decision: 'CONFIRMED', evidence: ['independent-report'] };
+  candidate.repeatPasses = 2;
+  candidate.regressionTest = true;
+  assert.equal(evaluateLessonPromotion(candidate, SHA).status, 'PROMOTED');
+});
+
+test('lesson evidence becomes stale after the execution SHA changes', () => {
+  const candidate = buildExperience({
+    id: 'exp-002',
+    agent: 'FLIXO QA Agent',
+    exactSha: SHA,
+    drill: 'verification',
+    result: 'pass',
+    evidence: ['ci-run'],
+  });
+  const reconciled = reconcileLesson(candidate, OTHER_SHA);
+  assert.equal(reconciled.status, 'STALE_EVIDENCE');
+});
+
+test('knowledge that changes repository authority can never be promoted', () => {
+  const candidate = buildExperience({
+    id: 'exp-003',
+    agent: 'Red Team 1',
+    exactSha: SHA,
+    drill: 'independent-challenge',
+    result: 'finding',
+    evidence: ['record'],
+    review: { decision: 'CONFIRMED' },
+    repeatPasses: 2,
+    regressionTest: true,
+  });
+  candidate.changesAuthority = true;
+  assert.equal(evaluateLessonPromotion(candidate, SHA).status, 'REJECTED');
+});
+
+test('adjudication vocabulary is finite and explicit', () => {
+  assert.deepEqual(DECISIONS, ['CONFIRMED', 'REJECTED', 'DISPUTED', 'UNKNOWN']);
+});
