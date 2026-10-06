@@ -5,7 +5,7 @@ import { createRemoteJWKSet, jwtVerify } from "npm:jose@6";
 import {
   requireBearerToken,
   validateGitHubOidcClaims,
-} from "../../../src/lib/security/council-oidc.ts";
+} from "../_shared/council-oidc.ts";
 
 type Account = "CHIEF" | "WORKER_A" | "WORKER_B";
 type Body = Record<string, unknown>;

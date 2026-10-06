@@ -5,7 +5,7 @@ import test from 'node:test';
 import {
   requireBearerToken,
   validateGitHubOidcClaims,
-} from '../src/lib/security/council-oidc.ts';
+} from '../supabase/functions/_shared/council-oidc.ts';
 
 const repo = 'm1m2m3m4m5m6m700-afk/FLIXO_Hub';
 const masterWorkflow = 'FLIXO Master Agent Activation Relay';
