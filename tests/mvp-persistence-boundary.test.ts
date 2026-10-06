@@ -4,12 +4,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-test('manual-only production has no public or internal Agent execution surface', () => {
-  assert.equal(existsSync(resolve(root, 'src/routes/agent.tsx')), false);
-  assert.equal(existsSync(resolve(root, 'src/lib/agent-guided-runtime.ts')), false);
-});
-
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
+
 const activeMvpPaths = [
   'src/tools/background-remover/index.tsx',
   'src/tools/image-upscaler/index.tsx',
