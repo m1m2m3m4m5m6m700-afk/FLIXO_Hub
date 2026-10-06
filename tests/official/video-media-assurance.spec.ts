@@ -221,6 +221,35 @@ test.describe('FLIXO Agent 2 video/media assurance', () => {
         video.onloadeddata = () => resolve();
         video.onerror = () => reject(new Error('VIDEO_CROP_OUTPUT_DECODE_FAILED'));
       });
+      const sampleTime = Math.min(0.5, Math.max(0.05, video.duration / 2));
+      const seeked = new Promise<void>((resolve, reject) => {
+        const onSeeked = () => { video.removeEventListener('error', onError); resolve(); };
+        const onError = () => { video.removeEventListener('seeked', onSeeked); reject(new Error('VIDEO_CROP_OUTPUT_SEEK_FAILED')); };
+        video.addEventListener('seeked', onSeeked, { once: true });
+        video.addEventListener('error', onError, { once: true });
+      });
+      video.currentTime = sampleTime;
+      await seeked;
+      try {
+        await video.play();
+      } catch {
+        // A muted element may still be subject to headless playback scheduling;
+        // frame presentation is verified below when available.
+      }
+      const requestVideoFrameCallback = (
+        video as HTMLVideoElement & { requestVideoFrameCallback?: (callback: FrameRequestCallback) => number }
+      ).requestVideoFrameCallback;
+      if (requestVideoFrameCallback) {
+        await new Promise<void>((resolve) => {
+          const timer = setTimeout(resolve, 2_000);
+          requestVideoFrameCallback.call(video, () => {
+            clearTimeout(timer);
+            resolve();
+          });
+        });
+      } else {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
       const canvas = document.createElement('canvas');
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
