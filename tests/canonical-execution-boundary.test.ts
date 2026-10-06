@@ -50,6 +50,26 @@ test('canonical chain is bounded and fail-closed', async () => {
 });
 
 
+
+test('MVP UI execution paths contain no raw-file network egress APIs', () => {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+  const source = (relativePath: string) => readFileSync(resolve(root, relativePath), 'utf8');
+
+  const activePaths = [
+    'src/tools/image-converter/index.tsx',
+    'src/tools/image-cropper/index.tsx',
+    'src/tools/image-compressor/index.tsx',
+    'src/tools/image-toolkit/index.tsx',
+    'src/tools/video-local/index.tsx',
+  ];
+
+  for (const relativePath of activePaths) {
+    const text = source(relativePath);
+    assert.doesNotMatch(text, /(?:^|[^\w])(fetch|XMLHttpRequest|WebSocket|sendBeacon)\s*\(/u, relativePath);
+    assert.doesNotMatch(text, /FormData/u, relativePath);
+  }
+});
+
 test('active MVP UI paths do not expose a direct engine execution bypass', () => {
   const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
   const source = (relativePath: string) => readFileSync(resolve(root, relativePath), 'utf8');
