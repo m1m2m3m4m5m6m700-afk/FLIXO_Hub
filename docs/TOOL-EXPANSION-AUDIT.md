@@ -2,18 +2,18 @@ Audit baseline: execution `653e84d508bfc1d95f0c1547a2e973b277cd1680` and main `2
 
 ## Current registry
 - 43 tool definitions are currently present in `src/config/canonical-tool-definition.ts`.
-- 20 are in the currently authorized canonical executable release set for this certification.
-- 42 are marked ready by the current static-route generator; 20 image capabilities are admitted to the release set and additional ready/plannable capabilities remain outside this 20-tool certification scope.
+- 10 are in the currently authorized canonical executable release set for this certification.
+- 42 are marked ready by the current static-route generator; the ten canonical MVP capabilities are admitted to the executable release set and additional ready/plannable capabilities remain outside the MVP scope.
 - `TOOL_REGISTRY` is the canonical registry and `TOOL_CATALOG` is derived from it.
 - `src/config/tools.ts` remains a compatibility surface; it is not a second source of definitions.
 
 ## Current registered IDs
 filter-mask, image-compressor, background-remover, image-upscaler, image-converter, object-remover, watermark-remover, image-cropper, image-to-svg, image-ocr, background-blur, passport-photo-maker, watermark-adder, meme-generator, collage-maker, image-effects, exif-cleaner, svg-optimizer, mockup-generator, seed, pix, ai-image-generator, photo-colorizer, video-trimmer, video-cropper, video-resizer, video-compressor, image-resizer, image-hue, image-pixelate, image-padding, image-rounded-corners.
 
-## Current certified executable release IDs
-background-remover, image-upscaler, image-cropper, image-compressor, image-converter, image-effects, image-rotate, image-flip-horizontal, image-flip-vertical, image-brightness, image-contrast, image-saturation, image-grayscale, image-invert, image-sepia, image-blur, image-sharpen, image-resizer, image-hue, image-pixelate.
+## Current canonical executable MVP IDs
+background-remover, image-upscaler, image-cropper, image-compressor, image-converter, image-effects, video-trimmer, video-cropper, video-resizer, video-compressor.
 
-The release set is browser-local, canonical, schema-bound, verifier-bound, and adapter-bound. Five additional image routes (`image-padding`, `image-rounded-corners`, and other non-release capabilities) remain outside the 20-tool certification scope unless separately admitted.
+The MVP release set is browser-local, canonical, schema-bound, verifier-bound, and adapter-bound. Additional ready/plannable routes remain outside the ten-tool executable scope unless separately admitted.
 
 ## Localization baseline
 The repository declares 20 canonical locales:
