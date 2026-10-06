@@ -107,7 +107,7 @@ test.describe('MVP video capability individual acceptance', () => {
           throw new Error('VIDEO_OUTPUT_CONTRACT_INVALID');
         }
         const video = document.createElement('video');
-        video.preload = 'metadata';
+        video.preload = 'auto';
         const objectUrl = URL.createObjectURL(blob);
         video.src = objectUrl;
         try {
@@ -115,7 +115,31 @@ test.describe('MVP video capability individual acceptance', () => {
             video.onloadedmetadata = () => resolve();
             video.onerror = () => reject(new Error('VIDEO_OUTPUT_METADATA_INVALID'));
           });
-          return { size: blob.size, type: blob.type, duration: video.duration, width: video.videoWidth, height: video.videoHeight };
+
+          if (!Number.isFinite(video.duration) || video.duration <= 0 || video.duration >= 600) {
+            try { video.currentTime = 1e9; } catch { /* bounded duration probe */ }
+            await new Promise<void>((resolve) => {
+              const done = () => {
+                video.removeEventListener('durationchange', done);
+                video.removeEventListener('timeupdate', done);
+                video.removeEventListener('progress', done);
+                resolve();
+              };
+              video.addEventListener('durationchange', done, { once: true });
+              video.addEventListener('timeupdate', done, { once: true });
+              video.addEventListener('progress', done, { once: true });
+              setTimeout(done, 2_000);
+            });
+          }
+
+          const ranges = video.buffered.length > 0 ? video.buffered : video.seekable;
+          const rangeDuration = ranges.length > 0 ? ranges.end(ranges.length - 1) : Number.NaN;
+          const duration = [video.duration, rangeDuration].find(
+            (value) => Number.isFinite(value) && value > 0 && value < 600,
+          );
+
+          if (duration === undefined) throw new Error('VIDEO_OUTPUT_DURATION_INVALID');
+          return { size: blob.size, type: blob.type, duration, width: video.videoWidth, height: video.videoHeight };
         } finally {
           URL.revokeObjectURL(objectUrl);
           video.removeAttribute('src');
