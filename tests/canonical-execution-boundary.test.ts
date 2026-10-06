@@ -156,6 +156,17 @@ test('tool-chain panel UI matches the canonical chain/media boundary', () => {
   assert.match(panel, /accept="image\/\*,video\/\*"/u);
 });
 
+test('canonical executor validates the bounded signature probe against its own length', () => {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+  const executor = readFileSync(resolve(root, 'src/lib/execution/canonical-executor.ts'), 'utf8');
+  assert.match(executor, /const contentProbeBytes = contentPrefix\.byteLength/u);
+  assert.match(executor, /bytes: contentProbeBytes,\s*content: contentPrefix/u);
+  assert.match(
+    executor,
+    /if \(input\.blob\.size <= 0 \|\| input\.blob\.size > maxBytes\)/u,
+  );
+});
+
 test('canonical executor enforces container signatures for supported video MIME types', () => {
   const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
   const executor = readFileSync(resolve(root, 'src/lib/execution/canonical-executor.ts'), 'utf8');
