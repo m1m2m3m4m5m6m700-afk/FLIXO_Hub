@@ -54,3 +54,11 @@
 - `الوكلاء/تدريب الوكلاء/`
 - معيار الكفاءة: `الوكلاء/تدريب الوكلاء/المعيار-100.md`
 - اختبار العقد: `tests/security/ci/agent-training-contract.test.mjs`
+
+## معيار الامتياز
+
+الوكلاء الرسميون الثمانية يخضعون لبوابة امتياز مشتركة مع امتحان تخصصي وحالات مضادة مستقلة لكل دور.
+
+- `scripts/agent-learning/evaluate-agent-readiness.mjs` يقيس الجاهزية.
+- `scripts/agent-learning/run-role-drills.mjs` ينفذ امتحانات الأدوار.
+- `tests/security/ci/agent-readiness-evaluator.test.mjs` يمنع أي نتيجة أقل من 100 في العقد القابل للاختبار.
