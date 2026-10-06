@@ -254,16 +254,12 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
 
     const chunks: Blob[] = [];
     let stopError: Error | undefined;
-    const stopped = new Promise<void>((resolve, reject) => {
-      recorder!.ondataavailable = (event) => {
-        if (event.data.size > 0) chunks.push(event.data);
-      };
-      recorder!.onerror = () => {
-        stopError = new Error("VIDEO_RECORDING_FAILED");
-        reject(stopError);
-      };
-      recorder!.onstop = () => resolve();
-    });
+    recorder.ondataavailable = (event) => {
+      if (event.data.size > 0) chunks.push(event.data);
+    };
+    recorder.onerror = () => {
+      stopError = new Error("VIDEO_RECORDING_FAILED");
+    };
 
     if (options.signal?.aborted) throw new DOMException("Video operation aborted.", "AbortError");
     const startSec = options.startSec ?? 0;
