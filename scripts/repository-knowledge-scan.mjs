@@ -422,7 +422,7 @@ export function collect() {
     '',
     '## Repository knowledge map',
     '- Task authority: المهام.md',
-    '- Knowledge authority: 0(التقارير)/<EXACT-SHA>.md',
+    '- Knowledge authority: الوكلاء/وكيل-معرفة-المستودع/التقارير/<EXACT-SHA>.md',
     '- This report is knowledge, not task authority and not certification evidence.',
     '',
     '## Change delta',
@@ -450,7 +450,7 @@ export function collect() {
     '## Unknowns / limitations',
     ...(unknownSourceLines ? ['- ' + unknownSourceLines + ' repository-authored lines require semantic review under the classifier.'] : ['- No line-level semantic-review markers under the classifier.']),
     ...(unresolved.length ? ['- ' + unresolved.length + ' local imports could not be resolved.'] : ['- No unresolved local imports detected.']),
-    '- Generated knowledge artifacts under 0(التقارير)/ are excluded from recursive analysis to prevent report self-growth.',
+    '- Generated knowledge artifacts under الوكلاء/وكيل-معرفة-المستودع/التقارير/ are excluded from recursive analysis to prevent report self-growth.',
     '',
     '## Complete file inventory',
   ];
