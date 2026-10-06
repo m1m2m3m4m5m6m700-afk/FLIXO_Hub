@@ -91,7 +91,7 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
   let releaseSource: (() => void) | null = null;
   video.preload = 'auto';
   // Processing is programmatic; mute playback so browser autoplay policy cannot block local rendering.
-  // The source audio track, when available, is still captured separately from the source stream.
+  // The renderer captures the processed video track into a local WebM artifact.
   video.muted = true;
   video.playsInline = true;
 
@@ -201,7 +201,6 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
       try { recorder.stop(); } catch { /* recorder may already be stopping */ }
     }
     canvasStream?.getTracks().forEach((track) => track.stop());
-    sourceStream?.getTracks().forEach((track) => track.stop());
     // The source is detached by attachVideoBlobSource's cleanup closure.
     releaseSource?.();
     video.removeAttribute('src');
