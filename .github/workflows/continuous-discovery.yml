@@ -13,7 +13,7 @@ on:
       - "tests/security/ci/scout-boundary.test.mjs"
 
 concurrency:
-  group: flixo-continuous-discovery-\${{ github.event.pull_request.number || github.ref }}
+  group: flixo-continuous-discovery-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: false
 
 permissions:
@@ -21,7 +21,7 @@ permissions:
 
 jobs:
   contract:
-    if: \${{ github.event_name == 'pull_request' }}
+    if: ${{ github.event_name == 'pull_request' }}
     name: Discovery contract
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -30,7 +30,7 @@ jobs:
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
         with:
-          ref: \${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 1
           persist-credentials: false
       - name: Verify infinite discovery contract
@@ -45,7 +45,7 @@ jobs:
         run: node --test tests/security/ci/scout-boundary.test.mjs
 
   discover:
-    if: \${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     name: Append-only Scouts
     runs-on: ubuntu-latest
     timeout-minutes: 20
