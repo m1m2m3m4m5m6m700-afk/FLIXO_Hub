@@ -2,12 +2,15 @@
 
 Status: NOT CERTIFIED
 
-This document becomes a certificate only after all required evidence is verified against one exact release SHA.
+This document is a certificate template. It becomes a certificate only after every required identity and gate is verified against one exact release SHA.
 
 ## Identity
 
 - Repository: `m1m2m3m4m5m6m700-afk/FLIXO_Hub`
+- Release branch: `REQUIRED`
 - Release SHA: `REQUIRED`
+- Current workflow run: `REQUIRED`
+- Current evidence record: `REQUIRED`
 - Release tag: `REQUIRED`
 - Production deployment ID: `REQUIRED`
 - Production immutable identity: `REQUIRED`
@@ -17,13 +20,13 @@ This document becomes a certificate only after all required evidence is verified
 ## Gates
 
 - [ ] Release candidate freeze
-- [ ] Required CI PASS
-- [ ] CodeQL PASS
-- [ ] Secret scan PASS
-- [ ] Security/dependency audit PASS
-- [ ] Red Team PASS
-- [ ] Browser E2E PASS
-- [ ] Production identity PASS
+- [ ] Required CI PASS on the exact release SHA
+- [ ] CodeQL PASS on the exact release SHA
+- [ ] Secret scan PASS on the exact release SHA
+- [ ] Security/dependency audit PASS on the exact release SHA
+- [ ] Red Team PASS on the exact release SHA
+- [ ] Browser E2E PASS on the exact release SHA
+- [ ] Production identity PASS on the exact release SHA
 - [ ] Core UX PASS
 - [ ] Domain/canonical origin PASS
 - [ ] Privacy/security/support surface PASS
@@ -35,6 +38,6 @@ This document becomes a certificate only after all required evidence is verified
 
 ## Certification rule
 
-Any missing, mixed-SHA, stale, skipped, cancelled, neutral, or unverifiable evidence means NOT CERTIFIED.
+Any missing, mixed-SHA, stale, skipped, cancelled, neutral, expired, or unverifiable evidence means NOT CERTIFIED.
 
-Only the exact SHA whose evidence is all green may be certified.
+Only the exact SHA whose complete evidence lineage is verified may be certified.
