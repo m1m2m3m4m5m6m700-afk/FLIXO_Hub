@@ -17,7 +17,7 @@ export function VideoLocalTool() {
       const parameters: CanonicalCapabilityParameters = id === 'video-trimmer'
         ? {}
         : id === 'video-compressor'
-          ? { videoBitsPerSecond: 2_500_000 }
+          ? { videoBitsPerSecond: 2_500_000, audioBitsPerSecond: 128_000 }
           : id === 'video-resizer'
             ? { width: 1280, height: 720 }
             : { x: 0, y: 0, width: 1280, height: 720 };

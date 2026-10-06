@@ -4,7 +4,7 @@ import { ImageJob } from '../../image-core/job';
 import { getToolDefinition } from '../../config/canonical-tool-definition';
 import { validateUploadBoundary } from '../../lib/contracts/upload-boundary';
 import { validateOutputIntegrity } from '../../lib/contracts/output-integrity';
-import { cropResizeImage } from '../image-toolkit/engine';
+import { executeCanonicalTool } from '../../lib/execution/canonical-executor';
 import { imageCropperIntegritySpec } from './output-integrity';
 import { localizeToolUiValue } from '../../lib/i18n/tool-ui-runtime-completeness';
 
@@ -80,8 +80,8 @@ function ImageCropperTool({ locale }: { locale?: string }) {
           assetStore,
           parameters: next,
           processor: async (input) => {
-            const blob = await cropResizeImage(input.blob, { x: next.x, y: next.y, width: next.cropWidth, height: next.cropHeight }, { width: next.width, height: next.height });
-            return { blob, width: next.width, height: next.height, name: 'flixo-cropped.png' };
+            const output = await executeCanonicalTool('image-cropper', { blob: input.blob, fileName: input.name ?? 'image' }, next);
+            return { blob: output.blob, width: next.width, height: next.height, name: output.fileName };
           },
           verifier: async (_input, output, params) => {
             const nextParameters = params as Parameters;

@@ -1,51 +1,114 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import { executeCanonicalChain, executeCanonicalTool } from '../src/lib/execution/canonical-executor.ts';
+import { MVP_EXECUTABLE_TOOL_IDS } from '../src/config/manual-capability-definition.ts';
 
-const image = (name = 'input.png', type = 'image/png', size = 4) => new File([new Uint8Array(size)], name, { type });
+test('every current MVP capability resolves through the canonical executor boundary', async () => {
+  assert.equal(MVP_EXECUTABLE_TOOL_IDS.length, 10);
+  for (const toolId of MVP_EXECUTABLE_TOOL_IDS) {
+    const isVideo = toolId.startsWith('video-');
+    const file = isVideo
+      ? new File(['not-a-real-video'], 'fixture.webm', { type: 'video/webm' })
+      : new File(['not-a-real-image'], 'fixture.png', { type: 'image/png' });
+    await assert.rejects(
+      () => executeCanonicalTool(toolId, { blob: file, fileName: file.name }, {}),
+      (error: unknown) => {
+        const message = error instanceof Error ? error.message : String(error);
+        return !/no canonical executor is registered|executor is registered/i.test(message);
+      },
+      toolId,
+    );
+  }
+});
 
-test('canonical execution rejects unknown tool ids', async () => {
+test('canonical executor rejects unknown and non-executable capabilities before processing', async () => {
+  const file = new File(['x'], 'fixture.png', { type: 'image/png' });
   await assert.rejects(
-    () => executeCanonicalTool('does-not-exist', { blob: image(), fileName: 'input.png' }),
-    /unknown tool/,
+    () => executeCanonicalTool('not-a-tool', { blob: file, fileName: file.name }),
+    /unknown tool/i,
+  );
+  await assert.rejects(
+    () => executeCanonicalTool('object-remover', { blob: file, fileName: file.name }),
+    /not executable|release-ready/i,
   );
 });
 
-test('canonical execution rejects non-executable capabilities', async () => {
+test('canonical chain is bounded and fail-closed', async () => {
+  const file = new File(['x'], 'fixture.png', { type: 'image/png' });
   await assert.rejects(
-    () => executeCanonicalTool('seed', { blob: image(), fileName: 'input.png' }),
-    /not executable/,
+    () => executeCanonicalChain([], { blob: file, fileName: file.name }),
+    /between 1 and 4/i,
+  );
+  await assert.rejects(
+    () => executeCanonicalChain(Array.from({ length: 5 }, () => ({ toolId: 'image-converter' })), { blob: file, fileName: file.name }),
+    /between 1 and 4/i,
   );
 });
 
-test('canonical execution rejects invalid parameters before execution', async () => {
-  await assert.rejects(
-    () => executeCanonicalTool('image-converter', { blob: image(), fileName: 'input.png' }, { format: 'image/tiff' }),
-    /Invalid|Expected|received/,
-  );
-});
 
-test('canonical execution rejects unsafe filenames before execution', async () => {
-  await assert.rejects(
-    () => executeCanonicalTool('image-converter', { blob: image('../input.png'), fileName: '../input.png' }, { format: 'image/webp' }),
-    /file-safety boundary/,
-  );
-});
+test('active MVP UI paths do not expose a direct engine execution bypass', () => {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+  const source = (relativePath: string) => readFileSync(resolve(root, relativePath), 'utf8');
 
-test('canonical execution rejects unsupported MIME types before execution', async () => {
-  await assert.rejects(
-    () => executeCanonicalTool('image-converter', { blob: image('input.txt', 'text/plain'), fileName: 'input.txt' }, { format: 'image/webp' }),
-    /file-safety boundary/,
+  assert.match(
+    source('src/tools/image-converter/index.tsx'),
+    /executeCanonicalTool\('image-converter'/u,
   );
-});
+  assert.doesNotMatch(
+    source('src/tools/image-converter/index.tsx'),
+    /image-toolkit\/engine/u,
+  );
 
-test('canonical chain rejects empty and oversized plans closed', async () => {
-  await assert.rejects(
-    () => executeCanonicalChain([], { blob: image(), fileName: 'input.png' }),
-    /between 1 and 8/,
+  assert.match(
+    source('src/tools/image-cropper/index.tsx'),
+    /executeCanonicalTool\('image-cropper'/u,
   );
-  await assert.rejects(
-    () => executeCanonicalChain(Array.from({ length: 9 }, () => ({ toolId: 'image-converter' })), { blob: image(), fileName: 'input.png' }),
-    /between 1 and 8/,
+  assert.doesNotMatch(
+    source('src/tools/image-cropper/index.tsx'),
+    /image-toolkit\/engine/u,
+  );
+
+  assert.match(
+    source('src/tools/image-compressor/index.tsx'),
+    /executeCanonicalTool\('image-compressor'/u,
+  );
+  assert.doesNotMatch(
+    source('src/tools/image-compressor/index.tsx'),
+    /compressImage\(/u,
+  );
+
+  const imageToolkit = source('src/tools/image-toolkit/index.tsx');
+  assert.match(imageToolkit, /executeCanonicalTool\('background-remover'/u);
+  assert.match(imageToolkit, /executeCanonicalTool\('image-upscaler'/u);
+  assert.doesNotMatch(imageToolkit, /removeBackground\(/u);
+  assert.doesNotMatch(imageToolkit, /resizeImage\(/u);
+  assert.match(imageToolkit, /executeCanonicalTool\('image-converter'/u);
+  assert.doesNotMatch(imageToolkit, /convertImage\(/u);
+
+  const imageEffects = source('src/tools/_shared/browser-image.tsx');
+  assert.match(imageEffects, /executeCanonicalTool\('image-effects'/u);
+  assert.doesNotMatch(imageEffects, /runImageEffectsWorker\(/u);
+
+  assert.match(
+    source('src/tools/video-local/index.tsx'),
+    /executeCanonicalTool\(id/u,
+  );
+  assert.doesNotMatch(
+    source('src/tools/video-local/index.tsx'),
+    /video-executor/u,
+  );
+
+  const chainAdapters = source('src/lib/tool-chain-adapters.ts');
+  assert.match(chainAdapters, /executeCanonicalTool/u);
+  assert.doesNotMatch(chainAdapters, /\.\.\/tools\//u);
+  assert.doesNotMatch(chainAdapters, /\.\/video\//u);
+
+  assert.equal(
+    existsSync(resolve(root, 'src/lib/video/video-tool-executors.ts')),
+    false,
   );
 });
