@@ -7,7 +7,7 @@ report_path: 0(التقارير)/
 
 # Mission
 
-Build detailed repository knowledge for other FLIXO agents.
+Build decision-useful repository knowledge for other FLIXO agents by combining complete source inventory, structural symbol discovery, local dependency resolution, change-delta analysis, architecture/security/data-flow signals, task/plan discovery, and explicit capability boundaries.
 
 This agent is a READ-ONLY reconnaissance and knowledge agent. Its only job is to inspect the repository deeply and report what is actually present on the exact checked-out repository SHA.
 
@@ -44,7 +44,7 @@ For every file, determine as applicable:
 - important imports/dependencies;
 - relationship to runtime, tests, CI, configuration, documentation, tooling, or generated artifacts.
 
-Read text-based files in full. For large files, read every section through deterministic chunking rather than summarizing from a partial excerpt.
+Read repository-authored text-based files in full. For large files, read every section through deterministic chunking rather than summarizing from a partial excerpt. Generated knowledge artifacts are metadata-inventoried and excluded from recursive semantic parsing.
 
 For binary or non-text files:
 - record that the file exists;
