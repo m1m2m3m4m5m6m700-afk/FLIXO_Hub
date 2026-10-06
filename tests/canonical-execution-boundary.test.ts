@@ -262,3 +262,18 @@ test('canonical execution deadlines actively abort downstream processing', () =>
   assert.match(executor, /withDeadline\([\s\S]*executionController/u);
   assert.match(executor, /executionController\.abort\(\)/u);
 });
+
+
+test('image-effects worker uses the canonical file-safety authority and MVP scope has one guard', () => {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+  const worker = readFileSync(resolve(root, 'src/lib/execution/image-effects.worker.ts'), 'utf8');
+  const safety = readFileSync(resolve(root, 'src/lib/contracts/file-safety.ts'), 'utf8');
+  const mvpScope = readFileSync(resolve(root, 'src/lib/contracts/mvp-scope.ts'), 'utf8');
+
+  assert.match(worker, /from '..\/contracts\/file-safety\.ts'/u);
+  assert.doesNotMatch(worker, /media\/media-safety/u);
+  assert.match(safety, /export const MEDIA_LIMITS/u);
+  assert.match(safety, /export async function assertSafeRasterInput/u);
+  assert.match(safety, /export async function assertRasterOutput/u);
+  assert.equal((mvpScope.match(/export function assertMvpScope\(/gu) ?? []).length, 1);
+});
