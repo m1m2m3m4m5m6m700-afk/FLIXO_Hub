@@ -394,29 +394,41 @@ const verifySessionToken = (token: string) => {
     throw new Error("COUNCIL_SESSION_INVALID");
   }
   const expiresAt = Number(claims.expiresAt ?? 0);
-  if (claims.typ !== "FLIXO_COUNCIL_SESSION" || !Number.isFinite(expiresAt) || expiresAt <= Math.floor(Date.now() / 1000)) {
-    throw new Error("COUNCIL_SESSION_EXPIRED");
+  const sessionId = String(claims.sessionId ?? "").trim();
+  const accountId = String(claims.accountId ?? "").trim();
+  const dispatchId = String(claims.dispatchId ?? "").trim();
+  const agentId = String(claims.agentId ?? "").trim();
+  if (
+    claims.typ !== "FLIXO_COUNCIL_SESSION"
+    || !Number.isFinite(expiresAt)
+    || expiresAt <= Math.floor(Date.now() / 1000)
+    || !(accountId in accounts)
+    || !/^[0-9a-f-]{36}$/iu.test(sessionId)
+    || !/^[0-9a-f-]{36}$/iu.test(dispatchId)
+    || !agentId
+  ) {
+    throw new Error("COUNCIL_SESSION_INVALID");
   }
-  return claims;
+  return { ...claims, sessionId, accountId, dispatchId, agentId, expiresAt };
 };
 
 const sessionAuth = (req: Request, account: Account, dispatchId?: string) => {
   const token = (req.headers.get("x-council-session") ?? "").trim();
-  if (!token) return false;
+  if (!token) return null;
   const claims = verifySessionToken(token);
   if (claims.accountId !== account) throw new Error("COUNCIL_SESSION_ACCOUNT_MISMATCH");
   if (dispatchId && claims.dispatchId !== dispatchId) throw new Error("COUNCIL_SESSION_DISPATCH_MISMATCH");
-  return true;
+  return claims;
 };
 
 const authAccountOrSession = (req: Request, account: Account, dispatchId?: string) => {
   if (bearer(req)) {
     authAccount(req, account);
-    return;
+    return { mode: "bearer" as const, sessionId: null };
   }
-  if (!sessionAuth(req, account, dispatchId)) {
-    throw new Error("COUNCIL_ACCOUNT_UNAUTHORIZED");
-  }
+  const claims = sessionAuth(req, account, dispatchId);
+  if (!claims) throw new Error("COUNCIL_ACCOUNT_UNAUTHORIZED");
+  return { mode: "session" as const, sessionId: String(claims.sessionId) };
 };
 
 const accountFromBearer = (req: Request): Account => {
@@ -747,8 +759,10 @@ Deno.serve(async (req) => {
       const activationToken = String(body.activationToken ?? req.headers.get("x-council-activation") ?? "").trim();
       const declaredAgentId = String(body.agentId ?? "").trim();
       const exactSha = sha(body.entrySha);
-      const sessionId = String(body.sessionId ?? req.headers.get("x-council-session-id") ?? crypto.randomUUID()).trim();
-      if (!dispatchId || !declaredAgentId || !sessionId) {
+      const suppliedSessionId = String(body.sessionId ?? req.headers.get("x-council-session-id") ?? "").trim();
+      if (suppliedSessionId) throw new Error("COUNCIL_ACTIVATION_SESSION_ID_FORBIDDEN");
+      const sessionId = crypto.randomUUID();
+      if (!dispatchId || !declaredAgentId) {
         throw new Error("COUNCIL_ACTIVATION_REQUIRED");
       }
 
@@ -1096,7 +1110,10 @@ Deno.serve(async (req) => {
       const sessionId = String(hb.sessionId ?? "").trim();
       const exactSha = sha(hb.entrySha);
       if (!dispatchId || !sessionId) throw new Error("COUNCIL_HEARTBEAT_IDENTITY_REQUIRED");
-      authAccountOrSession(req, account, dispatchId);
+      const authentication = authAccountOrSession(req, account, dispatchId);
+      if (authentication.mode === "session" && authentication.sessionId !== sessionId) {
+        throw new Error("COUNCIL_SESSION_ID_MISMATCH");
+      }
       const result = await db("/rest/v1/rpc/council_heartbeat_dispatch", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -1112,7 +1129,10 @@ Deno.serve(async (req) => {
       const sessionId = String(cmp.sessionId ?? "").trim();
       const exactSha = sha(cmp.entrySha);
       if (!dispatchId || !sessionId) throw new Error("COUNCIL_COMPLETE_IDENTITY_REQUIRED");
-      authAccountOrSession(req, account, dispatchId);
+      const authentication = authAccountOrSession(req, account, dispatchId);
+      if (authentication.mode === "session" && authentication.sessionId !== sessionId) {
+        throw new Error("COUNCIL_SESSION_ID_MISMATCH");
+      }
       const status = String(cmp.status ?? "DONE");
       if (!["DONE", "FAILED"].includes(status)) throw new Error("COUNCIL_COMPLETE_STATUS_INVALID");
       const result = await db("/rest/v1/rpc/council_complete_dispatch", {
