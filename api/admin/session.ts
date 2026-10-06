@@ -34,7 +34,6 @@ const LOGIN_TTL_SECONDS = 60 * 60;
 const LOGIN_LIMIT = 10;
 const LOGIN_WINDOW_SECONDS = 60;
 const MAX_REQUEST_BODY_BYTES = 64 * 1024;
-const loginBuckets = new Map<string, { attempts: number; resetAt: number }>();
 
 const json = <
   TBody extends AdminErrorResponse
