@@ -159,7 +159,7 @@ export function ImageToolPage({ toolId }: Props) {
         const blob = await response.blob(); if (!blob.type.startsWith('image/')) throw new Error('AI endpoint did not return an image.');
         const info = await imageInfo(blob); replaceResult(await createResult(blob, `flixo-ai-${info.width}x${info.height}.png`, info)); return;
       }
-      if (toolId === 'image-upscaler') { const factor = Number(scale); if (!Number.isFinite(factor) || factor < 0.25 || factor > 4) throw new Error('Scale must be between 0.25 and 4.'); }
+      if (toolId === 'image-upscaler') { const factor = Number(scale); if (!Number.isFinite(factor) || factor < 1 || factor > 8) throw new Error('Scale must be between 1 and 8.'); }
       if (!file) throw new Error(ui.chooseImageFirst);
       await validateSharedImageInput(file, toolId);
       let blob: Blob; let fileName = baseName(file.name); let info: Result['info'];
