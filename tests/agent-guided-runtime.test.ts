@@ -50,6 +50,8 @@ test('guided runtime preserves compound plans for canonical-chain execution', ()
   const file = image();
   const plan = planAgentRequest('compress this image under 200KB and convert to WebP', file);
   assert.deepEqual(plan.steps.map((step) => step.toolId), ['image-converter', 'image-compressor']);
+  const arabicPlan = planAgentRequest('ضغط الصورة إلى أقل من 200KB وتحويلها إلى WebP', file);
+  assert.deepEqual(arabicPlan.steps.map((step) => step.toolId), ['image-converter', 'image-compressor']);
 });
 
 test('guided runtime cannot confirm a plan issued for another file', () => {
