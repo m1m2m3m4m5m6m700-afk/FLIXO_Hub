@@ -200,7 +200,7 @@ jobs:
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 1
           persist-credentials: true
-      - name: Assert only main and execution branches exist
+      - name: Validate branch policy for the current ref
         if: ${{ github.event_name != 'pull_request' }}
         run: node scripts/ci/verify-branch-policy.mjs
       - name: Verify canonical PR source identity
