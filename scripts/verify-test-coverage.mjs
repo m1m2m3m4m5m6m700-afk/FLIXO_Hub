@@ -5,29 +5,28 @@ const root = process.cwd();
 const packageJson = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
 const playwrightConfig = await readFile(path.join(root, 'playwright.config.ts'), 'utf8');
 
-function walk(dir) {
-  return readdir(dir, { withFileTypes: true }).then(async entries => {
-    const files = [];
-    for (const entry of entries) {
-      if (entry.name === 'node_modules' || entry.name === '.git') continue;
-      const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) files.push(...await walk(full));
-      else files.push(full);
-    }
-    return files;
-  });
+async function walk(dir) {
+  const entries = await readdir(dir, { withFileTypes: true });
+  const files = [];
+  for (const entry of entries) {
+    if (entry.name === 'node_modules' || entry.name === '.git') continue;
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) files.push(...await walk(full));
+    else files.push(full);
+  }
+  return files;
 }
 
 const all = await walk(path.join(root, 'tests'));
-const specFiles = all.filter(file => /\\.spec\\.ts$/.test(file));
-const nodeTestFiles = all.filter(file => /\\.test\\.ts$/.test(file));
+const specFiles = all.filter(file => /\.spec\.ts$/.test(file));
+const nodeTestFiles = all.filter(file => /\.test\.ts$/.test(file));
 
-const testDirMatch = playwrightConfig.match(/testDir\\s*:\\s*['"]([^'"]+)['"]/);
+const testDirMatch = playwrightConfig.match(/testDir\s*:\s*['"]([^'"]+)['"]/);
 if (!testDirMatch) throw new Error('PLAYWRIGHT_TEST_COVERAGE: testDir is not declared');
 const testDir = path.resolve(root, testDirMatch[1]);
 
 const ignored = [];
-const ignoreMatch = playwrightConfig.match(/testIgnore\\s*:\\s*\\[([\\s\\S]*?)\\]/);
+const ignoreMatch = playwrightConfig.match(/testIgnore\s*:\s*\[([\s\S]*?)\]/);
 if (ignoreMatch) {
   for (const m of ignoreMatch[1].matchAll(/['"]([^'"]+)['"]/g)) ignored.push(m[1]);
 }
@@ -46,8 +45,8 @@ const uncoveredNodeTests = nodeTestFiles.filter(file => {
 
 if (uncoveredSpecs.length || uncoveredNodeTests.length) {
   console.error('TEST_COVERAGE_GATE=FAIL');
-  if (uncoveredSpecs.length) console.error('Uncovered Playwright specs:\\n' + uncoveredSpecs.map(f => path.relative(root, f)).join('\\n'));
-  if (uncoveredNodeTests.length) console.error('Uncovered Node test files:\\n' + uncoveredNodeTests.map(f => path.relative(root, f)).join('\\n'));
+  if (uncoveredSpecs.length) console.error('Uncovered Playwright specs:\n' + uncoveredSpecs.map(f => path.relative(root, f)).join('\n'));
+  if (uncoveredNodeTests.length) console.error('Uncovered Node test files:\n' + uncoveredNodeTests.map(f => path.relative(root, f)).join('\n'));
   process.exit(1);
 }
 
