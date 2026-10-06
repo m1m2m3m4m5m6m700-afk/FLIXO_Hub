@@ -6,7 +6,7 @@ import { join, extname, posix } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = process.cwd();
-const REPORT_DIR = '0(التقارير)';
+const REPORT_DIR = 'الوكلاء/وكيل-معرفة-المستودع/التقارير';
 
 export function sh(command, args = []) {
   return execFileSync(command, args, { cwd: root, encoding: 'utf8' }).trim();
