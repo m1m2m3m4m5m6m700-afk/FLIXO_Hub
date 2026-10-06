@@ -64,6 +64,32 @@ for (const root of sourceRoots) {
   if (existsSync(root)) walk(root);
 }
 
+const codeownersPath = '.github/CODEOWNERS';
+const requiredOwnerPaths = [
+  '/.github/workflows/',
+  '/scripts/ci/',
+  '/src/lib/contracts/',
+  '/src/lib/execution/',
+  '/src/config/registry.ts',
+  '/src/server/admin/',
+  '/api/admin/',
+  '/src/worker.ts',
+  '/wrangler.jsonc',
+  '/vercel.json',
+];
+
+const codeownersViolations = [];
+if (!existsSync(codeownersPath)) {
+  codeownersViolations.push('missing .github/CODEOWNERS');
+} else {
+  const codeowners = readFileSync(codeownersPath, 'utf8');
+  for (const ownerPath of requiredOwnerPaths) {
+    if (!codeowners.split(/\r?\n/u).some((line) => line.trim().startsWith(ownerPath + ' '))) {
+      codeownersViolations.push('CODEOWNERS missing explicit protected path: ' + ownerPath);
+    }
+  }
+}
+
 const authorityChecks = [
   {
     path: 'src/config/registry.ts',
@@ -103,6 +129,12 @@ if (existsSync('src/lib/media/media-safety.ts')) {
 if (importViolations.length) {
   console.error("Architecture gate: migrated Agent runtime compatibility imports are forbidden.");
   for (const violation of importViolations) console.error(violation);
+  process.exit(1);
+}
+
+if (codeownersViolations.length) {
+  console.error("Architecture gate: CODEOWNERS coverage is incomplete.");
+  for (const violation of codeownersViolations) console.error(violation);
   process.exit(1);
 }
 
