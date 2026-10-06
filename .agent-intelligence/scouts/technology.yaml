@@ -31,7 +31,7 @@
       "entity_key": "web-workers::performance",
       "repo_refs": [
         "src/lib/execution/canonical-executor.ts",
-        "src/tools"
+        "src/config/registry.ts"
       ],
       "proposal": "Evaluate moving CPU-heavy browser-local transformations to workers while preserving canonical execution and deterministic verification.",
       "rollback": "Disable the worker path and route execution back through the proven main-thread implementation."
@@ -61,7 +61,7 @@
       "entity_key": "react-release-signal::framework",
       "repo_refs": [
         "package.json",
-        "src"
+        "src/config/registry.ts"
       ],
       "proposal": "Monitor React release and deprecation signals for compatibility work that remains isolated from execution authority.",
       "rollback": "Pin the proven React version and remove compatibility shims without changing runtime contracts."
