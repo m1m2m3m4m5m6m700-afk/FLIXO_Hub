@@ -6,11 +6,12 @@ import {
   assertImageOutputBudget,
   assertImageScale,
   assertSafeRasterInput,
+  assertRasterOutput,
   MEDIA_LIMITS,
   readRasterDimensions,
 } from '../src/lib/media/media-safety.ts';
 import { validateCompressionOptions } from '../src/tools/image-compressor/engine.ts';
-import { validateVideoRenderOptions } from '../src/lib/video/video-safety.ts';
+import { assertSafeVideoInput, validateVideoRenderOptions } from '../src/lib/video/video-safety.ts';
 
 test('image safety accepts valid PNG header and reads dimensions', async () => {
   const header = Uint8Array.from([
@@ -76,4 +77,35 @@ test('video safety rejects invalid duration, trim range, crop and resource bound
   assert.throws(() => validateVideoRenderOptions({ ...valid, crop: { ...valid.crop, x: 200, width: 200 } }), /crop rectangle/);
   assert.throws(() => validateVideoRenderOptions({ ...valid, durationSec: MEDIA_LIMITS.videoMaxDurationSec + 1 }), /duration/);
   assert.throws(() => validateVideoRenderOptions({ ...valid, fps: 61 }), /FPS/);
+});
+
+
+test('video safety accepts supported container signatures and rejects mismatches', async () => {
+  await assertSafeVideoInput(new Blob([
+    Uint8Array.from([0x1a, 0x45, 0xdf, 0xa3, 0x01, 0x02]),
+  ], { type: 'video/webm' }));
+  await assertSafeVideoInput(new Blob([
+    Uint8Array.from([0, 0, 0, 0, 0x66, 0x74, 0x79, 0x70]),
+  ], { type: 'video/mp4' }));
+  await assertSafeVideoInput(new Blob([
+    Uint8Array.from([0x4f, 0x67, 0x67, 0x53, 0x01]),
+  ], { type: 'video/ogg' }));
+  await assertSafeVideoInput(new Blob([
+    Uint8Array.from([0x1a, 0x45, 0xdf, 0xa3, 0x9a]),
+  ], { type: 'video/x-matroska' }));
+  await assert.rejects(
+    () => assertSafeVideoInput(new Blob([Uint8Array.from([0, 1, 2, 3, 4, 5])], { type: 'video/webm' })),
+    /signature/,
+  );
+});
+
+test('raster output verification rejects wrong MIME/signature', async () => {
+  const validPng = new Blob([
+    Uint8Array.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a,0,0,0,13,0x49,0x48,0x44,0x52]),
+  ], { type: 'image/png' });
+  await assert.doesNotReject(() => assertRasterOutput(validPng, 'image/png'));
+  await assert.rejects(
+    () => assertRasterOutput(new Blob([new Uint8Array([1,2,3,4])], { type: 'image/png' }), 'image/png'),
+    /signature/,
+  );
 });
