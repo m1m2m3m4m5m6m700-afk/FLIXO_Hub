@@ -87,6 +87,39 @@ async function videoFixture(page: Page) {
     await stopped;
     stream.getTracks().forEach((track) => track.stop());
     const blob = new Blob(chunks, { type: 'video/webm' });
+    const objectUrl = URL.createObjectURL(blob);
+    const probe = document.createElement('video');
+    probe.preload = 'auto';
+    probe.src = objectUrl;
+    try {
+      await new Promise<void>((resolve, reject) => {
+        probe.onloadedmetadata = () => resolve();
+        probe.onerror = () => reject(new Error('VIDEO_FIXTURE_METADATA_INVALID'));
+      });
+      if (!Number.isFinite(probe.duration) || probe.duration <= 0 || probe.duration >= 600) {
+        const previous = probe.currentTime;
+        try {
+          probe.currentTime = 1e9;
+        } catch {
+          // Continue to range probes below.
+        }
+        await new Promise<void>((resolve) => {
+          const done = () => { probe.removeEventListener('durationchange', done); probe.removeEventListener('timeupdate', done); resolve(); };
+          probe.addEventListener('durationchange', done, { once: true });
+          probe.addEventListener('timeupdate', done, { once: true });
+          setTimeout(done, 2_000);
+        });
+        try { probe.currentTime = previous; } catch {}
+      }
+      const ranges = probe.buffered.length > 0 ? probe.buffered : probe.seekable;
+      const bounded = [probe.duration, ranges.length > 0 ? ranges.end(ranges.length - 1) : Number.NaN]
+        .find((value) => Number.isFinite(value) && value > 0 && value < 600);
+      if (bounded === undefined) throw new Error('VIDEO_FIXTURE_DURATION_INVALID');
+    } finally {
+      URL.revokeObjectURL(objectUrl);
+      probe.removeAttribute('src');
+      probe.load();
+    }
     return Array.from(new Uint8Array(await blob.arrayBuffer()));
   });
 
@@ -118,7 +151,7 @@ async function executeManualImage(page: Page, toolId: (typeof IMAGE_TOOL_IDS)[nu
   await expect(runButton).toBeEnabled({ timeout: 10_000 });
   await runButton.click();
   const runtimeError = await page.locator('[role="alert"]').allTextContents();
-  const downloadControl = page.getByRole('button', { name: /Download now/i }).or(page.locator('a[download]').first());
+  const downloadControl = page.locator('a[download]').first();
   await expect(downloadControl, `manual/${toolId} output missing; visible runtime errors: ${runtimeError.join(' | ')}`).toBeVisible({ timeout: 20_000 });
 }
 
@@ -130,7 +163,7 @@ async function executeManualVideo(page: Page, toolId: (typeof VIDEO_TOOL_IDS)[nu
   await expect(page.getByRole('button', { name: /Process video/i })).toBeEnabled({ timeout: 10_000 });
   await page.getByRole('button', { name: /Process video/i }).click();
   const runtimeError = await page.locator('[role="alert"]').allTextContents();
-  const downloadControl = page.getByRole('link', { name: /Download result/i }).or(page.locator('a[download]').first());
+  const downloadControl = page.locator('a[download]').first();
   await expect(downloadControl, `manual/${toolId} output missing; visible runtime errors: ${runtimeError.join(' | ')}`).toBeVisible({ timeout: 30_000 });
 }
 
