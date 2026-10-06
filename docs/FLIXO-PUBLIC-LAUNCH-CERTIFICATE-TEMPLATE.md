@@ -2,11 +2,18 @@
 
 Status: NOT CERTIFIED
 
-This document becomes a certificate only after all required evidence is verified against one exact release SHA.
+REPOSITORY: m1m2m3m4m5m6m700-afk/FLIXO_Hub
+BRANCH: execution
+CURRENT_SHA=REQUIRED
+CURRENT_WORKFLOW_RUN=REQUIRED
+CURRENT_EVIDENCE=REQUIRED
+PRODUCTION_IDENTITY=REQUIRED
+CERTIFIED_SHA=NOT_YET_CERTIFIED
+
+This is a certificate template, not a certification. It becomes a certificate only after all required evidence is verified against one exact release SHA and one exact workflow lineage.
 
 ## Identity
 
-- Repository: `m1m2m3m4m5m6m700-afk/FLIXO_Hub`
 - Release SHA: `REQUIRED`
 - Release tag: `REQUIRED`
 - Production deployment ID: `REQUIRED`
@@ -37,4 +44,10 @@ This document becomes a certificate only after all required evidence is verified
 
 Any missing, mixed-SHA, stale, skipped, cancelled, neutral, or unverifiable evidence means NOT CERTIFIED.
 
-Only the exact SHA whose evidence is all green may be certified.
+Only one exact SHA whose evidence is complete and internally consistent may be certified. Prior candidate evidence must remain quarantined as historical evidence.
+
+## HISTORICAL / RETIRED REPOSITORY IDENTITY — NOT CURRENT CERTIFICATION
+
+STATUS=HISTORICAL — NOT CURRENT CERTIFICATION
+
+The former repository identity `m1m2m3m4m5m6m700-afk/FLIXO-AI-TOOLS` is retained only to explain historical records. It is never a current repository or release identity.
