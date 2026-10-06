@@ -1,23 +1,30 @@
-# FLIXO — Exact-SHA Certification Policy
+# FLIXO Exact-SHA Certification Record
 
-Status: POLICY / NOT CURRENT CERTIFICATION
+STATUS: NOT READY
 
-The authoritative candidate is the live head of PR #1002 on `execution`, resolved at verification time. This document intentionally does not embed a candidate SHA because changing the document would invalidate the evidence it attempted to describe.
+This document is an evidence format and current-state record. It is not a certification by itself.
 
-## Required exact-SHA identities
-CURRENT_SHA, TESTED_SHA, BUILT_SHA, BROWSER_VERIFIED_SHA, SECURITY_VERIFIED_SHA, COVERAGE_VERIFIED_SHA, CERTIFIED_SHA, and DEPLOYED_SHA when production deployment is applicable.
+Current release lane:
+- Repository: m1m2m3m4m5m6m700-afk/FLIXO_Hub
+- Execution branch: execution
+- Integration PR: #1002
+- Promotion path: execution -> main
 
-## Required gates
-- typecheck, lint, core tests, build;
-- Agent + Manual browser E2E;
-- security and secret scanning;
-- CodeQL;
-- coverage evidence;
-- clean-clone Red Team;
-- governance state;
-- exact deployment identity where applicable.
+Certification may only be declared when every required identity belongs to one exact candidate SHA:
+- CURRENT_SHA
+- TESTED_SHA
+- BUILT_SHA
+- BROWSER_VERIFIED_SHA
+- SECURITY_VERIFIED_SHA
+- COVERAGE_VERIFIED_SHA
+- RED_TEAM_VERIFIED_SHA
+- CERTIFIED_SHA
+- DEPLOYED_SHA when production deployment is applicable
 
-## Certification rule
-Implemented or historical evidence is not current certification. Prompt 19 may issue certification only when all required gates pass on one exact candidate lineage and no governance or deployment blocker remains.
+Current blocker set:
+- Main GitHub ruleset is not yet at the policy required by Prompt 12.
+- No final frozen Prompt 18 candidate exists.
+- No Prompt 19 final certification evidence exists.
+- No post-merge main or production identity evidence exists.
 
-Current state: NOT READY until those conditions are independently observed.
+Historical SHA, prior PR metadata, and prior certification language are explicitly invalid for the current candidate.
