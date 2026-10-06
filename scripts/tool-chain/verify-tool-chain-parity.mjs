@@ -9,6 +9,7 @@ const registry = read('src/config/registry.ts');
 const adapters = read('src/lib/tool-chain-adapters.ts');
 const compatibility = read('src/lib/tool-chain-compatibility.ts');
 const runner = read('src/lib/tool-chain-runner.ts');
+const canonicalExecutor = read('src/lib/execution/canonical-executor.ts');
 const outputContracts = read('src/lib/contracts/tool-output-contracts.ts');
 const releaseSpec = read('tests/official/mvp-10-release-verification.spec.ts');
 
@@ -45,6 +46,15 @@ if (/getVideoToolExecutor|videoToolExecutor|imageEngine|directEngine/i.test(adap
   throw new Error('CHAIN_ADAPTER_BYPASSES_CANONICAL_EXECUTOR');
 }
 if (!/executeCanonicalChain/.test(runner)) throw new Error('CHAIN_RUNNER_NOT_CANONICAL');
+if (!/getToolById\(toolId\)/.test(canonicalExecutor)) throw new Error('CANONICAL_EXECUTOR_NOT_REGISTRY_BOUND');
+if (!/getCapability\(toolId\)/.test(canonicalExecutor)) throw new Error('CANONICAL_EXECUTOR_NOT_CAPABILITY_BOUND');
+if (!/tool\.operational\.executorId !== toolId/.test(canonicalExecutor)) throw new Error('CANONICAL_EXECUTOR_BINDING_GUARD_MISSING');
+if (!/getToolOutputContract\(toolId\)/.test(canonicalExecutor)) throw new Error('CANONICAL_EXECUTOR_OUTPUT_CONTRACT_MISSING');
+if (!/capability\.verifier\(/.test(canonicalExecutor)) throw new Error('CANONICAL_EXECUTOR_VERIFIER_MAPPING_MISSING');
+if (!/export async function executeCanonicalTool/.test(canonicalExecutor)) throw new Error('CANONICAL_EXECUTOR_ENTRYPOINT_MISSING');
+if (/export\s+(?:async\s+)?function\s+(?!executeCanonical(?:Tool|Chain)\b)execute\w+/i.test(canonicalExecutor)) {
+  throw new Error('SECOND_EXECUTION_AUTHORITY_EXPORTED');
+}
 if (!/validateToolChainContracts/.test(compatibility)) throw new Error('CHAIN_CONTRACT_VALIDATOR_MISSING');
 if (!/MVP_EXECUTABLE_TOOL_IDS\.includes\(toolId/.test(compatibility)) {
   throw new Error('CHAIN_COMPATIBILITY_NOT_BOUND_TO_CANONICAL_IDS');
@@ -61,10 +71,12 @@ for (const id of expected) {
 const manualExecutableCount = (manual.match(/state:\s*["']EXECUTABLE["']/g) || []).length;
 const executorBindingCount = (manual.match(/executorId:/g) || []).length;
 const outputBindingCount = (manual.match(/outputContractId:/g) || []).length;
+const lifecycleReadyCount = (manual.match(/lifecycle:\s*["']ready["']/g) || []).length;
 
 if (manualExecutableCount < expected.length) throw new Error('MANUAL_EXECUTABLE_DEFINITION_COUNT_TOO_LOW');
 if (executorBindingCount < expected.length) throw new Error('EXECUTOR_BINDING_COUNT_TOO_LOW');
 if (outputBindingCount < expected.length) throw new Error('OUTPUT_CONTRACT_BINDING_COUNT_TOO_LOW');
+if (lifecycleReadyCount < expected.length) throw new Error('READY_LIFECYCLE_BINDING_COUNT_TOO_LOW');
 
 console.log(JSON.stringify({
   status: 'PASS',
@@ -72,5 +84,8 @@ console.log(JSON.stringify({
   canonicalExecutorBinding: true,
   registryParity: true,
   outputContractParity: true,
+  verifierParity: true,
+  lifecycleParity: true,
+  canonicalExecutorSingleAuthority: true,
   releaseSpecParity: true,
 }));
