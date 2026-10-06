@@ -71,14 +71,32 @@ jobs:
             exit 1
           }
 
-      - name: Publish report only
+      - name: Publish report to isolated knowledge branch
         shell: bash
         run: |
           set -euo pipefail
           git config user.name "FLIXO Repository Knowledge Agent"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          REPORT="0(التقارير)/${GITHUB_SHA}.md"
+          test -s "$REPORT"
+          REPORT_COPY="${RUNNER_TEMP}/flixo-knowledge-${GITHUB_SHA}.md"
+          cp "$REPORT" "$REPORT_COPY"
+
+          if git ls-remote --exit-code --heads origin knowledge >/dev/null 2>&1; then
+            git fetch origin knowledge
+            git switch --create knowledge --track origin/knowledge
+          else
+            git switch --orphan knowledge
+            git rm -rf . >/dev/null 2>&1 || true
+          fi
+
+          rm -rf '0(التقارير)'
+          mkdir -p '0(التقارير)'
+          cp "$REPORT_COPY" "$REPORT"
+
           git add '0(التقارير)/'
           git diff --cached --name-only
-          test -n "$(git diff --cached --name-only)" || exit 0
-          git commit -m "docs(knowledge): update repository map for ${GITHUB_SHA}"
-          git push origin "HEAD:execution"
+          test -n "$(git diff --cached --name-only)"
+          git commit -m "docs(knowledge): publish execution SHA ${GITHUB_SHA}"
+          git push origin "HEAD:knowledge"
