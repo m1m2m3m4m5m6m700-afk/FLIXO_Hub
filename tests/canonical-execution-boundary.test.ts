@@ -264,6 +264,11 @@ test('canonical execution deadlines actively abort downstream processing', () =>
 });
 
 
+test('unused duplicate media safety authority stays removed', () => {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+  assert.equal(existsSync(resolve(root, 'src/lib/media/media-safety.ts')), false);
+});
+
 test('image-effects worker uses the canonical file-safety authority and MVP scope has one guard', () => {
   const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
   const worker = readFileSync(resolve(root, 'src/lib/execution/image-effects.worker.ts'), 'utf8');
