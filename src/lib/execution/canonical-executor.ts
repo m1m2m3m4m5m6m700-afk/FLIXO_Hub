@@ -464,7 +464,12 @@ export async function executeCanonicalTool(
     );
     assertNotAborted(executionSignal);
     if (output.blob.size <= 0) throw new Error('Execution denied: empty artifact from ' + toolId + '.');
-    await verifyOutputContract(toolId, output, capability.safetyLimits.timeoutMs, executionSignal);
+    await withDeadline(
+      verifyOutputContract(toolId, output, capability.safetyLimits.timeoutMs, executionSignal),
+      capability.safetyLimits.timeoutMs,
+      executionSignal,
+      executionController,
+    );
     const verified = await withDeadline(
       capability.verifier(input.blob, output.blob, parameters, executionSignal),
       capability.safetyLimits.timeoutMs,
