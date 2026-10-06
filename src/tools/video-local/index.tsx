@@ -115,7 +115,6 @@ export function VideoLocalTool() {
 
     setBusy(true);
     setError('');
-    setResult(null);
     if (resultUrl) {
       URL.revokeObjectURL(resultUrl);
       setResultUrl(null);
