@@ -200,5 +200,5 @@ test.describe('MVP video capability individual acceptance', () => {
       await expect(page.getByRole('alert')).toBeVisible({ timeout: 10_000 });
       await expect(page.getByRole('link', { name: 'Download result' })).toHaveCount(0);
     }
-  }
+  });
 });
