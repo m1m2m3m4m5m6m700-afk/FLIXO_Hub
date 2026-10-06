@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation } from '@tanstack/react-router';
 import { executeCanonicalTool } from '@/lib/execution/canonical-executor';
 import type { CanonicalCapabilityParameters } from '@/config/manual-capability-definition';
@@ -6,10 +6,21 @@ import type { CanonicalCapabilityParameters } from '@/config/manual-capability-d
 export function VideoLocalTool() {
   const [file, setFile] = useState<File | null>(null);
   const [result, setResult] = useState<Blob | null>(null);
+  const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const location = useLocation();
   const id = String(location.pathname).split('/').pop() ?? 'video-trimmer';
+
+  useEffect(() => {
+    if (!result) {
+      setResultUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(result);
+    setResultUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [result]);
 
   const run = async () => {
     if (!file) return;
@@ -39,6 +50,6 @@ export function VideoLocalTool() {
     <input aria-label="Choose video" type="file" accept="video/*" onChange={(event) => setFile(event.target.files?.[0] ?? null)} />
     <button type="button" disabled={!file || busy} onClick={() => void run()}>{busy ? 'Processing…' : 'Process video'}</button>
     {error && <p role="alert">Video processing failed: {error}</p>}
-    {result && <a download="flixo-video-output.webm" href={URL.createObjectURL(result)}>Download result</a>}
+    {result && resultUrl && <a download="flixo-video-output.webm" href={resultUrl}>Download result</a>}
   </section>;
 }
