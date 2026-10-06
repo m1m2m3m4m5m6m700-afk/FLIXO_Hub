@@ -6,7 +6,7 @@ UPDATED: 2026-10-06
 REPOSITORY: m1m2m3m4m5m6m700-afk/FLIXO_Hub
 BRANCH: agent-3c/redteam-rt20-20261006
 START_SHA: a6feb563eb6d53e30badc0b071cadc805b71e0af
-END_SHA: PENDING_THIS_REPORT_COMMIT
+REMEDIATION_COMMIT_SHA: 6f34a499ba2c624cbb45970ea7ee5f40b7056cf6
 INTEGRATION_TARGET: execution
 
 ## Authority invariants
@@ -20,7 +20,7 @@ REMEDIATION / EVIDENCE RECORD — NOT RELEASE CERTIFICATION
 
 ## Live branch inventory
 
-Inventory was obtained from the live GitHub repository immediately before the report commit. The required controlled compatibility classification for Agent 3 sub-lanes is applied to `agent-3a/**`, `agent-3b/**`, and the explicitly authorized current lane `agent-3c/**`. The existing `agent3/**` compatibility prefix is also treated as controlled, not production.
+Inventory was obtained from the live GitHub repository after creation of the required Agent 3C branch. The required controlled compatibility classification for Agent 3 sub-lanes is applied to `agent-3a/**`, `agent-3b/**`, and the explicitly authorized current lane `agent-3c/**`. The existing `agent3/**` compatibility prefix is also treated as controlled, not production.
 
 | Classification | Branch |
 |---|---|
