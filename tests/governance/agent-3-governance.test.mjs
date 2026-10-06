@@ -84,6 +84,7 @@ test('branch refs classify production, integration, controlled-agent, quarantine
   );
   assert.equal(classifyRef('refs/heads/feature/unknown').allowed, false);
   assert.equal(classifyRef('refs/heads/agent-9/anything').allowed, false);
+  assert.equal(classifyRef('refs/heads/agent-2-unknown-stale').allowed, false);
 });
 
 test('remote-ref parsing ignores non-head refs and preserves exact branch refs', () => {
@@ -242,6 +243,48 @@ test('workflow authority scans every workflow and enforces production deployment
   );
 });
 
+test('workflow authority rejects production deployment actions without a main-push gate', () => {
+  const fixture = [
+    'jobs:',
+    '  deploy:',
+    '    runs-on: ubuntu-latest',
+    '    steps:',
+    '      - uses: cloudflare/wrangler-action@v4',
+    '        with:',
+    '          command: deploy --config wrangler.jsonc',
+  ].join('\\n');
+
+  const report = analyzeWorkflowAuthority('.github/workflows/fixture.yml', fixture);
+  assert.equal(report.pass, false);
+  assert.match(report.findings[0], /not gated to a push of refs\\/heads\\/main/u);
+});
+
+test('workflow-level contents:write must be explicitly constrained to main or execution', () => {
+  const unauthorized = [
+    'permissions:',
+    '  contents: write',
+    'jobs:',
+    '  test:',
+    '    runs-on: ubuntu-latest',
+    '    steps:',
+    '      - run: echo test',
+  ].join('\\n');
+  assert.equal(analyzeWorkflowAuthority('.github/workflows/fixture.yml', unauthorized).pass, false);
+
+  const executionController = [
+    'permissions:',
+    '  contents: write',
+    'jobs:',
+    '  controller:',
+    '    env:',
+    '      FLIXO_TARGET_BRANCH: execution',
+    '    steps:',
+    '      - uses: actions/checkout@v5',
+    '        with:',
+    '          ref: execution',
+  ].join('\\n');
+  assert.equal(analyzeWorkflowAuthority('.github/workflows/fixture.yml', executionController).pass, true);
+});
 test('workflow authority rejects an unauthorized non-main production deployment', () => {
   const fixture = [
     'jobs:',
