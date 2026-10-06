@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 const dir = join(process.cwd(), ".github", "agents");
-const required = ["flixo-qa-agent.md", "flixo-i18n-agent.md", "flixo-maintainer-agent.md"];
+const required = ["flixo-qa-agent.md", "flixo-i18n-agent.md", "flixo-maintainer-agent.md", "flixo-repository-knowledge-agent.md"];
 const files = new Set(readdirSync(dir));
 const missing = required.filter((file) => !files.has(file));
 if (missing.length > 0) throw new Error(`Missing agent profiles: ${missing.join(", ")}`);
