@@ -87,6 +87,16 @@ export async function attachVideoBlobSource(
   if (!blob.size) throw new Error('VIDEO_INPUT_EMPTY');
   if (signal?.aborted) throw cancelled();
 
+  // Detached media elements can stall metadata/decode events in headless Chromium.
+  // Canonical callers intentionally create ephemeral video elements; attach those
+  // elements to document.body for reliable browser media scheduling, while keeping
+  // the original Blob bytes and object URL entirely local to the browser.
+  const attachToDocument = typeof document !== 'undefined'
+    && Boolean(document.body)
+    && !video.isConnected
+    && video.parentNode === null;
+  if (attachToDocument) document.body!.appendChild(video);
+
   if (typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function') {
     const url = URL.createObjectURL(blob);
     let closed = false;
@@ -98,6 +108,7 @@ export async function attachVideoBlobSource(
       video.removeAttribute('src');
       video.load();
       URL.revokeObjectURL(url);
+      if (attachToDocument && video.parentNode) video.parentNode.removeChild(video);
     };
 
     const abortListener = () => cleanup();
@@ -120,6 +131,7 @@ export async function attachVideoBlobSource(
         video.srcObject = null;
         video.removeAttribute('src');
         video.load();
+        if (attachToDocument && video.parentNode) video.parentNode.removeChild(video);
       };
       signal?.addEventListener('abort', cleanup, { once: true });
       return cleanup;
