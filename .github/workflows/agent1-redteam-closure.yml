@@ -91,7 +91,14 @@ jobs:
         run: |
           set -euo pipefail
           psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -P pager=off <<'SQL' > live-db-evidence.txt
-          \\echo 'RT-01 privilege proof'
+\echo 'RT-01 privilege proof'
+          with scheduler as (
+            select username::name as username
+              from cron.job
+             where jobname = 'flixo-assistant-wake-retry'
+             order by jobid desc
+             limit 1
+          )
           with scheduler as (
             select username::name as username
               from cron.job
@@ -100,17 +107,15 @@ jobs:
              limit 1
           )
           select
-            coalesce(username::text, 'MISSING') as scheduler_role,
+            coalesce((select username::text from scheduler), 'MISSING') as scheduler_role,
             has_function_privilege('anon', 'public.flixo_retry_pending_assistant_wakes()', 'EXECUTE') as anon_exec,
             has_function_privilege('authenticated', 'public.flixo_retry_pending_assistant_wakes()', 'EXECUTE') as authenticated_exec,
             has_function_privilege('service_role', 'public.flixo_retry_pending_assistant_wakes()', 'EXECUTE') as service_role_exec,
             case
-              when username is null then false
-              else has_function_privilege(username, 'public.flixo_retry_pending_assistant_wakes()', 'EXECUTE')
-            end as scheduler_exec
-          from scheduler;
-
-          \\echo 'RT-01 cron execution history'
+              when (select username from scheduler) is null then false
+              else has_function_privilege((select username from scheduler), 'public.flixo_retry_pending_assistant_wakes()', 'EXECUTE')
+            end as scheduler_exec;
+\echo 'RT-01 cron execution history'
           select j.jobid, j.username, d.status, d.return_message, d.start_time
             from cron.job j
             left join lateral (
@@ -122,8 +127,7 @@ jobs:
             ) d on true
            where j.jobname = 'flixo-assistant-wake-retry'
            order by d.start_time desc;
-
-          \\echo 'RT-10 privilege and RLS proof'
+\echo 'RT-10 privilege and RLS proof'
           select
             to_regclass('public.flix_admin_login_rate_limits') is not null as rate_table_exists,
             c.relrowsecurity as rls_enabled,
@@ -132,14 +136,12 @@ jobs:
             has_function_privilege('service_role', 'public.flixo_admin_login_rate_check(text)', 'EXECUTE') as service_role_exec
           from pg_class c
           where c.oid = 'public.flix_admin_login_rate_limits'::regclass;
-
-          \\echo 'RT-10 transactional behavior proof'
+\echo 'RT-10 transactional behavior proof'
           begin;
           select * from public.flixo_admin_login_rate_check('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
           select * from public.flixo_admin_login_rate_check('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
           rollback;
-
-          \\echo 'RT-18 schema/FK proof'
+\echo 'RT-18 schema/FK proof'
           select column_name
             from information_schema.columns
            where table_schema='public'
@@ -210,7 +212,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: agent1-redteam-live-$${{ github.sha }}
+          name: agent1-redteam-live-${{ github.sha }}
           path: |
             supabase-security-advisors.json
             live-db-evidence.txt
