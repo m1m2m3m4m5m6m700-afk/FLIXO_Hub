@@ -19,7 +19,7 @@
     "generate:static-routes": "node --import=./scripts/register-node-resolver.mjs --experimental-strip-types scripts/generate-static-route-entries.mjs",
     "test:core": "node scripts/assert-test-files.mjs tests/canonical-capability-verifiers.test.ts tests/release-registry-boundary.test.ts tests/canonical-execution-boundary.test.ts tests/editor-color-scene.test.ts tests/editor-document-model.test.ts tests/editor-history.test.ts tests/editor-masks.test.ts tests/editor-performance.test.ts tests/editor-render-graph.test.ts tests/worker-production-boundary.test.ts tests/security-governance.test.ts tests/mvp-scope-contradiction.test.ts tests/mvp-persistence-boundary.test.ts tests/red-team-control-plane.test.ts && node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/canonical-capability-verifiers.test.ts tests/release-registry-boundary.test.ts tests/canonical-execution-boundary.test.ts tests/editor-color-scene.test.ts tests/editor-document-model.test.ts tests/editor-history.test.ts tests/editor-masks.test.ts tests/editor-performance.test.ts tests/editor-render-graph.test.ts tests/worker-production-boundary.test.ts tests/security-governance.test.ts tests/mvp-scope-contradiction.test.ts tests/mvp-persistence-boundary.test.ts tests/red-team-control-plane.test.ts",
     "test:e2e": "playwright test",
-    "test": "node --test tests/security/ci/ledger-lint.test.mjs && npm run verify:architecture && npm run verify:contracts && node --test tests/security/ci/route-generation-contract.test.mjs && npm run test:model-license && npm run test:governance-cli && node --test src/server/admin/execution-policy.test.ts && node --test tests/security/ci/testsprite-fallback.test.mjs && npm run test:repository-knowledge && npm run test:agent-training && npm run verify:agents && npm run verify:i18n && npm run typecheck && npm run lint && npm run test:control-plane-contracts && npm run test:registry-gates && npm run test:core",
+    "test": "node --test tests/security/ci/ledger-lint.test.mjs && npm run test:global-platform && npm run verify:architecture && npm run verify:contracts && node --test tests/security/ci/route-generation-contract.test.mjs && npm run test:model-license && npm run test:governance-cli && node --test src/server/admin/execution-policy.test.ts && node --test tests/security/ci/testsprite-fallback.test.mjs && npm run test:repository-knowledge && npm run test:agent-training && npm run verify:agents && npm run verify:i18n && npm run typecheck && npm run lint && npm run test:control-plane-contracts && npm run test:registry-gates && npm run test:core",
     "ci": "npm run test && npm run build",
     "test:model-license": "node scripts/model-license-gate.mjs",
     "test:model-license:release": "node scripts/model-license-gate.mjs --require-entry",
@@ -39,7 +39,11 @@
     "test:repository-knowledge": "node --test tests/security/ci/repository-knowledge-agent.test.mjs",
     "verify:governance": "bash scripts/ci/check-governance.sh",
     "test:governance-cli": "node --test tests/security/ci/governance-cli.test.mjs",
-    "test:agent-training": "node --test tests/security/ci/agent-training-contract.test.mjs"
+    "test:agent-training": "node --test tests/security/ci/agent-training-contract.test.mjs",
+    "verify:global-baseline": "node scripts/ci/verify-global-baseline.mjs",
+    "verify:live-governance": "node scripts/ci/verify-live-governance.mjs",
+    "verify:global-evidence": "node scripts/ci/verify-evidence-chain.mjs",
+    "test:global-platform": "node --test tests/security/ci/global-baseline-contract.test.mjs tests/security/ci/live-governance-contract.test.mjs tests/security/ci/evidence-chain-contract.test.mjs && node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/release/global-capability-contract.test.ts"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",
