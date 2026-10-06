@@ -105,6 +105,7 @@ test('scanner produces an exact-SHA report with zero uncovered authored lines', 
   assert.ok(result.symbolCount > 0);
   assert.ok(result.dependencyEdgeCount > 0);
   assert.ok(result.taskSignals >= 0);
+  assert.equal(result.status, result.unknownSourceLines > 0 || result.unresolvedLocalImports > 0 ? 'CAN_COMPLETE_WITH_LIMITATIONS' : 'CAN_COMPLETE');
   assert.ok(existsSync(result.reportPath));
 
   const report = readFileSync(result.reportPath, 'utf8');
@@ -120,7 +121,7 @@ test('scanner produces an exact-SHA report with zero uncovered authored lines', 
 test('workflow wakes on execution changes and ignores only its own report directory', () => {
   const workflow = readFileSync(workflowPath, 'utf8');
 
-  assert.match(workflow, /branches: [execution]/);
+  assert.match(workflow, /branches: \[execution\]/);
   assert.match(workflow, /paths-ignore:/);
   assert.match(workflow, /0\(التقارير\)\/\*\*/);
   assert.match(workflow, /ref: \$\{\{ github\.sha \}\}/);
