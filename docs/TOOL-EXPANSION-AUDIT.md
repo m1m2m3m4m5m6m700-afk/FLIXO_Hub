@@ -37,4 +37,4 @@ No second registry or alternate executor authority may be introduced.
 - Historical localization and production results are retained for audit context only; they are not current candidate evidence.
 
 ## Current gate position
-This audit does not certify the current MVP. PR #1002 is the active release candidate. Current exact-SHA evidence must be regenerated after every execution mutation, and final release requires the Prompt 17 clean-clone gate, Prompt 18 freeze, Prompt 19 certification, required GitHub governance, legitimate human review, and Prompt 20 promotion through `execution -> main`.
+This audit does not certify the current MVP. No fixed PR number is authoritative for the active candidate; resolve the live `execution` HEAD and its active integration PR at verification time. PR #1002 is historical release-line context only. Current exact-SHA evidence must be regenerated after every execution mutation, and final release requires the Prompt 17 clean-clone gate, Prompt 18 freeze, Prompt 19 certification, required GitHub governance, legitimate human review, and Prompt 20 promotion through `execution -> main`.
