@@ -6,6 +6,7 @@ import { validateFileSafety, MAGIC_BYTE_SIGNATURES } from '@/lib/contracts/file-
 import { applyBasicImageEffect, convertImage, cropResizeImage, removeBackground, resizeImage } from '@/tools/image-toolkit/engine.ts';
 import { compressImage } from '@/tools/image-compressor/engine.ts';
 import { renderVideoToWebm } from '@/lib/video/video-executor.ts';
+import { attachVideoBlobSource } from '@/lib/video/blob-video-source.ts';
 
 const IMAGE_MIME = ['image/png', 'image/jpeg', 'image/webp'] as const;
 const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp'] as const;
@@ -117,6 +118,7 @@ async function preflightInput(
 
   if (typeof document === 'undefined') throw new Error('VIDEO_BROWSER_RUNTIME_REQUIRED');
   const video = document.createElement('video');
+  let releaseSource: (() => void) | null = null;
   video.preload = 'metadata';
   try {
     const metadataReady = new Promise<void>((resolve, reject) => {
@@ -124,7 +126,7 @@ async function preflightInput(
       video.onerror = () => reject(new Error('VIDEO_METADATA_INVALID'));
     });
     // Blob-backed media stays in the browser without converting untrusted data into a DOM URL.
-    video.srcObject = input.blob;
+    releaseSource = await attachVideoBlobSource(video, input.blob, signal);
     await withDeadline(
       metadataReady,
       Math.min(timeoutMs, 30_000),
@@ -140,7 +142,8 @@ async function preflightInput(
       throw new Error('Execution denied: video dimensions exceed the canonical pixel budget.');
     }
   } finally {
-    video.srcObject = null;
+    releaseSource?.();
+    releaseSource = null;
     video.removeAttribute('src');
     video.load();
   }
@@ -366,13 +369,14 @@ async function verifyOutputContract(
     if (tool.family === 'video') {
       if (typeof document === 'undefined') throw new Error('Browser runtime required for video output verification.');
       const video = document.createElement('video');
+      let releaseSource: (() => void) | null = null;
       video.preload = 'metadata';
       try {
         const metadataReady = new Promise<void>((resolve, reject) => {
           video.onloadedmetadata = () => resolve();
           video.onerror = () => reject(new Error('Video output could not be decoded.'));
         });
-        video.srcObject = output.blob;
+        releaseSource = await attachVideoBlobSource(video, output.blob, signal);
         await withDeadline(
           metadataReady,
           Math.min(timeoutMs, 30_000),
@@ -380,7 +384,6 @@ async function verifyOutputContract(
         );
         dimensions = { width: video.videoWidth, height: video.videoHeight };
       } finally {
-        video.srcObject = null;
         video.removeAttribute('src');
         video.load();
       }
