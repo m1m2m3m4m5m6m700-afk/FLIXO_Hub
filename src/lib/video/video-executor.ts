@@ -12,10 +12,6 @@ export type VideoRenderOptions = Readonly<{
 }>;
 
 type MediaRecorderConstructor = typeof MediaRecorder;
-type CaptureStreamVideoElement = HTMLVideoElement & {
-  captureStream?: () => MediaStream;
-};
-
 
 function supportedMimeType(): string {
   const ctor = globalThis.MediaRecorder as MediaRecorderConstructor | undefined;
@@ -89,7 +85,6 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
 
   const video = document.createElement('video');
   let canvasStream: MediaStream | undefined;
-  let sourceStream: MediaStream | null = null;
   let recorder: MediaRecorder | undefined;
   let frameHandle = 0;
   let drawing = false;
@@ -130,14 +125,6 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
 
     const fps = Math.max(1, Math.min(120, Number(options.fps ?? 30)));
     canvasStream = canvas.captureStream(fps);
-    const captureVideo = video as CaptureStreamVideoElement;
-    sourceStream = typeof captureVideo.captureStream === 'function' ? captureVideo.captureStream() : null;
-    if (sourceStream) {
-      for (const track of sourceStream.getAudioTracks()) {
-        try { canvasStream.addTrack(track); } catch { /* track is already attached */ }
-      }
-    }
-
     const mimeType = supportedMimeType();
     recorder = new MediaRecorder(canvasStream, {
       mimeType,
@@ -169,23 +156,31 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
     draw();
     await video.play();
 
+    const recordDurationMs = Math.max(1, Math.ceil((endSec - startSec) * 1000));
     await new Promise<void>((resolve, reject) => {
-      const onAbort = () => reject(new DOMException('Video operation aborted.', 'AbortError'));
-      options.signal?.addEventListener('abort', onAbort, { once: true });
-      const tick = () => {
-        if (options.signal?.aborted) {
-          reject(new DOMException('Video operation aborted.', 'AbortError'));
-          return;
-        }
-        if (video.currentTime >= endSec || video.ended) {
-          options.signal?.removeEventListener('abort', onAbort);
-          resolve();
-          return;
-        }
-        frameHandle = requestAnimationFrame(tick);
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const cleanup = () => {
+        if (timer !== undefined) clearTimeout(timer);
+        options.signal?.removeEventListener('abort', onAbort);
+        video.removeEventListener('error', onError);
       };
-      tick();
-      video.onerror = () => reject(new Error('VIDEO_PLAYBACK_FAILED'));
+      const onAbort = () => {
+        cleanup();
+        reject(new DOMException('Video operation aborted.', 'AbortError'));
+      };
+      const onError = () => {
+        cleanup();
+        reject(new Error('VIDEO_PLAYBACK_FAILED'));
+      };
+      options.signal?.addEventListener('abort', onAbort, { once: true });
+      video.addEventListener('error', onError, { once: true });
+      // Do not depend on media-element currentTime advancing in headless Chromium.
+      // The recorder duration is bounded by the requested trim window and frame
+      // sampling continues independently until that wall-clock deadline.
+      timer = setTimeout(() => {
+        cleanup();
+        resolve();
+      }, recordDurationMs);
     });
 
     drawing = false;
@@ -195,7 +190,6 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
     await stopped;
 
     canvasStream.getTracks().forEach((track) => track.stop());
-    sourceStream?.getTracks().forEach((track) => track.stop());
 
     if (!chunks.length) throw new Error('VIDEO_RECORDING_EMPTY');
     return new Blob(chunks, { type: 'video/webm' });
