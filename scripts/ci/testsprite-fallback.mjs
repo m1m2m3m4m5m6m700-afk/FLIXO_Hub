@@ -12,15 +12,15 @@ export function runNativeTestSpriteFallback({
     throw new Error('TESTSPRITE_FALLBACK_INVALID_SHA');
   }
 
+  const existingEnv = { ...process.env, PLAYWRIGHT_REUSE_SERVER: 'true' };
+  const defaultRunner = (command, args) => execFileSync(command, args, { stdio: 'inherit', env: existingEnv });
+  const invoke = runner === undefined ? defaultRunner : runner;
+
   const chromiumArgs = installChromium
     ? ['playwright', 'install', '--with-deps', 'chromium']
     : [];
 
   if (chromiumArgs.length) invoke('npx', chromiumArgs);
-
-  const existingEnv = { ...process.env, PLAYWRIGHT_REUSE_SERVER: 'true' };
-  const defaultRunner = (command, args) => execFileSync(command, args, { stdio: 'inherit', env: existingEnv });
-  const invoke = runner === undefined ? defaultRunner : runner;
 
   invoke('npm', [
     'run',
