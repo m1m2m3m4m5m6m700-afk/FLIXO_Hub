@@ -29,6 +29,7 @@ export const VIDEO_MAX_FPS = 120;
 export const VIDEO_MAX_BITRATE = 50_000_000;
 export const VIDEO_MAX_AUDIO_BITRATE = 512_000;
 
+const SUPPORTED_VIDEO_MIME = new Set(['video/webm', 'video/mp4', 'video/ogg']);
 const VIDEO_MIME_SIGNATURES: Readonly<Record<string, readonly number[]>> = Object.freeze({
   "video/webm": [0x1a, 0x45, 0xdf, 0xa3],
   "video/ogg": [0x4f, 0x67, 0x67, 0x53],
@@ -51,7 +52,7 @@ function looksLikeVideoContainer(type: string, bytes: Uint8Array): boolean {
 export async function validateVideoInput(inputBlob: Blob): Promise<void> {
   if (inputBlob.size <= 0) throw new Error("VIDEO_INPUT_EMPTY");
   if (!Number.isInteger(inputBlob.size) || inputBlob.size > VIDEO_MAX_INPUT_BYTES) throw new Error("VIDEO_INPUT_TOO_LARGE");
-  if (!Object.prototype.hasOwnProperty.call(VIDEO_MIME_SIGNATURES, inputBlob.type)) throw new Error("VIDEO_INPUT_UNSUPPORTED_MIME");
+  if (!SUPPORTED_VIDEO_MIME.has(inputBlob.type)) throw new Error("VIDEO_INPUT_UNSUPPORTED_MIME");
   const header = new Uint8Array(await inputBlob.slice(0, 32).arrayBuffer());
   if (!looksLikeVideoContainer(inputBlob.type, header)) throw new Error("VIDEO_INPUT_SIGNATURE_INVALID");
 }
