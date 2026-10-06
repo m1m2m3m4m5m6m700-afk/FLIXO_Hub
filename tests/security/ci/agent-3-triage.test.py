@@ -59,7 +59,7 @@ class Agent3Triage(unittest.TestCase):
     self.assertNotIn("pull_request_target",wf);self.assertIn("workflow_dispatch",hg);self.assertIn("Reject bot actors",hg);self.assertNotIn("HEAD:main",hg)
   def test_validator_result_adapter(self):
     results=self.r/".agent-intelligence/validated/validator-results.json"; inbox=self.r/".agent-intelligence/inbox"; inbox.mkdir(parents=True,exist_ok=True)
-    (inbox/"P-12.yml").write_text("id: P-12\ntitle: Validator Cache\nentity_key: cache.validator\n",encoding="utf-8")
+    (inbox/"P-12.yml").write_text("id: P-12\ntitle: "Validator Cache"\nentity_key: "cache.validator"\n",encoding="utf-8")
     results.write_text(json.dumps([{"valid":True,"status":"valid","proposal_id":"P-12","checks":{"V-01":"PASS"},"reasons":[]}]),encoding="utf-8")
     rows,_=triage.load_validated(self.r);self.assertEqual(rows[0]["proposal_id"],"P-12")
   def test_invalid_priority_fails_closed(self):
