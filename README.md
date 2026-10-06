@@ -2,6 +2,10 @@
 
 FLIXO Hub is a browser-first AI toolbox built with React 19, Vite, TypeScript, TanStack Router, and Cloudflare Workers assets.
 
+## Repository structure
+
+The repository is organized by responsibility rather than historical agent names. The authoritative directory map and ownership boundaries are in `docs/REPOSITORY-STRUCTURE.md`.
+
 ## Architecture
 
 - `src/config` — canonical capability definitions and the single `TOOL_REGISTRY` / `TOOL_CATALOG`.
