@@ -157,7 +157,8 @@ test('video renderer cleans active media resources on every terminal path', () =
   const executor = readFileSync(resolve(root, 'src/lib/video/video-executor.ts'), 'utf8');
   assert.match(executor, /if \(recorder && recorder\.state !== 'inactive'\)[\s\S]*recorder\.stop\(\)/u);
   assert.match(executor, /canvasStream\?\.getTracks\(\)\.forEach\(\(track\) => track\.stop\(\)\)/u);
-  assert.match(executor, /if \(frameHandle\) cancelAnimationFrame\(frameHandle\)/u);
+  assert.match(executor, /if \(frameInterval\) clearInterval\(frameInterval\)/u);
+  assert.match(executor, /frameInterval = setInterval\(draw, 33\)/u);
 });
 
 test('video result Blob URLs are lifecycle-managed instead of being created during render', () => {

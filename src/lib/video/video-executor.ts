@@ -109,8 +109,8 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
   let canvasStream: MediaStream | undefined;
   let sourceStream: MediaStream | null = null;
   let recorder: MediaRecorder | undefined;
-  let frameHandle = 0;
   let drawing = false;
+  let frameInterval: ReturnType<typeof setInterval> | undefined;
   let releaseSource: (() => void) | null = null;
   video.preload = 'auto';
   // Processing is programmatic; mute playback so browser autoplay policy cannot block local rendering.
@@ -219,11 +219,19 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
     const draw = () => {
       if (!drawing || operationController.signal.aborted) return;
       context.drawImage(video, source.x, source.y, source.width, source.height, 0, 0, canvas.width, canvas.height);
-      frameHandle = requestAnimationFrame(draw);
     };
 
-    activeRecorder.start(250);
+    // Paint one deterministic frame before recording starts. This avoids a Chromium
+    // headless race where a large resized canvas can otherwise produce no encoded
+    // video chunks before the bounded recording window expires.
     draw();
+    activeRecorder.start(100);
+    draw();
+
+    // requestAnimationFrame can be throttled for an off-screen processing surface.
+    // Use a bounded timer-driven sampler so resizing/cropping is independent of
+    // animation scheduling while remaining fully local and resource-bounded.
+    frameInterval = setInterval(draw, 33);
     // Do not block the recorder on the media element's play() promise.
     // Headless Chromium can leave that promise pending even though the element
     // has a decodable local source. The bounded recording timer remains authoritative.
@@ -258,9 +266,12 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
     });
 
     drawing = false;
-    cancelAnimationFrame(frameHandle);
+    clearInterval(frameInterval);
     video.pause();
-    if (activeRecorder.state !== 'inactive') activeRecorder.stop();
+    if (activeRecorder.state !== 'inactive') {
+      try { activeRecorder.requestData(); } catch { /* recorder may already be stopping */ }
+      activeRecorder.stop();
+    }
     await stopped;
 
     canvasStream.getTracks().forEach((track) => track.stop());
@@ -278,7 +289,7 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
     clearTimeout(timeoutId);
     options.signal?.removeEventListener('abort', abortFromCaller);
     drawing = false;
-    if (frameHandle) cancelAnimationFrame(frameHandle);
+    if (frameInterval) clearInterval(frameInterval);
     video.pause();
     if (recorder && recorder.state !== 'inactive') {
       try { recorder.stop(); } catch { /* recorder may already be stopping */ }
