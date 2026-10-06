@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { AGENTS, scoreSubmission, assertSha } from './self-learning-control-plane.mjs';
 
