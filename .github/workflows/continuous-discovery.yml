@@ -1,0 +1,70 @@
+name: FLIXO Continuous Discovery
+on:
+  schedule:
+    - cron: "17 2 * * *"
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: flixo-continuous-discovery
+  cancel-in-progress: false
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Pin exact execution base
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin execution --no-tags
+          EXECUTION_SHA="$(git rev-parse origin/execution)"
+          git switch --detach "$EXECUTION_SHA"
+          git switch --create "scout/discovery-$GITHUB_RUN_ID"
+          echo "EXECUTION_SHA=$EXECUTION_SHA" >> "$GITHUB_ENV"
+      - name: Run infinite Scouts and snapshots
+        run: python3 .agent-intelligence/scripts/run_scouts.py
+      - name: Validate generated proposals with Agent-2 validator
+        run: python3 .agent-intelligence/scripts/validate.py --all
+      - name: Verify mutation boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHANGED="$(git diff --name-only "$EXECUTION_SHA" --)"
+          while IFS= read -r path; do
+            [ -z "$path" ] && continue
+            case "$path" in
+              .agent-intelligence/inbox/*.yaml|.agent-intelligence/snapshots/*.json|.agent-intelligence/snapshots/*.raw|.agent-intelligence/snapshots/*.txt) ;;
+              *) echo "FAIL_CLOSED: forbidden discovery mutation: $path"; exit 1 ;;
+            esac
+          done <<< "$CHANGED"
+      - name: Run discovery tests
+        run: python3 -m unittest discover -s tests/agent-intelligence -p 'test_*.py'
+      - name: Reconcile execution before publication
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin execution --no-tags
+          test "$(git rev-parse origin/execution)" = "$EXECUTION_SHA" || { echo "FAIL_CLOSED: execution moved during discovery."; exit 1; }
+      - name: Append-only scout branch publication
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add .agent-intelligence/inbox .agent-intelligence/snapshots
+          git diff --cached --name-only | while IFS= read -r path; do
+            case "$path" in
+              .agent-intelligence/inbox/*.yaml|.agent-intelligence/snapshots/*.json|.agent-intelligence/snapshots/*.raw|.agent-intelligence/snapshots/*.txt) ;;
+              *) echo "FAIL_CLOSED: staged path outside discovery outputs: $path"; exit 1 ;;
+            esac
+          done
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name "FLIXO Discovery Bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(discovery): append scout findings"
+          git push origin "HEAD:scout/discovery-$GITHUB_RUN_ID"
+      - name: Assert no main target
+        run: test "scout/discovery-$GITHUB_RUN_ID" != "main"
