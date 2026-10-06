@@ -78,12 +78,15 @@ async function decodeDimensions(file: File): Promise<Dimensions> {
   try {
     const image = new Image();
     image.decoding = 'async';
-    image.src = url;
-    await image.decode();
-    if (!Number.isInteger(image.naturalWidth) || !Number.isInteger(image.naturalHeight) || image.naturalWidth < 1 || image.naturalHeight < 1) {
+    const dimensions = await new Promise<Dimensions>((resolve, reject) => {
+      image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight });
+      image.onerror = () => reject(new Error('The selected image could not be decoded.'));
+      image.src = url;
+    });
+    if (!Number.isInteger(dimensions.width) || !Number.isInteger(dimensions.height) || dimensions.width < 1 || dimensions.height < 1) {
       throw new Error('The selected image has invalid dimensions.');
     }
-    return { width: image.naturalWidth, height: image.naturalHeight };
+    return dimensions;
   } finally {
     URL.revokeObjectURL(url);
   }
