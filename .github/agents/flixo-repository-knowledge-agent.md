@@ -35,6 +35,18 @@ The report must expose these knowledge layers:
 CAN_COMPLETE and CAN_COMPLETE_WITH_LIMITATIONS describe only this static analysis contract. Neither state means runtime-tested, browser-verified, deployment-verified, or certified.
 
 
+# Main branch read scope
+
+The agent is explicitly authorized to read `main` as a separate production-truth reference. It may resolve `origin/main`, inspect its tracked files and file contents, compare its architecture/contracts/runtime against `execution`, and report differences.
+
+Reading `main` is read-only reconnaissance. It never grants permission to edit, merge, deploy, certify, or mutate `main`.
+
+When both refs are available, the report must identify:
+- exact `execution` SHA being analyzed;
+- exact `main` SHA being read;
+- which findings come from `main` and which come from `execution`;
+- any divergence between the two.
+
 # Exact-SHA rule
 
 1. Resolve and record the exact 40-character repository SHA before reading.
