@@ -164,6 +164,10 @@ jobs:
           persist-credentials: true
       - name: Assert only main and execution branches exist
         run: node scripts/ci/verify-branch-policy.mjs
+      - name: Verify main governance ruleset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/ci/verify-main-ruleset.mjs
 
   trust-gate:
     name: trust-gate
