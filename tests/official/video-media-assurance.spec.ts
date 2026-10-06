@@ -227,14 +227,20 @@ test.describe('FLIXO Agent 2 video/media assurance', () => {
       const ctx = canvas.getContext('2d', { willReadFrequently: true });
       if (!ctx) throw new Error('VIDEO_CROP_CANVAS_UNAVAILABLE');
       ctx.drawImage(video, 0, 0);
-      const pixel = ctx.getImageData(Math.floor(video.videoWidth / 2), Math.floor(video.videoHeight / 2), 1, 1).data;
+      const leftPixel = ctx.getImageData(10, 10, 1, 1).data;
+      const rightPixel = ctx.getImageData(Math.max(0, video.videoWidth - 10), 10, 1, 1).data;
       URL.revokeObjectURL(outputUrl);
       video.removeAttribute('src');
       video.load();
-      return [pixel[0], pixel[1], pixel[2], pixel[3]] as [number, number, number, number];
+      return {
+        left: [leftPixel[0], leftPixel[1], leftPixel[2], leftPixel[3]] as [number, number, number, number],
+        right: [rightPixel[0], rightPixel[1], rightPixel[2], rightPixel[3]] as [number, number, number, number],
+      };
     });
-    expect(result[1]).toBeGreaterThan(result[0]);
-    expect(result[1]).toBeGreaterThan(result[2]);
+    expect(result.left[1]).toBeGreaterThan(result.left[0]);
+    expect(result.left[1]).toBeGreaterThan(result.left[2]);
+    expect(result.right[2]).toBeGreaterThan(result.right[0]);
+    expect(result.right[2]).toBeGreaterThan(result.right[1]);
   });
 
   test('repeated execution cleans media tracks and retains a valid final artifact', async ({ page }) => {
