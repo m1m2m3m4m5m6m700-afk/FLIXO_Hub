@@ -333,12 +333,6 @@ export function validateCapabilityParameters(id: string, parameters: CanonicalCa
   return result.data;
 }
 
-import { createElement, lazy } from 'react';
-import { z, type ZodType } from 'zod';
-import { LOCALES, type Locale } from '../i18n/config.ts';
-import type { ComponentType, LazyExoticComponent } from 'react';
-import type { LocalToolId } from '../../tools/image-toolkit/engine.ts';
-
 export type ToolFamily = 'image' | 'video' | 'audio' | 'ai' | 'editor';
 export type ToolCategory = 'Images' | 'Video' | 'Audio' | 'AI' | 'Editor';
 export type ToolLifecycle = 'experimental' | 'beta' | 'ready' | 'deprecated';
