@@ -1,15 +1,15 @@
 # FLIXO Prompt 01 — Current State Reconciliation
 
-STATUS: BLOCKER
+STATUS: BLOCKED_BY_EXTERNAL_GOVERNANCE
 PROMPT_ID: 01
 SCOPE: READ_ONLY_STATE_RECORD
 RECORDED_AT_UTC: 2026-10-06
-START_SHA: 3998f4fb5e27fa76eaf8626c9dcb14241567477c
-END_SHA: 3998f4fb5e27fa76eaf8626c9dcb14241567477c
+START_SHA: a0723f51c2cbfe00cf9804801659265d2c2ffb64
+END_SHA: PENDING_THIS_RECORD
 CURRENT_MAIN_SHA: 263827228cbe5f4851470297fde5f2858ff844de
-CURRENT_EXECUTION_SHA: 3998f4fb5e27fa76eaf8626c9dcb14241567477c
+CURRENT_EXECUTION_SHA: a0723f51c2cbfe00cf9804801659265d2c2ffb64
 PR: #1002
-PR_HEAD_SHA: 3998f4fb5e27fa76eaf8626c9dcb14241567477c
+PR_HEAD_SHA: a0723f51c2cbfe00cf9804801659265d2c2ffb64
 PR_BASE_SHA: 263827228cbe5f4851470297fde5f2858ff844de
 PRIMARY_BRANCH: execution
 INTEGRATION_PATH: execution -> main
@@ -25,47 +25,76 @@ INTEGRATION_PATH: execution -> main
 - exact-SHA coverage evidence
 - Red Team evidence
 
-## Current exact-candidate workflow state
+## Current candidate evidence state
 
-- Typecheck/lint/core contracts/build: PASS on 3998f4fb5e27fa76eaf8626c9dcb14241567477c.
-- Exact-SHA internal coverage: PASS on 3998f4fb5e27fa76eaf8626c9dcb14241567477c.
-- Gitleaks: PASS on 3998f4fb5e27fa76eaf8626c9dcb14241567477c.
-- FLIXO CodeQL JavaScript/TypeScript: PASS on 3998f4fb5e27fa76eaf8626c9dcb14241567477c.
-- Red Team adversarial regression: PASS on 3998f4fb5e27fa76eaf8626c9dcb14241567477c via exact-SHA execution push run.
-- TestSprite: PASS on 3998f4fb5e27fa76eaf8626c9dcb14241567477c.
-- Chromium browser smoke: IN_PROGRESS on the current PR run; no browser PASS claim until completion.
-- Prompt 17 clean-clone final adversarial gate: IN_PROGRESS on the current candidate; no final PASS claim until completion.
-- Branch policy: FAIL CLOSED on the current PR because the live main governance ruleset does not satisfy Prompt 12.
-- trust-gate / promotion proof: BLOCKED by the failed PR branch-policy governance gate.
+Known on candidate a0723f51c2cbfe00cf9804801659265d2c2ffb64:
+- Secret Scan: PASS.
+- TestSprite execution fallback: PASS.
+- FLIXO CI: running; current branch-policy subcheck fails only because the live main governance ruleset does not satisfy Prompt 12.
+- CodeQL: running.
+- Clean-clone Red Team: running.
+- Chromium/browser evidence: not yet certified on this candidate.
+- Coverage: not yet certified on this candidate.
+- Any evidence from another SHA is historical and stale.
 
 ## Governance evidence
 
-GitHub ruleset `FLIXO-MAIN-PROTECTION` (ID 23854302) is active and targets `refs/heads/main`, but currently enforces:
-- required_approving_review_count = 0
-- dismiss_stale_reviews_on_push = false
-- require_code_owner_review = false
-- require_last_push_approval = false
-- required_review_thread_resolution = false
-- strict_required_status_checks_policy = false
+GitHub ruleset FLIXO-MAIN-PROTECTION (ID 23854302) is active on refs/heads/main but currently has:
+- required_approving_review_count = 0 (required: 1)
+- dismiss_stale_reviews_on_push = false (required: true)
+- require_code_owner_review = false (required: true)
+- require_last_push_approval = false (required: true)
+- required_review_thread_resolution = false (required: true)
+- strict_required_status_checks_policy = false (required: true)
 
-Prompt 12 requires one approving review, stale-review dismissal, Code Owner review, latest-push approval, review-thread resolution, and strict required status checks.
+Required status contexts are present:
+- trust-gate
+- Exact-SHA promotion proof
 
-PR #1002 has no independent human APPROVE. Automated security-bot comments do not satisfy this requirement.
+PR #1002 currently has no independent human APPROVE. Existing reviews are automated COMMENTED reviews from github-advanced-security and do not satisfy the independent approval requirement.
 
-## Branch state
+## Agent-3 coordination repair applied
 
-Only `main` and `execution` are present.
+The three-agent execution model required controlled coordination branches. The execution lane was repaired without weakening main governance:
+- controlled branches matching refs/heads/agent-1/**, refs/heads/agent-2/**, refs/heads/agent-3/** are accepted by the branch-policy script;
+- main-only governance verification now runs on PRs targeting main or on main pushes, not on execution integration PRs.
 
-## Stale evidence invalidation
+Merged execution-lane repair commit:
+f76313b60e61c69e050473549a60f4612c959212
 
-Any mutation after this record invalidates exact-SHA claims recorded here. Older execution SHAs are historical only and cannot certify PR #1002.
+A documentation alignment commit followed:
+a0723f51c2cbfe00cf9804801659265d2c2ffb64
 
-## BLOCKERS
+## Task record
 
-1. Main governance ruleset is under-hardened and cannot be mutated through the connected GitHub interface, which exposes ruleset administration as read-only.
-2. Independent human approval required by Prompt 12/20 is absent and cannot be fabricated by the execution agent.
-3. Prompt 18 freeze and Prompt 19 final certification cannot complete while the governance and exact-browser/final-gate evidence remain open.
+TASK_ID=RT-COORD-001
+OWNER=AGENT-3
+STATUS=IMPLEMENTED
+FILES_CHANGED=.github/workflows/ci.yml;scripts/ci/verify-branch-policy.mjs;المخطط التنفيذي.md
+DEPENDENCIES=three-agent execution model;main governance verification
+VALIDATION=execution branch policy pass;execution PR governance no longer blocks
+EVIDENCE=f76313b60e61c69e050473549a60f4612c959212
+NEXT_ACTION=final candidate evidence regeneration
 
-## NEXT_PROMPT
+TASK_ID=GOV-001
+OWNER=AGENT-3
+STATUS=BLOCKED
+FILES_CHANGED=none
+DEPENDENCIES=repository ruleset administration;independent human approval
+VALIDATION=live ruleset read;verify-main-ruleset.mjs failure reproduced with "one approving review is required"
+EVIDENCE=ruleset 23854302;PR #1002
+NEXT_ACTION=owner/admin must harden the ruleset and provide a legitimate independent approval
 
-Prompt 02 — continue verification only after the live execution SHA is re-resolved.
+## Hard blockers
+
+1. The connected GitHub interface exposes ruleset state as read-only; no safe ruleset mutation action is available in this execution environment.
+2. Independent human approval required by Prompt 12/20 is absent and cannot be fabricated.
+3. Prompt 18 freeze, Prompt 19 certification, and Prompt 20 promotion cannot truthfully close while these gates remain open.
+
+## Exact-SHA rule
+
+Any mutation after this record creates a new execution SHA and invalidates all candidate-specific PASS evidence recorded above. No final certification claim may be based on a stale SHA.
+
+## Next action
+
+Resolve governance and legitimate human review first; then rerun the complete exact-SHA certification chain on the resulting execution candidate.
