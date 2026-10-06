@@ -192,7 +192,7 @@ function parametersFor(toolId: string, prompt: string): CanonicalCapabilityParam
       break;
     }
     case 'video-trimmer': {
-      const firstSeconds = normalized.match(/(?:first|أول|الأولى)\s*(\d{1,5})\s*(?:seconds?|ثواني?)/u);
+      const firstSeconds = normalized.match(/(?:first|أول|الأولى)\s*(\d{1,5})\s*(?:seconds?|ثانية|ثواني?)/u);
       if (firstSeconds) params.endSec = Number(firstSeconds[1]);
       else throw new Error('Request is ambiguous. Specify a trim range or duration.');
       break;
