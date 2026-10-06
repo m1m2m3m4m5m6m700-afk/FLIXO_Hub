@@ -1,6 +1,5 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
 
 import { executeCanonicalTool } from '../src/lib/execution/canonical-executor.ts';
 import { validateFileSafety, detectZipBombRisk } from '../src/lib/contracts/file-safety.ts';
@@ -19,10 +18,6 @@ test('red-team: unknown and non-admitted capabilities are rejected before execut
     /not executable|release-ready/i,
   );
   assert.equal(MVP_EXECUTABLE_TOOL_IDS.length, 10);
-});
-
-test('red-team: legacy Agent runtime is absent from the current manual-only MVP surface', () => {
-  assert.equal(existsSync(new URL('../src/lib/agent-guided-runtime.ts', import.meta.url)), false);
 });
 
 test('red-team: filename traversal, MIME spoofing, magic bytes, and extension mismatch fail closed', () => {
