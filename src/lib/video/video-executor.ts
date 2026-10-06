@@ -154,7 +154,13 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
 
     activeRecorder.start(250);
     draw();
-    await video.play();
+    // Do not block the recorder on the media element's play() promise.
+    // Headless Chromium can leave that promise pending even though the element
+    // has a decodable local source. The bounded recording timer remains authoritative.
+    void video.play().catch(() => {
+      // Playback failure is surfaced by the bounded runtime if no media is available;
+      // recording itself must not deadlock on a pending play() promise.
+    });
 
     const recordDurationMs = Math.max(1, Math.ceil((endSec - startSec) * 1000));
     await new Promise<void>((resolve, reject) => {
