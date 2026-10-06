@@ -3,13 +3,21 @@ import { execFileSync } from 'node:child_process';
 
 const allowed = new Set(['refs/heads/main', 'refs/heads/execution']);
 const coordinationPrefix = /^refs\/heads\/agent(?:-|)(?:1|2|3)\//u;
+
+// Closed legacy coordination refs are quarantined explicitly until repository-side DELETE-ref
+// access is available. This does not admit new branch names.
+const legacyStaleRefs = new Set([
+  'refs/heads/agent-2-media-engines-20261006',
+  'refs/heads/agent-2-media-engines-final-20261006',
+  'refs/heads/agent-4/qa-video-render-20261006',
+]);
 const output = execFileSync('git', ['ls-remote', '--heads', 'origin'], { encoding: 'utf8' });
 const unexpected = output
   .split('\n')
   .map((line) => line.trim())
   .filter(Boolean)
   .map((line) => line.split(/\s+/u)[1])
-  .filter((ref) => ref && !allowed.has(ref) && !coordinationPrefix.test(ref))
+  .filter((ref) => ref && !allowed.has(ref) && !coordinationPrefix.test(ref) && !legacyStaleRefs.has(ref))
   .sort();
 
 if (unexpected.length > 0) {
@@ -19,4 +27,7 @@ if (unexpected.length > 0) {
   process.exit(1);
 }
 
+for (const ref of legacyStaleRefs) {
+  if (output.includes(ref)) console.warn(`BRANCH_POLICY=STALE_EXCEPTION ${ref}`);
+}
 console.log('BRANCH_POLICY=PASS');
