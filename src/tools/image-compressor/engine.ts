@@ -8,6 +8,7 @@ export type CompressionOptions = {
   maxWidth?: number;
   maxHeight?: number;
   targetSizeKB?: number;
+  signal?: AbortSignal;
 };
 
 export type CompressionResult = {
@@ -176,7 +177,15 @@ function canUseCompressionWorker(file: File) {
 function compressImageInWorker(file: File, options: CompressionOptions): Promise<CompressionResult> {
   return new Promise((resolve, reject) => {
     const worker = new Worker(new URL('./compressor.worker.ts', import.meta.url), { type: 'module' });
-    const cleanup = () => worker.terminate();
+    const signal = options.signal;
+    const cleanup = () => {
+      worker.terminate();
+      signal?.removeEventListener('abort', onAbort);
+    };
+    const onAbort = () => {
+      cleanup();
+      reject(new DOMException('Image compression aborted.', 'AbortError'));
+    };
 
     worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
       cleanup();
@@ -189,6 +198,8 @@ function compressImageInWorker(file: File, options: CompressionOptions): Promise
       reject(new Error('The compression worker failed.'));
     };
 
+    signal?.addEventListener('abort', onAbort, { once: true });
+    if (signal?.aborted) return onAbort();
     worker.postMessage({ file, options });
   });
 }
