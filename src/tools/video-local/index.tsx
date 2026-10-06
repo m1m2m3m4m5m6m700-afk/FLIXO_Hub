@@ -169,7 +169,8 @@ export function VideoLocalTool() {
   };
 
   const clearResult = () => {
-    if (resultUrlRef.current) URL.revokeObjectURL(resultUrlRef.current);
+    if (resultUrl) URL.revokeObjectURL(resultUrl);
+    if (resultUrlRef.current && resultUrlRef.current !== resultUrl) URL.revokeObjectURL(resultUrlRef.current);
     resultUrlRef.current = null;
     setResultUrl(null);
     setResult(null);
