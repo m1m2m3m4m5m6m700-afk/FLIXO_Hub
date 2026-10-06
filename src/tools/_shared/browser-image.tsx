@@ -63,9 +63,6 @@ export function BrowserImageTool({ mode, title, accept = 'image/*', multi = fals
     return () => URL.revokeObjectURL(url);
   }, [result]);
 
-  useEffect(() => () => {
-    // The result effect above handles the active result on unmount.
-  }, []);
   const status = useMemo(() => result ? `${result.width ?? ''}×${result.height ?? ''} · ${Math.max(1, Math.round(result.blob.size / 1024))} KB` : copy.noResult, [result, copy.noResult]);
   async function run() {
     if (!files.length) { setError(copy.chooseImage); return; } setError(''); setBusy(true); setResult(null);
