@@ -175,7 +175,7 @@ test.describe('FLIXO ten-tool release verification', () => {
     await expect(page.getByTestId('agent-execute')).toBeEnabled();
     await page.getByTestId('agent-execute').click();
     await expect(page.locator('[aria-label="agent-result"]')).toBeVisible({ timeout: 30_000 });
-    await expect(page.locator('[aria-label="agent-result"] a[download]')).toHaveAttribute('download', 'flixo-image-compressor.webp');
+    await expect(page.locator('[aria-label="agent-result"] a[download]')).toHaveAttribute('download', 'flixo-release-fixture-compressed.webp');
   });
 
   test('agent/compound request Arabic generates and executes the same canonical chain', async ({ page }) => {
