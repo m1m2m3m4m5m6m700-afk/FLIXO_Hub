@@ -80,9 +80,6 @@ jobs:
           npx playwright install --with-deps chromium
           npm run test:e2e -- --project=chromium tests/official/mvp-10-release-verification.spec.ts
 
-      - name: Verify main governance
-        run: node scripts/ci/verify-main-ruleset.mjs
-
       - name: Verify exact-SHA security workflows
         shell: bash
         run: |
@@ -124,7 +121,7 @@ jobs:
           AUDIT=PASS
           COVERAGE=PASS
           BROWSER_E2E=PASS
-          GOVERNANCE=PASS
+          GOVERNANCE=SEPARATE_GATE
           SECURITY_WORKFLOWS=PASS
           EOF
 
