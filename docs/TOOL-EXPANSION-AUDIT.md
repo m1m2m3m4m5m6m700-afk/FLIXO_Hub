@@ -10,7 +10,7 @@ Audit baseline: execution `7a86c4a0a604340b2d1519e8be64ce6f298bee13` and main `2
 - `src/config/tools.ts` remains a compatibility surface; it is not a second source of definitions.
 
 ## Current registered IDs
-filter-mask, image-compressor, background-remover, image-upscaler, image-converter, object-remover, watermark-remover, image-cropper, image-to-svg, image-ocr, background-blur, passport-photo-maker, watermark-adder, meme-generator, collage-maker, image-effects, exif-cleaner, svg-optimizer, mockup-generator, seed, pix, ai-image-generator, photo-colorizer, video-trimmer, video-cropper, video-resizer, video-compressor, image-resizer, image-hue, image-pixelate, image-padding, image-rounded-corners.
+filter-mask, image-compressor, background-remover, image-upscaler, image-converter, object-remover, watermark-remover, image-cropper, image-to-svg, image-ocr, background-blur, passport-photo-maker, watermark-adder, meme-generator, collage-maker, image-effects, exif-cleaner, svg-optimizer, mockup-generator, seed, pix, photo-colorizer, video-trimmer, video-cropper, video-resizer, video-compressor, image-resizer, image-hue, image-pixelate, image-padding, image-rounded-corners.
 
 ## Current canonical executable MVP IDs
 background-remover, image-upscaler, image-cropper, image-compressor, image-converter, image-effects, video-trimmer, video-cropper, video-resizer, video-compressor.
