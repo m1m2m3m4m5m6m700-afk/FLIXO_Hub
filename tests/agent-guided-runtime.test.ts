@@ -34,6 +34,10 @@ test('guided runtime requires a current one-time confirmation receipt', async ()
     () => executeAgentPlan(plan, file, null),
     /confirmation receipt/i,
   );
+  await assert.rejects(
+    () => executeAgentPlan(plan, file, undefined),
+    /confirmation receipt/i,
+  );
 
   const receipt = confirmAgentPlan(plan, file);
   await assert.rejects(
