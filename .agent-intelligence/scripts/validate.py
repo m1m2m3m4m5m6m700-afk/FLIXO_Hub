@@ -243,14 +243,17 @@ def _safe_file(repo_root: Path, relative: str, *, allowed_root: Path | None = No
         raise ValidationError("dot-segment path is forbidden")
 
     base = (allowed_root or repo_root).resolve(strict=True)
-    candidate = (base / path).resolve(strict=True)
-    _assert_inside(base, candidate)
+    raw_candidate = base / path
+    _assert_inside(base, raw_candidate.absolute())
 
     current = base
-    for part in candidate.relative_to(base).parts:
+    for part in raw_candidate.relative_to(base).parts:
         current = current / part
         if current.is_symlink():
             raise ValidationError("symbolic-link path is forbidden")
+
+    candidate = raw_candidate.resolve(strict=True)
+    _assert_inside(base, candidate)
 
     if allowed_root is None and ".git" in candidate.relative_to(repo_root).parts:
         raise ValidationError(".git is not an allowed repository reference")
@@ -267,7 +270,7 @@ def _load_snapshot(repo_root: Path, snapshot_id: str) -> dict[str, Any]:
     if not snapshots.exists() or snapshots.is_symlink() or not snapshots.is_dir():
         raise ValidationError("snapshot directory is missing or unsafe")
 
-    path = _safe_file(repo_root, f".agent-intelligence/snapshots/{snapshot_id}.json", allowed_root=snapshots)
+    path = _safe_file(repo_root, f"{snapshot_id}.json", allowed_root=snapshots)
     if path.stat().st_size > MAX_SNAPSHOT_BYTES:
         raise ValidationError("snapshot exceeds 1 MiB")
 
@@ -453,20 +456,26 @@ def _result(proposal: Any, status: str, checks: dict[str, str], reasons: list[st
 
 def validate_proposal(proposal_path: Path, repo_root: Path | None = None, now: dt.datetime | None = None) -> dict[str, Any]:
     root = (repo_root or Path(__file__).resolve().parents[2]).resolve(strict=True)
+    proposal_path = Path(proposal_path)
+    if proposal_path.is_symlink():
+        return _result({}, "rejected", {"V-01": "FAIL"}, ["proposal symbolic link is forbidden"])
     proposal_path = proposal_path.resolve(strict=True)
-    if not proposal_path.is_file() or proposal_path.is_symlink():
-        raise ValidationError("proposal must be an existing regular file")
+    if not proposal_path.is_file():
+        return _result({}, "rejected", {"V-01": "FAIL"}, ["proposal must be an existing regular file"])
     if proposal_path.stat().st_size > MAX_PROPOSAL_BYTES:
-        raise ValidationError("proposal exceeds 64 KiB")
+        return _result({}, "rejected", {"V-01": "FAIL"}, ["proposal exceeds 64 KiB"])
     try:
         proposal_path.relative_to(root)
     except ValueError as exc:
         raise ValidationError("proposal is outside repository") from exc
 
     if ".git" in proposal_path.relative_to(root).parts:
-        raise ValidationError("proposal cannot reside under .git")
+        return _result({}, "rejected", {"V-01": "FAIL"}, ["proposal cannot reside under .git"])
 
-    proposal = StrictYaml(proposal_path.read_text(encoding="utf-8")).parse()
+    try:
+        proposal = StrictYaml(proposal_path.read_text(encoding="utf-8")).parse()
+    except (ValidationError, UnicodeError, OSError) as exc:
+        return _result({}, "rejected", {"V-01": "FAIL"}, [str(exc)])
     checks: dict[str, str] = {}
     reasons: list[str] = []
 
@@ -503,11 +512,16 @@ def validate_proposal(proposal_path: Path, repo_root: Path | None = None, now: d
     reasons.extend(rollback_reasons)
 
     injection_hits = _scan_prompt_injection(proposal)
-    checks["V-05"] = "PASS" if not injection_hits else "FAIL"
+    checks["V-05"] = "PASS" if not injection_hits else "QUARANTINE"
     reasons.extend("prompt injection pattern: " + hit for hit in injection_hits)
 
     now_utc = (now or dt.datetime.now(dt.timezone.utc)).astimezone(dt.timezone.utc)
-    checks["V-06"] = "EXPIRED" if expires < now_utc else "PASS"
+    if expires < now_utc:
+        checks["V-06"] = "EXPIRED"
+    else:
+        checks["V-06"] = "PASS" if proposal["status"] != "expired" else "FAIL"
+        if checks["V-06"] == "FAIL":
+            reasons.append("status=expired is inconsistent with a future expires_at")
 
     if snapshot is None:
         checks["V-07"] = "FAIL"
@@ -517,7 +531,7 @@ def validate_proposal(proposal_path: Path, repo_root: Path | None = None, now: d
         checks["V-07"] = "PASS" if not anti_hype_reasons else "FAIL"
         reasons.extend(anti_hype_reasons)
 
-    if checks["V-05"] == "FAIL":
+    if checks["V-05"] == "QUARANTINE":
         status = "quarantined"
     elif checks["V-06"] == "EXPIRED":
         status = "expired"
