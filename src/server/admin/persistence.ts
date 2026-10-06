@@ -120,7 +120,11 @@ export const createEvidence = async (input: AdminEvidenceInput): Promise<AdminEv
     body: JSON.stringify(evidence),
   });
   const persisted = assertSingleObject(body, 'supabase_invalid_evidence_response') as unknown as AdminEvidence;
-  if (persisted.evidence_id !== evidence.evidence_id || persisted.recorded_at !== evidence.recorded_at || persisted.created_at !== evidence.created_at) {
+  if (
+    persisted.evidence_id !== evidence.evidence_id
+    || canonicalTimestamp(persisted.recorded_at) !== canonicalTimestamp(evidence.recorded_at)
+    || canonicalTimestamp(persisted.created_at) !== canonicalTimestamp(evidence.created_at)
+  ) {
     throw new Error('supabase_evidence_identity_mismatch');
   }
   assertIntegrity(persisted.integrity_sha256, evidenceIntegrityPayload(persisted), 'supabase_evidence_integrity_failed');
@@ -186,7 +190,11 @@ export const createAuditEvent = async (input: AdminAuditInput): Promise<AdminAud
     body: JSON.stringify(audit),
   });
   const persisted = assertSingleObject(body, 'supabase_invalid_audit_response') as unknown as AdminAuditEvent;
-  if (persisted.event_id !== audit.event_id || persisted.occurred_at !== audit.occurred_at || persisted.created_at !== audit.created_at) {
+  if (
+    persisted.event_id !== audit.event_id
+    || canonicalTimestamp(persisted.occurred_at) !== canonicalTimestamp(audit.occurred_at)
+    || canonicalTimestamp(persisted.created_at) !== canonicalTimestamp(audit.created_at)
+  ) {
     throw new Error('supabase_audit_identity_mismatch');
   }
   assertIntegrity(persisted.integrity_sha256, auditIntegrityPayload(persisted), 'supabase_audit_integrity_failed');

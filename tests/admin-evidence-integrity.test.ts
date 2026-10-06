@@ -86,6 +86,23 @@ test('createEvidence binds generated id/timestamps into integrity payload', asyn
   );
 });
 
+test('createEvidence tolerates equivalent database timestamp serialization', async () => {
+  configure();
+  globalThis.fetch = async (_input, init) => {
+    const sent = JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>;
+    const roundTrip = {
+      ...sent,
+      recorded_at: String(sent.recorded_at).replace('Z', '+00:00'),
+      created_at: String(sent.created_at).replace('Z', '+00:00'),
+    };
+    return jsonResponse([roundTrip]);
+  };
+
+  const evidence = await createEvidence(evidenceInput);
+  assert.equal(evidence.evidence_id.length, 36);
+  assert.equal(new Date(evidence.recorded_at).toISOString(), evidenceInput.freshness_at.replace('14:00', '16:00'));
+});
+
 test('createAuditEvent binds generated id/timestamps into integrity payload', async () => {
   configure();
   let sent: Record<string, unknown> | null = null;
@@ -103,6 +120,22 @@ test('createAuditEvent binds generated id/timestamps into integrity payload', as
   assert.equal(audit.occurred_at, sent.occurred_at);
   assert.equal(audit.created_at, sent.created_at);
   assert.equal(sent.integrity_sha256, integritySha256(sent));
+});
+
+test('createAuditEvent tolerates equivalent database timestamp serialization', async () => {
+  configure();
+  globalThis.fetch = async (_input, init) => {
+    const sent = JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>;
+    const roundTrip = {
+      ...sent,
+      occurred_at: String(sent.occurred_at).replace('Z', '+00:00'),
+      created_at: String(sent.created_at).replace('Z', '+00:00'),
+    };
+    return jsonResponse([roundTrip]);
+  };
+
+  const audit = await createAuditEvent(auditInput);
+  assert.equal(audit.event_id.length, 36);
 });
 
 test('getEvidence rejects tampered identifier, timestamp, or payload', async () => {
