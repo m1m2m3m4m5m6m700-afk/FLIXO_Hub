@@ -7,12 +7,15 @@ export function VideoLocalTool() {
   const [file, setFile] = useState<File | null>(null);
   const [result, setResult] = useState<Blob | null>(null);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
   const location = useLocation();
   const id = String(location.pathname).split('/').pop() ?? 'video-trimmer';
 
   const run = async () => {
     if (!file) return;
     setBusy(true);
+    setError('');
+    setResult(null);
     try {
       const parameters: CanonicalCapabilityParameters = id === 'video-trimmer'
         ? {}
@@ -23,6 +26,8 @@ export function VideoLocalTool() {
             : { x: 0, y: 0, width: 1280, height: 720 };
       const output = await executeCanonicalTool(id, { blob: file, fileName: file.name }, parameters);
       setResult(output.blob);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Video processing failed.');
     } finally {
       setBusy(false);
     }
@@ -33,6 +38,7 @@ export function VideoLocalTool() {
     <p>Local browser video execution. The original file is not modified.</p>
     <input aria-label="Choose video" type="file" accept="video/*" onChange={(event) => setFile(event.target.files?.[0] ?? null)} />
     <button type="button" disabled={!file || busy} onClick={() => void run()}>{busy ? 'Processing…' : 'Process video'}</button>
+    {error && <p role="alert">Video processing failed: {error}</p>}
     {result && <a download="flixo-video-output.webm" href={URL.createObjectURL(result)}>Download result</a>}
   </section>;
 }
