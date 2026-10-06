@@ -26,7 +26,7 @@ function imageFixture() {
 }
 
 async function meaningfulImageFixture(page: Page) {
-  const bytes = await page.evaluate(async (durationMs: number) => {
+  const bytes = await page.evaluate(async () => {
     const canvas = document.createElement('canvas');
     canvas.width = 128;
     canvas.height = 128;
@@ -48,7 +48,7 @@ async function meaningfulImageFixture(page: Page) {
       canvas.toBlob((value) => value ? resolve(value) : reject(new Error('could not encode fixture')), 'image/png');
     });
     return Array.from(new Uint8Array(await blob.arrayBuffer()));
-  }, VIDEO_FIXTURE_DURATION_MS);
+  });
   return {
     name: 'flixo-release-fixture.png',
     mimeType: 'image/png',
@@ -57,7 +57,7 @@ async function meaningfulImageFixture(page: Page) {
 }
 
 async function videoFixture(page: Page) {
-  const bytes = await page.evaluate(async () => {
+  const bytes = await page.evaluate(async (durationMs: number) => {
     const canvas = document.createElement('canvas');
     canvas.width = 320;
     canvas.height = 180;
@@ -122,7 +122,7 @@ async function videoFixture(page: Page) {
       probe.load();
     }
     return Array.from(new Uint8Array(await blob.arrayBuffer()));
-  });
+  }, VIDEO_FIXTURE_DURATION_MS);
 
   return {
     name: 'flixo-release-fixture.webm',
