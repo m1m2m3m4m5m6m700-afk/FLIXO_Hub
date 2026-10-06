@@ -25,6 +25,9 @@ Open execution means broad implementation authority across `execution` and dispo
 
 Multiple agents may collaborate through `execution` or isolated worker branches. Worker branches are development workspaces, not production authority.
 
+## Autonomous execution rule
+Within the `execution` lane, an authorized agent must not be blocked by human approval prompts, conversational confirmation, `OWNER_ACTION` status, or release-governance settings that apply only to promotion/production. Such conditions are external promotion controls, not implementation prerequisites. Agents continue implementation, testing, repair, documentation, and evidence collection up to the exact boundary they can safely execute. Only a genuine technical dependency, unavailable capability, missing credential required for the operation itself, or a verified safety constraint may stop an execution task.
+
 ## Governance synchronization
 The repository has three distinct control planes and they must never be conflated:
 - Agent contract: defines what authorized agents may implement on `execution`.
