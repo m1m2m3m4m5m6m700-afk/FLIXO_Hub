@@ -2,7 +2,7 @@
 import { execFileSync } from 'node:child_process';
 
 const allowed = new Set(['refs/heads/main', 'refs/heads/execution']);
-const coordinationPrefix = /^refs\/heads\/(?:agent-(?:1|2|3|4)|agent3)\//u;
+const coordinationPrefix = /^refs\/heads\/(?:agent-(?:1|2|3|3b|4)|agent3)\//u;
 
 // Quarantine only known legacy refs that are already part of this repository's historical Agent 2 lane.
 // This does not admit new legacy branch names; new refs still fail closed.
