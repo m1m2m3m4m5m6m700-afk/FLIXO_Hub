@@ -20,7 +20,7 @@ permissions:
 
 concurrency:
   group: flixo-ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main' || github.ref == 'refs/heads/execution' }}
 
 env:
   VITE_SITE_URL: https://flixoai.m1m2m3m4m5m6m700.workers.dev
