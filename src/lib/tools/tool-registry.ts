@@ -5,18 +5,15 @@ import type { ToolCatalog, ToolCatalogSource } from '../../config/tool-platform/
 
 const SHA256_K = new Uint32Array([
   0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
-  0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a1,
-  0xe49b69c1, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+  0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+  0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
   0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
-  0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92d,
+  0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
   0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
   0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
   0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
 ]);
-
-function rotateRight(value: number, bits: number): number {
-  return (value >>> bits) | (value << (32 - bits));
-}
+const rotateRight = (value: number, bits: number): number => (value >>> bits) | (value << (32 - bits));
 
 function sha256Hex(value: string): string {
   const input = new TextEncoder().encode(value);
@@ -82,11 +79,15 @@ function sha256Hex(value: string): string {
     h7 = (h7 + h) >>> 0;
   }
 
-  return [h0, h1, h2, h3, h4, h5, h6, h7].map((part) => part.toString(16).padStart(8, '0')).join('');
+  return [h0, h1, h2, h3, h4, h5, h6, h7].map((valuePart) => valuePart.toString(16).padStart(8, '0')).join('');
+}
+
+function freezeMap<T>(map: Map<string, T>): ReadonlyMap<string, T> {
+  return map;
 }
 
 function catalogFingerprint(tools: readonly ToolDefinition[]): string {
-  return sha256Hex(JSON.stringify(tools.map((tool) => ({
+  const payload = tools.map((tool) => ({
     id: tool.id,
     path: tool.path,
     aliases: [...tool.aliases].sort(),
@@ -96,11 +97,12 @@ function catalogFingerprint(tools: readonly ToolDefinition[]): string {
     operational: tool.operational,
     requirements: tool.requirements,
     recovery: tool.recovery,
-  }))));
+  }));
+  return sha256Hex(JSON.stringify(payload));
 }
 
 export function createToolCatalog(source: readonly ToolCatalogSource[]): ToolCatalog {
-  const all = Object.freeze([...source].sort((a, b) => a.id.localeCompare(b.id)));
+  const all = Object.freeze([...source].slice().sort((a, b) => a.id.localeCompare(b.id)));
   const byId = new Map<string, ToolDefinition>();
   const byPath = new Map<string, ToolDefinition>();
   const byAlias = new Map<string, ToolDefinition>();
@@ -109,12 +111,12 @@ export function createToolCatalog(source: readonly ToolCatalogSource[]): ToolCat
   for (const tool of all) {
     if (!tool.id.trim()) throw new Error('Tool id must not be empty.');
     if (byId.has(tool.id)) throw new Error(`Duplicate managed tool id: ${tool.id}`);
-    if (claimedRoutes.has(tool.path)) throw new Error(`Duplicate managed tool path: ${tool.id}`);
+    if (claimedRoutes.has(tool.path)) throw new Error(`Duplicate managed tool path: ${tool.path}`);
     if (!tool.component) throw new Error(`Tool component is missing: ${tool.id}`);
     if (!tool.parameterSchema) throw new Error(`Tool input contract is missing: ${tool.id}`);
     if (!tool.verifier) throw new Error(`Tool verifier contract is missing: ${tool.id}`);
     if (!tool.recovery || tool.recovery.maxAttempts < 0) throw new Error(`Tool recovery contract is invalid: ${tool.id}`);
-    if (!tool.operational?.lifecycle || !tool.operational.execution) throw new Error(`Tool operational profile is missing: ${tool.id}`);
+    if (!tool.operational || !tool.operational.lifecycle || !tool.operational.execution) throw new Error(`Tool operational profile is missing: ${tool.id}`);
     byId.set(tool.id, tool);
     byPath.set(tool.path, tool);
     claimedRoutes.add(tool.path);
@@ -133,9 +135,9 @@ export function createToolCatalog(source: readonly ToolCatalogSource[]): ToolCat
   return Object.freeze({
     all,
     ready: Object.freeze(all.filter((tool) => tool.isReady)),
-    byId,
-    byPath,
-    byAlias,
+    byId: freezeMap(byId),
+    byPath: freezeMap(byPath),
+    byAlias: freezeMap(byAlias),
     fingerprint: catalogFingerprint(all),
   });
 }
