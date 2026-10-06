@@ -6,7 +6,8 @@ This manifest is the single release-truth record for the public launch candidate
 
 ## Candidate identity
 
-- Candidate SHA: `d2735268776774a48750a91ed53dd3670d929ef7`
+- Candidate SHA: RESOLVE FROM LIVE PR #1002 HEAD; this manifest does not self-certify or embed a self-referential commit SHA.
+- Last fully verified candidate before this documentation rollover: `bfa98f6da5bdc28b21c4f22a926d4c219a7230a2`
 - Candidate branch: `execution`
 - Source main SHA at freeze: `263827228cbe5f4851470297fde5f2858ff844de`
 - Release tag: `PENDING`
@@ -16,7 +17,7 @@ This manifest is the single release-truth record for the public launch candidate
 
 ## Required evidence
 
-Current candidate evidence must be regenerated on `d2735268776774a48750a91ed53dd3670d929ef7` after this manifest mutation; no prior-SHA evidence is reused.
+After any manifest mutation, current candidate evidence must be regenerated on the live PR #1002 head; no prior-SHA evidence is reused.
 
 - [ ] CI PASS on candidate SHA
 - [ ] CodeQL PASS on candidate SHA

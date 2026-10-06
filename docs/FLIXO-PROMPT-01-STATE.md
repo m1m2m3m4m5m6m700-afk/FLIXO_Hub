@@ -1,15 +1,15 @@
 # FLIXO Prompt 01 — Current State Reconciliation
 
-STATUS: BLOCKED_BY_EXTERNAL_GOVERNANCE
+STATUS: LAST-VERIFIED-CANDIDATE RECORD — GOVERNANCE BLOCKED
 PROMPT_ID: 01
 SCOPE: READ_ONLY_STATE_RECORD
 RECORDED_AT_UTC: 2026-10-06
-START_SHA: b130f732ba4e333611040676ae3c21531480b62c
+START_SHA: bfa98f6da5bdc28b21c4f22a926d4c219a7230a2
 END_SHA: PENDING_THIS_RECORD_COMMIT
 CURRENT_MAIN_SHA: 263827228cbe5f4851470297fde5f2858ff844de
-CURRENT_EXECUTION_SHA: b130f732ba4e333611040676ae3c21531480b62c
+CURRENT_EXECUTION_SHA_AT_RECONCILIATION: bfa98f6da5bdc28b21c4f22a926d4c219a7230a2
 PR: #1002
-PR_HEAD_SHA: b130f732ba4e333611040676ae3c21531480b62c
+PR_HEAD_SHA_AT_RECONCILIATION: bfa98f6da5bdc28b21c4f22a926d4c219a7230a2
 PR_BASE_SHA: 263827228cbe5f4851470297fde5f2858ff844de
 PRIMARY_BRANCH: execution
 INTEGRATION_PATH: execution -> main
@@ -37,11 +37,11 @@ Latest observed evidence before this documentation mutation:
 - FLIXO CodeQL: PASS.
 - Gitleaks / Secret Scan: PASS.
 - TestSprite execution fallback: PASS.
-- Chromium/browser smoke: IN_PROGRESS; no browser PASS claim until completion.
+- Chromium/browser smoke: PASS.
 - PR branch-policy on base main: FAIL because live main ruleset 23854302 does not satisfy Prompt 12.
 - Execution-push branch-policy: PASS with main governance verification intentionally deferred.
 - Trust-gate / Exact-SHA promotion proof: not certifiable until browser and main-governance gates are satisfied.
-Evidence from older SHAs remains historical and stale.
+Evidence from older SHAs remains historical and stale; the record is a snapshot of the bfa98f6d… candidate before this documentation rollover.
 
 ## Governance evidence
 
@@ -103,4 +103,4 @@ Any mutation after this record creates a new execution SHA and invalidates all c
 
 ## Next action
 
-Complete the exact-SHA browser gate after the documentation reconciliation, then resolve the external main-governance policy and legitimate independent review before Prompt 18–20 can close.
+Regenerate exact-SHA evidence on the new documentation head, then resolve the external main-governance policy and legitimate independent review before Prompt 18–20 can close.

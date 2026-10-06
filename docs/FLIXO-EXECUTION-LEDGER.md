@@ -4,7 +4,7 @@ This ledger records live execution tasks on the `execution` integration line. A 
 
 ## Current candidate
 - Branch: `execution`
-- Current candidate SHA at this ledger reconciliation: `f76313b60e61c69e050473549a60f4612c959212`
+- Current candidate SHA at this ledger reconciliation: `bfa98f6da5bdc28b21c4f22a926d4c219a7230a2`
 - Integration PR: #1002
 - Production truth branch: `main`
 - Current main SHA: `263827228cbe5f4851470297fde5f2858ff844de`
@@ -20,12 +20,13 @@ This ledger records live execution tasks on the `execution` integration line. A 
 | EXEC-SCOPE-CONSISTENCY-001 | AGENT-3/QA | VERIFIED-STATIC | `tests/mvp-scope-contradiction.test.ts` | Canonical capability definitions and registry | Exact ten-tool parity, executor/output contract bindings, LOCAL/network=false, schemas/verifiers, documentation alignment | Current candidate CI PASS | Keep locked |
 | EXEC-SCOPE-CLAIMS-001 | AGENT-3/QA | VERIFIED-STATIC | `docs/FLIXO-PUBLIC-CLAIMS-ALLOWLIST.md` | Current ten-tool MVP scope | Public claims aligned to ten canonical executable capabilities | Current candidate scope test/build PASS | Keep locked |
 | EXEC-PROMPT-02-001 | AGENT-3/QA | IN_PROGRESS | `docs/FLIXO-PROMPT-02-STATE.md`, scope test, public claims | Prompt 02 exact-SHA verification | Runtime contract alignment is implemented; final certification evidence remains governance-blocked | Current candidate CI/coverage/browser/Red Team/security PASS except branch-policy governance | Close after governance blocker is legitimately removed and final certification rerun |
+| EXEC-MVP-NEG-ASSERT-001 | AGENT-3/QA | VERIFIED | `tests/mvp-acceptance-corpus.test.ts` | Node assert.throws behavior | Negative corpus assertion explicitly validates the thrown Error and required message classes | bfa98f6da5bdc28b21c4f22a926d4c219a7230a2; CI + Prompt 17 PASS | Re-run exact-SHA gates after any later mutation |
 | EXEC-CERT-BLOCKER-001 | AGENT-3/Certification | BLOCKED | GitHub ruleset / PR review state | External repository governance | Live main ruleset has 0 required approvals and non-strict required checks; PR #1002 has no human approving review | Live ruleset inspection + PR review list | Harden Ruleset 23854302 and obtain legitimate independent approval |
 | EXEC-DOCS-AUDIT-001 | AGENT-2/Product | IMPLEMENTED | `docs/TOOL-EXPANSION-AUDIT.md` | Exact execution candidate | Audit reconciled to active PR #1002 | Latest exact candidate requires state refresh after every mutation | Refresh only as candidate advances |
 
-## Current exact-SHA CI evidence — candidate `b130f732ba4e333611040676ae3c21531480b62c`
+## Last fully verified exact-SHA CI evidence — candidate `bfa98f6da5bdc28b21c4f22a926d4c219a7230a2`
 
-Latest observed exact-SHA evidence before this documentation mutation:
+Exact candidate evidence before this documentation rollover:
 - Typecheck/lint/core contracts/build: PASS.
 - Exact-SHA internal coverage: PASS.
 - Red Team adversarial regression: PASS.
@@ -35,10 +36,10 @@ Latest observed exact-SHA evidence before this documentation mutation:
 - TestSprite execution fallback: PASS.
 - Execution-push branch policy: PASS with main governance intentionally deferred.
 - PR-to-main branch policy: FAIL CLOSED because live ruleset 23854302 does not satisfy Prompt 12.
-- Chromium browser smoke: IN PROGRESS.
-- Trust-gate / promotion proof: cannot close while browser and main governance remain open.
+- Chromium browser smoke: PASS.
+- Trust-gate / promotion proof: governance remains blocked by live main ruleset and missing independent human review.
 - Production exact-SHA deployment: not applicable on execution by design; production truth begins on main after protected promotion.
-All evidence above is tied to the pre-mutation candidate and is invalid for certification after this documentation commit.
+All evidence above is tied to `bfa98f6da5bdc28b21c4f22a926d4c219a7230a2`. This documentation rollover changes the execution SHA, so candidate-specific PASS evidence must be regenerated on the new head.
 
 ## Prompt-state reconciliation — current candidate
 - Prompt 01: BLOCKED_BY_EXTERNAL_GOVERNANCE — live execution/main state reconciled at b130f732ba4e333611040676ae3c21531480b62c.

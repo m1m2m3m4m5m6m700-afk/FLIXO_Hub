@@ -1,12 +1,12 @@
 # FLIXO Exact-SHA Certification Record
 
-STATUS: CANDIDATE / BLOCKED_ON_GOVERNANCE
+STATUS: LAST-VERIFIED-CANDIDATE / BLOCKED_ON_GOVERNANCE
 UPDATED: 2026-10-06
 REPOSITORY: m1m2m3m4m5m6m700-afk/FLIXO_Hub
 EXECUTION_BRANCH: execution
 INTEGRATION_PR: #1002
 MAIN_SHA: 263827228cbe5f4851470297fde5f2858ff844de
-CANDIDATE_SHA: f0de32d5a29dc383745565428a2434ce2e5b4702
+LAST_VERIFIED_CANDIDATE_SHA: bfa98f6da5bdc28b21c4f22a926d4c219a7230a2
 
 ## Prompt 17 exact-candidate evidence
 
@@ -35,13 +35,13 @@ Additional exact-candidate execution evidence:
 
 ## Current release identities
 
-CURRENT_SHA=f0de32d5a29dc383745565428a2434ce2e5b4702
-TESTED_SHA=f0de32d5a29dc383745565428a2434ce2e5b4702
-BUILT_SHA=f0de32d5a29dc383745565428a2434ce2e5b4702
-BROWSER_VERIFIED_SHA=f0de32d5a29dc383745565428a2434ce2e5b4702
-SECURITY_VERIFIED_SHA=f0de32d5a29dc383745565428a2434ce2e5b4702
-COVERAGE_VERIFIED_SHA=f0de32d5a29dc383745565428a2434ce2e5b4702
-RED_TEAM_VERIFIED_SHA=f0de32d5a29dc383745565428a2434ce2e5b4702
+CURRENT_SHA=NEW_HEAD_CREATED_BY_THIS_DOCUMENTATION_ROLLOVER
+TESTED_SHA=bfa98f6da5bdc28b21c4f22a926d4c219a7230a2
+BUILT_SHA=bfa98f6da5bdc28b21c4f22a926d4c219a7230a2
+BROWSER_VERIFIED_SHA=bfa98f6da5bdc28b21c4f22a926d4c219a7230a2
+SECURITY_VERIFIED_SHA=bfa98f6da5bdc28b21c4f22a926d4c219a7230a2
+COVERAGE_VERIFIED_SHA=bfa98f6da5bdc28b21c4f22a926d4c219a7230a2
+RED_TEAM_VERIFIED_SHA=bfa98f6da5bdc28b21c4f22a926d4c219a7230a2
 CERTIFIED_SHA=NOT_YET_CERTIFIED
 DEPLOYED_SHA=NOT_YET_VERIFIED
 
@@ -66,10 +66,10 @@ The connected execution environment exposes ruleset state read-only; no ruleset 
 
 ## Certification state
 
-Prompt 17 = PASS on the preceding candidate; this documentation mutation creates a new SHA and invalidates that evidence for the current candidate.
-Prompt 18 = ACTIVE; the candidate evidence must be regenerated on this exact SHA before certification.
-Prompt 19 = NOT EXECUTED.
-Prompt 20 = NOT EXECUTED.
+Prompt 17 = PASS on `bfa98f6da5bdc28b21c4f22a926d4c219a7230a2`; this documentation rollover creates a new SHA and invalidates candidate-specific evidence for the new head.
+Prompt 18 = BLOCKED pending regeneration on the new head and governance closure.
+Prompt 19 = NOT READY — governance blocker remains.
+Prompt 20 = NOT READY — requires legitimate owner approval and protected promotion.
 
 Therefore:
 PLAN = NOT COMPLETE
