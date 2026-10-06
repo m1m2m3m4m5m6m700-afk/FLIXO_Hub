@@ -5,7 +5,9 @@ export const OPERATIONAL_REFS = new Set([
 
 // Agent coordination branches are explicitly untrusted for production.
 // Compatibility prefixes must be classified without becoming deploy authority.
-export const CONTROLLED_AGENT_REF = /^refs\/heads\/(?:agent-(?:1|2|3|4)\/|agent-3[abc]\/|agent3\/)/u;
+// The temporary residual remediation lane is also explicitly classified as
+// controlled/untrusted; it never receives production authority.
+export const CONTROLLED_AGENT_REF = /^refs\/heads\/(?:agent-(?:1|2|3|4)\/|agent-3[abc]\/|agent3\/|agent-residual\/)/u;
 
 export const STALE_REFS = new Set([
   'refs/heads/agent-2-media-engines-20261006',
