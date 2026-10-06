@@ -11,6 +11,7 @@ export const QUARANTINED_REFS = new Set([
   'refs/heads/agent-3b/redteam-rt19-20261006',
   'refs/heads/agent-3c/redteam-rt20-20261006',
   'refs/heads/agent-residual/redteam-closure-20261006',
+  'refs/heads/agent-tools-consolidation-20261006',
 ]);
 
 const PRODUCTION_REF = 'refs/heads/main';
