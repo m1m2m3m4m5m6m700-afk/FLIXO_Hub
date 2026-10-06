@@ -60,14 +60,15 @@ test('red-team residual: source-controlled council RPC migration covers the priv
     assert.match(body, /set\\s+search_path\\s+to\\s+pg_catalog,\\s*public,\\s*pg_temp/iu, 'RPC search_path must be pinned: ' + name);
     assert.match(
       corpus,
-      new RegExp('revoke\\\\s+all\\\\s+on\\\\s+function\\\\s+public\\\\.' + name + '\\\\b', 'iu'),
+      new RegExp('revoke\\s+all\\s+on\\s+function\\s+public\\.' + name + '\\b', 'iu'),
       'RPC must revoke public execution: ' + name,
     );
     assert.match(
       corpus,
-      new RegExp('grant\\\\s+execute\\\\s+on\\\\s+function\\\\s+public\\\\.' + name + '\\\\b', 'iu'),
+      new RegExp('grant\\s+execute\\s+on\\s+function\\s+public\\.' + name + '\\b', 'iu'),
       'RPC must grant service_role execution: ' + name,
-    );  }
+    );
+  }
 });
 
 test('red-team residual: council runtime has no dead wake relay trust path', () => {
