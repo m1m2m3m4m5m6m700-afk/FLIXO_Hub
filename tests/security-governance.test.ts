@@ -2,35 +2,59 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { test } from 'node:test';
 
+import { REQUIRED_CODEOWNERS, validateCodeowners } from '../scripts/verify-codeowners-coverage.mjs';
+
 const repoRoot = process.cwd();
 
-test('security-sensitive CODEOWNERS entries point at real repository paths', () => {
-  const lines = readFileSync('.github/CODEOWNERS', 'utf8')
+test('security-sensitive CODEOWNERS entries exist, are explicit, and resolve to the repository owner', () => {
+  const content = readFileSync('.github/CODEOWNERS', 'utf8');
+  const result = validateCodeowners(content, { repoRoot });
+  assert.equal(result.ok, true, result.errors.join('\n'));
+  assert.equal(result.covered.length, Object.keys(REQUIRED_CODEOWNERS).length);
+});
+
+test('CODEOWNERS malformed rule fails closed', () => {
+  const malformed = [
+    '* @m1m2m3m4m5m6m700-afk',
+    '/.github/CODEOWNERS',
+  ].join('\n');
+  const result = validateCodeowners(malformed, { repoRoot });
+  assert.equal(result.ok, false);
+  assert.match(result.errors.join('\n'), /requires a pattern and at least one owner/u);
+});
+
+test('CODEOWNERS missing high-impact coverage fails closed', () => {
+  const content = readFileSync('.github/CODEOWNERS', 'utf8')
     .split(/\r?\n/u)
-    .map((line) => line.trim())
-    .filter((line) => line && !line.startsWith('#'));
-  const ownedPaths = new Set(lines.map((line) => line.split(/\s+/u)[0]));
-  const expected = [
+    .filter((line) => !line.startsWith('/src/config/registry.ts'))
+    .join('\n');
+  const result = validateCodeowners(content, { repoRoot });
+  assert.equal(result.ok, false);
+  assert.match(result.errors.join('\n'), /explicit CODEOWNERS coverage missing: \/src\/config\/registry\.ts/u);
+});
+
+test('required RT-17 paths are real repository paths; absent media path is not invented', () => {
+  const requiredExisting = [
     '/.github/workflows/',
     '/.github/CODEOWNERS',
+    '/.github/agents/',
     '/scripts/ci/',
     '/SECURITY.md',
-    '/docs/agents/',
     '/supabase/',
-    '/api/',
+    '/api/admin/',
+    '/src/server/admin/',
+    '/src/config/registry.ts',
     '/src/lib/contracts/',
     '/src/lib/execution/',
+    '/src/lib/agent-guided-runtime.ts',
     '/src/worker.ts',
     '/wrangler.jsonc',
     '/vercel.json',
   ];
-
-  for (const path of expected) {
-    assert.equal(existsSync(repoRoot + path), true, 'CODEOWNERS target must exist: ' + path);
-    assert.equal(ownedPaths.has(path), true, 'CODEOWNERS must explicitly cover: ' + path);
-  }
-
-  assert.equal(ownedPaths.has('/docs/security.md'), false);
+  for (const path of requiredExisting) assert.equal(existsSync(repoRoot + path), true, path);
+  assert.equal(existsSync(repoRoot + '/src/lib/media/'), false);
+  const codeowners = readFileSync('.github/CODEOWNERS', 'utf8');
+  assert.equal(codeowners.includes('/src/lib/media/'), false);
 });
 
 test('production security policy denies unused high-impact browser permissions', () => {
@@ -49,9 +73,6 @@ test('production security policy denies unused high-impact browser permissions',
   assert.match(csp, /object-src 'none'/u);
   assert.match(csp, /frame-ancestors 'none'/u);
   assert.match(csp, /worker-src 'self' blob:/u);
-  assert.equal(
-    rootHeaders.find((entry) => entry.key === 'X-Content-Type-Options')?.value,
-    'nosniff',
-  );
+  assert.equal(rootHeaders.find((entry) => entry.key === 'X-Content-Type-Options')?.value, 'nosniff');
   assert.equal(rootHeaders.find((entry) => entry.key === 'X-Frame-Options')?.value, 'DENY');
 });
