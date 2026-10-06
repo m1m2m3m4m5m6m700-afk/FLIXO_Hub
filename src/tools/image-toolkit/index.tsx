@@ -100,7 +100,12 @@ async function preprocessForOcr(file: File): Promise<Blob> {
   canvas.width = Math.max(1, Math.round(image.width * scale));
   canvas.height = Math.max(1, Math.round(image.height * scale));
   const context = canvas.getContext('2d', { willReadFrequently: true });
-  if (!context) throw new Error('Canvas is unavailable.');
+  if (!context) {
+    image.close();
+    canvas.width = 0;
+    canvas.height = 0;
+    throw new Error('Canvas is unavailable.');
+  }
   context.drawImage(image, 0, 0, canvas.width, canvas.height);
   const data = context.getImageData(0, 0, canvas.width, canvas.height);
   for (let index = 0; index < data.data.length; index += 4) {
@@ -110,7 +115,11 @@ async function preprocessForOcr(file: File): Promise<Blob> {
   }
   context.putImageData(data, 0, 0);
   image.close();
-  return new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Could not prepare OCR input.')), 'image/png'));
+  return new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Could not prepare OCR input.')), 'image/png'))
+    .finally(() => {
+      canvas.width = 0;
+      canvas.height = 0;
+    });
 }
 
 async function createResult(blob: Blob, fileName: string, info?: Result['info'], text?: string): Promise<Result> {
@@ -139,12 +148,22 @@ export function ImageToolPage({ toolId }: Props) {
   const [cropX, setCropX] = useState('0'); const [cropY, setCropY] = useState('0'); const [cropW, setCropW] = useState('500'); const [cropH, setCropH] = useState('500'); const [outW, setOutW] = useState('500'); const [outH, setOutH] = useState('500');
   const [busy, setBusy] = useState(false); const [error, setError] = useState(''); const [result, setResult] = useState<Result | null>(null);
   const objectUrlRef = useRef<string | undefined>(undefined);
+  const runAbortRef = useRef<AbortController | null>(null);
 
-  useEffect(() => () => { if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current); }, []);
+  useEffect(() => () => {
+    runAbortRef.current?.abort();
+    runAbortRef.current = null;
+    if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+    objectUrlRef.current = undefined;
+  }, []);
   const replaceResult = (next: Result | null) => { if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current); objectUrlRef.current = next?.objectUrl; setResult(next); };
 
   const run = async () => {
-    setBusy(true); setError(''); replaceResult(null);
+    setBusy(true); setError('');
+    runAbortRef.current?.abort();
+    const controller = new AbortController();
+    runAbortRef.current = controller;
+    replaceResult(null);
     try {
       if (isGenerator) {
         if (!prompt.trim()) throw new Error(ui.promptRequired);
@@ -161,7 +180,7 @@ export function ImageToolPage({ toolId }: Props) {
       if (toolId === 'background-remover') { blob = await removeBackground(file, Number(tolerance) || 42); fileName += '-no-background.png'; }
       else if (toolId === 'image-upscaler') { const factor = Number(scale); blob = await resizeImage(file, factor); fileName += `-upscaled-${factor}x.png`; }
       else if (toolId === 'image-converter') { blob = await convertImage(file, outputFormat); info = await imageInfo(blob); assertImageConverterOutputIntegrity(blob, info); fileName += outputFormat === 'image/jpeg' ? '.jpg' : outputFormat === 'image/png' ? '.png' : '.webp'; }
-      else if (toolId === 'image-to-text') { const prepared = await preprocessForOcr(file); const ocr = await recognizeWithOcrWorker(prepared, 'eng+ara'); replaceResult(await createResult(new Blob([ocr.text], { type: 'text/plain;charset=utf-8' }), `${baseName(file.name)}.txt`, undefined, ocr.text)); return; }
+      else if (toolId === 'image-to-text') { const prepared = await preprocessForOcr(file); const ocr = await recognizeWithOcrWorker(prepared, 'eng+ara', controller.signal); replaceResult(await createResult(new Blob([ocr.text], { type: 'text/plain;charset=utf-8' }), `${baseName(file.name)}.txt`, undefined, ocr.text)); return; }
       else if (toolId === 'object-remover') { blob = await fillRemoveRegion(file, { x: Number(cropX), y: Number(cropY), width: Number(cropW), height: Number(cropH) }); fileName += '-object-removed.png'; }
       else if (toolId === 'watermark-remover') { blob = await watermarkRemove(file, { x: Number(cropX), y: Number(cropY), width: Number(cropW), height: Number(cropH) }); fileName += '-watermark-removed.png'; }
       else if (toolId === 'crop-resize') { blob = await cropResizeImage(file, { x: Number(cropX), y: Number(cropY), width: Number(cropW), height: Number(cropH) }, { width: Number(outW), height: Number(outH) }); info = await imageInfo(blob); assertImageCropperOutputIntegrity(blob, info); fileName += '-cropped.png'; }
@@ -180,7 +199,7 @@ export function ImageToolPage({ toolId }: Props) {
       if (blob.type.startsWith('image/') && !info) info = await imageInfo(blob);
       replaceResult(await createResult(blob, fileName, info));
     } catch (caught) { setError(caught instanceof Error ? caught.message : 'Tool failed.'); }
-    finally { setBusy(false); }
+    finally { if (runAbortRef.current === controller) runAbortRef.current = null; setBusy(false); }
   };
 
   return (
