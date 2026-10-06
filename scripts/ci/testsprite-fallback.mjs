@@ -4,7 +4,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 
 export function runNativeTestSpriteFallback({
   sha,
-  runner = (command, args) => execFileSync(command, args, { stdio: 'inherit' }),
+  runner,
   installChromium = true,
   outputDir = 'testsprite-fallback',
 } = {}) {
@@ -12,13 +12,17 @@ export function runNativeTestSpriteFallback({
     throw new Error('TESTSPRITE_FALLBACK_INVALID_SHA');
   }
 
+  const existingEnv = { ...process.env, PLAYWRIGHT_REUSE_SERVER: 'true' };
+  const defaultRunner = (command, args) => execFileSync(command, args, { stdio: 'inherit', env: existingEnv });
+  const invoke = runner === undefined ? defaultRunner : runner;
+
   const chromiumArgs = installChromium
     ? ['playwright', 'install', '--with-deps', 'chromium']
     : [];
 
-  if (chromiumArgs.length) runner('npx', chromiumArgs);
+  if (chromiumArgs.length) invoke('npx', chromiumArgs);
 
-  runner('npm', [
+  invoke('npm', [
     'run',
     'test:e2e',
     '--',
