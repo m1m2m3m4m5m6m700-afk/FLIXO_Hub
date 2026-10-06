@@ -39,6 +39,8 @@ test('a complete repository-knowledge drill reaches 100', () => {
     coveragePercent: 100,
     dependencies: ['route->registry'],
     semanticDiff: ['added symbol'],
+    authorityChain: ['registry','gate','executor','verifier'],
+    mainSha: OTHER_SHA,
   }, SHA);
   assert.equal(result.score, 100);
   assert.equal(result.passed, true);
