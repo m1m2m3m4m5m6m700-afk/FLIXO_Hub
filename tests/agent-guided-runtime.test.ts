@@ -15,6 +15,7 @@ test('guided runtime is bounded to the current canonical ten-tool MVP', () => {
   assert.equal(plan.steps[0].toolId, 'image-compressor');
   assert.equal(plan.catalogFingerprint, TOOL_CATALOG.fingerprint);
   assert.equal(plan.requiresUserConfirmation, true);
+  assert.equal(plan.matchedIntent, 'compress');
 });
 
 test('guided runtime reuses canonical intent and rejects unsupported capabilities', () => {
