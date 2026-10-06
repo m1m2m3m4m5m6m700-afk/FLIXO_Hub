@@ -192,10 +192,9 @@ async function readImageDimensions(blob: Blob, signal?: AbortSignal): Promise<Me
 
 async function readVideoDimensions(blob: Blob, signal?: AbortSignal): Promise<MediaDimensions | undefined> {
   if (signal?.aborted || blob.type !== "video/webm" || typeof document === "undefined") return undefined;
-  const url = URL.createObjectURL(blob);
   const video = document.createElement("video");
   video.preload = "metadata";
-  video.src = url;
+  video.srcObject = blob;
   try {
     await new Promise<void>((resolve, reject) => {
       const onAbort = () => reject(new DOMException("Video verification aborted.", "AbortError"));
@@ -207,7 +206,7 @@ async function readVideoDimensions(blob: Blob, signal?: AbortSignal): Promise<Me
     if (!Number.isFinite(video.duration) || video.duration <= 0 || video.videoWidth <= 0 || video.videoHeight <= 0) return undefined;
     return { width: video.videoWidth, height: video.videoHeight, duration: video.duration };
   } finally {
-    URL.revokeObjectURL(url);
+    video.srcObject = null;
     video.removeAttribute("src");
     video.load();
   }
