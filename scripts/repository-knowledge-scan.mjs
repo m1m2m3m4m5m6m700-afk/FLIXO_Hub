@@ -452,7 +452,7 @@ export function collect() {
 function main() {
   const result = collect();
   if (process.argv.includes('--verify') &&
-      (result.uncoveredSourceLines !== 0 || result.status === 'CAN_COMPLETE_WITH_LIMITATIONS') &&
+      (result.uncoveredSourceLines !== 0 || !result.reportPath || !result.sha) &&
       process.env.ALLOW_KNOWLEDGE_LIMITATIONS !== '1') {
     process.exitCode = 2;
   }
