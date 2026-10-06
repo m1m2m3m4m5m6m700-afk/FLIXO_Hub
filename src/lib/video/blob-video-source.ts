@@ -108,7 +108,7 @@ export async function attachVideoBlobSource(
       video.removeAttribute('src');
       video.load();
       URL.revokeObjectURL(url);
-      if (attachToDocument && video.parentNode) video.parentNode.removeChild(video);
+      if (attachToDocument) video.remove();
     };
 
     const abortListener = () => cleanup();
@@ -131,7 +131,7 @@ export async function attachVideoBlobSource(
         video.srcObject = null;
         video.removeAttribute('src');
         video.load();
-        if (attachToDocument && video.parentNode) video.parentNode.removeChild(video);
+        if (attachToDocument) video.remove();
       };
       signal?.addEventListener('abort', cleanup, { once: true });
       return cleanup;
