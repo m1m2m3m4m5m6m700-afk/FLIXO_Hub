@@ -27,7 +27,7 @@ INTEGRATION_PATH: execution -> main
 
 ## Current candidate evidence state
 
-Exact current execution head at reconciliation: b130f732ba4e333611040676ae3c21531480b62c.
+Exact current execution candidate at last verification: 7d9266a42690417511d0202b3d06b6b362f2d7d4.
 This state record is coordination metadata only; every mutation invalidates prior exact-SHA evidence.
 Latest observed evidence before this documentation mutation:
 - Typecheck, lint, core contracts, build: PASS.
