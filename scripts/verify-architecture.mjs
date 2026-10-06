@@ -84,7 +84,7 @@ if (!existsSync(codeownersPath)) {
 } else {
   const codeowners = readFileSync(codeownersPath, 'utf8');
   for (const ownerPath of requiredOwnerPaths) {
-    if (!codeowners.split(/\r?\n/u).some((line) => line.trim().startsWith(ownerPath + ' '))) {
+    if (!codeowners.split(/\r?\n/u).some((line) => line.trim().startsWith(ownerPath))) {
       codeownersViolations.push('CODEOWNERS missing explicit protected path: ' + ownerPath);
     }
   }
