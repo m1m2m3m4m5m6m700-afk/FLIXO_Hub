@@ -191,12 +191,17 @@ function buildCanvas(video: HTMLVideoElement, options: VideoRenderOptions): { ca
 async function stopRecorder(recorder: MediaRecorder | undefined): Promise<void> {
   if (!recorder || recorder.state === "inactive") return;
   await new Promise<void>((resolve) => {
-    const finish = () => resolve();
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    const finish = () => {
+      if (timeoutId !== undefined) clearTimeout(timeoutId);
+      resolve();
+    };
     recorder.addEventListener("stop", finish, { once: true });
+    timeoutId = setTimeout(finish, 5_000);
     try {
       recorder.stop();
     } catch {
-      resolve();
+      finish();
     }
   });
 }
