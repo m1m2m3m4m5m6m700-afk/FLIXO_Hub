@@ -69,8 +69,17 @@ begin
   if p_bucket_key is null or length(trim(p_bucket_key)) < 3 or length(trim(p_bucket_key)) > 128 then raise exception 'ADMIN_LOGIN_RATE_LIMIT_KEY_INVALID'; end if;
   if p_limit < 1 or p_limit > 100 then raise exception 'ADMIN_LOGIN_RATE_LIMIT_LIMIT_INVALID'; end if;
   if p_window_seconds < 1 or p_window_seconds > 3600 then raise exception 'ADMIN_LOGIN_RATE_LIMIT_WINDOW_INVALID'; end if;
-  delete from public.flix_admin_login_rate_limits
-   where updated_at < clock_timestamp() - interval '15 minutes' and bucket_key <> p_bucket_key;
+  with stale as (
+    select bucket_key
+      from public.flix_admin_login_rate_limits
+     where updated_at < clock_timestamp() - interval '15 minutes'
+       and bucket_key <> trim(p_bucket_key)
+     order by updated_at asc
+     limit 100
+  )
+  delete from public.flix_admin_login_rate_limits as limits
+   using stale
+   where limits.bucket_key = stale.bucket_key;
   insert into public.flix_admin_login_rate_limits(bucket_key, window_started_at, attempts, updated_at)
   values (trim(p_bucket_key), clock_timestamp(), 1, clock_timestamp())
   on conflict (bucket_key) do update
