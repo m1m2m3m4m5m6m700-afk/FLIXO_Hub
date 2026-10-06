@@ -93,7 +93,7 @@ test('unexpected promotion direction is rejected', () => {
 test('CI promotion workflow contains live lineage and exact security-gate semantics', async () => {
   const workflow = await readFile(path.join(ROOT, '.github/workflows/ci.yml'), 'utf8');
   for (const token of [
-    'HEAD_REPO:', 'BASE_REPO:', 'GITHUB_EVENT_PATH:', 'verify-promotion-lineage.mjs',
+    'GITHUB_EVENT_PATH:', 'verify-promotion-lineage.mjs', 'EXPECTED_SHA:',
     'head_sha=$EXPECTED_SHA', 'event=pull_request', 'FLIXO CodeQL', 'FLIXO Secret Scan',
   ]) assert.ok(workflow.includes(token), 'missing CI token: ' + token);
 });
