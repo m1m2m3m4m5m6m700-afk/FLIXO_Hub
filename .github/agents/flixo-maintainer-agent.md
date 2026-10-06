@@ -38,3 +38,10 @@ Training gates:
 - changes remain fail-closed;
 - no merge/deploy/self-certification.
 
+
+## Practical Mastery Loop
+1. Enumerate canonical authorities before proposing any repair.
+2. Detect duplicate/shadow authorities and stale references.
+3. Audit workflow, documentation, profile, and test drift.
+4. Check all eight official agent registrations.
+5. Reject repairs that reduce assurance or create a second authority.
