@@ -76,7 +76,7 @@ test('promotion and production gates remain fail-closed and exact-SHA bound', as
     'post-merge production deployment must checkout the immutable main SHA',
   );
   assert.ok(
-    workflow.includes('          DEPLOYMENT_SHA: ${{ github.sha }}'),
+    workflow.includes("DEPLOYMENT_SHA: ${{ github.sha }}"),
     'production identity must be bound to the immutable main SHA',
   );
   assert.ok(
