@@ -15,7 +15,7 @@ test('security-sensitive CODEOWNERS entries point at real repository paths', () 
     '/.github/CODEOWNERS',
     '/scripts/ci/',
     '/SECURITY.md',
-    '/docs/agents/',
+    '/.github/agents/',
     '/supabase/',
     '/api/',
     '/src/lib/contracts/',
