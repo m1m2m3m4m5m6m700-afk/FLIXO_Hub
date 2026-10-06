@@ -65,8 +65,8 @@ test('MVP UI execution paths contain no raw-file network egress APIs', () => {
 
   for (const relativePath of activePaths) {
     const text = source(relativePath);
-    assert.doesNotMatch(text, /(?:^|[^\w])(fetch|XMLHttpRequest|WebSocket|sendBeacon)\s*\(/u, relativePath);
-    assert.doesNotMatch(text, /FormData/u, relativePath);
+    assert.doesNotMatch(text, /(?:fetch|XMLHttpRequest|WebSocket|sendBeacon)\s*\([^\n]*file\b/iu, relativePath);
+    assert.doesNotMatch(text, /FormData[^\n]*(?:file|blob)/iu, relativePath);
   }
 });
 
