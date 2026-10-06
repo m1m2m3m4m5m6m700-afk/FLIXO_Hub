@@ -82,3 +82,10 @@ The official comparison agent package is centralized under `الوكلاء/ال�
 - Write authority is limited to development reports. It never edits implementation, tasks, governance, or release state.
 
 Red Team agents use separate official packages and separate report scopes; comparison reports are not Red Team reports.
+
+
+The official agent training program is centralized under `الوكلاء/تدريب الوكلاء/`.
+
+- 100/100 rubric: `الوكلاء/تدريب الوكلاء/المعيار-100.md`
+- Contract test: `tests/security/ci/agent-training-contract.test.mjs`
+- No agent is considered 100/100 without passing role-specific contract gates.
