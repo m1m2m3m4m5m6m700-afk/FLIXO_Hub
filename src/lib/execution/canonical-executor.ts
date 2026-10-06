@@ -27,7 +27,12 @@ function assertNotAborted(signal?: AbortSignal): void {
   if (signal?.aborted) throw cancelledError();
 }
 
-async function withDeadline<T>(operation: Promise<T>, timeoutMs: number, signal?: AbortSignal): Promise<T> {
+async function withDeadline<T>(
+  operation: Promise<T>,
+  timeoutMs: number,
+  signal?: AbortSignal,
+  timeoutController?: AbortController,
+): Promise<T> {
   assertNotAborted(signal);
   return new Promise<T>((resolve, reject) => {
     let settled = false;
@@ -41,7 +46,10 @@ async function withDeadline<T>(operation: Promise<T>, timeoutMs: number, signal?
       cleanup();
       fn();
     };
-    const timer = setTimeout(() => finish(() => reject(new Error('Canonical execution timed out.'))), Math.max(1, timeoutMs));
+    const timer = setTimeout(() => {
+      timeoutController?.abort();
+      finish(() => reject(new Error('Canonical execution timed out.')));
+    }, Math.max(1, timeoutMs));
     const onAbort = () => finish(() => reject(cancelledError()));
     signal?.addEventListener('abort', onAbort, { once: true });
     operation.then((value) => finish(() => resolve(value)), (error) => finish(() => reject(error)));
@@ -435,21 +443,40 @@ export async function executeCanonicalTool(
   const { capability } = resolveCanonicalTool(toolId);
   assertNotAborted(signal);
   const parameters = validateCapabilityParameters(toolId, rawParameters);
-  await preflightInput(
-    toolId,
-    input,
-    capability.safetyLimits.maxFileSizeBytes,
-    capability.safetyLimits.maxPixels,
-    capability.safetyLimits.timeoutMs,
-    signal,
-  );
-  const output = await withDeadline(executeMvpTool(toolId, input, parameters, signal), capability.safetyLimits.timeoutMs, signal);
-  assertNotAborted(signal);
-  if (output.blob.size <= 0) throw new Error('Execution denied: empty artifact from ' + toolId + '.');
-  await verifyOutputContract(toolId, output, capability.safetyLimits.timeoutMs, signal);
-  const verified = await withDeadline(capability.verifier(input.blob, output.blob, parameters, signal), capability.safetyLimits.timeoutMs, signal);
-  if (!verified) throw new Error('Execution failed closed: verifier rejected artifact for ' + toolId + '.');
-  return output;
+  const executionController = new AbortController();
+  const relayAbort = () => executionController.abort();
+  signal?.addEventListener('abort', relayAbort, { once: true });
+  const executionSignal = executionController.signal;
+  try {
+    await preflightInput(
+      toolId,
+      input,
+      capability.safetyLimits.maxFileSizeBytes,
+      capability.safetyLimits.maxPixels,
+      capability.safetyLimits.timeoutMs,
+      executionSignal,
+    );
+    const output = await withDeadline(
+      executeMvpTool(toolId, input, parameters, executionSignal),
+      capability.safetyLimits.timeoutMs,
+      executionSignal,
+      executionController,
+    );
+    assertNotAborted(executionSignal);
+    if (output.blob.size <= 0) throw new Error('Execution denied: empty artifact from ' + toolId + '.');
+    await verifyOutputContract(toolId, output, capability.safetyLimits.timeoutMs, executionSignal);
+    const verified = await withDeadline(
+      capability.verifier(input.blob, output.blob, parameters, executionSignal),
+      capability.safetyLimits.timeoutMs,
+      executionSignal,
+      executionController,
+    );
+    if (!verified) throw new Error('Execution failed closed: verifier rejected artifact for ' + toolId + '.');
+    return output;
+  } finally {
+    signal?.removeEventListener('abort', relayAbort);
+    executionController.abort();
+  }
 }
 
 export async function executeCanonicalChain(
