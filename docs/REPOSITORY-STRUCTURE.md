@@ -17,6 +17,7 @@ This map defines the repository layout by responsibility. It is a documentation 
 - `PROJECTS.md` — concise project map.
 - `SECURITY.md` — repository security policy.
 - Root build/package configuration remains at the repository root because tooling resolves it from there.
+- `GPT` and `GPT.md` intentionally have different roles: `GPT` is the product/release directive; `GPT.md` is the shared architectural mandate. Do not collapse them without updating their consumers.
 
 ## Governance and automation
 
@@ -85,3 +86,7 @@ Physical location follows responsibility. Do not move or rename runtime files so
 - Operational lines: `main`, `execution`.
 - Controlled agent coordination: `agent-1/*`, `agent-2/*`, `agent-3/*`.
 - No other branch prefix is approved by repository policy.
+
+## Automated organization guard
+
+Run `npm run verify:structure` to validate required responsibility directories, the canonical agent-profile location, the single npm lockfile, absence of generated artifacts in Git, and absence of retired runtime authority paths. `npm test` and CI execute this guard.
