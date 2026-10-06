@@ -445,7 +445,7 @@ export function collect() {
     taskSignals,
     changedFiles: changed.files.length,
     status,
-    reportPath,
+    reportPath: REPORT_DIR + '/' + sha + '.md',
   };
 }
 
