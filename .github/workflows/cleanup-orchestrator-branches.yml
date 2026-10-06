@@ -1,0 +1,35 @@
+name: Cleanup temporary orchestrator branches
+
+on:
+  push:
+    branches: [execution]
+    paths:
+      - .github/workflows/cleanup-orchestrator-branches.yml
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    if: contains(github.event.head_commit.message, 'orchestrator-branch-cleanup')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Remove temporary orchestration branches
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for ref in $(gh api "repos/$GITHUB_REPOSITORY/branches?per_page=100" --jq '.[].name' | grep -E '^agent-[123]/' || true); do
+            echo "Deleting temporary branch: $ref"
+            gh api --method DELETE "repos/$GITHUB_REPOSITORY/git/refs/heads/$ref"
+          done
+          echo 'TEMP_AGENT_BRANCH_CLEANUP=PASS'
+      - name: Remove this one-time workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha="$(gh api "repos/$GITHUB_REPOSITORY/contents/$path?ref=execution" --jq .sha)"
+          gh api --method DELETE "repos/$GITHUB_REPOSITORY/contents/$path"             -f message="chore(governance): remove one-time orchestrator branch cleanup workflow"             -f sha="$sha"             -f branch=execution
