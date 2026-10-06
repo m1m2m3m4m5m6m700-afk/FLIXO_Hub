@@ -1,0 +1,131 @@
+name: FLIXO Final Clean-Clone Red Team
+
+on:
+  push:
+    branches: [execution]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: flixo-final-red-team-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  final-red-team:
+    name: Prompt 17 clean-clone final adversarial gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+
+      - name: Verify exact identity before tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          printf 'EXPECTED_SHA=%s\n' "$EXPECTED_SHA" > final-red-team-evidence.txt
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Fresh install
+        run: npm ci --no-audit --no-fund
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Core and contract regression
+        run: npm run test:core
+
+      - name: Adversarial control-plane regression
+        run: npm run test:red-team
+
+      - name: Production dependency audit
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Exact-SHA coverage
+        run: npm run test:coverage
+
+      - name: Browser E2E
+        run: |
+          set -euo pipefail
+          npx playwright install --with-deps chromium
+          npm run test:e2e -- --project=chromium tests/official/mvp-10-release-verification.spec.ts
+
+      - name: Verify main governance
+        run: node scripts/ci/verify-main-ruleset.mjs
+
+      - name: Verify exact-SHA security workflows
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, subprocess, sys
+          sha = os.environ["EXPECTED_SHA"]
+          repo = os.environ["GITHUB_REPOSITORY"]
+          out = subprocess.check_output([
+              "gh", "api", f"repos/{repo}/actions/runs",
+              "-f", f"head_sha={sha}",
+              "-f", "per_page=100",
+          ], text=True)
+          data = json.loads(out)
+          required = ["FLIXO CodeQL", "FLIXO Secret Scan"]
+          for name in required:
+              matches = [r for r in data.get("workflow_runs", []) if r.get("head_sha") == sha and r.get("name") == name]
+              if not matches:
+                  raise SystemExit(f"FAIL_CLOSED: missing exact-SHA security workflow: {name}")
+              result = matches[0]
+              if result.get("status") != "completed" or result.get("conclusion") != "success":
+                  raise SystemExit(f"FAIL_CLOSED: security workflow {name} => {result.get('status')}:{result.get('conclusion')}")
+          print("EXACT_SHA_SECURITY=PASS")
+          PY
+
+      - name: Structural scope and artifact evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s coverage/lcov.info
+          grep -q '^SF:' coverage/lcov.info
+          grep -q '^LF:[0-9][0-9]*$' coverage/lcov.info
+          grep -q '^LH:[0-9][0-9]*$' coverage/lcov.info
+          printf '%s\n' "$EXPECTED_SHA" > coverage/exact-sha.txt
+          sha256sum coverage/lcov.info | awk '{print $1}' > coverage/lcov.sha256
+          cat >> final-red-team-evidence.txt <<EOF
+          TYPECHECK=PASS
+          LINT=PASS
+          CORE=PASS
+          RED_TEAM=PASS
+          AUDIT=PASS
+          COVERAGE=PASS
+          BROWSER_E2E=PASS
+          GOVERNANCE=PASS
+          SECURITY_WORKFLOWS=PASS
+          EOF
+
+      - name: Upload final Red Team evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: flixo-final-red-team-${{ github.sha }}
+          path: |
+            final-red-team-evidence.txt
+            coverage
+            playwright-report
+            test-results
+          if-no-files-found: warn
+          retention-days: 30
