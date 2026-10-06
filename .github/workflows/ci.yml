@@ -29,8 +29,8 @@ env:
 
 jobs:
   verify:
-  # Only the canonical execution->main promotion PR consumes pull-request CI; worker PRs are implementation lanes, not release candidates.
-  if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.ref == 'execution' && github.event.pull_request.head.repo.full_name == github.repository) }}
+    # Only the canonical execution->main promotion PR consumes pull-request CI; worker PRs are implementation lanes, not release candidates.
+    if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.ref == 'execution' && github.event.pull_request.head.repo.full_name == github.repository) }}
     name: Typecheck, lint, core contracts, build
     runs-on: ubuntu-latest
     timeout-minutes: 20
