@@ -77,6 +77,7 @@ export const MVP_NEGATIVE_INTENT_SUITE: readonly MvpNegativeIntentCase[] = Objec
   { id: 'ambiguous-trim-video', request: 'trim video' },
   { id: 'ambiguous-crop-video', request: 'crop video' },
   { id: 'ambiguous-resize-video', request: 'resize video' },
+  { id: 'invalid-upscale-below-one', request: 'upscale this image 0.5x' },
 ] as const);
 
 type MVPScopedTool = Pick<

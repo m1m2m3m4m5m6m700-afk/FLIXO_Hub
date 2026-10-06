@@ -85,3 +85,11 @@ test('guided runtime expires confirmation receipts and does not retain them inde
     Date.now = originalNow;
   }
 });
+
+
+test('guided runtime rejects downscaling values on the upscale capability', () => {
+  assert.throws(
+    () => planAgentRequest('upscale this image 0.5x', image()),
+    /Invalid parameters for manual capability image-upscaler/i,
+  );
+});

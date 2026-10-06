@@ -42,7 +42,7 @@ export type CanonicalCapabilityDefinition = Readonly<{
 const MIME_TYPES = ["image/webp", "image/jpeg", "image/png"] as const;
 const PARAMETER_SCHEMAS = {
   "background-remover": z.object({ tolerance: z.number().finite().min(0).max(255).optional() }).strict(),
-  "image-upscaler": z.object({ scale: z.number().finite().positive().max(8).optional() }).strict(),
+  "image-upscaler": z.object({ scale: z.number().finite().min(1).max(8).optional() }).strict(),
   "image-cropper": z.object({
     x: z.number().int().nonnegative().max(40_000).optional(),
     y: z.number().int().nonnegative().max(40_000).optional(),
