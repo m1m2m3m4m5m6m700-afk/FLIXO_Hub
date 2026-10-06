@@ -24,14 +24,29 @@ async function ensureTesseract(): Promise<TesseractApi> {
   return window.Tesseract;
 }
 
+const OCR_WORKER_TIMEOUT_MS = 60_000;
+
 async function preprocessWithWorker(blob: Blob): Promise<Blob> {
   if (typeof Worker === 'undefined') throw new Error('Web Worker is unavailable.');
 
   return await new Promise<Blob>((resolve, reject) => {
     const worker = new Worker(new URL('./ocr-worker.ts', import.meta.url), { type: 'classic' });
-    const cleanup = () => worker.terminate();
+    let settled = false;
+    const cleanup = () => {
+      worker.terminate();
+      clearTimeout(timeout);
+    };
+    const fail = (error: Error) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(error);
+    };
+    const timeout = setTimeout(() => fail(new Error('OCR preprocessing worker timed out.')), OCR_WORKER_TIMEOUT_MS);
 
     worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
+      if (settled) return;
+      settled = true;
       cleanup();
       if (event.data.ok && event.data.blob instanceof Blob) {
         resolve(event.data.blob);
@@ -40,12 +55,13 @@ async function preprocessWithWorker(blob: Blob): Promise<Blob> {
       }
     };
 
-    worker.onerror = () => {
-      cleanup();
-      reject(new Error('OCR preprocessing worker could not start.'));
-    };
+    worker.onerror = () => fail(new Error('OCR preprocessing worker could not start.'));
 
-    worker.postMessage({ blob });
+    try {
+      worker.postMessage({ blob });
+    } catch (error) {
+      fail(error instanceof Error ? error : new Error('OCR preprocessing worker could not accept the input.'));
+    }
   });
 }
 
