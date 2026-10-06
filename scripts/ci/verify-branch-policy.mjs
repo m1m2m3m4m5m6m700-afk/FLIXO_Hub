@@ -103,7 +103,7 @@ function hasMainOnlyPushTrigger(workflow) {
     if (inOn && /^\S/u.test(line)) break;
     if (!inOn) continue;
 
-    const triggerMatch = /^ {2}([A-Za-z0-9_-]+):\s*$/u.exec(line);
+    const triggerMatch = /^\x20{2}([A-Za-z0-9_-]+):\s*$/u.exec(line);
     if (triggerMatch) {
       inPush = triggerMatch[1] === 'push';
       triggerCount += 1;
