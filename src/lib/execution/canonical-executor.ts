@@ -118,13 +118,13 @@ async function preflightInput(
   if (typeof document === 'undefined') throw new Error('VIDEO_BROWSER_RUNTIME_REQUIRED');
   const video = document.createElement('video');
   video.preload = 'metadata';
-  const url = URL.createObjectURL(input.blob);
   try {
     const metadataReady = new Promise<void>((resolve, reject) => {
       video.onloadedmetadata = () => resolve();
       video.onerror = () => reject(new Error('VIDEO_METADATA_INVALID'));
     });
-    video.src = url;
+    // Blob-backed media stays in the browser without converting untrusted data into a DOM URL.
+    video.srcObject = input.blob;
     await withDeadline(
       metadataReady,
       Math.min(timeoutMs, 30_000),
@@ -140,9 +140,9 @@ async function preflightInput(
       throw new Error('Execution denied: video dimensions exceed the canonical pixel budget.');
     }
   } finally {
+    video.srcObject = null;
     video.removeAttribute('src');
     video.load();
-    URL.revokeObjectURL(url);
   }
 }
 
@@ -323,10 +323,9 @@ async function verifyOutputContract(
         );
         dimensions = { width: video.videoWidth, height: video.videoHeight };
       } finally {
-        video.removeAttribute('src');
         video.srcObject = null;
+        video.removeAttribute('src');
         video.load();
-        URL.revokeObjectURL(url);
       }
     } else {
       dimensions = await withDeadline(readImageDimensions(output.blob, signal), Math.min(timeoutMs, 30_000), signal);
