@@ -14,8 +14,8 @@ permissions:
 
 jobs:
   analyze:
-  # Security analysis is required for canonical execution promotion and production main pushes; disposable worker PRs do not consume runners.
-  if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.ref == 'execution' && github.event.pull_request.head.repo.full_name == github.repository) }}
+    # Security analysis is required for canonical execution promotion and production main pushes; disposable worker PRs do not consume runners.
+    if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.ref == 'execution' && github.event.pull_request.head.repo.full_name == github.repository) }}
     name: CodeQL JavaScript and TypeScript
     runs-on: ubuntu-latest
     timeout-minutes: 30
