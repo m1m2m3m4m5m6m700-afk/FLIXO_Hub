@@ -2,19 +2,22 @@
 
 Status: NOT YET CERTIFIED / NOT YET PROMOTED
 
-## Control-plane interpretation
+This document is a control-plane policy/evidence-record template. It is not a current certification statement.
 
-This document is a policy/evidence-record template, not a self-certifying runtime source of truth.
+## Current lineage
 
-The exact release-candidate SHA MUST be read from the current controlled integration PR head and the exact GitHub Actions evidence for that same SHA. This file intentionally does not embed its own Git commit SHA because doing so would be self-referential: changing this file creates a new SHA and invalidates SHA-specific evidence.
-
-Current integration lane:
-- Repository: m1m2m3m4m5m6m700-afk/FLIXO-AI-TOOLS
-- Integration PR: #923
-- Promotion path: execution -> main only
+- Current repository: `m1m2m3m4m5m6m700-afk/FLIXO_Hub`
+- Current integration lane: `execution -> main`
+- Current integration PR: `REQUIRED`
+- Historical integration PR: #923 — HISTORICAL ONLY
 - Direct main mutation: forbidden
+- Exact release-candidate SHA: `REQUIRED`
+- Current production immutable identity: `REQUIRED`
 
-Required evidence categories:
+The exact release-candidate SHA must be read from the active controlled integration PR head and matched to all required evidence. This file intentionally does not self-embed its own commit SHA because editing it changes the SHA.
+
+## Required evidence categories
+
 - FLIXO CI verify/build
 - Chromium browser smoke
 - trust-gate
@@ -27,13 +30,14 @@ Required evidence categories:
 - clean-clone Red Team
 - deployment identity when applicable
 
-Current blockers remain:
-1. Main governance hardening is incomplete and cannot be changed through the connected control plane without an exposed ruleset-write capability.
-2. The model-license manifest has zero production-admitted models; release mode requires an evidenced admitted model.
-3. Prompt 17, release candidate freeze, Prompt 19 exact-SHA certification, and owner-authorized execution->main promotion remain pending.
+## Current blockers
+
+1. Main governance currently does not require approving review or Code Owner review; this remains an external Owner Action.
+2. Production model admission remains governed by `docs/MODEL_LICENSE_MANIFEST.json`.
+3. Release candidate freeze, exact-SHA certification, and owner-authorized execution -> main promotion remain pending.
 
 ## Final disposition
 
 NOT_READY — BLOCKERS ENUMERATED
 
-This file must not be changed to CERTIFIED/RELEASE VERIFIED until the active execution plan's exact-SHA evidence, governance, model-admission, Red-Team, certification, promotion, and post-merge requirements are all satisfied.
+This file must not be changed to CERTIFIED/RELEASE VERIFIED until the active execution plan's exact-SHA evidence, governance, model admission, Red Team, certification, promotion, and post-merge requirements are all satisfied.
