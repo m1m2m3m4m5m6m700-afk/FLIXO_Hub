@@ -152,6 +152,33 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  red-team:
+    name: Red Team adversarial regression
+    needs: verify
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      VERIFY_RESULT: ${{ needs.verify.result }}
+    steps:
+      - name: Require clean verification prerequisite
+        run: test "$VERIFY_RESULT" = success
+      - name: Checkout exact commit
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Verify exact SHA
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - name: Run adversarial control-plane suite
+        run: npm run test:red-team
+
   branch-policy:
     name: Branch policy
     runs-on: ubuntu-latest
@@ -171,7 +198,7 @@ jobs:
 
   trust-gate:
     name: trust-gate
-    needs: [verify, browser, branch-policy, coverage]
+    needs: [verify, browser, branch-policy, coverage, red-team]
     if: ${{ always() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -181,12 +208,14 @@ jobs:
           VERIFY_RESULT: ${{ needs.verify.result }}
           BROWSER_RESULT: ${{ needs.browser.result }}
           COVERAGE_RESULT: ${{ needs.coverage.result }}
+          RED_TEAM_RESULT: ${{ needs.red-team.result }}
           BRANCH_RESULT: ${{ needs.branch-policy.result }}
         run: |
           set -euo pipefail
           test "$VERIFY_RESULT" = success
           test "$BROWSER_RESULT" = success
           test "$COVERAGE_RESULT" = success
+          test "$RED_TEAM_RESULT" = success
           test "$BRANCH_RESULT" = success
           echo 'TRUST_GATE=PASS'
 
