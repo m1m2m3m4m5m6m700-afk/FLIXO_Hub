@@ -6,14 +6,14 @@ REPOSITORY: m1m2m3m4m5m6m700-afk/FLIXO_Hub
 EXECUTION_BRANCH: execution
 INTEGRATION_PR: #1002
 MAIN_SHA: 263827228cbe5f4851470297fde5f2858ff844de
-CANDIDATE_SHA: d48b583e739996763b86ca7932606ef76eb7cad4
+CANDIDATE_SHA: f0de32d5a29dc383745565428a2434ce2e5b4702
 
 ## Prompt 17 exact-candidate evidence
 
-The clean-clone Prompt 17 gate completed successfully on candidate `d48b583e739996763b86ca7932606ef76eb7cad4`.
+The clean-clone Prompt 17 gate completed successfully on candidate `f0de32d5a29dc383745565428a2434ce2e5b4702`.
 
 Run evidence:
-- FLIXO Final Clean-Clone Red Team (push) run 211: SUCCESS.
+- FLIXO Final Clean-Clone Red Team (push) run 213: SUCCESS.
 - Prompt 17 job: SUCCESS.
 - Typecheck: PASS.
 - Lint: PASS.
@@ -29,19 +29,19 @@ Run evidence:
 - Structural scope/artifact evidence: PASS.
 
 Additional exact-candidate execution evidence:
-- TestSprite Live E2E (execution) run 595: SUCCESS.
+- TestSprite Live E2E (execution) run 596: SUCCESS.
 - FLIXO CI build/typecheck/core job on the candidate lineage: PASS.
 - Internal Red Team adversarial regression: PASS.
 
 ## Current release identities
 
-CURRENT_SHA=d48b583e739996763b86ca7932606ef76eb7cad4
-TESTED_SHA=d48b583e739996763b86ca7932606ef76eb7cad4
-BUILT_SHA=d48b583e739996763b86ca7932606ef76eb7cad4
-BROWSER_VERIFIED_SHA=d48b583e739996763b86ca7932606ef76eb7cad4
-SECURITY_VERIFIED_SHA=d48b583e739996763b86ca7932606ef76eb7cad4
-COVERAGE_VERIFIED_SHA=d48b583e739996763b86ca7932606ef76eb7cad4
-RED_TEAM_VERIFIED_SHA=d48b583e739996763b86ca7932606ef76eb7cad4
+CURRENT_SHA=f0de32d5a29dc383745565428a2434ce2e5b4702
+TESTED_SHA=f0de32d5a29dc383745565428a2434ce2e5b4702
+BUILT_SHA=f0de32d5a29dc383745565428a2434ce2e5b4702
+BROWSER_VERIFIED_SHA=f0de32d5a29dc383745565428a2434ce2e5b4702
+SECURITY_VERIFIED_SHA=f0de32d5a29dc383745565428a2434ce2e5b4702
+COVERAGE_VERIFIED_SHA=f0de32d5a29dc383745565428a2434ce2e5b4702
+RED_TEAM_VERIFIED_SHA=f0de32d5a29dc383745565428a2434ce2e5b4702
 CERTIFIED_SHA=NOT_YET_CERTIFIED
 DEPLOYED_SHA=NOT_YET_VERIFIED
 
@@ -66,17 +66,17 @@ The connected execution environment exposes ruleset state read-only; no ruleset 
 
 ## Certification state
 
-Prompt 17 = PASS on the recorded candidate before this documentation mutation.
-Prompt 18 = ACTIVE after this record update, but the documentation mutation creates a new SHA and therefore invalidates the prior candidate-specific evidence for certification purposes.
+Prompt 17 = PASS on the preceding candidate; this documentation mutation creates a new SHA and invalidates that evidence for the current candidate.
+Prompt 18 = ACTIVE; the candidate evidence must be regenerated on this exact SHA before certification.
 Prompt 19 = NOT EXECUTED.
 Prompt 20 = NOT EXECUTED.
 
 Therefore:
 PLAN = NOT COMPLETE
 IMPLEMENTATION = COMPLETE FOR CURRENT MVP SCOPE
-TESTING = VERIFIED ON PRIOR EXACT CANDIDATE
-SECURITY = VERIFIED ON PRIOR EXACT CANDIDATE
-RED TEAM = VERIFIED ON PRIOR EXACT CANDIDATE
+TESTING = REQUIRES REGENERATION ON CURRENT SHA
+SECURITY = REQUIRES REGENERATION ON CURRENT SHA
+RED TEAM = REQUIRES REGENERATION ON CURRENT SHA
 INTEGRATION = BLOCKED BY GOVERNANCE
 CERTIFICATION = BLOCKED
 SCORE = NOT 100/100
