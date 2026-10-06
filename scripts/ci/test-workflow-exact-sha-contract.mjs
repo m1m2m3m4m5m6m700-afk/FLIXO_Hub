@@ -27,7 +27,7 @@ test('candidate diagnostics stay bound to the exact PR head SHA', async () => {
   );
   assert.match(
     workflow,
-    /  group: flixo-final-red-team-\$\{\{ github\.event_name == 'pull_request' && github\.event\.pull_request\.number \|\| github\.ref \}\}/u,
+    /\x20{2}group: flixo-final-red-team-\$\{\{ github\.event_name == 'pull_request' && github\.event\.pull_request\.number \|\| github\.ref \}\}/u,
     'final Red Team concurrency must deduplicate promotion PR runs by PR identity',
   );
   assert.ok(
