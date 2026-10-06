@@ -133,10 +133,17 @@ test('active MVP UI paths do not expose a direct engine execution bypass', () =>
   );
 });
 
-test('canonical video output verification releases its object URL', () => {
+test('canonical video media boundaries use Blob-backed srcObject and release it', () => {
   const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-  const executor = readFileSync(resolve(root, 'src/lib/execution/canonical-executor.ts'), 'utf8');
-  assert.match(executor, /video\.removeAttribute\('src'\)[\s\S]*URL\.revokeObjectURL\(url\)/u);
+  const canonical = readFileSync(resolve(root, 'src/lib/execution/canonical-executor.ts'), 'utf8');
+  const renderer = readFileSync(resolve(root, 'src/lib/video/video-executor.ts'), 'utf8');
+  assert.match(canonical, /video\.srcObject = input\.blob/u);
+  assert.match(canonical, /video\.srcObject = output\.blob/u);
+  assert.match(canonical, /video\.srcObject = null/u);
+  assert.match(renderer, /video\.srcObject = inputBlob/u);
+  assert.match(renderer, /video\.srcObject = null/u);
+  assert.doesNotMatch(canonical, /video\.src\s*=/u);
+  assert.doesNotMatch(renderer, /video\.src\s*=/u);
 });
 
 test('video renderer cleans active media resources on every terminal path', () => {
