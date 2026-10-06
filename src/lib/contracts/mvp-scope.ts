@@ -28,7 +28,7 @@ export type MvpStandardIntentCase = Readonly<{
 }>;
 
 export const MVP_STANDARD_INTENT_SUITE_VERSION = 2 as const;
-export const MVP_NEGATIVE_INTENT_SUITE_VERSION = 1 as const;
+export const MVP_NEGATIVE_INTENT_SUITE_VERSION = 2 as const;
 
 type MvpNegativeIntentCase = Readonly<{ id: string; request: string }>
 
@@ -57,7 +57,7 @@ export const MVP_STANDARD_INTENT_SUITE: readonly MvpStandardIntentCase[] = Objec
   { id: 'effects-en-saturation', request: 'increase saturation by 10%', expectedToolIds: ['image-effects'] },
   { id: 'effects-en-grayscale', request: 'make it black and white', expectedToolIds: ['image-effects'] },
   { id: 'effects-compound-ar', request: 'ارفع التباين 10% وارفع التشبع 20%', expectedToolIds: ['image-effects'] },
-  { id: 'trim-video-en', request: 'trim video', expectedToolIds: ['video-trimmer'] },
+  { id: 'trim-video-en', request: 'trim the first 5 seconds of this video', expectedToolIds: ['video-trimmer'] },
   { id: 'crop-video-en', request: 'crop video to 720x720', expectedToolIds: ['video-cropper'] },
   { id: 'crop-video-ar', request: 'قص الفيديو إلى 720×720', expectedToolIds: ['video-cropper'] },
   { id: 'resize-video-en', request: 'resize video to 1280x720', expectedToolIds: ['video-resizer'] },
@@ -72,6 +72,11 @@ export const MVP_NEGATIVE_INTENT_SUITE: readonly MvpNegativeIntentCase[] = Objec
   { id: 'unsupported-object-removal', request: 'remove the object from this image' },
   { id: 'ambiguous-contrast-en', request: 'increase contrast' },
   { id: 'ambiguous-contrast-ar', request: 'ارفع التباين' },
+  { id: 'ambiguous-crop-image', request: 'crop this image' },
+  { id: 'ambiguous-convert-image', request: 'convert this image' },
+  { id: 'ambiguous-trim-video', request: 'trim video' },
+  { id: 'ambiguous-crop-video', request: 'crop video' },
+  { id: 'ambiguous-resize-video', request: 'resize video' },
 ] as const);
 
 type MVPScopedTool = Pick<
