@@ -1,5 +1,5 @@
 import { expect, test } from '../fixtures/universal-runtime-evidence';
-import { PNG } from '../helpers/image-tool-fixture';
+import { BACKGROUND_PNG, PNG } from '../helpers/image-tool-fixture';
 
 async function readImageArtifact(page: import('@playwright/test').Page, href: string | null) {
   return page.evaluate(async (url) => {
@@ -34,7 +34,7 @@ test.describe('MVP image capability individual acceptance', () => {
       await page.locator('input[type="file"]').first().setInputFiles({
         name: imageCase.id + '-fixture.png',
         mimeType: 'image/png',
-        buffer: PNG,
+        buffer: imageCase.id === 'background-remover' ? BACKGROUND_PNG : PNG,
       });
 
       if (imageCase.id === 'image-upscaler') {
