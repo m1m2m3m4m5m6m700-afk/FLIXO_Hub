@@ -67,12 +67,7 @@ expiresAt
 
 ## Baselines
 
-Certified tools keep their baseline under:
-
-```text
-baselines/<tool>/certification-baseline.json
-baselines/<tool>/provenance.json
-```
+When the repository explicitly admits a frozen certification baseline, it lives under `baselines/<tool>/`. The current repository tree does not track a `baselines/` directory, so no baseline is implied by this policy alone.
 
 A frozen baseline is immutable. A transient re-run is a re-validation, not a new baseline. A new baseline requires a full re-certification.
 
