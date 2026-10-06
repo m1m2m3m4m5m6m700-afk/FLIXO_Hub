@@ -82,7 +82,7 @@ HYPE_PATTERNS = [
 ]
 
 QUANT_PATTERN = re.compile(
-    r"\b\d+(?:\.\d+)?\s*(?:%|x|ms|s|gb|mb|kb|fps|dB)\b",
+    r"(?<![A-Za-z0-9])\d+(?:\.\d+)?\s*(?:%|x|ms|s|gb|mb|kb|fps|dB)(?![A-Za-z0-9_])",
     re.I,
 )
 
@@ -257,7 +257,10 @@ def _safe_file(repo_root: Path, relative: str, *, allowed_root: Path | None = No
         if current.is_symlink():
             raise ValidationError("symbolic-link path is forbidden")
 
-    candidate = raw_candidate.resolve(strict=True)
+    try:
+        candidate = raw_candidate.resolve(strict=True)
+    except (FileNotFoundError, OSError) as exc:
+        raise ValidationError("repository reference must be an existing regular file") from exc
     _assert_inside(base, candidate)
 
     if allowed_root is None and ".git" in candidate.relative_to(repo_root).parts:
