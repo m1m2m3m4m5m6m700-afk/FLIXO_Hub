@@ -14,11 +14,11 @@ import {
 } from '../../../scripts/repository-knowledge-scan.mjs';
 
 const repoRoot = process.cwd();
-const profilePath = 'الوكلاء/المستكشف AI/الوكيل.md';
+const profilePath = 'الوكلاء/المستكشف AI/المستكشف.md';
 const registrationProfilePath = '.github/agents/المستكشف-ai.md';
 const scannerPath = 'scripts/repository-knowledge-scan.mjs';
 const workflowPath = '.github/workflows/repository-knowledge.yml';
-const reportDir = 'الوكلاء/المستكشف AI/التقارير';
+const reportDir = 'الوكلاء/المستكشف AI/تقارير المستكشف';
 
 test('knowledge agent profile declares bounded read-only mission', () => {
   const profile = readFileSync(profilePath, 'utf8');
@@ -144,13 +144,13 @@ test('workflow wakes on execution changes and ignores only its own report direct
 
   assert.match(workflow, /branches: \[execution\]/);
   assert.match(workflow, /paths-ignore:/);
-  assert.match(workflow, /0\(التقارير\)\/\*\*/);
+  assert.match(workflow, /الوكلاء\/المستكشف AI\/تقارير المستكشف\/\*\*/);
   assert.match(workflow, /ref: \$\{\{ github\.sha \}\}/);
   assert.match(workflow, /persist-credentials: true/);
   assert.match(workflow, /test "\$\(git rev-parse HEAD\)" = "\$\{GITHUB_SHA\}"/);
   assert.match(workflow, /Uncovered repository-authored text lines: 0/);
   assert.match(workflow, /git fetch origin execution/);
-  assert.match(workflow, /git add '0\(التقارير\)\//);
+  assert.match(workflow, /git add 'الوكلاء\/المستكشف AI\/تقارير المستكشف\//);
   assert.match(workflow, /git push origin "HEAD:knowledge"/);
   assert.doesNotMatch(workflow, /git push origin "HEAD:execution"/);
   assert.doesNotMatch(workflow, /reports\/repository-knowledge/);
