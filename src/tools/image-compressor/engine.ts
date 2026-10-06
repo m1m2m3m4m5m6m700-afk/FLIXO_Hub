@@ -23,6 +23,10 @@ export const MAX_FILES = 20;
 export const MAX_INPUT_SIZE = IMAGE_COMPRESSOR_MAX_INPUT_SIZE;
 export const MAX_OUTPUT_PIXELS = IMAGE_COMPRESSOR_MAX_PIXELS;
 
+function throwIfAborted(signal?: AbortSignal) {
+  if (signal?.aborted) throw new DOMException('Image compression aborted.', 'AbortError');
+}
+
 function getTargetSize(width: number, height: number, maxWidth?: number, maxHeight?: number) {
   const widthLimit = Number.isFinite(maxWidth) && (maxWidth ?? 0) > 0 ? maxWidth! : width;
   const heightLimit = Number.isFinite(maxHeight) && (maxHeight ?? 0) > 0 ? maxHeight! : height;
@@ -59,6 +63,7 @@ async function encodeToTarget(
   let bestQuality = low;
 
   for (let attempt = 0; attempt < 7; attempt += 1) {
+    throwIfAborted();
     const candidateQuality = (low + high) / 2;
     const candidate = await encode(canvas, format, candidateQuality);
     if (candidate.size <= targetBytes) {
@@ -121,9 +126,12 @@ async function loadSourceImage(file: File): Promise<SourceImage> {
 
 async function compressImageOnMainThread(file: File, options: CompressionOptions): Promise<CompressionResult> {
   assertSafeImageInput(file);
+  throwIfAborted(options.signal);
 
   const image = await loadSourceImage(file);
+  let canvas: HTMLCanvasElement | undefined;
   try {
+    throwIfAborted(options.signal);
     assertSafeImageInput(file, { width: image.width, height: image.height });
 
     const size = getTargetSize(image.width, image.height, options.maxWidth, options.maxHeight);
@@ -131,7 +139,7 @@ async function compressImageOnMainThread(file: File, options: CompressionOptions
       throw new Error('The requested output is too large for safe browser processing. Reduce the dimensions and try again.');
     }
 
-    const canvas = document.createElement('canvas');
+    canvas = document.createElement('canvas');
     canvas.width = size.width;
     canvas.height = size.height;
 
@@ -148,6 +156,7 @@ async function compressImageOnMainThread(file: File, options: CompressionOptions
 
     const targetBytes = options.targetSizeKB && options.targetSizeKB > 0 ? options.targetSizeKB * 1024 : undefined;
     const encoded = await encodeToTarget(canvas, options.format, options.quality, targetBytes);
+    throwIfAborted(options.signal);
 
     return {
       blob: encoded.blob,
@@ -158,6 +167,10 @@ async function compressImageOnMainThread(file: File, options: CompressionOptions
     };
   } finally {
     image.cleanup();
+    if (canvas) {
+      canvas.width = 0;
+      canvas.height = 0;
+    }
   }
 }
 
@@ -208,11 +221,13 @@ function compressImageInWorker(file: File, options: CompressionOptions): Promise
 
 export async function compressImage(file: File, options: CompressionOptions): Promise<CompressionResult> {
   assertSafeImageInput(file);
+  throwIfAborted(options.signal);
 
   if (canUseCompressionWorker(file)) {
     try {
       return await compressImageInWorker(file, options);
-    } catch {
+    } catch (error) {
+      if (options.signal?.aborted) throw error;
       // Keep a safe main-thread fallback for browsers with partial worker/canvas support.
     }
   }
