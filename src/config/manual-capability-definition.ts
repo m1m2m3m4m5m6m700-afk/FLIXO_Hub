@@ -112,7 +112,7 @@ const INTENTS: Record<string, readonly string[]> = {
   "image-cropper": ["crop","resize","dimensions","aspect ratio","قص الصورة","تغيير الحجم"],
   "image-compressor": ["compress","smaller","reduce size","file size","lighter","ضغط الصور","تصغير حجم الصورة"],
   "image-converter": ["convert format","jpg to png","png to jpg","webp","change format","تحويل الصيغة","تحويل الصورة"],
-  "image-effects": ["brightness","contrast","saturation","grayscale","adjust image","سطوع","تباين","تشبع"],
+  "image-effects": ["brightness","contrast","saturation","grayscale","black and white","adjust image","سطوع","تباين","تشبع","أبيض وأسود","تدرج رمادي"],
   "image-rotate": ["rotate image","turn image","تدوير الصورة"],
   "image-flip-horizontal": ["flip horizontal","mirror image","قلب أفقي","عكس أفقي"],
   "image-flip-vertical": ["flip vertical","قلب رأسي","عكس رأسي"],
