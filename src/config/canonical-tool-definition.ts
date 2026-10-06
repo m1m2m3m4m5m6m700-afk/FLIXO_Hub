@@ -6,12 +6,30 @@ import type { ComponentType, LazyExoticComponent } from 'react';
 import type { LocalToolId } from '../tools/image-toolkit/engine.ts';
 
 export type ToolDefinition = UnifiedToolDefinition;
-export type { ToolFamily, ToolCategory, ToolLifecycle, ToolExecution, ToolContractLevel, ToolRecoveryPolicy, ToolRequirements, ToolOperationalProfile };
+export type {
+  ToolFamily,
+  ToolCategory,
+  ToolLifecycle,
+  ToolExecution,
+  ToolContractLevel,
+  ToolRecoveryPolicy,
+  ToolRequirements,
+  ToolOperationalProfile,
+};
 
-export type ToolDefinition = UnifiedToolDefinition;
-export type { ToolFamily, ToolCategory, ToolLifecycle, ToolExecution, ToolContractLevel, ToolRecoveryPolicy, ToolRequirements, ToolOperationalProfile };
+export type ToolSource = Readonly<{
+  id: string;
+  title: string;
+  path: string;
+  description: string;
+  family?: ToolFamily;
+  category: ToolCategory;
+  isReady: boolean;
+  aliases?: readonly string[];
+  component: LazyExoticComponent<ComponentType>;
+}>;
 
-// ToolConfig is the canonical source shape consumed by the definition builder.
+// ToolConfig is the compatibility name used by the definition builder.
 type ToolConfig = ToolSource;
 
 const createImageToolkitComponent = (toolId: Exclude<LocalToolId, 'ai-image-generator' | 'image-compressor'>) =>
