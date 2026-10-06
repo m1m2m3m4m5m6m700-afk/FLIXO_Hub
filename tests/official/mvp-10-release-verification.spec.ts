@@ -217,11 +217,15 @@ test.describe('FLIXO ten-tool release verification', () => {
     });
   }
 
-  for (const toolId of VIDEO_TOOL_IDS) {
-    test('manual/' + toolId + ' executes locally and exposes an artifact', async ({ page }) => {
-      await executeManualVideo(page, toolId);
-    });
-  }
+  test.describe('video manual release lane', () => {
+    test.describe.configure({ mode: 'serial', timeout: 90_000 });
+
+    for (const toolId of VIDEO_TOOL_IDS) {
+      test('manual/' + toolId + ' executes locally and exposes an artifact', async ({ page }) => {
+        await executeManualVideo(page, toolId);
+      });
+    }
+  });
 
   test('manual/background-remover does not send raw fixture bytes over the network', async ({ page }) => {
     const fixture = await meaningfulImageFixture(page);
@@ -316,16 +320,20 @@ test.describe('FLIXO ten-tool release verification', () => {
     });
   }
 
-  const videoAgentCases: ReadonlyArray<readonly [string, string]> = [
-    ['video-trimmer', 'trim the first 1 seconds of this video'],
-    ['video-cropper', 'crop video to 320x180'],
-    ['video-resizer', 'resize video to 320x180'],
-    ['video-compressor', 'compress video'],
-  ];
+  test.describe('video agent release lane', () => {
+    test.describe.configure({ mode: 'serial', timeout: 90_000 });
 
-  for (const [toolId, prompt] of videoAgentCases) {
-    test('agent/' + toolId + ' requires confirmation and reaches verified result', async ({ page }) => {
-      await planAndExecuteAgent(page, prompt, toolId, 'en', await videoFixture(page));
-    });
-  }
+    const videoAgentCases: ReadonlyArray<readonly [string, string]> = [
+      ['video-trimmer', 'trim the first 1 seconds of this video'],
+      ['video-cropper', 'crop video to 320x180'],
+      ['video-resizer', 'resize video to 320x180'],
+      ['video-compressor', 'compress video'],
+    ];
+
+    for (const [toolId, prompt] of videoAgentCases) {
+      test('agent/' + toolId + ' requires confirmation and reaches verified result', async ({ page }) => {
+        await planAndExecuteAgent(page, prompt, toolId, 'en', await videoFixture(page));
+      });
+    }
+  });
 });
