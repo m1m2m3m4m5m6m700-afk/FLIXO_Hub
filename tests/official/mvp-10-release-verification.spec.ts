@@ -167,47 +167,6 @@ async function executeManualVideo(page: Page, toolId: (typeof VIDEO_TOOL_IDS)[nu
   await expect(downloadControl, `manual/${toolId} output missing; visible runtime errors: ${runtimeError.join(' | ')}`).toBeVisible({ timeout: 90_000 });
 }
 
-async function planAndExecuteAgent(page: Page, prompt: string, expectedToolId: string, language: 'ar' | 'en', fixture: unknown) {
-  await page.goto('/agent', { waitUntil: 'domcontentloaded' });
-  const main = page.locator('main').last();
-
-  if (language === 'ar') {
-    const direction = await main.getAttribute('dir');
-    if (direction !== 'rtl') await page.getByRole('button', { name: /العربية/i }).click();
-    await expect(main).toHaveAttribute('dir', 'rtl');
-    await expect(main).toHaveAttribute('lang', 'ar');
-  } else {
-    const direction = await main.getAttribute('dir');
-    if (direction !== 'ltr') await page.getByRole('button', { name: /English/i }).click();
-    await expect(main).toHaveAttribute('dir', 'ltr');
-  }
-
-  await page.locator('#agent-prompt').fill(prompt);
-  await page.locator('#agent-file').setInputFiles(fixture as never);
-  await page.getByTestId('agent-build-plan').click();
-
-  await expect(page.locator('[aria-label="agent-plan"]')).toContainText(expectedToolId);
-  await expect(page.getByTestId('agent-confirmation')).not.toBeChecked();
-  await expect(page.getByTestId('agent-execute')).toBeDisabled();
-  await expect(page.locator('[aria-label="agent-result"]')).toHaveCount(0);
-
-  await page.getByTestId('agent-confirmation').check();
-  const executeButton = page.getByTestId('agent-execute');
-  console.log('AGENT_POST_CONFIRM_STATE', JSON.stringify({
-    mainLang: await main.getAttribute('lang'),
-    mainDir: await main.getAttribute('dir'),
-    planCount: await page.locator('[aria-label="agent-plan"]').count(),
-    executeCount: await executeButton.count(),
-    executeText: await executeButton.textContent().catch(() => null),
-    executeDisabled: await executeButton.isDisabled().catch(() => null),
-    confirmationChecked: await page.getByTestId('agent-confirmation').isChecked().catch(() => null),
-  }));
-  await expect(executeButton).toBeVisible({ timeout: 5_000 });
-  await expect(executeButton).toBeEnabled({ timeout: 5_000 });
-  await executeButton.click();
-  await expect(page.locator('[aria-label="agent-result"]')).toBeVisible({ timeout: 90_000 });
-}
-
 test.describe('FLIXO ten-tool release verification', () => {
   for (const toolId of IMAGE_TOOL_IDS) {
     test('manual/' + toolId + ' executes locally and exposes an artifact', async ({ page }) => {
