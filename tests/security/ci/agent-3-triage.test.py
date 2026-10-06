@@ -21,6 +21,11 @@ class Agent3Triage(unittest.TestCase):
   def test_semantic_dedup(self):
     self.inp([p("A","Redis Cache",raw_evidence=["redis"]),p("B","Cache-Aside Pattern",proposed_change="Use cache-aside with Redis",raw_evidence=["pattern"])])
     triage.run(self.r);c=json.loads(self.queued()[0].read_text());self.assertEqual(c["merged_proposal_ids"],["P-A","P-B"]);self.assertEqual(set(c["source_evidence"]),{"redis","pattern"})
+  def test_semantic_dedup_does_not_overmerge_related_but_distinct(self):
+    self.inp([p("A","Redis Cache",entity_key="cache.redis",raw_evidence=["redis evidence"]),
+              p("C","Cache Eviction Policy",entity_key="cache.eviction",proposed_change="Eviction policy")])
+    triage.run(self.r)
+    self.assertEqual(len(self.queued()),2)
   def test_priority(self):
     self.inp([p(2,"Security hardening",impact="critical",complexity="high")]);triage.run(self.r);c=json.loads(self.queued()[0].read_text());self.assertIn("factor_scores",c["priority"]);self.assertIn("rationale",c["priority"])
   def test_dynamic_threshold(self):self.assertEqual(sorted(triage.threshold(n) for n in (1,10,100,1000,10000)),[triage.threshold(n) for n in (1,10,100,1000,10000)])
