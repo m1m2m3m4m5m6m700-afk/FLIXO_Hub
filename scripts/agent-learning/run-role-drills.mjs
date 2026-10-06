@@ -3,10 +3,27 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { AGENTS, scoreSubmission, assertSha } from './self-learning-control-plane.mjs';
 
+function gitRef(ref) { return execFileSync('git', ['rev-parse', ref], { encoding: 'utf8' }).trim(); }
+function currentMainSha() { try { return gitRef('refs/remotes/origin/main'); } catch { return gitRef('main'); } }
+function canonicalLocaleCount() {
+  const source = readFileSync('src/lib/i18n/config.ts', 'utf8');
+  const block = source.split('CANONICAL_LOCALES = [')[1]?.split('] as const')[0] ?? '';
+  return (block.match(/'[a-z]{2}'/g) ?? []).length;
+}
+function officialAgentCount() {
+  const expected = ['flixo-qa-agent.md','flixo-i18n-agent.md','flixo-maintainer-agent.md','المستكشف-ai.md','المستكشف-2.md','المطور-ai.md','red-team-1.md','red-team-2.md'];
+  const files = new Set(readdirSync('.github/agents'));
+  return expected.filter((name) => files.has(name)).length;
+}
+function trainingReferenceSha() {
+  const source = readFileSync('الوكلاء/المطور AI/مراجع التدريب/README.md', 'utf8');
+  return source.match(/[0-9a-f]{40}/i)?.[0] ?? '';
+}
+
 export const ROLE_DRILLS = {
   'المستكشف AI': {
     drill: 'repository-knowledge',
-    valid: sha => ({ agent:'المستكشف AI', drill:'repository-knowledge', exactSha:sha, evidence:['registry:L1','workflow:L1'], unknowns:[], nextActions:['recheck'], coveragePercent:100, dependencies:['route->registry->gate->executor->verifier'], semanticDiff:['added symbol'], authorityChain:['registry','gate','executor','verifier'], mainSha:'dddddddddddddddddddddddddddddddddddddddd' }),
+    valid: sha => ({ agent:'المستكشف AI', drill:'repository-knowledge', exactSha:sha, evidence:['registry:L1','workflow:L1'], unknowns:[], nextActions:['recheck'], coveragePercent:100, dependencies:['route->registry->gate->executor->verifier'], semanticDiff:['added symbol'], authorityChain:['registry','gate','executor','verifier'], mainSha:currentMainSha() }),
     invalids: [s => ({ agent:'المستكشف AI', drill:'repository-knowledge', exactSha:s, evidence:['e'], unknowns:[], nextActions:['n'], coveragePercent:99, dependencies:[], semanticDiff:[] })],
   },
   'المستكشف 2': {
@@ -16,17 +33,17 @@ export const ROLE_DRILLS = {
   },
   'المطور AI': {
     drill: 'external-comparison',
-    valid: sha => ({ agent:'المطور AI', drill:'external-comparison', exactSha:sha, evidence:['flixo:arch'], unknowns:[], nextActions:['prioritize'], referenceSha:'cccccccccccccccccccccccccccccccccccccccc', comparisons:['architecture:PARITY','testing:STRONGER_IN_REFERENCE'], priorities:[{gap:'testing',impact:5,effort:3,risk:2,confidence:4}], referenceRevalidated:true }),
+    valid: sha => ({ agent:'المطور AI', drill:'external-comparison', exactSha:sha, evidence:['flixo:arch'], unknowns:[], nextActions:['prioritize'], referenceSha:trainingReferenceSha(), comparisons:['architecture:PARITY','testing:STRONGER_IN_REFERENCE'], priorities:[{gap:'testing',impact:5,effort:3,risk:2,confidence:4}], referenceRevalidated:true }),
     invalids: [s => ({ agent:'المطور AI', drill:'external-comparison', exactSha:s, evidence:['e'], unknowns:[], nextActions:['n'], referenceSha:'not-a-sha', comparisons:[], priorities:[] })],
   },
   'FLIXO i18n Agent': {
     drill: 'localization',
-    valid: sha => ({ agent:'FLIXO i18n Agent', drill:'localization', exactSha:sha, evidence:['locale-config'], unknowns:[], nextActions:['verify'], localeChecks:['keys','routes'], rtlChecked:true, ltrChecked:true, seoChecked:true, localeCount:20 }),
+    valid: sha => ({ agent:'FLIXO i18n Agent', drill:'localization', exactSha:sha, evidence:['locale-config'], unknowns:[], nextActions:['verify'], localeChecks:['keys','routes'], rtlChecked:true, ltrChecked:true, seoChecked:true, localeCount:canonicalLocaleCount() }),
     invalids: [s => ({ agent:'FLIXO i18n Agent', drill:'localization', exactSha:s, evidence:['e'], unknowns:[], nextActions:['n'], localeChecks:['keys'], rtlChecked:true, ltrChecked:false, seoChecked:false })],
   },
   'FLIXO Repository Maintainer Agent': {
     drill: 'maintenance',
-    valid: sha => ({ agent:'FLIXO Repository Maintainer Agent', drill:'maintenance', exactSha:sha, evidence:['registry','workflow'], unknowns:[], nextActions:['repair'], authorityChecks:['single-registry','single-executor'], driftChecks:['stale-sha','docs-drift'], officialAgentCount:8 }),
+    valid: sha => ({ agent:'FLIXO Repository Maintainer Agent', drill:'maintenance', exactSha:sha, evidence:['registry','workflow'], unknowns:[], nextActions:['repair'], authorityChecks:['single-registry','single-executor'], driftChecks:['stale-sha','docs-drift'], officialAgentCount:officialAgentCount() }),
     invalids: [s => ({ agent:'FLIXO Repository Maintainer Agent', drill:'maintenance', exactSha:s, evidence:['e'], unknowns:[], nextActions:['n'], authorityChecks:[], driftChecks:[] })],
   },
   'FLIXO QA Agent': {
