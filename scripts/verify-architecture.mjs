@@ -67,19 +67,19 @@ for (const root of sourceRoots) {
 const authorityChecks = [
   {
     path: 'src/config/registry.ts',
-    pattern: /export const TOOL_REGISTRY\\b/gu,
+    pattern: /export const TOOL_REGISTRY\b/gu,
     expected: 1,
     label: 'canonical TOOL_REGISTRY definition',
   },
   {
     path: 'src/config/canonical-tool-definition.ts',
-    pattern: /export const TOOL_DEFINITIONS\\b/gu,
+    pattern: /export const TOOL_DEFINITIONS\b/gu,
     expected: 1,
     label: 'canonical TOOL_DEFINITIONS definition',
   },
   {
     path: 'src/lib/execution/canonical-executor.ts',
-    pattern: /export async function executeCanonicalTool\\b/gu,
+    pattern: /export async function executeCanonicalTool\b/gu,
     expected: 1,
     label: 'canonical execution entrypoint',
   },
