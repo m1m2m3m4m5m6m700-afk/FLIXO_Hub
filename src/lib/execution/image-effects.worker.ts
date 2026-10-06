@@ -1,3 +1,5 @@
+import { assertEffectParameters, assertImageDimensions, assertImageOutputBudget, assertRasterOutput, assertSafeRasterInput, MEDIA_LIMITS } from '../media/media-safety.ts';
+
 type EffectName = 'brightness' | 'contrast' | 'saturation' | 'grayscale';
 
 type Effect = readonly [EffectName, number];
@@ -38,9 +40,13 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
   try {
     const { blob, effects } = event.data;
     if (!(blob instanceof Blob) || !effects.length) throw new Error('IMAGE_EFFECTS_WORKER_INPUT_INVALID');
+    await assertSafeRasterInput(blob);
+    for (const [name, value] of effects) assertEffectParameters(name, value);
 
     const bitmap = await createImageBitmap(blob);
     try {
+      assertImageDimensions(bitmap.width, bitmap.height, MEDIA_LIMITS.rasterInputPixels);
+      assertImageOutputBudget(bitmap.width, bitmap.height);
       let source: ImageBitmap | OffscreenCanvas = bitmap;
       let output: OffscreenCanvas | null = null;
       for (const effect of effects) {
@@ -49,6 +55,7 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
       }
       if (!output) throw new Error('IMAGE_EFFECTS_WORKER_OUTPUT_MISSING');
       const blobOut = await output.convertToBlob({ type: 'image/png' });
+      await assertRasterOutput(blobOut, 'image/png');
       self.postMessage({ ok: true, blob: blobOut } satisfies WorkerSuccess);
     } finally {
       bitmap.close();
