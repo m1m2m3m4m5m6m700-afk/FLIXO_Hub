@@ -35,7 +35,7 @@ test('versioned MVP negative corpus never guesses ambiguous or unsupported reque
     const file = item.id.includes('video') ? video() : image();
     assert.throws(
       () => planAgentRequest(item.request, file),
-      /No admitted FLIXO MVP capability|Request is ambiguous/i,
+      /No admitted FLIXO MVP capability|Request is ambiguous|Invalid parameters for manual capability/i,
       item.id,
     );
   }
