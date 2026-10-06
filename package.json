@@ -19,7 +19,7 @@
     "generate:static-routes": "node --import=./scripts/register-node-resolver.mjs --experimental-strip-types scripts/generate-static-route-entries.mjs",
     "test:core": "node scripts/assert-test-files.mjs tests/canonical-capability-verifiers.test.ts tests/release-registry-boundary.test.ts tests/canonical-execution-boundary.test.ts tests/agent-guided-runtime.test.ts tests/editor-color-scene.test.ts tests/editor-document-model.test.ts tests/editor-history.test.ts tests/editor-masks.test.ts tests/editor-performance.test.ts tests/editor-render-graph.test.ts tests/worker-production-boundary.test.ts tests/security-governance.test.ts tests/mvp-scope-contradiction.test.ts tests/mvp-acceptance-corpus.test.ts tests/mvp-persistence-boundary.test.ts tests/red-team-control-plane.test.ts && node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/canonical-capability-verifiers.test.ts tests/release-registry-boundary.test.ts tests/canonical-execution-boundary.test.ts tests/agent-guided-runtime.test.ts tests/editor-color-scene.test.ts tests/editor-document-model.test.ts tests/editor-history.test.ts tests/editor-masks.test.ts tests/editor-performance.test.ts tests/editor-render-graph.test.ts tests/worker-production-boundary.test.ts tests/security-governance.test.ts tests/mvp-scope-contradiction.test.ts tests/mvp-acceptance-corpus.test.ts tests/mvp-persistence-boundary.test.ts tests/red-team-control-plane.test.ts",
     "test:e2e": "playwright test",
-    "test": "npm run test:model-license && npm run verify:agents && npm run verify:i18n && npm run typecheck && npm run lint && npm run test:control-plane-contracts && npm run test:registry-gates && npm run test:core",
+    "test": "npm run verify:codeowners && npm run test:model-license && npm run verify:agents && npm run verify:i18n && npm run typecheck && npm run lint && npm run test:control-plane-contracts && npm run test:registry-gates && npm run test:core",
     "ci": "npm run test && npm run build",
     "test:model-license": "node scripts/model-license-gate.mjs",
     "test:model-license:release": "node scripts/model-license-gate.mjs --require-entry",
@@ -35,7 +35,8 @@
     "test:coverage": "npx --yes c8@10.1.3 --all --include=src/config/** --include=src/lib/** --include=src/tools/** --reporter=lcov --reporter=text npm run test:core",
     "test:red-team": "node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/red-team-control-plane.test.ts",
     "test:security": "node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/security-governance.test.ts tests/worker-production-boundary.test.ts",
-    "test:video-assurance": "node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/video-media-safety.test.ts tests/canonical-execution-boundary.test.ts tests/canonical-capability-verifiers.test.ts"
+    "test:video-assurance": "node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/video-media-safety.test.ts tests/canonical-execution-boundary.test.ts tests/canonical-capability-verifiers.test.ts",
+    "verify:codeowners": "node scripts/verify-codeowners-coverage.mjs"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",
