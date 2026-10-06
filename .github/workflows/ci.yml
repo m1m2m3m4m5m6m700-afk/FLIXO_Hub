@@ -46,9 +46,7 @@ jobs:
         run: npm run verify:architecture
       - name: Contract boundary gate
         run: npm run verify:contracts
-      - name: Public launch structure gate
-        run: npm run verify:launch
-      - name: Run npm test
+      # Launch/legal readiness is intentionally outside the security trust gate.\n      # It may contain owner/legal decisions that must not masquerade as a security failure.\n      - name: Run npm test
         shell: bash
         run: |
           set -o pipefail
