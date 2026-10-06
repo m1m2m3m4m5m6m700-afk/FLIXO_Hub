@@ -42,6 +42,8 @@ jobs:
           python3 tests/three_critic_review.test.py
       - name: Exact-SHA workflow contract tests
         run: node --test scripts/ci/test-workflow-exact-sha-contract.mjs
+      - name: Agent 2 CI security contract tests
+        run: node --test tests/security/ci/*.test.mjs
       - name: Model license and admission gate
         run: npm run test:model-license
       - name: Run npm test
@@ -66,6 +68,12 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$BUILD_SHA"
+          SOURCE_TREE_SHA="$(git rev-parse "$BUILD_SHA^{tree}")"
+          test -z "$(git diff --name-only)"
+          mkdir -p dist/__flixo
+          printf '{"repository":"%s","candidateSha":"%s","sourceTreeSha":"%s","buildRunId":"%s"}\n' \
+            "$GITHUB_REPOSITORY" "$BUILD_SHA" "$SOURCE_TREE_SHA" "$GITHUB_RUN_ID" \
+            > dist/__flixo/build-provenance.json
           printf '%s\n' "$BUILD_SHA" > dist/flixo-head-sha.txt
           printf '%s\n' "$BUILD_SHA" > "dist/__flixo-identity-$BUILD_SHA.txt"
           printf '%s\n' "$BUILD_SHA" > dist/__flixo-identity.txt
@@ -231,40 +239,47 @@ jobs:
         with:
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 1
-      - name: Verify exact head identity
+      - name: Verify exact head identity and live promotion lineage
         env:
           EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
-          HEAD_BRANCH: ${{ github.event.pull_request.head.ref || github.ref_name }}
-          BASE_BRANCH: ${{ github.event.pull_request.base.ref || github.ref_name }}
-          ACTOR: ${{ github.actor }}
           GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_REF: ${{ github.ref }}
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
           TRUST_RESULT: ${{ needs.trust-gate.result }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           test "$TRUST_RESULT" = success
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
-
-          if [ "$BASE_BRANCH" = "main" ]; then
-            if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
-              if [ "$HEAD_BRANCH" != "execution" ] && [ "$ACTOR" != "dependabot[bot]" ]; then
-                echo "Unsupported main PR source: head=$HEAD_BRANCH actor=$ACTOR" >&2
-                exit 1
-              fi
-            elif [ "$GITHUB_EVENT_NAME" = "push" ] && [ "$HEAD_BRANCH" = "main" ]; then
-              echo "Direct main push release event accepted for exact-SHA post-merge verification."
-            else
-              echo "Unsupported main verification event: event=$GITHUB_EVENT_NAME head=$HEAD_BRANCH" >&2
-              exit 1
-            fi
-          elif [ "$BASE_BRANCH" = "execution" ]; then
-            test -n "$HEAD_BRANCH"
-          else
-            echo "Unsupported PR base branch: $BASE_BRANCH" >&2
-            exit 1
-          fi
-
+          node scripts/ci/verify-promotion-lineage.mjs
           echo "EXACT_SHA_PROMOTION_PROOF=$EXPECTED_SHA"
 
+      - name: Wait for exact-head security workflows
+        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          required=("FLIXO CodeQL" "FLIXO Secret Scan")
+          for attempt in $(seq 1 15); do
+            runs="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$EXPECTED_SHA&event=pull_request&per_page=100")"
+            all_ok=true
+            for workflow in "${required[@]}"; do
+              state="$(printf '%s' "$runs" | jq -r --arg workflow "$workflow" --arg sha "$EXPECTED_SHA" '[.workflow_runs[] | select(.head_sha == $sha and .name == $workflow)] | sort_by(.updated_at) | last | if . == null then "MISSING" else (.status + ":" + (.conclusion // "null")) end')"
+              echo "$workflow@$EXPECTED_SHA => $state"
+              case "$state" in
+                completed:success) ;;
+                completed:*) echo "FAIL_CLOSED: exact-head security workflow failed: $workflow => $state"; exit 1 ;;
+                *) all_ok=false ;;
+              esac
+            done
+            if [ "$all_ok" = true ]; then echo "EXACT_SHA_SECURITY_GATE=PASS"; exit 0; fi
+            sleep 10
+          done
+          echo "FAIL_CLOSED: timed out waiting for exact-head CodeQL and Secret Scan."
+          exit 1
   production-deploy:
     name: Production exact-SHA deployment
     needs: [promotion-proof]
@@ -329,28 +344,24 @@ jobs:
           test "$(cat "dist/__flixo-identity-$DEPLOYMENT_SHA.txt")" = "$DEPLOYMENT_SHA"
           test "$(cat dist/__flixo-identity.txt)" = "$DEPLOYMENT_SHA"
           test "$(cat "dist/__flixo/identity/$DEPLOYMENT_SHA/index.txt")" = "$DEPLOYMENT_SHA"
+          test "$(jq -r '.candidateSha' dist/__flixo/build-provenance.json)" = "$DEPLOYMENT_SHA"
+          test "$(jq -r '.sourceTreeSha' dist/__flixo/build-provenance.json)" = "$(git rev-parse HEAD^{tree})"
           test -s dist/index.html
 
-      - name: Bind exact deployment SHA into Worker runtime
+      - name: Verify release source and artifact purity
         shell: bash
         env:
           DEPLOYMENT_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          import os
-
-          path = Path('src/worker.ts')
-          text = path.read_text(encoding='utf-8')
-          marker = "const EMBEDDED_DEPLOYMENT_SHA = '__FLIXO_DEPLOYMENT_SHA__';"
-          replacement = f"const EMBEDDED_DEPLOYMENT_SHA = '{os.environ['DEPLOYMENT_SHA']}';"
-          assert text.count(marker) == 1
-          path.write_text(text.replace(marker, replacement), encoding='utf-8')
-          assert replacement in path.read_text(encoding='utf-8')
-          PY
-          grep -F "const EMBEDDED_DEPLOYMENT_SHA = '$DEPLOYMENT_SHA';" src/worker.ts
-
+          test "$(git rev-parse HEAD)" = "$DEPLOYMENT_SHA"
+          test -z "$(git status --porcelain)"
+          test -z "$(git diff --name-only)"
+          test -z "$(git diff --cached --name-only)"
+          test -s dist/__flixo/build-provenance.json
+          test "$(jq -r '.candidateSha' dist/__flixo/build-provenance.json)" = "$DEPLOYMENT_SHA"
+          test "$(jq -r '.sourceTreeSha' dist/__flixo/build-provenance.json)" = "$(git rev-parse HEAD^{tree})"
+          echo "RELEASE_SOURCE_PURITY=PASS"
       - name: Safety Guard — strict Cloudflare target allowlist
         shell: bash
         run: |
