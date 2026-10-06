@@ -4,7 +4,7 @@ on:
   push:
     branches: [execution]
     paths-ignore:
-      - 'reports/repository-knowledge/**'
+      - '0(التقارير)/**'
   workflow_dispatch:
 
 permissions:
@@ -48,7 +48,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          REPORT="reports/repository-knowledge/${GITHUB_SHA}.md"
+          REPORT="0(التقارير)/${GITHUB_SHA}.md"
           test -s "$REPORT"
           grep -Fq -- "- SHA: ${GITHUB_SHA}" "$REPORT"
           grep -Fq -- "- Uncovered text lines: 0" "$REPORT"
@@ -72,7 +72,7 @@ jobs:
           set -euo pipefail
           git config user.name "FLIXO Repository Knowledge Agent"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add reports/repository-knowledge/
+          git add 0(التقارير)/
           git diff --cached --name-only
           test -n "$(git diff --cached --name-only)" || exit 0
           git commit -m "docs(knowledge): update repository map for ${GITHUB_SHA}"
