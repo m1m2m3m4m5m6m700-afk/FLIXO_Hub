@@ -123,7 +123,7 @@ async function buildFixture(page: Page, seconds = 1.4): Promise<Buffer> {
       });
       if (!Number.isFinite(probe.duration) || probe.duration <= 0) throw new Error('VIDEO_FIXTURE_DURATION_INVALID');
     } finally {
-      URL.revokeObjectURL(outputUrl);
+      URL.revokeObjectURL(url);
       probe.removeAttribute('src');
       probe.load();
     }
