@@ -258,7 +258,7 @@ def write_view(root):
     if a>=0 and b>=a:original=original[:a].rstrip()+"\n\n"+original[b+len(END):].lstrip()
     p.write_text(original.rstrip()+"\n\n"+generated,encoding="utf-8")
 def run(root):
-    ensure_dirs(root);n=now_utc();queue=root/".agent-intelligence"/"review-queue";grave=root/".agent-intelligence"/"graveyard"proposals,refs=load_validated(root);backlog=(root/"المهام.md").read_text(encoding="utf-8") if (root/"المهام.md").exists() else ""
+    ensure_dirs(root);n=now_utc();queue=root/".agent-intelligence"/"review-queue";grave=root/".agent-intelligence"/"graveyard";proposals,refs=load_validated(root);backlog=(root/"المهام.md").read_text(encoding="utf-8") if (root/"المهام.md").exists() else ""
     backlog+="\n"+((root/"التطوير.md").read_text(encoding="utf-8") if (root/"التطوير.md").exists() else "")
     old={c["review_card_id"]:c for _,_,c in load_cards(root,{"triaged","queued"})}
     if not proposals:
