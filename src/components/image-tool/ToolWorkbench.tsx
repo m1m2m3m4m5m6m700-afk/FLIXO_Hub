@@ -108,7 +108,7 @@ function defaultLabels(locale: string) {
       input: 'اختر صورة',
       before: 'قبل',
       after: 'بعد',
-      noResult: 'No result yet.',
+      noResult: 'لا توجد نتيجة بعد.',
       download: 'تنزيل الآن',
     };
   }
@@ -169,7 +169,7 @@ export function ToolWorkbench<P>({
   afterLabel,
   noResultLabel,
   downloadLabel,
-  downloadRole = 'button',
+  downloadRole = 'link',
 }: ImageWorkbenchProps<P>) {
   const navigate = useNavigate();
   const labels = defaultLabels(locale);
@@ -189,6 +189,10 @@ export function ToolWorkbench<P>({
   const [adjustmentsOpen, setAdjustmentsOpen] = useState(true);
   const [preset, setPreset] = useState<'default' | 'clean' | 'warm'>('default');
   const mountedRef = useRef(true);
+  const inputUrlRef = useRef('');
+  const outputUrlRef = useRef('');
+  const [leftPanelOpen, setLeftPanelOpen] = useState(false);
+  const [rightPanelOpen, setRightPanelOpen] = useState(false);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -205,6 +209,10 @@ export function ToolWorkbench<P>({
     setOutputAssetId(null);
     setInputUrl('');
     setOutputUrl('');
+    if (inputUrlRef.current) URL.revokeObjectURL(inputUrlRef.current);
+    if (outputUrlRef.current) URL.revokeObjectURL(outputUrlRef.current);
+    inputUrlRef.current = '';
+    outputUrlRef.current = '';
 
     validateBasicFile(file, inputPolicy);
     const dimensions = await decodeDimensions(file);
@@ -219,7 +227,9 @@ export function ToolWorkbench<P>({
     const id = assetStore.put({ blob: file, width: dimensions.width, height: dimensions.height, name: file.name });
     if (!mountedRef.current) return;
     setInputAssetId(id);
-    setInputUrl(assetStore.createObjectURL(id));
+    const nextInputUrl = assetStore.createObjectURL(id);
+    inputUrlRef.current = nextInputUrl;
+    setInputUrl(nextInputUrl);
   };
 
   const handleFiles = async (nextFiles: File[], nextActiveIndex = 0) => {
@@ -261,6 +271,7 @@ export function ToolWorkbench<P>({
       const completed = await job.run();
       if (!mountedRef.current) return;
       const nextUrl = assetStore.createObjectURL(completed.result.outputAssetId);
+      outputUrlRef.current = nextUrl;
       setOutputAssetId(completed.result.outputAssetId);
       setOutputUrl(nextUrl);
     } catch (cause) {
@@ -274,6 +285,10 @@ export function ToolWorkbench<P>({
   const reset = () => {
     if (busy) return;
     assetStore.clear();
+    if (inputUrlRef.current) URL.revokeObjectURL(inputUrlRef.current);
+    if (outputUrlRef.current) URL.revokeObjectURL(outputUrlRef.current);
+    inputUrlRef.current = '';
+    outputUrlRef.current = '';
     setFiles([]);
     setPreset('default');
     setInputAssetId(null);
@@ -295,15 +310,15 @@ export function ToolWorkbench<P>({
       <header className="flixo-tool-topbar">
         <div className="flixo-tool-topbar-group">
           <img className="flixo-tool-brand-mark" src="/flixo-brand-mark.webp" alt="FLIXO" width={34} height={34} />
-          <button type="button" className="flixo-tool-back" title={t('Back')} onClick={() => window.history.back()}>‹</button>
+          <button type="button" className="flixo-tool-back" title={t('Back')} aria-label={t('Back')} onClick={() => { void navigate({ to: '/$locale', params: { locale: locale as Locale } }); }}>‹</button>
           <div className="flixo-tool-id">
             <strong>{title}</strong>
             <span className="mono">{toolCategory}</span>
           </div>
         </div>
-        <div className="flixo-tool-mode" role="tablist" aria-label={t('Mode')}>
-          <button type="button" className="active">{t('Edit')}</button>
-          <button type="button">{t('Batch')}</button>
+        <div className="flixo-tool-mode" role="group" aria-label={t('Mode')}>
+          <button type="button" className="active" aria-pressed="true">{t('Edit')}</button>
+          <button type="button" disabled aria-pressed="false">{t('Batch')}</button>
         </div>
         <div className="flixo-tool-topbar-group">
           <div className="flixo-tool-history">
@@ -335,17 +350,27 @@ export function ToolWorkbench<P>({
       </header>
 
       <section className="flixo-tool-workspace image-workbench-grid" aria-label={title} aria-busy={busy}>
-        <aside className="flixo-tool-side left" id="flixo-tool-left-panel">
+        <aside className={`flixo-tool-side left${leftPanelOpen ? ' open' : ''}`} id="flixo-tool-left-panel">
           <div className="flixo-tool-panel-scroll">
             <div>
               <div className="flixo-tool-block-title">{t('Source file')}</div>
-              <label className="flixo-tool-drop" htmlFor={inputId}>
+              <label
+                className="flixo-tool-drop"
+                htmlFor={inputId}
+                onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; }}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  if (busy) return;
+                  const dropped = event.dataTransfer.files?.[0];
+                  if (dropped) void handleFiles([dropped]);
+                }}
+              >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M12 16V4M12 4 7 9M12 4l5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
                 <div>{t('Drop a file here or ')}<strong>{t('browse your device')}</strong></div>
                 <small>{accept.split(',').map((value) => value.replace(/^image\//, '').toUpperCase()).join(' · ')}{multiple ? ` · ${t('MULTI')}` : ''}</small>
                 {files[0] && <div className="flixo-tool-file-name">{files[0].name}</div>}
               </label>
-              <input id={inputId} className="flixo-tool-file" type="file" accept={accept} multiple={multiple} onChange={(event) => void handleFiles(Array.from(event.target.files ?? []))} />
+              <input id={inputId} className="flixo-tool-file" type="file" aria-label={inputLabel ?? labels.input} accept={accept} multiple={multiple} disabled={busy} onChange={(event) => void handleFiles(Array.from(event.target.files ?? []))} />
             </div>
 
             <div>
@@ -396,7 +421,7 @@ export function ToolWorkbench<P>({
                     <span className="flixo-tool-preview-label mono">{beforeLabel ?? labels.before}</span>
                   </div>
                   <div className="flixo-tool-preview-pane">
-                    {outputUrl ? <img src={outputUrl} alt="Tool result" style={{ transform: `scale(${zoom})` }} /> : <div className="flixo-tool-preview-placeholder">◩<div>{noResultLabel ?? labels.noResult}</div><small>{t('Run the tool after selecting a file')}</small></div>}
+                    {outputUrl ? <img src={outputUrl} alt={t('Tool result')} style={{ transform: `scale(${zoom})` }} /> : <div className="flixo-tool-preview-placeholder">◩<div>{noResultLabel ?? labels.noResult}</div><small>{t('Run the tool after selecting a file')}</small></div>}
                     <span className="flixo-tool-preview-label mono">{afterLabel ?? labels.after}</span>
                   </div>
                 </div>
@@ -421,7 +446,7 @@ export function ToolWorkbench<P>({
           </div>
         </div>
 
-        <aside className="flixo-tool-side right" id="flixo-tool-right-panel">
+        <aside className={`flixo-tool-side right${rightPanelOpen ? ' open' : ''}`} id="flixo-tool-right-panel">
           <div className="flixo-tool-panel-scroll">
             <div className={`flixo-tool-adjust ${adjustmentsOpen ? '' : 'collapsed'}`}>
               <button
@@ -468,8 +493,8 @@ export function ToolWorkbench<P>({
       </section>
 
       <nav className="flixo-tool-mobile-bar" aria-label={t('Tool panels')}>
-        <button type="button" id="flixo-tool-open-left" onClick={() => document.getElementById('flixo-tool-left-panel')?.classList.toggle('open')}>{t('Source')}</button>
-        <button type="button" id="flixo-tool-open-right" onClick={() => document.getElementById('flixo-tool-right-panel')?.classList.toggle('open')}>{t('Adjustments')}</button>
+        <button type="button" id="flixo-tool-open-left" aria-controls="flixo-tool-left-panel" aria-expanded={leftPanelOpen} onClick={() => setLeftPanelOpen((value) => !value)}>{t('Source')}</button>
+        <button type="button" id="flixo-tool-open-right" aria-controls="flixo-tool-right-panel" aria-expanded={rightPanelOpen} onClick={() => setRightPanelOpen((value) => !value)}>{t('Adjustments')}</button>
       </nav>
     </div>
   );
