@@ -24,6 +24,7 @@ declare global {
 }
 
 const TESSERACT_VERSION = '7.0.0';
+const TESSERACT_SCRIPT_SRI = 'sha384-2BQ3U3OdKOb0Uczxqr41I9UvZkzr4V9Hv8uSzMMZAlmhsFClvdZX5wi5fDCzG+tM';
 const TESSERACT_SCRIPT_URL = `https://cdn.jsdelivr.net/npm/tesseract.js@${TESSERACT_VERSION}/dist/tesseract.min.js`;
 const TESSERACT_WORKER_URL = `https://cdn.jsdelivr.net/npm/tesseract.js@${TESSERACT_VERSION}/dist/worker.min.js`;
 const TESSERACT_CORE_URL = `https://cdn.jsdelivr.net/npm/tesseract.js-core@${TESSERACT_VERSION}`;
@@ -35,6 +36,7 @@ async function ensureTesseract(): Promise<TesseractApi> {
     const script = document.createElement('script');
     script.src = TESSERACT_SCRIPT_URL;
     script.crossOrigin = 'anonymous';
+    script.integrity = TESSERACT_SCRIPT_SRI;
     script.referrerPolicy = 'no-referrer';
     script.dataset.flixoPinnedDependency = `tesseract.js@${TESSERACT_VERSION}`;
     script.onload = () => resolve();
