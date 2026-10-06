@@ -156,6 +156,12 @@ function validateDocument({ path, content, requireCurrentPlaceholders, stateReco
 
   for (const workflow of currentText.match(/\b(?:workflow\s+)?run\s+#?\d+\b/giu) ?? []) {
     errors.push(path + ': workflow-run identity appears without historical quarantine: ' + workflow);
+  for (const field of currentText.match(/(?:CURRENT_WORKFLOW_RUN|WORKFLOW_RUN)\s*[:=]\s*[^\n]+/giu) ?? []) {
+    if (!/(?:REQUIRED|NOT_YET_VERIFIED|NOT_APPLICABLE)\s*$/iu.test(field)) {
+      errors.push(path + ': current workflow-run identity is populated and therefore cannot be treated as a placeholder: ' + field.trim());
+    }
+  }
+
   }
 
   for (const productionId of currentText.match(/(?:PRODUCTION_DEPLOYMENT_ID|Production deployment ID|PRODUCTION_IDENTITY)\s*[:=]\s*([^\n]+)/gu) ?? []) {
