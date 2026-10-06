@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { recordToolPerformance } from '../../lib/diagnostics/performance';
 import { validateFileSafety } from '../../lib/contracts/file-safety';
 import { assertExifCleanerOutputIntegrity } from '../exif-cleaner/output-integrity';
@@ -25,7 +25,14 @@ const RASTER_IMAGE_POLICY = { allowedMime: ['image/png', 'image/jpeg', 'image/we
 const SVG_FILE_POLICY = { allowedMime: ['image/svg+xml'], maxBytes: 25 * 1024 * 1024 } as const;
 function assertFileSafe(file: File, mode: Mode) { const policy = mode === 'svg-optimizer' ? SVG_FILE_POLICY : RASTER_IMAGE_POLICY; const result = validateFileSafety({ name: file.name, mime: file.type, bytes: file.size }, policy); if (!result.safe) throw new Error(`Input rejected by File Safety: ${result.failures.join('; ')}`); }
 function assertDecodedImageSafe(file: File, width: number, height: number) { const result = validateFileSafety({ name: file.name, mime: file.type, bytes: file.size, width, height }, RASTER_IMAGE_POLICY); if (!result.safe) throw new Error(`Input rejected by File Safety: ${result.failures.join('; ')}`); }
-function download(result: Result) { const link = document.createElement('a'); link.href = result.url; link.download = result.name; link.click(); setTimeout(() => URL.revokeObjectURL(result.url), 0); }
+function download(result: Result) {
+  const url = URL.createObjectURL(result.blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = result.name;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
 async function loadImage(file: File) { const url = URL.createObjectURL(file); try { const image = new Image(); image.decoding = 'async'; image.src = url; await image.decode(); return image; } finally { URL.revokeObjectURL(url); } }
 async function canvasResult(canvas: HTMLCanvasElement, name: string, mime = 'image/png', quality = 0.96): Promise<Result> { const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob((value) => value ? resolve(value) : reject(new Error('Could not encode output.')), mime, quality)); return { blob, url: URL.createObjectURL(blob), name, width: canvas.width, height: canvas.height }; }
 async function runImageEffectsWorker(blob: Blob, effect: { brightness: number; contrast: number; saturate: number; grayscale: number }, width: number, height: number): Promise<Result> { if (typeof Worker === 'undefined') throw new Error('Image Effects Worker is unavailable.'); const startedAt = typeof performance === 'undefined' ? Date.now() : performance.now(); return await new Promise<Result>((resolve, reject) => { const worker = new Worker(new URL('./image-effects-worker.ts', import.meta.url), { type: 'classic' }); const cleanup = () => worker.terminate(); worker.onmessage = (event: MessageEvent<EffectsWorkerResponse>) => { const workerDurationMs = Math.max(0, (typeof performance === 'undefined' ? Date.now() : performance.now()) - startedAt); cleanup(); if (event.data.ok && event.data.blob instanceof Blob) { const output = event.data.blob; recordToolPerformance({ toolId: 'image-effects', operation: 'worker-transform', durationMs: workerDurationMs, workerDurationMs, encodeDurationMs: workerDurationMs }); resolve({ blob: output, url: URL.createObjectURL(output), name: 'flixo-image-effects.png', width, height }); } else reject(new Error(event.data.error || 'Image Effects Worker failed.')); }; worker.onerror = () => { cleanup(); reject(new Error('Image Effects Worker could not start.')); }; worker.postMessage({ blob, width, height, ...effect }); }); }
@@ -50,6 +57,15 @@ export function BrowserImageTool({ mode, title, accept = 'image/*', multi = fals
   };
   const dir = typeof document !== 'undefined' && document.documentElement.dir ? document.documentElement.dir : (resolvedLocale === 'ar' ? 'rtl' : 'ltr');
   const [files, setFiles] = useState<File[]>([]); const [result, setResult] = useState<Result | null>(null); const [error, setError] = useState(''); const [busy, setBusy] = useState(false); const [text, setText] = useState('FLIXO'); const [top, setTop] = useState('TOP TEXT'); const [bottom, setBottom] = useState('BOTTOM TEXT'); const [effect, setEffect] = useState({ brightness: 100, contrast: 100, saturate: 100, grayscale: 0 });
+  useEffect(() => {
+    if (!result) return;
+    const url = result.url;
+    return () => URL.revokeObjectURL(url);
+  }, [result]);
+
+  useEffect(() => () => {
+    // The result effect above handles the active result on unmount.
+  }, []);
   const status = useMemo(() => result ? `${result.width ?? ''}×${result.height ?? ''} · ${Math.max(1, Math.round(result.blob.size / 1024))} KB` : copy.noResult, [result, copy.noResult]);
   async function run() {
     if (!files.length) { setError(copy.chooseImage); return; } setError(''); setBusy(true); setResult(null);
