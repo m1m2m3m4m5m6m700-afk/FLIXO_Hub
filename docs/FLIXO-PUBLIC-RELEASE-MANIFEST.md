@@ -6,15 +6,17 @@ This manifest is the single release-truth record for the public launch candidate
 
 ## Candidate identity
 
-- Candidate SHA: `REQUIRED`
-- Candidate branch: `main`
-- Source main SHA at freeze: `REQUIRED`
+- Candidate SHA: `d2735268776774a48750a91ed53dd3670d929ef7`
+- Candidate branch: `execution`
+- Source main SHA at freeze: `263827228cbe5f4851470297fde5f2858ff844de`
 - Release tag: `PENDING`
 - Production deployment ID: `REQUIRED`
 - Production immutable identity: `REQUIRED`
 - Canonical production origin: `https://flixoai.m1m2m3m4m5m6m700.workers.dev`
 
 ## Required evidence
+
+Current candidate evidence must be regenerated on `d2735268776774a48750a91ed53dd3670d929ef7` after this manifest mutation; no prior-SHA evidence is reused.
 
 - [ ] CI PASS on candidate SHA
 - [ ] CodeQL PASS on candidate SHA
