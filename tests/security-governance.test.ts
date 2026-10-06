@@ -14,10 +14,7 @@ test('security-sensitive CODEOWNERS entries exist, are explicit, and resolve to 
 });
 
 test('CODEOWNERS malformed rule fails closed', () => {
-  const malformed = [
-    '* @m1m2m3m4m5m6m700-afk',
-    '/.github/CODEOWNERS',
-  ].join('\n');
+  const malformed = ['* @m1m2m3m4m5m6m700-afk', '/.github/CODEOWNERS'].join('\n');
   const result = validateCodeowners(malformed, { repoRoot });
   assert.equal(result.ok, false);
   assert.match(result.errors.join('\n'), /requires a pattern and at least one owner/u);
@@ -55,6 +52,14 @@ test('required RT-17 paths are real repository paths; absent media path is not i
   assert.equal(existsSync(repoRoot + '/src/lib/media/'), false);
   const codeowners = readFileSync('.github/CODEOWNERS', 'utf8');
   assert.equal(codeowners.includes('/src/lib/media/'), false);
+});
+
+test('main ruleset verifier is dynamic and does not pin a historical ruleset id', () => {
+  const verifier = readFileSync('scripts/ci/verify-main-ruleset.mjs', 'utf8');
+  assert.doesNotMatch(verifier, /rulesets\/23854302/u);
+  assert.match(verifier, /rulesets\?per_page=100/u);
+  assert.match(verifier, /refs\/heads\/main/u);
+  assert.match(verifier, /MAIN_GOVERNANCE=FAIL_CLOSED/u);
 });
 
 test('production security policy denies unused high-impact browser permissions', () => {
