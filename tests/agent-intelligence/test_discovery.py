@@ -33,7 +33,9 @@ class DiscoveryTests(unittest.TestCase):
         m=self.m(); m["sources"][0].pop("entity_key")
         s=SnapshotStore(self.snaps,opener=lambda *a,**k:resp(b"Unique evidence")).fetch_and_store(m["sources"][0]["url"])
         p=build_proposal(self.root,m,m["sources"][0],s)
-        self.assertTrue(p["entity_key"].endswith("::architecture"))\n\n    def test_proposal_shape_quote_and_entity_key(self):
+        self.assertTrue(p["entity_key"].endswith("::architecture"))
+
+    def test_proposal_shape_quote_and_entity_key(self):
         m=self.m(); src=m["sources"][0]; s=SnapshotStore(self.snaps,opener=lambda *a,**k:resp(b"Unique evidence")).fetch_and_store(src["url"],src["source_type"],src["stability"],src["vendor_affiliated"],src["evidence_kind"])
         p=build_proposal(self.root,m,src,s); self.assertEqual(p["status"],"inbox"); self.assertEqual(p["entity_key"],"test-pattern::architecture"); self.assertIn(p["evidence"]["quote"],Path(s.text_path).read_text())
         self.assertEqual(p["triage"]["lane"],"architecture")
