@@ -12,7 +12,7 @@ permissions:
 
 concurrency:
   group: flixo-repository-knowledge
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   knowledge:
