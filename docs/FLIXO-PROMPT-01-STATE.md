@@ -4,12 +4,12 @@ STATUS: BLOCKER
 PROMPT_ID: 01
 SCOPE: READ_ONLY_STATE_RECORD
 RECORDED_AT_UTC: 2026-10-06
-START_SHA: a8b9c55d8c6cd16abe96ce3362f5693db399823a
-END_SHA: a8b9c55d8c6cd16abe96ce3362f5693db399823a
+START_SHA: b54cb67cac4330eb92dc5ad375a0651f8719680a
+END_SHA: b54cb67cac4330eb92dc5ad375a0651f8719680a
 CURRENT_MAIN_SHA: 263827228cbe5f4851470297fde5f2858ff844de
-CURRENT_EXECUTION_SHA: a8b9c55d8c6cd16abe96ce3362f5693db399823a
+CURRENT_EXECUTION_SHA: b54cb67cac4330eb92dc5ad375a0651f8719680a
 PR: #1002
-PR_HEAD_SHA: a8b9c55d8c6cd16abe96ce3362f5693db399823a
+PR_HEAD_SHA: b54cb67cac4330eb92dc5ad375a0651f8719680a
 PR_BASE_SHA: 263827228cbe5f4851470297fde5f2858ff844de
 PRIMARY_BRANCH: execution
 INTEGRATION_PATH: execution -> main
@@ -27,13 +27,13 @@ INTEGRATION_PATH: execution -> main
 
 ## Current exact-candidate workflow state
 
-- FLIXO Secret Scan: PASS on a8b9c55d8c6cd16abe96ce3362f5693db399823a
-- FLIXO CodeQL: PASS on a8b9c55d8c6cd16abe96ce3362f5693db399823a
-- FLIXO Final Clean-Clone Red Team: PASS on a8b9c55d8c6cd16abe96ce3362f5693db399823a
-- FLIXO CI core verification: PASS on a8b9c55d8c6cd16abe96ce3362f5693db399823a
-- Chromium browser smoke: PASS on a8b9c55d8c6cd16abe96ce3362f5693db399823a
-- Exact-SHA internal coverage: PASS on a8b9c55d8c6cd16abe96ce3362f5693db399823a
-- Red Team adversarial regression: PASS on a8b9c55d8c6cd16abe96ce3362f5693db399823a
+- FLIXO Secret Scan: PASS on b54cb67cac4330eb92dc5ad375a0651f8719680a
+- FLIXO CodeQL: PASS on b54cb67cac4330eb92dc5ad375a0651f8719680a
+- FLIXO Final Clean-Clone Red Team: PASS on b54cb67cac4330eb92dc5ad375a0651f8719680a
+- FLIXO CI core verification: PASS on b54cb67cac4330eb92dc5ad375a0651f8719680a
+- Chromium browser smoke: PASS on b54cb67cac4330eb92dc5ad375a0651f8719680a
+- Exact-SHA internal coverage: PASS on b54cb67cac4330eb92dc5ad375a0651f8719680a
+- Red Team adversarial regression: PASS on b54cb67cac4330eb92dc5ad375a0651f8719680a
 - Branch policy: FAIL CLOSED because live main governance ruleset verification reports required approving reviews=0 instead of 1
 - trust-gate: FAIL CLOSED because Branch policy failed
 - Exact-SHA promotion proof: FAIL CLOSED because trust-gate failed
