@@ -172,7 +172,12 @@ export function OfficialHome() {
     });
   }, [toolFamily, toolQuery]);
 
-  const quickToolQueries = ['إزالة الخلفية', 'ضغط الصور', 'تكبير الصور', 'قص الصور'];
+  const quickToolQueries = [
+    { label: 'إزالة الخلفية', query: 'background remover' },
+    { label: 'ضغط الصور', query: 'image compressor' },
+    { label: 'تكبير الصور', query: 'image upscaler' },
+    { label: 'قص الصور', query: 'image cropper' },
+  ];
 
   const runAssistant = () => {
     const prompt = query.trim();
@@ -345,7 +350,7 @@ export function OfficialHome() {
                 {toolQuery && <button type="button" onClick={() => setToolQuery('')} aria-label="مسح البحث"><X size={16} /></button>}
               </div>
               <div className="official-quick-tags" aria-label="عمليات بحث سريعة">
-                {quickToolQueries.map((item) => <button key={item} type="button" onClick={() => setToolQuery(item)}>{item}</button>)}
+                {quickToolQueries.map((item) => <button key={item.query} type="button" onClick={() => setToolQuery(item.query)}>{item.label}</button>)}
               </div>
               <div className="official-tool-filters" role="tablist" aria-label="تصفية الأدوات">
                 {toolFamilies.map((family) => <button key={family.id} type="button" role="tab" aria-selected={toolFamily === family.id} className={toolFamily === family.id ? 'is-active' : ''} onClick={() => setToolFamily(family.id)}>{family.label}</button>)}
