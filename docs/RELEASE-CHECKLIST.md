@@ -51,13 +51,14 @@ All recorded SHAs must be identical before release promotion.
 - [ ] Agent implementation policy is `Open Agent Execution Mode` on canonical `execution`.
 - [ ] No agent branch or PR-to-`execution` workflow is required.
 - [ ] PR targets `main` from `execution`
-- [ ] Independent human review is present
+- [ ] Independent human review is present for release promotion when required by STRICT policy
 - [ ] Code Owner policy is enforced where required
 - [ ] Required status checks are strict
 - [ ] `main` is protected
 - [ ] No direct write to `main`
 - [ ] No stale/cancelled/skipped evidence is accepted
-- [ ] Documented governance must match live GitHub governance; text cannot substitute for ruleset enforcement
+- [ ] Routine agent development may use FAST governance; live release governance is still independently verified before certification
+- [ ] Documented governance must match the selected live governance mode; text cannot substitute for ruleset enforcement
 
 ## Deployment
 
@@ -72,3 +73,7 @@ All recorded SHAs must be identical before release promotion.
 ## Release freeze
 
 After candidate freeze, allow only bug fixes, security fixes, contract-correct test fixes, and documentation corrections. Feature work starts a new release cycle.
+
+
+## Agent Fast Path
+Routine implementation, repair, testing, and branch isolation do not require per-file approval, fixed preflight counts, mandatory handoff, or lease/heartbeat coordination. These are development workflow controls, not release certification controls.
