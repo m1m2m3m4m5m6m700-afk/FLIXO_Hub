@@ -18,12 +18,13 @@ export const IMAGE_ENGINE_MAX_INPUT_BYTES = 64 * 1024 * 1024;
 export const IMAGE_ENGINE_MAX_PIXELS = 16_000_000;
 export const IMAGE_ENGINE_MAX_DIMENSION = 8_000;
 
-const SUPPORTED_IMAGE_MIME = new Set(['image/png', 'image/jpeg', 'image/webp']);
+const SUPPORTED_INPUT_IMAGE_MIME = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/bmp', 'image/avif']);
+const SUPPORTED_OUTPUT_IMAGE_MIME = new Set(['image/png', 'image/jpeg', 'image/webp']);
 
 export function validateImageEngineInput(blob: Blob): void {
   if (!(blob instanceof Blob) || blob.size <= 0) throw new Error('IMAGE_INPUT_EMPTY');
   if (!Number.isInteger(blob.size) || blob.size > IMAGE_ENGINE_MAX_INPUT_BYTES) throw new Error('IMAGE_INPUT_TOO_LARGE');
-  if (!SUPPORTED_IMAGE_MIME.has(blob.type)) throw new Error('IMAGE_INPUT_UNSUPPORTED_MIME');
+  if (!SUPPORTED_INPUT_IMAGE_MIME.has(blob.type)) throw new Error('IMAGE_INPUT_UNSUPPORTED_MIME');
 }
 
 export function validateImageDimensions(width: number, height: number): void {
@@ -169,7 +170,7 @@ export async function resizeImage(blob: Blob, scale: number): Promise<Blob> {
 }
 
 export async function convertImage(blob: Blob, type: 'image/png' | 'image/jpeg' | 'image/webp'): Promise<Blob> {
-  if (!SUPPORTED_IMAGE_MIME.has(type)) throw new Error('IMAGE_OUTPUT_MIME_INVALID');
+  if (!SUPPORTED_OUTPUT_IMAGE_MIME.has(type)) throw new Error('IMAGE_OUTPUT_MIME_INVALID');
   const image = await loadImage(blob);
   validateOutputDimensions(image.naturalWidth, image.naturalHeight);
   const canvas = document.createElement('canvas');
