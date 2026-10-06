@@ -36,7 +36,7 @@ def reap(root,when):
             card["updated_at"]=triage.iso(when); triage.put(path,card); resumed+=1; changed=True
         if when>=triage.ts(life["expires_at"]):
             pid=(card.get("merged_proposal_ids") or ["unknown"])[0]
-            triage.append_jsonl(triage.GRAVE/"dropped.jsonl",{
+            triage.append_jsonl(root/".agent-intelligence"/"graveyard"/"dropped.jsonl",{
                 "entity_key":card.get("entity_key"),"proposal_id":pid,"expired_at":life["expires_at"],
                 "reason":"TTL expired in review queue","timestamp":triage.iso(when),"review_card_id":card.get("review_card_id")})
             entries.append({"entity_key":card.get("entity_key"),"proposal_id":pid,
