@@ -70,7 +70,7 @@ export function AgentPage() {
   const copy = COPY[language];
   const direction = language === 'ar' ? 'rtl' : 'ltr';
 
-  const selectedTool = plan?.steps[0]?.toolId ?? '';
+  const selectedTools = plan?.steps.map((step) => step.toolId) ?? [];
   const statusLabel = useMemo(() => {
     if (busy) return copy.working;
     if (plan) return copy.ready;
@@ -173,7 +173,7 @@ export function AgentPage() {
 
         {plan && (
           <section aria-label="agent-plan" style={{ display: 'grid', gap: 10, padding: 20, border: '1px solid rgba(255,255,255,.12)', borderRadius: 18 }}>
-            <strong>{copy.tool}: {selectedTool}</strong>
+            <strong>{copy.tool}: <span data-testid="agent-plan-steps">{selectedTools.join(' → ')}</span></strong>
             <span>{copy.confidence}: {Math.round(plan.confidence * 100)}%</span>
             <span data-testid="agent-plan-status">{statusLabel}</span>
             <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
