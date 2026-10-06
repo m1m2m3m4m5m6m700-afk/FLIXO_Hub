@@ -1063,7 +1063,7 @@ Deno.serve(async (req) => {
 
     if (action === "dispatch" && req.method === "POST") {
       const requester = String(body.requestedByAccountId ?? "SYSTEM");
-      if (requester === "SYSTEM") await authGitHubWorkflow(req, ["FLIXO Master Agent Activation Relay", "FLIXO Council Wake Push Relay"]);
+      if (requester === "SYSTEM") await authGitHubWorkflow(req, ["FLIXO Master Agent Activation Relay"]);
       else authAccount(req, "CHIEF");
       return response({ ok: true, ...(await dispatch(body) as Record<string, unknown>) }, 202, requestId);
     }
