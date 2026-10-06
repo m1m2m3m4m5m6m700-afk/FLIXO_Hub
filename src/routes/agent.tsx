@@ -159,14 +159,32 @@ export function AgentPage() {
 
         <section style={{ display: 'grid', gap: 12, padding: 20, border: '1px solid rgba(255,255,255,.12)', borderRadius: 18 }}>
           <label htmlFor="agent-prompt">{copy.prompt}</label>
-          <textarea id="agent-prompt" value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder={copy.promptPlaceholder} rows={4} />
+          <textarea
+            id="agent-prompt"
+            value={prompt}
+            disabled={busy}
+            onChange={(event) => {
+              const nextPrompt = event.target.value;
+              if (nextPrompt !== prompt) {
+                revokeAgentConfirmation(confirmationReceipt);
+                setConfirmationReceipt(null);
+                setPlan(null);
+                clearResult();
+                setError('');
+              }
+              setPrompt(nextPrompt);
+            }}
+            placeholder={copy.promptPlaceholder}
+            rows={4}
+          />
           <label htmlFor="agent-file">{copy.file}</label>
-          <input id="agent-file" type="file" accept="image/*,video/*" onChange={(event) => {
+          <input id="agent-file" type="file" accept="image/*,video/*" disabled={busy} onChange={(event) => {
             revokeAgentConfirmation(confirmationReceipt);
             setConfirmationReceipt(null);
             setFile(event.target.files?.[0] ?? null);
             setPlan(null);
             clearResult();
+            setError('');
           }} />
           <button type="button" data-testid="agent-build-plan" onClick={buildPlan} disabled={!prompt.trim() || !file || busy}>{copy.plan}</button>
         </section>

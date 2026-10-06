@@ -14,21 +14,22 @@ type ToolCardProps = Readonly<{
   id: string;
   title: string;
   description: string;
-  category: 'Images';
+  category: 'Images' | 'Video';
   categoryLabel: string;
   path: string;
 }>;
 
-const READY_TOOLS = TOOL_CATALOG.ready;
+const READY_TOOLS = TOOL_CATALOG.ready.filter((tool) => tool.capability.state === 'EXECUTABLE');
 const LANGUAGE_LABELS: Record<string, string> = { en: 'English', ar: 'العربية', es: 'Español', fr: 'Français', de: 'Deutsch', hi: 'हिन्दी', id: 'Bahasa Indonesia', it: 'Italiano', ja: '日本語', ko: '한국어', ms: 'Bahasa Melayu', nl: 'Nederlands', pl: 'Polski', pt: 'Português', ru: 'Русский', sv: 'Svenska', th: 'ไทย', tr: 'Türkçe', uk: 'Українська', vi: 'Tiếng Việt' };
 const FILTER_LABELS: Record<string, string> = { en: 'Filters', ar: 'الفلاتر', es: 'Filtros', fr: 'Filtres', de: 'Filter', hi: 'फ़िल्टर', id: 'Filter', it: 'Filtri', ja: 'フィルター', ko: '필터', ms: 'Penapis', nl: 'Filters', pl: 'Filtry', pt: 'Filtros', ru: 'Фильтры', sv: 'Filter', th: 'ฟิลเตอร์', tr: 'Filtreler', uk: 'Фільтри', vi: 'Bộ lọc' };
 const AGENT_LABELS: Readonly<Record<Locale, string>> = { en: 'FLIXO Agent', ar: 'وكيل FLIXO', es: 'Agente FLIXO', fr: 'Agent FLIXO', de: 'FLIXO-Agent', hi: 'FLIXO एजेंट', id: 'Agen FLIXO', it: 'Agente FLIXO', ja: 'FLIXOエージェント', ko: 'FLIXO 에이전트', ms: 'Ejen FLIXO', nl: 'FLIXO-agent', pl: 'Agent FLIXO', pt: 'Agente FLIXO', ru: 'Агент FLIXO', sv: 'FLIXO-agent', th: 'เอเจนต์ FLIXO', tr: 'FLIXO Ajanı', uk: 'Агент FLIXO', vi: 'Tác nhân FLIXO' };
 
 function toLocalizedTool(tool: ToolDefinition, locale: Locale): ToolCardProps {
   const localizedTitle = getAuthoritativeToolSeoName(tool, locale) ?? tool.title;
-  const localizedCategory = localizeMsUkCategory(locale, 'Images') ?? localizeToolCategory(locale, 'Images');
-  const localizedDescription = localizeMsUkDescription(locale, localizedTitle) ?? localizeToolDescription(locale, localizedTitle, 'Images');
-  return { id: tool.id, title: localizedTitle, description: localizedDescription, category: 'Images', categoryLabel: localizedCategory, path: `/${locale}/${tool.id}` };
+  const category: 'Images' | 'Video' = tool.family === 'video' ? 'Video' : 'Images';
+  const localizedCategory = localizeMsUkCategory(locale, category) ?? localizeToolCategory(locale, category);
+  const localizedDescription = localizeMsUkDescription(locale, localizedTitle) ?? localizeToolDescription(locale, localizedTitle, category);
+  return { id: tool.id, title: localizedTitle, description: localizedDescription, category, categoryLabel: localizedCategory, path: `/${locale}/${tool.id}` };
 }
 
 function renderHeroTitle(value: string) {
@@ -50,7 +51,7 @@ export function HomePage({ locale = 'en' as Locale }: { locale?: Locale }) {
   }, [locale]);
 
   const localizedTools = useMemo(() => READY_TOOLS.map((tool) => toLocalizedTool(tool, locale)), [locale]);
-  const categories = useMemo(() => ['All', 'Images'] as const, []);
+  const categories = useMemo(() => ['All', 'Images', 'Video'] as const, []);
   const filteredTools = useMemo(() => {
     const normalized = query.trim().toLowerCase();
     return localizedTools.filter((tool) => {
@@ -87,7 +88,7 @@ export function HomePage({ locale = 'en' as Locale }: { locale?: Locale }) {
         <section className="home-trust-grid" id="privacy" aria-label={copy.ariaTrust}>{copy.trust.map(([title, text]) => <div key={title}><strong>{title}</strong><span>{text}</span></div>)}</section>
         <section id="tools" className="home-tools-section" aria-labelledby="tools-title">
           <div className="section-heading"><div><span className="image-tool-eyebrow">{copy.toolbox}</span><h2 id="tools-title">{copy.toolboxTitle}</h2></div><span className="tool-count">{filteredTools.length} {copy.ready}</span></div>
-          <div id="categories" className="category-pills" aria-label={copy.ariaCategories}>{categories.map((category) => <button key={category} type="button" className={selectedCategory === category ? 'is-active' : ''} onClick={() => setSelectedCategory(category)}>{category === 'All' ? copy.all : localizeMsUkCategory(locale, 'Images') ?? localizeToolCategory(locale, 'Images')}</button>)}</div>
+          <div id="categories" className="category-pills" aria-label={copy.ariaCategories}>{categories.map((category) => <button key={category} type="button" className={selectedCategory === category ? 'is-active' : ''} onClick={() => setSelectedCategory(category)}>{category === 'All' ? copy.all : localizeMsUkCategory(locale, category) ?? localizeToolCategory(locale, category)}</button>)}</div>
           <div className="home-tools-grid">{filteredTools.map((tool) => <Link key={tool.id} to={tool.path} className="home-tool-card" aria-label={`${copy.openTool}: ${tool.title}`}><div className="tool-card-topline"><span className="tool-card-category">{tool.categoryLabel}</span><span className="tool-card-arrow" aria-hidden="true">↗</span></div><h3>{tool.title}</h3><p>{tool.description}</p><span className="tool-card-meta">{copy.browserMeta}</span></Link>)}</div>
           {filteredTools.length === 0 && <div className="home-empty">{copy.empty}</div>}
         </section>

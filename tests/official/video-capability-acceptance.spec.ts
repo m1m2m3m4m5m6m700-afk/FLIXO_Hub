@@ -79,7 +79,7 @@ test.describe('MVP video capability individual acceptance', () => {
   for (const videoCase of VIDEO_CASES) {
     test(videoCase.id + ' executes locally and produces a verified WebM artifact', async ({ page }) => {
       await page.goto('/en/' + videoCase.id);
-      await expect(page.getByRole('heading', { name: 'Local video processing' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: videoCase.title })).toBeVisible();
 
       const fixture = await buildVideoFixture(page);
       expect(fixture.length).toBeGreaterThan(100);
@@ -89,6 +89,23 @@ test.describe('MVP video capability individual acceptance', () => {
         mimeType: 'video/webm',
         buffer: fixture,
       });
+
+      if (videoCase.id === 'video-trimmer') {
+        await page.getByLabel('Start (seconds)').fill('0');
+        await page.getByLabel('End (seconds)').fill('0.5');
+      } else if (videoCase.id === 'video-cropper') {
+        await page.getByLabel('Crop X').fill('0');
+        await page.getByLabel('Crop Y').fill('0');
+        await page.getByLabel('Width').fill('320');
+        await page.getByLabel('Height').fill('180');
+      } else if (videoCase.id === 'video-resizer') {
+        await page.getByLabel('Width').fill('160');
+        await page.getByLabel('Height').fill('90');
+        await page.getByLabel('FPS').fill('15');
+      } else {
+        await page.getByLabel('Video bitrate').fill('200000');
+        await page.getByLabel('Audio bitrate').fill('64000');
+      }
 
       await page.getByRole('button', { name: 'Process video' }).click();
 
@@ -132,7 +149,10 @@ test.describe('MVP video capability individual acceptance', () => {
       await downloadLink.click();
       const download = await downloadPromise;
       expect(await download.failure()).toBeNull();
-      expect(download.suggestedFilename()).toBe('flixo-video-output.webm');
+      expect(download.suggestedFilename()).toBe(`flixo-${videoCase.id.replace(/^video-/u, '')}-output.webm`);
+
+      await page.getByRole('button', { name: 'Reset' }).click();
+      await expect(page.getByText('No result yet.')).toBeVisible();
     });
   }
 });

@@ -49,6 +49,10 @@ const FEATURED_IDS = [
   'image-compressor',
   'image-converter',
   'image-effects',
+  'video-trimmer',
+  'video-cropper',
+  'video-resizer',
+  'video-compressor',
 ] as const;
 
 const CATEGORY_FAMILY_MAP: Readonly<Record<string, string>> = {
@@ -101,14 +105,32 @@ const FEATURED_COPY: Readonly<Record<string, { name: string; description: string
     name: 'تأثيرات الصور',
     description: 'سطوع وتباين وتشبع وتدرج رمادي.',
   },
+  'video-trimmer': {
+    name: 'قص الفيديو',
+    description: 'قص بداية ونهاية الفيديو محليًا داخل المتصفح.',
+  },
+  'video-cropper': {
+    name: 'قص إطار الفيديو',
+    description: 'قص الفيديو إلى مستطيل بأبعاد محددة.',
+  },
+  'video-resizer': {
+    name: 'تغيير حجم الفيديو',
+    description: 'غيّر أبعاد الفيديو إلى مقاس إخراج محدد.',
+  },
+  'video-compressor': {
+    name: 'ضغط الفيديو',
+    description: 'تقليل معدل البت محليًا دون رفع الملف الأصلي.',
+  },
 };
 
-function routeForTool(tool: (typeof TOOL_CATALOG.ready)[number]): string {
+const ADMITTED_TOOLS = TOOL_CATALOG.ready.filter((tool) => tool.capability.state === 'EXECUTABLE');
+
+function routeForTool(tool: (typeof ADMITTED_TOOLS)[number]): string {
   return tool.routes.ar ?? tool.routes.en ?? tool.path;
 }
 
 function readyCountForCategory(categoryId: string): number {
-  return TOOL_CATALOG.ready.filter((tool) => {
+  return ADMITTED_TOOLS.filter((tool) => {
     const mapped = CATEGORY_FAMILY_MAP[tool.family ?? ''];
     return mapped === categoryId;
   }).length;
@@ -151,8 +173,8 @@ export function OfficialHome() {
 
   const featuredTools = useMemo(
     () =>
-      FEATURED_IDS.map((id) => TOOL_CATALOG.ready.find((tool) => tool.id === id))
-        .filter((tool): tool is (typeof TOOL_CATALOG.ready)[number] => Boolean(tool)),
+      FEATURED_IDS.map((id) => ADMITTED_TOOLS.find((tool) => tool.id === id))
+        .filter((tool): tool is (typeof ADMITTED_TOOLS)[number] => Boolean(tool)),
     [],
   );
 
@@ -359,7 +381,7 @@ export function OfficialHome() {
                 <p>لا توجد إضافة لأدوات جديدة هنا؛ هذه البطاقات مرتبطة بالأدوات المسجلة والجاهزة حاليًا.</p>
               </div>
               <div className="official-tool-count">
-                <strong>{TOOL_CATALOG.ready.length}</strong>
+                <strong>{ADMITTED_TOOLS.length}</strong>
                 <span>أداة جاهزة في السجل</span>
               </div>
             </div>
