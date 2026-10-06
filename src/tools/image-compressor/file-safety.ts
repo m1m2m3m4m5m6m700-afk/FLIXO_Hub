@@ -1,16 +1,11 @@
 import { validateFileSafety } from '../../lib/contracts/file-safety.ts';
 
 export const IMAGE_COMPRESSOR_MAX_INPUT_SIZE = 10 * 1024 * 1024;
-export const IMAGE_COMPRESSOR_MAX_PIXELS = 40_000_000;
+export const IMAGE_COMPRESSOR_MAX_PIXELS = 16_000_000;
 
-const IMAGE_COMPRESSOR_ALLOWED_MIME = [
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-  'image/gif',
-  'image/bmp',
-  'image/svg+xml',
-] as const;
+const IMAGE_COMPRESSOR_ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp'] as const;
+const IMAGE_COMPRESSOR_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp'] as const;
+
 
 export interface ImageDimensions {
   width: number;
@@ -21,6 +16,7 @@ export interface ImageSafetyInput {
   name: string;
   type: string;
   size: number;
+  content?: Uint8Array;
 }
 
 function safetyError(failures: string[]): Error {
@@ -60,17 +56,41 @@ export function assertSafeImageInput(
       name: file.name,
       mime: file.type,
       bytes: file.size,
+      content: file.content,
       width: dimensions?.width,
       height: dimensions?.height,
     },
     {
       allowedMime: IMAGE_COMPRESSOR_ALLOWED_MIME,
       maxBytes: IMAGE_COMPRESSOR_MAX_INPUT_SIZE,
+      allowedExtensions: IMAGE_COMPRESSOR_EXTENSIONS,
       ...(dimensions ? { maxPixels: IMAGE_COMPRESSOR_MAX_PIXELS } : {}),
+      ...(file.content ? { magicBytes: [
+        'png', 'jpeg', 'webp',
+      ].map((name) => (name === 'png' ? ( { name: 'PNG', bytes: [0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a] } ) : name === 'jpeg' ? ( { name: 'JPEG', bytes: [0xff,0xd8,0xff] } ) : ( { name: 'WEBP', bytes: [0x52,0x49,0x46,0x46], segments: [{ bytes: [0x57,0x45,0x42,0x50], offset: 8 }] } )) ) } : {}),
     },
   );
 
   if (!result.safe) {
     throw safetyError(result.failures);
   }
+}
+
+export function validateCompressionOptions(options: CompressionOptionsLike): void {
+  if (!Number.isFinite(options.quality) || options.quality < 0.01 || options.quality > 1) throw new Error('Invalid compression quality');
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(options.format)) throw new Error('Unsupported compression output format');
+  if (options.targetSizeKB !== undefined && (!Number.isInteger(options.targetSizeKB) || options.targetSizeKB < 1 || options.targetSizeKB > 64 * 1024)) {
+    throw new Error('Invalid compression target size');
+  }
+  for (const [label, value] of [['maxWidth', options.maxWidth], ['maxHeight', options.maxHeight] as const]) {
+    if (value !== undefined && (!Number.isInteger(value) || value < 1 || value > 4_000)) throw new Error(`Invalid compression ${label}`);
+  }
+}
+
+export type CompressionOptionsLike = {
+  quality: number;
+  format: 'image/jpeg' | 'image/png' | 'image/webp';
+  maxWidth?: number;
+  maxHeight?: number;
+  targetSizeKB?: number;
 }
