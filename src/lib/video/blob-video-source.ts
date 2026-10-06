@@ -71,7 +71,7 @@ export async function attachVideoBlobSource(
   if (MediaSourceClass && supportsMediaSource(mime)) {
     const mediaSource = new MediaSourceClass();
     let closed = false;
-    let abortListener: (() => void) | undefined;
+    const abortListener = () => cleanup();
 
     const cleanup = () => {
       if (closed) return;
@@ -82,8 +82,6 @@ export async function attachVideoBlobSource(
         try { mediaSource.endOfStream(); } catch { /* source may already be closing */ }
       }
     };
-    abortListener = () => cleanup();
-
     signal?.addEventListener('abort', abortListener, { once: true });
     video.srcObject = mediaSource;
 
