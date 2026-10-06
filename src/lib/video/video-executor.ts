@@ -173,9 +173,8 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
 
     const recordDurationMs = Math.max(1, Math.ceil((endSec - startSec) * 1000));
     await new Promise<void>((resolve, reject) => {
-      let timer: ReturnType<typeof setTimeout> | undefined;
       const cleanup = () => {
-        if (timer !== undefined) clearTimeout(timer);
+        clearTimeout(timer);
         options.signal?.removeEventListener('abort', onAbort);
         video.removeEventListener('error', onError);
       };
@@ -192,7 +191,7 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
       // Do not depend on media-element currentTime advancing in headless Chromium.
       // The recorder duration is bounded by the requested trim window and frame
       // sampling continues independently until that wall-clock deadline.
-      timer = setTimeout(() => {
+      const timer = setTimeout(() => {
         cleanup();
         resolve();
       }, recordDurationMs);
