@@ -17,7 +17,7 @@ test('every official agent has a role-specific drill', () => {
   }
 });
 
-test('stale SHA evidence is rejected before role scoring', () => {
+test('the QA role passes its complete positive drill', () => {
   const result=evaluateAgentDrill('FLIXO QA Agent', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
   assert.equal(result.passed, true);
 });
