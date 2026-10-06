@@ -51,6 +51,8 @@ export async function getBoundedVideoDuration(
     if (signal?.aborted) throw cancelled();
     const refined = finiteBounded();
     if (refined !== undefined) return refined;
+    const observedTime = Number.isFinite(video.currentTime) ? video.currentTime : 0;
+    if (observedTime > 0 && observedTime <= maxDurationSeconds) return observedTime;
   } finally {
     cleanup();
     try {
