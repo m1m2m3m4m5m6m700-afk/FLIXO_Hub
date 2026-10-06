@@ -13,7 +13,10 @@ test('selection combines bounded coverage deterministically', () => {
 });
 
 test('render scheduler follows graph order and rejects unsupported backend', () => {
-  const graph=createRenderGraph({id:'out',operation:'output',parameters:{},backends:['canvas2d'],inputs:[{id:'src',operation:'source',parameters:{},backends:['canvas2d'],inputs:[]}]});
+  const graph=createRenderGraph([
+    {id:'src',operation:'source',parameters:{},backends:['canvas2d'],dependencies:[]},
+    {id:'out',operation:'output',parameters:{},backends:['canvas2d'],dependencies:['src']},
+  ], 'out');
   assert.deepEqual(createRenderSchedule(graph,'canvas2d').nodes.map(n=>n.id), ['src','out']);
   assert.throws(()=>createRenderSchedule(graph,'webgpu'), /RENDER_BACKEND_UNSUPPORTED/);
 });
