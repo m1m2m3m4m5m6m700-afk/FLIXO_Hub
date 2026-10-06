@@ -6,7 +6,7 @@ REPOSITORY: m1m2m3m4m5m6m700-afk/FLIXO_Hub
 BRANCH: agent-3a/redteam-rt17-20261006
 INTEGRATION_TARGET: execution
 START_SHA: a6feb563eb6d53e30badc0b071cadc805b71e0af
-VALIDATED_CODE_SHA_BEFORE_REPORT: 1d8c5c178efcd3069f0eabd84aa7cc780d662a2d
+VALIDATED_CODE_SHA_BEFORE_REPORT: 45d89ea4ce507e99d25f38f11c9ecba08c4eba10
 
 ## RT-17 finding
 
@@ -93,11 +93,22 @@ Added/strengthened:
 
 ## Validation state on the pre-report SHA
 
-CI was initiated against `1d8c5c178efcd3069f0eabd84aa7cc780d662a2d` (FLIXO CI run `37489404574`). At the time of this record rollover: Typecheck/lint/core was in progress, Red Team was queued, Branch Policy was in progress, and RT-17 live governance was queued. These are execution-state observations only and are not PASS evidence. This report mutation invalidates those pre-report candidate-specific results and requires fresh checks on the final report SHA.
+CI was initiated against `1d8c5c178efcd3069f0eabd84aa7cc780d662a2d` (FLIXO CI run `37489404574`). At the time of this record rollover: the latest candidate CI had already exposed and corrected a CODEOWNERS global-owner syntax defect; Red Team had passed only on a superseded SHA; Branch Policy remained blocked by unrelated existing refs; and RT-17 live governance failed closed because the dynamic verifier initially consumed the summary API incorrectly. The ruleset discovery implementation was then corrected on `45d89ea4ce507e99d25f38f11c9ecba08c4eba10`. No PASS from a superseded SHA is reused. Fresh checks for the final report SHA must be treated as pending/not certification evidence until observed.
 
 ## Evidence rule
 
 Every mutation after `VALIDATED_CODE_SHA_BEFORE_REPORT` invalidates candidate-specific runtime/CI evidence from the previous SHA. This report itself is a documentation mutation and is therefore not a certification artifact.
+
+
+## Live repository branch-policy state
+
+The current repository also contains refs outside the approved branch-policy namespaces:
+
+- `agent-3b/redteam-rt19-20261006`
+- `agent-3c/redteam-rt20-20261006`
+- `agent-residual/redteam-closure-20261006`
+
+These are separate governance/closure blockers and are not silently admitted by RT-17.
 
 ## Owner action required
 
