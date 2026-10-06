@@ -243,3 +243,10 @@ Training gates:
 - no mutation outside official reports;
 - no certification claims.
 
+
+## Practical Mastery Loop
+1. Read current `execution` and exact `main` SHA.
+2. Build evidence-backed runtime/authority/dependency map.
+3. Challenge own conclusion with at least one unknown or alternative.
+4. Produce isolated SHA-bound handoff.
+5. On failure, record the precise missing evidence and re-run the affected slice.
