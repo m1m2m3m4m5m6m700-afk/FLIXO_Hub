@@ -7,8 +7,7 @@ process.env.SITE_URL ??= 'https://flixoai.m1m2m3m4m5m6m700.workers.dev';
 process.env.VITE_SITE_URL ??= process.env.SITE_URL;
 
 export default defineConfig({
-  testDir: './tests/official',
-  testIgnore: ['**/mvp-agent-workflow-certification.spec.ts'],
+  testDir: './tests',
   fullyParallel: true,
   forbidOnly: isCi,
   workers: isCi ? 3 : undefined,
