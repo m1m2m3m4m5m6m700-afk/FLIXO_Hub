@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { validateFileSafety } from '../../lib/contracts/file-safety';
+import { validateBrowserFile } from '../../lib/contracts/browser-file-safety';
 import { assertExifCleanerOutputIntegrity } from '../exif-cleaner/output-integrity';
 import { validateSvgOutput } from '../image-to-svg/output-integrity';
 import { getToolUiCopy } from '../../data/tool-ui-i18n';
@@ -22,8 +23,50 @@ const UI_COPY: Record<'en' | 'ar', UiCopy> = {
 
 const RASTER_IMAGE_POLICY = { allowedMime: ['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/bmp', 'image/avif'], maxBytes: 25 * 1024 * 1024, maxPixels: 40_000_000 } as const;
 const SVG_FILE_POLICY = { allowedMime: ['image/svg+xml'], maxBytes: 25 * 1024 * 1024 } as const;
-function assertFileSafe(file: File, mode: Mode) { const policy = mode === 'svg-optimizer' ? SVG_FILE_POLICY : RASTER_IMAGE_POLICY; const result = validateFileSafety({ name: file.name, mime: file.type, bytes: file.size }, policy); if (!result.safe) throw new Error(`Input rejected by File Safety: ${result.failures.join('; ')}`); }
+async function assertFileSafe(file: File, mode: Mode) {
+  if (mode === 'svg-optimizer') {
+    const content = new Uint8Array(await file.arrayBuffer());
+    const result = validateFileSafety(
+      { name: file.name, mime: file.type, bytes: file.size, content },
+      { ...SVG_FILE_POLICY, allowedExtensions: ['svg'], contentValidation: 'utf8' },
+    );
+    if (!result.safe) throw new Error(`Input rejected by File Safety: ${result.failures.join('; ')}`);
+    return;
+  }
+  const result = await validateBrowserFile(file, {
+    ...RASTER_IMAGE_POLICY,
+    allowedExtensions: ['avif', 'bmp', 'gif', 'jpeg', 'jpg', 'png', 'webp'],
+  });
+  if (!result.safe || !result.width || !result.height) {
+    throw new Error(`Input rejected by File Safety: ${result.failures.join('; ')}`);
+  }
+}
 function assertDecodedImageSafe(file: File, width: number, height: number) { const result = validateFileSafety({ name: file.name, mime: file.type, bytes: file.size, width, height }, RASTER_IMAGE_POLICY); if (!result.safe) throw new Error(`Input rejected by File Safety: ${result.failures.join('; ')}`); }
+async function assertSafeDownload(result: Result) {
+  const bytes = new Uint8Array(await result.blob.arrayBuffer());
+  const mime = (result.blob.type || 'application/octet-stream').split(';')[0].toLowerCase();
+  const signature = mime === 'image/png' ? '89504e470d0a1a0a' : mime === 'image/jpeg' ? 'ffd8ff' : mime === 'image/webp' ? '52494646' : mime === 'application/zip' ? '504b0304' : undefined;
+  const extension = result.name.includes('.') ? result.name.slice(result.name.lastIndexOf('.') + 1).toLowerCase() : '';
+  const validation = validateOutputIntegrity(
+    result.blob.size,
+    mime,
+    {
+      toolId: 'browser-image-shared',
+      allowedMime: [mime],
+      maxBytes: 50 * 1024 * 1024,
+      minBytes: 1,
+      maxPixels: result.width && result.height ? 40_000_000 : undefined,
+      allowedExtensions: extension ? [extension] : undefined,
+      signatures: signature ? [signature] : undefined,
+      parseAs: result.text !== undefined ? 'utf8' : undefined,
+      requireArtifact: true,
+      requireSafeFilename: true,
+    },
+    result.width && result.height ? { width: result.width, height: result.height } : undefined,
+    { filename: result.name, bytes },
+  );
+  if (!validation.valid) throw new Error(`Output integrity validation failed: ${validation.failures.join('; ')}`);
+}
 function download(result: Result) { const link = document.createElement('a'); link.href = result.url; link.download = result.name; link.click(); setTimeout(() => URL.revokeObjectURL(result.url), 0); }
 async function loadImage(file: File) { const url = URL.createObjectURL(file); try { const image = new Image(); image.decoding = 'async'; image.src = url; await image.decode(); return image; } finally { URL.revokeObjectURL(url); } }
 async function canvasResult(canvas: HTMLCanvasElement, name: string, mime = 'image/png', quality = 0.96): Promise<Result> { const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob((value) => value ? resolve(value) : reject(new Error('Could not encode output.')), mime, quality)); return { blob, url: URL.createObjectURL(blob), name, width: canvas.width, height: canvas.height }; }
@@ -52,26 +95,29 @@ export function BrowserImageTool({ mode, title, accept = 'image/*', multi = fals
   async function run() {
     if (!files.length) { setError(copy.chooseImage); return; } setError(''); setBusy(true); setResult(null);
     try {
-      for (const file of files) assertFileSafe(file, mode);
-      if (mode === 'svg-optimizer') { const svg = await files[0].text(); const optimized = svg.replace(/>\s+</g, '><').replace(/\s{2,}/g, ' ').trim(); const blob = new Blob([optimized], { type: 'image/svg+xml' }); setResult({ blob, url: URL.createObjectURL(blob), name: 'flixo-optimized.svg', text: optimized }); return; }
-      if (mode === 'photo-colorizer') { const endpoint = import.meta.env.VITE_PHOTO_COLORIZER_ENDPOINT; if (!endpoint) throw new Error('Photo Colorizer requires VITE_PHOTO_COLORIZER_ENDPOINT; no fake AI fallback is used.'); const body = new FormData(); body.append('image', files[0]); const response = await fetch(endpoint, { method: 'POST', body }); if (!response.ok) throw new Error(`Colorizer request failed (${response.status}).`); const blob = await response.blob(); setResult({ blob, url: URL.createObjectURL(blob), name: 'flixo-colorized.png' }); return; }
+      for (const file of files) await assertFileSafe(file, mode);
+      if (mode === 'svg-optimizer') { const svg = await files[0].text(); const optimized = svg.replace(/>\s+</g, '><').replace(/\s{2,}/g, ' ').trim(); const blob = new Blob([optimized], { type: 'image/svg+xml' }); const safeResult = { blob, url: URL.createObjectURL(blob), name: 'flixo-optimized.svg', text: optimized };
+        await assertSafeDownload(safeResult); setResult(safeResult); return; }
+      if (mode === 'photo-colorizer') { const endpoint = import.meta.env.VITE_PHOTO_COLORIZER_ENDPOINT; if (!endpoint) throw new Error('Photo Colorizer requires VITE_PHOTO_COLORIZER_ENDPOINT; no fake AI fallback is used.'); const body = new FormData(); body.append('image', files[0]); const response = await fetch(endpoint, { method: 'POST', body }); if (!response.ok) throw new Error(`Colorizer request failed (${response.status}).`); const blob = await response.blob(); const safeResult = { blob, url: URL.createObjectURL(blob), name: 'flixo-colorized.png' };
+        await assertSafeDownload(safeResult); setResult(safeResult); return; }
       if (mode === 'image-effects') {
         const image = await loadImage(files[0]);
         assertDecodedImageSafe(files[0], image.width, image.height);
         const output = await executeCanonicalTool('image-effects', { blob: files[0], fileName: files[0].name }, effect);
-        setResult({ blob: output.blob, url: URL.createObjectURL(output.blob), name: output.fileName, width: image.width, height: image.height });
+        const safeResult = { blob: output.blob, url: URL.createObjectURL(output.blob), name: output.fileName, width: image.width, height: image.height };
+        await assertSafeDownload(safeResult); setResult(safeResult);
         return;
       }
-      if (mode === 'collage-maker') { const images = await Promise.all(files.map(loadImage)); images.forEach((image, index) => assertDecodedImageSafe(files[index], image.width, image.height)); const cell = 512; const columns = Math.min(3, Math.ceil(Math.sqrt(images.length))); const rows = Math.ceil(images.length / columns); const canvas = document.createElement('canvas'); canvas.width = columns * cell; canvas.height = rows * cell; const ctx = canvas.getContext('2d'); if (!ctx) throw new Error('Canvas unavailable.'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height); images.forEach((image, index) => { const x = (index % columns) * cell; const y = Math.floor(index / columns) * cell; const scale = Math.min(cell / image.width, cell / image.height); const w = image.width * scale; const h = image.height * scale; ctx.drawImage(image, x + (cell - w) / 2, y + (cell - h) / 2, w, h); }); setResult(await canvasResult(canvas, 'flixo-collage.png')); return; }
+      if (mode === 'collage-maker') { const images = await Promise.all(files.map(loadImage)); images.forEach((image, index) => assertDecodedImageSafe(files[index], image.width, image.height)); const cell = 512; const columns = Math.min(3, Math.ceil(Math.sqrt(images.length))); const rows = Math.ceil(images.length / columns); const canvas = document.createElement('canvas'); canvas.width = columns * cell; canvas.height = rows * cell; const ctx = canvas.getContext('2d'); if (!ctx) throw new Error('Canvas unavailable.'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height); images.forEach((image, index) => { const x = (index % columns) * cell; const y = Math.floor(index / columns) * cell; const scale = Math.min(cell / image.width, cell / image.height); const w = image.width * scale; const h = image.height * scale; ctx.drawImage(image, x + (cell - w) / 2, y + (cell - h) / 2, w, h); }); const safeResult = await canvasResult(canvas, 'flixo-collage.png'); await assertSafeDownload(safeResult); setResult(safeResult); return; }
       const image = await loadImage(files[0]); assertDecodedImageSafe(files[0], image.width, image.height); const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d'); if (!ctx) throw new Error('Canvas unavailable.'); let width = image.width; let height = image.height; if (mode === 'passport-photo-maker') { width = 413; height = 531; } canvas.width = width; canvas.height = height;
-      if (mode === 'image-to-svg') { const png = document.createElement('canvas'); png.width = image.width; png.height = image.height; const pctx = png.getContext('2d'); if (!pctx) throw new Error('Canvas unavailable.'); pctx.drawImage(image, 0, 0); const data = png.toDataURL('image/png'); const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${image.width}" height="${image.height}" viewBox="0 0 ${image.width} ${image.height}"><image href="${data}" width="${image.width}" height="${image.height}"/></svg>`; const blob = new Blob([svg], { type: 'image/svg+xml' }); const integrity = validateSvgOutput(blob, svg); if (!integrity.valid) throw new Error(`Image to SVG produced invalid output: ${integrity.failures.join('; ')}`); setResult({ blob, url: URL.createObjectURL(blob), name: 'flixo-image.svg', width: image.width, height: image.height, text: svg }); return; }
+      if (mode === 'image-to-svg') { const png = document.createElement('canvas'); png.width = image.width; png.height = image.height; const pctx = png.getContext('2d'); if (!pctx) throw new Error('Canvas unavailable.'); pctx.drawImage(image, 0, 0); const data = png.toDataURL('image/png'); const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${image.width}" height="${image.height}" viewBox="0 0 ${image.width} ${image.height}"><image href="${data}" width="${image.width}" height="${image.height}"/></svg>`; const blob = new Blob([svg], { type: 'image/svg+xml' }); const integrity = validateSvgOutput(blob, svg); if (!integrity.valid) throw new Error(`Image to SVG produced invalid output: ${integrity.failures.join('; ')}`); const safeResult = { blob, url: URL.createObjectURL(blob), name: 'flixo-image.svg', width: image.width, height: image.height, text: svg }; await assertSafeDownload(safeResult); setResult(safeResult); return; }
       if (mode === 'mockup-generator') { ctx.fillStyle = '#111827'; ctx.fillRect(0, 0, width, height); ctx.fillStyle = '#1f2937'; ctx.roundRect(18, 18, width - 36, height - 36, 42); ctx.fill(); ctx.drawImage(image, 42, 72, width - 84, height - 114); ctx.fillStyle = '#000'; ctx.fillRect(width / 2 - 24, 30, 48, 8); }
       else if (mode === 'passport-photo-maker') { const scale = Math.max(width / image.width, height / image.height); const w = image.width * scale; const h = image.height * scale; ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, width, height); ctx.drawImage(image, (width - w) / 2, (height - h) / 2, w, h); }
       else if (mode === 'background-blur') { ctx.filter = 'blur(16px)'; ctx.drawImage(image, 0, 0, width, height); ctx.filter = 'none'; const inset = Math.round(Math.min(width, height) * 0.18); ctx.drawImage(image, inset, inset, width - inset * 2, height - inset * 2); }
       else if (mode === 'watermark-adder') { ctx.drawImage(image, 0, 0, width, height); ctx.save(); ctx.globalAlpha = 0.45; ctx.fillStyle = '#fff'; ctx.font = `700 ${Math.max(24, Math.round(width / 18))}px sans-serif`; ctx.textAlign = 'right'; ctx.rotate(-Math.PI / 12); ctx.fillText(text, width - 30, height / 2); ctx.restore(); }
       else if (mode === 'meme-generator') { ctx.drawImage(image, 0, 0, width, height); ctx.font = `900 ${Math.max(32, Math.round(width / 10))}px Impact, sans-serif`; ctx.textAlign = 'center'; ctx.lineWidth = 8; ctx.strokeStyle = '#000'; ctx.fillStyle = '#fff'; ctx.strokeText(top, width / 2, 60); ctx.fillText(top, width / 2, 60); ctx.strokeText(bottom, width / 2, height - 30); ctx.fillText(bottom, width / 2, height - 30); }
       else if (mode === 'exif-cleaner') ctx.drawImage(image, 0, 0, width, height); else ctx.drawImage(image, 0, 0, width, height);
-      const output = await canvasResult(canvas, `flixo-${mode}.png`); if (mode === 'exif-cleaner') assertExifCleanerOutputIntegrity(output.blob, { width: output.width ?? width, height: output.height ?? height }); setResult(output);
+      const output = await canvasResult(canvas, `flixo-${mode}.png`); if (mode === 'exif-cleaner') assertExifCleanerOutputIntegrity(output.blob, { width: output.width ?? width, height: output.height ?? height }); await assertSafeDownload(output); setResult(output);
     } catch (cause) { setError(cause instanceof Error ? cause.message : copy.alertOperationFailed); } finally { setBusy(false); }
   }
   return <div dir={dir} lang={resolvedLocale} className="mx-auto max-w-3xl px-6 py-10"><p className="mt-2 text-sm opacity-70">{copy.description}</p><input className="mt-6 block w-full" type="file" aria-label={copy.choose} accept={accept} multiple={multi} onChange={(event) => setFiles(Array.from(event.target.files ?? []))} />{mode === 'watermark-adder' && <input className="mt-4 w-full rounded border p-2" value={text} onChange={(e) => setText(e.target.value)} placeholder={copy.watermark} />}{mode === 'meme-generator' && <div className="mt-4 grid gap-2"><input className="rounded border p-2" aria-label={copy.top} value={top} onChange={(e) => setTop(e.target.value)} placeholder={copy.top} /><input className="rounded border p-2" aria-label={copy.bottom} value={bottom} onChange={(e) => setBottom(e.target.value)} placeholder={copy.bottom} /></div>}{mode === 'image-effects' && <div className="mt-4 grid gap-2 sm:grid-cols-2"><label>{copy.brightness} <input aria-label={copy.brightness} type="range" min="50" max="150" value={effect.brightness} onChange={(e) => setEffect({ ...effect, brightness: Number(e.target.value) })} /></label><label>{copy.contrast} <input aria-label={copy.contrast} type="range" min="50" max="150" value={effect.contrast} onChange={(e) => setEffect({ ...effect, contrast: Number(e.target.value) })} /></label><label>{copy.saturation} <input aria-label={copy.saturation} type="range" min="0" max="200" value={effect.saturate} onChange={(e) => setEffect({ ...effect, saturate: Number(e.target.value) })} /></label><label>{copy.grayscale} <input aria-label={copy.grayscale} type="range" min="0" max="100" value={effect.grayscale} onChange={(e) => setEffect({ ...effect, grayscale: Number(e.target.value) })} /></label></div>}<button className="mt-6 rounded bg-black px-5 py-3 text-white" type="button" disabled={busy} onClick={run}>{busy ? copy.processing : copy.run}</button>{error && <p role="alert" className="mt-4 text-red-600">{error}</p>}{result && <section className="mt-8 rounded-xl border p-4"><div className="mb-3 font-semibold">{copy.result}</div>{result.text ? <pre className="max-h-72 overflow-auto text-xs">{result.text}</pre> : <img className="max-h-[28rem] w-full object-contain" src={result.url} alt={copy.toolResult} />}{!result.text && <p className="mt-2 text-sm opacity-70">{status}</p>}<button className="mt-4 rounded border px-4 py-2" type="button" onClick={() => download(result)}>{copy.download}</button></section>}</div>;
