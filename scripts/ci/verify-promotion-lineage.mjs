@@ -49,7 +49,7 @@ async function githubJson(pathname) {
 async function verifyLiveLineage() {
   const repository = process.env.GITHUB_REPOSITORY || '';
   const eventName = process.env.GITHUB_EVENT_NAME || '';
-  const candidateSha = process.env.GITHUB_SHA || '';
+  const candidateSha = process.env.EXPECTED_SHA || process.env.GITHUB_SHA || '';
   const eventPath = process.env.GITHUB_EVENT_PATH;
   if (repository !== CANONICAL_REPOSITORY) throw new Error('FAIL_CLOSED: non-canonical repository.');
   if (!SHA.test(candidateSha)) throw new Error('FAIL_CLOSED: invalid candidate SHA.');
