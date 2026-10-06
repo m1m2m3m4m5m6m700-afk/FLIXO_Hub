@@ -908,3 +908,175 @@ button, a, input { -webkit-tap-highlight-color: transparent; }
   .official-featured-card,
   .official-thinking-dot { transition: none; animation: none; }
 }
+
+
+/* Bolt UI integration — interaction surface only; product shell and execution architecture remain unchanged. */
+.official-discovery {
+  position: relative;
+  z-index: 4;
+  margin-top: 4px;
+  padding: 8px 0 18px;
+}
+.official-discovery-shell {
+  padding: 14px;
+  border: 1px solid rgba(58, 93, 110, .18);
+  border-radius: 22px;
+  background: rgba(255,255,255,.44);
+  box-shadow: 0 18px 55px rgba(0, 30, 45, .06);
+}
+.official-dark .official-discovery-shell {
+  border-color: rgba(105, 148, 165, .15);
+  background: rgba(10, 18, 25, .78);
+  box-shadow: 0 22px 70px rgba(0, 0, 0, .22);
+}
+.official-discovery-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 2px 4px 11px;
+}
+.official-discovery-heading small {
+  display: block;
+  margin-bottom: 4px;
+  color: #20a9bf;
+  font-size: .66rem;
+  font-weight: 900;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.official-discovery-heading h2 {
+  margin: 0;
+  font-size: clamp(1.05rem, 2.2vw, 1.35rem);
+  letter-spacing: -.025em;
+}
+.official-discovery-heading > span {
+  flex: 0 0 auto;
+  color: #7b8c97;
+  font-size: .76rem;
+}
+.official-discovery-input {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 5px 10px 5px 14px;
+  border: 1px solid rgba(51, 86, 105, .25);
+  border-radius: 16px;
+  background: rgba(245, 249, 250, .88);
+}
+.official-dark .official-discovery-input {
+  border-color: rgba(104, 150, 170, .18);
+  background: #0a1117;
+}
+.official-discovery-input > svg { color: #1dbed6; }
+.official-discovery-input input {
+  width: 100%;
+  min-width: 0;
+  min-height: 42px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: inherit;
+  font-size: .92rem;
+}
+.official-discovery-input input::placeholder { color: #8997a2; }
+.official-discovery-input > button {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  opacity: .65;
+}
+.official-discovery-input > button:hover { background: rgba(79, 112, 129, .1); opacity: 1; }
+.official-quick-tags,
+.official-tool-filters {
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+  padding: 9px 1px 1px;
+  scrollbar-width: none;
+}
+.official-quick-tags::-webkit-scrollbar,
+.official-tool-filters::-webkit-scrollbar { display: none; }
+.official-quick-tags button,
+.official-tool-filters button {
+  flex: 0 0 auto;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid rgba(63, 94, 109, .15);
+  border-radius: 999px;
+  background: rgba(255,255,255,.34);
+  color: #73848f;
+  font-size: .7rem;
+  font-weight: 750;
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease, color .15s ease, transform .15s ease;
+}
+.official-dark .official-quick-tags button,
+.official-dark .official-tool-filters button {
+  border-color: rgba(102, 143, 158, .14);
+  background: rgba(255,255,255,.025);
+  color: #8698a5;
+}
+.official-quick-tags button:hover,
+.official-tool-filters button:hover {
+  border-color: rgba(32, 189, 212, .34);
+  color: #1a8fa5;
+  transform: translateY(-1px);
+}
+.official-dark .official-quick-tags button:hover,
+.official-dark .official-tool-filters button:hover { color: #b4edf4; }
+.official-tool-filters { padding-top: 6px; }
+.official-tool-filters button.is-active {
+  border-color: #67e8f9;
+  background: #67e8f9;
+  color: #071116;
+}
+.official-tools-empty {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px dashed rgba(63, 97, 113, .2);
+  border-radius: 15px;
+  background: rgba(255,255,255,.28);
+}
+.official-dark .official-tools-empty { background: rgba(255,255,255,.018); }
+.official-tools-empty strong { font-size: .86rem; }
+.official-tools-empty button {
+  min-height: 38px;
+  padding: 0 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: #67e8f9;
+  color: #071015;
+  font-weight: 850;
+  cursor: pointer;
+}
+.official-tools-result-count {
+  margin: 10px 2px 0;
+  color: #7d8e99;
+  font-size: .7rem;
+}
+@media (max-width: 760px) {
+  .official-discovery-heading { align-items: start; flex-direction: column; gap: 5px; }
+  .official-discovery-shell { border-radius: 17px; padding: 10px; }
+  .official-discovery-input { min-height: 51px; grid-template-columns: auto minmax(0, 1fr) auto; border-radius: 13px; }
+  .official-discovery-input input { font-size: .82rem; }
+  .official-quick-tags button,
+  .official-tool-filters button { min-height: 29px; font-size: .63rem; }
+  .official-tools-empty { align-items: stretch; flex-direction: column; }
+  .official-tools-empty button { justify-content: center; }
+}
