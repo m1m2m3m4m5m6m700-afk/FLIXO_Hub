@@ -16,12 +16,26 @@ type ConfirmationRecord = Readonly<{
   plan: AgentPlan;
   file: File;
   identity: string;
+  createdAt: number;
 }>;
 
 const MAX_PROMPT_CHARS = 2_000;
 const MAX_FILE_BYTES = 512 * 1024 * 1024;
+const MAX_CONFIRMATIONS = 32;
+const CONFIRMATION_TTL_MS = 10 * 60 * 1000;
 const issuedPlans = new WeakMap<object, { file: File; identity: string }>();
 const confirmations = new Map<string, ConfirmationRecord>();
+
+function pruneConfirmations(now = Date.now()): void {
+  for (const [token, record] of confirmations) {
+    if (now - record.createdAt >= CONFIRMATION_TTL_MS) confirmations.delete(token);
+  }
+  while (confirmations.size >= MAX_CONFIRMATIONS) {
+    const oldest = confirmations.keys().next().value;
+    if (typeof oldest !== 'string') break;
+    confirmations.delete(oldest);
+  }
+}
 
 function normalize(value: string): string {
   return value.trim().toLocaleLowerCase().normalize('NFKC');
@@ -280,7 +294,9 @@ export function confirmAgentPlan(plan: AgentPlan, file: File): AgentConfirmation
   }
 
   const token = randomToken();
-  confirmations.set(token, Object.freeze({ plan, file, identity }));
+  const now = Date.now();
+  pruneConfirmations(now);
+  confirmations.set(token, Object.freeze({ plan, file, identity, createdAt: now }));
   return Object.freeze({ token });
 }
 
@@ -310,8 +326,14 @@ export async function executeAgentPlan(
     throw new Error('Execution denied: plan is stale relative to the current canonical tool catalog.');
   }
 
+  const now = Date.now();
+  pruneConfirmations(now);
   const record = receipt?.token ? confirmations.get(receipt.token) : undefined;
-  if (!record || record.file !== file || record.plan !== plan || record.identity !== identityOf(validated)) {
+  if (!record || now - record.createdAt >= CONFIRMATION_TTL_MS) {
+    if (receipt?.token) confirmations.delete(receipt.token);
+    throw new Error('Execution denied: confirmation receipt is missing, stale, or expired.');
+  }
+  if (record.file !== file || record.plan !== plan || record.identity !== identityOf(validated)) {
     throw new Error('Execution denied: confirmation receipt is missing, stale, or bound to another plan/file.');
   }
   const confirmationToken = receipt?.token;
