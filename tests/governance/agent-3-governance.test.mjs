@@ -284,6 +284,20 @@ test('workflow-level contents:write must be explicitly constrained to main or ex
     '          ref: execution',
   ].join('\\n');
   assert.equal(analyzeWorkflowAuthority('.github/workflows/fixture.yml', executionController).pass, true);
+
+  const mainOnlyRelease = [
+    'on:',
+    '  push:',
+    '    branches: [main]',
+    'permissions:',
+    '  contents: write',
+    'jobs:',
+    '  release:',
+    '    runs-on: ubuntu-latest',
+    '    steps:',
+    '      - run: echo release',
+  ].join('\\n');
+  assert.equal(analyzeWorkflowAuthority('.github/workflows/fixture.yml', mainOnlyRelease).pass, true);
 });
 test('workflow authority rejects an unauthorized non-main production deployment', () => {
   const fixture = [
