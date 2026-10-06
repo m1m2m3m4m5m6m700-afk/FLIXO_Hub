@@ -3,14 +3,17 @@ name: FLIXO Final Clean-Clone Red Team
 on:
   push:
     branches: [execution]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
   actions: read
+  pull-requests: write
 
 concurrency:
-  group: flixo-final-red-team-${{ github.ref }}
+  group: flixo-final-red-team-${{ github.event.pull_request.head.sha || github.sha }}
   cancel-in-progress: false
 
 jobs:
