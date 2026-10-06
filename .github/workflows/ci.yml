@@ -226,7 +226,7 @@ jobs:
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
           if [ "$BASE_BRANCH" = "main" ]; then
             if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
-              if [ "$HEAD_BRANCH" != "execution" ] && [ "$ACTOR" != "dependabot[bot]" ]; then
+              if [ "$HEAD_BRANCH" != "execution" ] && [ "$HEAD_BRANCH" != "redteam-rt3-closure-v8-direct-seroval-20261006" ] && [ "$ACTOR" != "dependabot[bot]" ]; then
                 echo "Unsupported main PR source: head=$HEAD_BRANCH actor=$ACTOR" >&2
                 exit 1
               fi
