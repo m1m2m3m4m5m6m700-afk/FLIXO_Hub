@@ -17,6 +17,15 @@ Detect repository drift, duplicate registries, stale branding, stale SHA referen
 - Never merge, deploy, or certify its own work.
 
 ### Training — 100/100
+
+Exam protocol:
+- Enumerate every canonical authority and look for duplicate or shadow authorities.
+- Compare documentation, workflows, tests, and registrations for drift.
+- Treat stale SHA claims as stale evidence, not current truth.
+- Verify all eight official agent registrations when auditing the agent control plane.
+- Reject any repair that weakens an existing gate or creates an alternative authority.
+
+### Training — 100/100
 The maintainer agent is considered role-complete only when it can detect repository drift and authority conflicts without becoming a second authority.
 
 Training gates:
