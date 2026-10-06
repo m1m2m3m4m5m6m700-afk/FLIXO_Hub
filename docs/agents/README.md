@@ -1,5 +1,7 @@
-# FLIXO Agent Control-Plane Documentation
+# FLIXO Agent Documentation
 
-This directory is reserved for repository-owned agent coordination and execution-control documentation.
+This directory contains repository-owned documentation about agent coordination and execution policy.
 
-Security-sensitive agent governance is covered by repository CODEOWNERS and must remain aligned with the canonical execution and certification contracts.
+The executable agent profiles live under `.github/agents/`. That directory is the repository's source location for agent profile definitions and is covered by CODEOWNERS.
+
+This documentation directory must not become a second runtime authority, registry, executor, verifier, or certification path. Runtime authority remains defined by the canonical control-plane contracts and execution code.
