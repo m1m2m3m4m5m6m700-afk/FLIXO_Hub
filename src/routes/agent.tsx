@@ -14,10 +14,10 @@ import {
 const COPY = {
   en: {
     title: 'FLIXO Agent',
-    subtitle: 'Describe an image edit, choose a file, review the plan, then confirm execution.',
+    subtitle: 'Describe an image or video edit, choose a file, review the plan, then confirm execution.',
     prompt: 'What should FLIXO do?',
-    promptPlaceholder: 'e.g. remove the background, convert to WebP, sharpen the image',
-    file: 'Choose image',
+    promptPlaceholder: 'e.g. remove the background, convert to WebP, sharpen an image, or trim a video',
+    file: 'Choose image or video',
     plan: 'Build plan',
     execute: 'Execute',
     cancel: 'Cancel',
@@ -35,10 +35,10 @@ const COPY = {
   },
   ar: {
     title: 'وكيل FLIXO',
-    subtitle: 'اكتب التعديل المطلوب، اختر ملفًا، راجع الخطة، ثم أكد التنفيذ.',
+    subtitle: 'اكتب تعديل الصورة أو الفيديو، اختر ملفًا، راجع الخطة، ثم أكد التنفيذ.',
     prompt: 'ماذا تريد من FLIXO أن يفعل؟',
-    promptPlaceholder: 'مثال: أزل الخلفية، حوّل إلى WebP، حسّن حدة الصورة',
-    file: 'اختر صورة',
+    promptPlaceholder: 'مثال: أزل الخلفية، حوّل إلى WebP، حسّن حدة الصورة، أو اقتطع الفيديو',
+    file: 'اختر صورة أو فيديو',
     plan: 'إنشاء الخطة',
     execute: 'تنفيذ',
     cancel: 'إلغاء',
@@ -161,7 +161,7 @@ export function AgentPage() {
           <label htmlFor="agent-prompt">{copy.prompt}</label>
           <textarea id="agent-prompt" value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder={copy.promptPlaceholder} rows={4} />
           <label htmlFor="agent-file">{copy.file}</label>
-          <input id="agent-file" type="file" accept="image/*" onChange={(event) => {
+          <input id="agent-file" type="file" accept="image/*,video/*" onChange={(event) => {
             revokeAgentConfirmation(confirmationReceipt);
             setConfirmationReceipt(null);
             setFile(event.target.files?.[0] ?? null);
