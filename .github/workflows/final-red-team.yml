@@ -24,6 +24,9 @@ jobs:
       VITE_SITE_URL: https://flixoai.m1m2m3m4m5m6m700.workers.dev
       VITE_RUNTIME_ORIGIN: http://127.0.0.1:3000
       VITE_TEST_ORIGIN: http://127.0.0.1:3000
+      VITE_SITE_URL: https://flixoai.m1m2m3m4m5m6m700.workers.dev
+      VITE_RUNTIME_ORIGIN: http://127.0.0.1:3000
+      VITE_TEST_ORIGIN: http://127.0.0.1:3000
     steps:
       - name: Checkout exact candidate
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
