@@ -6,8 +6,8 @@ This manifest is the single release-truth record for the public launch candidate
 
 ## Candidate identity
 
-- Candidate SHA: RESOLVE FROM LIVE PR #1002 HEAD; this manifest does not self-certify or embed a self-referential commit SHA.
-- Last fully verified candidate before this documentation rollover: `bfa98f6da5bdc28b21c4f22a926d4c219a7230a2`
+- Candidate SHA: live PR #1002 head at verification time; last fully verified candidate: `7d9266a42690417511d0202b3d06b6b362f2d7d4`.
+- Last fully verified candidate before this documentation rollover: `7d9266a42690417511d0202b3d06b6b362f2d7d4`
 - Candidate branch: `execution`
 - Source main SHA at freeze: `263827228cbe5f4851470297fde5f2858ff844de`
 - Release tag: `PENDING`
