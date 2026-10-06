@@ -122,12 +122,16 @@ test('Secret Scan is exact-SHA, full-history, and does not mask findings', async
   assert.ok(!config.includes('gitleaksignore'));
 });
 
-test('CodeQL persists SARIF into durable code-scanning evidence', async () => {
+test('CodeQL persists exact-SHA SARIF as durable evidence when GitHub default setup blocks API uploads', async () => {
   const workflow = await readFile(path.join(ROOT, '.github/workflows/codeql.yml'), 'utf8');
-  assert.ok(workflow.includes('security-events: write'));
-  assert.ok(workflow.includes('upload: always'));
-  assert.ok(workflow.includes('wait-for-processing: true'));
-  assert.ok(!workflow.includes('upload: never'));
+  assert.ok(workflow.includes('upload: never'));
+  assert.ok(workflow.includes('codeql-sarif'));
+  assert.ok(workflow.includes('sha256sum'));
+  assert.ok(workflow.includes('exact-sha.txt'));
+  assert.ok(workflow.includes('flixo-codeql-sarif-${{ github.sha }}-${{ matrix.language }}'));
+  assert.ok(workflow.includes('retention-days: 90'));
+  assert.ok(workflow.includes('actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02'));
+  assert.ok(!workflow.includes('wait-for-processing: true'));
 });
 
 test('production deployment keeps source immutable and artifact-bound', async () => {
