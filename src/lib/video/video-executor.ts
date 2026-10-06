@@ -124,13 +124,14 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
       ...(options.audioBitsPerSecond ? { audioBitsPerSecond: options.audioBitsPerSecond } : {}),
     });
 
+    const activeRecorder = recorder;
     const chunks: Blob[] = [];
     const stopped = new Promise<void>((resolve, reject) => {
-      recorder.ondataavailable = (event) => {
+      activeRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) chunks.push(event.data);
       };
-      recorder.onerror = () => reject(new Error('VIDEO_RECORDING_FAILED'));
-      recorder.onstop = () => resolve();
+      activeRecorder.onerror = () => reject(new Error('VIDEO_RECORDING_FAILED'));
+      activeRecorder.onstop = () => resolve();
     });
 
     if (options.signal?.aborted) throw new DOMException('Video operation aborted.', 'AbortError');
@@ -143,7 +144,7 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
       frameHandle = requestAnimationFrame(draw);
     };
 
-    recorder.start(250);
+    activeRecorder.start(250);
     draw();
     await video.play();
 
@@ -169,7 +170,7 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
     drawing = false;
     cancelAnimationFrame(frameHandle);
     video.pause();
-    if (recorder.state !== 'inactive') recorder.stop();
+    if (activeRecorder.state !== 'inactive') activeRecorder.stop();
     await stopped;
 
     canvasStream.getTracks().forEach((track) => track.stop());
