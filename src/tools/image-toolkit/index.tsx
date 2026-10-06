@@ -155,7 +155,7 @@ export function ImageToolPage({ toolId }: Props) {
   const run = async () => {
     setBusy(true); setError(''); replaceResult(null);
     try {
-      if (isGenerator) {
+      if (toolId === 'ai-image-generator') {
         if (!prompt.trim()) throw new Error(ui.promptRequired);
         const body = new FormData();
         body.append('capability', 'generate-image');
@@ -170,7 +170,7 @@ export function ImageToolPage({ toolId }: Props) {
       }
       if (toolId === 'image-upscaler') { const factor = Number(scale); if (!Number.isFinite(factor) || factor < 1 || factor > 8) throw new Error('Scale must be between 1 and 8.'); }
       if (!file) throw new Error(ui.chooseImageFirst);
-      if (toolId !== 'ai-image-generator') await validateSharedImageInput(file, toolId);
+      await validateSharedImageInput(file, toolId);
       let blob: Blob; let fileName = baseName(file.name); let info: Result['info'];
       if (toolId === 'background-remover') { const output = await executeCanonicalTool('background-remover', { blob: file, fileName: file.name }, { tolerance: Number(tolerance) || 42 }); blob = output.blob; fileName = output.fileName; }
       else if (toolId === 'image-upscaler') { const factor = Number(scale); const output = await executeCanonicalTool('image-upscaler', { blob: file, fileName: file.name }, { scale: factor }); blob = output.blob; fileName = output.fileName; }
