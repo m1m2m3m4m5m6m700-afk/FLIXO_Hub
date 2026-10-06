@@ -300,7 +300,8 @@ async function verifyOutputContract(
       if (typeof document === 'undefined') throw new Error('Browser runtime required for video output verification.');
       const video = document.createElement('video');
       video.preload = 'metadata';
-      video.srcObject = output.blob;
+      const url = URL.createObjectURL(output.blob);
+      video.src = url;
       try {
         await withDeadline(
           new Promise<void>((resolve, reject) => {
