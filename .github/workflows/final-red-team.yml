@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
       GH_TOKEN: ${{ github.token }}
       VITE_SITE_URL: 'https://flixoai.m1m2m3m4m5m6m700.workers.dev'
       VITE_RUNTIME_ORIGIN: 'http://127.0.0.1:3000'
@@ -74,6 +74,17 @@ jobs:
           printf '%s\\n' "$EXPECTED_SHA" > dist/__flixo-identity.txt
           mkdir -p "dist/__flixo/identity/$EXPECTED_SHA"
           printf '%s\\n' "$EXPECTED_SHA" > "dist/__flixo/identity/$EXPECTED_SHA/index.txt"
+
+      - name: Stamp exact build identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          printf '%s\n' "$EXPECTED_SHA" > dist/flixo-head-sha.txt
+          printf '%s\n' "$EXPECTED_SHA" > "dist/__flixo-identity-$EXPECTED_SHA.txt"
+          printf '%s\n' "$EXPECTED_SHA" > dist/__flixo-identity.txt
+          mkdir -p "dist/__flixo/identity/$EXPECTED_SHA"
+          printf '%s\n' "$EXPECTED_SHA" > "dist/__flixo/identity/$EXPECTED_SHA/index.txt"
 
       - name: Verify build artifact identity
         shell: bash
