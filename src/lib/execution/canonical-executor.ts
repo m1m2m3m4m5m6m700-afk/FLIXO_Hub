@@ -119,13 +119,14 @@ async function preflightInput(
   const video = document.createElement('video');
   video.preload = 'metadata';
   const url = URL.createObjectURL(input.blob);
-  video.src = url;
   try {
+    const metadataReady = new Promise<void>((resolve, reject) => {
+      video.onloadedmetadata = () => resolve();
+      video.onerror = () => reject(new Error('VIDEO_METADATA_INVALID'));
+    });
+    video.src = url;
     await withDeadline(
-      new Promise<void>((resolve, reject) => {
-        video.onloadedmetadata = () => resolve();
-        video.onerror = () => reject(new Error('VIDEO_METADATA_INVALID'));
-      }),
+      metadataReady,
       Math.min(timeoutMs, 30_000),
       signal,
     );
@@ -309,13 +310,14 @@ async function verifyOutputContract(
       const video = document.createElement('video');
       video.preload = 'metadata';
       const url = URL.createObjectURL(output.blob);
-      video.src = url;
       try {
+        const metadataReady = new Promise<void>((resolve, reject) => {
+          video.onloadedmetadata = () => resolve();
+          video.onerror = () => reject(new Error('Video output could not be decoded.'));
+        });
+        video.src = url;
         await withDeadline(
-          new Promise<void>((resolve, reject) => {
-            video.onloadedmetadata = () => resolve();
-            video.onerror = () => reject(new Error('Video output could not be decoded.'));
-          }),
+          metadataReady,
           Math.min(timeoutMs, 30_000),
           signal,
         );
