@@ -193,7 +193,6 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
     sourceStream?.getTracks().forEach((track) => track.stop());
     // The source is detached by attachVideoBlobSource's cleanup closure.
     releaseSource?.();
-    releaseSource = null;
     video.removeAttribute('src');
     video.load();
   }
