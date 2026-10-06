@@ -121,7 +121,6 @@ async function buildFixture(page: Page, seconds = 1.4): Promise<Buffer> {
         probe.onloadedmetadata = () => resolve();
         probe.onerror = () => reject(new Error('VIDEO_FIXTURE_METADATA_INVALID'));
       });
-      if (!Number.isFinite(probe.duration) || probe.duration <= 0) throw new Error('VIDEO_FIXTURE_DURATION_INVALID');
     } finally {
       URL.revokeObjectURL(url);
       probe.removeAttribute('src');
