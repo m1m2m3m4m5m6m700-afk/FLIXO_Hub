@@ -143,10 +143,25 @@ export function ImageToolPage({ toolId }: Props) {
   const [scale, setScale] = useState('2'); const [tolerance, setTolerance] = useState('42'); const [columns, setColumns] = useState('48');
   const [cropX, setCropX] = useState('0'); const [cropY, setCropY] = useState('0'); const [cropW, setCropW] = useState('500'); const [cropH, setCropH] = useState('500'); const [outW, setOutW] = useState('500'); const [outH, setOutH] = useState('500');
   const [busy, setBusy] = useState(false); const [error, setError] = useState(''); const [result, setResult] = useState<Result | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const objectUrlRef = useRef<string | undefined>(undefined);
 
   useEffect(() => () => { if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current); }, []);
   const replaceResult = (next: Result | null) => { if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current); objectUrlRef.current = next?.objectUrl; setResult(next); };
+
+  const reset = () => {
+    if (busy) return;
+    replaceResult(null);
+    setFile(null);
+    setPrompt('');
+    setOutputFormat('image/webp');
+    setScale('2');
+    setTolerance('42');
+    setColumns('48');
+    setCropX('0'); setCropY('0'); setCropW('500'); setCropH('500'); setOutW('500'); setOutH('500');
+    setError('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
   const run = async () => {
     setBusy(true); setError(''); replaceResult(null);
@@ -201,13 +216,13 @@ export function ImageToolPage({ toolId }: Props) {
           <div className="compressor-card">
             {isGenerator
               ? <label><span>{ui.prompt}</span><textarea data-testid="ai-image-prompt" value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder={ui.prompt} rows={6} /></label>
-              : <><label className="upload-zone" htmlFor="image-tool-file"><span className="upload-title">{file ? file.name : ui.chooseImage}</span><span className="upload-subtitle">{definition.accept.replaceAll('image/', '').toUpperCase() || ui.imageInput}</span></label><input id="image-tool-file" className="sr-only" type="file" accept={definition.accept} onChange={(event) => setFile(event.target.files?.[0] ?? null)} /></>}
+              : <><label className="upload-zone" htmlFor="image-tool-file" onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; }} onDrop={(event) => { event.preventDefault(); if (busy) return; const dropped = event.dataTransfer.files?.[0]; if (dropped) setFile(dropped); }}><span className="upload-title">{file ? file.name : ui.chooseImage}</span><span className="upload-subtitle">{definition.accept.replaceAll('image/', '').toUpperCase() || ui.imageInput}</span></label><input ref={fileInputRef} id="image-tool-file" className="sr-only" type="file" accept={definition.accept} disabled={busy} onChange={(event) => setFile(event.target.files?.[0] ?? null)} /></>}
             {toolId === 'image-converter' && <label><span>{ui.outputFormat}</span><select aria-label={ui.outputFormat} value={outputFormat} onChange={(event) => setOutputFormat(event.target.value as typeof outputFormat)}><option value="image/webp">WebP</option><option value="image/jpeg">JPG</option><option value="image/png">PNG</option></select></label>}
             {toolId === 'image-upscaler' && <label><span>{ui.scale}</span><input aria-label={ui.scale} inputMode="decimal" value={scale} onChange={(event) => setScale(event.target.value)} /></label>}
             {toolId === 'background-remover' && <label><span>{ui.backgroundTolerance}</span><input aria-label={ui.backgroundTolerance} inputMode="numeric" value={tolerance} onChange={(event) => setTolerance(event.target.value)} /></label>}
             {toolId === 'raster-to-svg' && <label><span>{ui.svgColumns}</span><input aria-label={ui.svgColumns} inputMode="numeric" value={columns} onChange={(event) => setColumns(event.target.value)} /></label>}
             {['object-remover', 'watermark-remover', 'crop-resize'].includes(toolId) && <div className="control-grid">{([ [ui.x, cropX, setCropX, 'object-x'], [ui.y, cropY, setCropY, 'object-y'], [ui.width, cropW, setCropW, 'object-width'], [ui.height, cropH, setCropH, 'object-height'] ] as const).map(([labelText, value, setter, testId]) => <label key={testId}><span>{labelText}</span><input data-testid={testId} aria-label={labelText} inputMode="numeric" value={value} onChange={(event) => setter(event.target.value)} /></label>)}{toolId === 'crop-resize' && <><label><span>{ui.outputWidth}</span><input aria-label={ui.outputWidth} inputMode="numeric" value={outW} onChange={(event) => setOutW(event.target.value)} /></label><label><span>{ui.outputHeight}</span><input aria-label={ui.outputHeight} inputMode="numeric" value={outH} onChange={(event) => setOutH(event.target.value)} /></label></>}</div>}
-            <div className="button-row"><button className="primary-button" disabled={busy || (!file && !isGenerator)} onClick={() => void run()}>{busy ? ui.processing : isGenerator ? ui.generate : ui.run}</button></div>
+            <div className="button-row"><button className="primary-button" disabled={busy || (!file && !isGenerator)} onClick={() => void run()}>{busy ? ui.processing : isGenerator ? ui.generate : ui.run}</button><button className="secondary-button" type="button" disabled={busy} onClick={reset}>{locale === 'ar' ? 'إعادة ضبط' : 'Reset'}</button></div>
             {error && <p role="alert" className="error-box">{error}</p>}
             {toolId === 'image-to-text' && <p className="privacy-note">{ui.privacyOcr}</p>}
           </div>
