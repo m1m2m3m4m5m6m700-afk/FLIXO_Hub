@@ -59,6 +59,16 @@ test('FLIXO CI protects every candidate-sensitive checkout and identity stamp', 
   );
 });
 
+test('execution-only assurance lanes deduplicate by branch while promotion lanes retain PR identity', async () => {
+  const redTeam = await readFile(new URL('../../.github/workflows/final-red-team.yml', import.meta.url), 'utf8');
+  const video = await readFile(new URL('../../.github/workflows/video-assurance.yml', import.meta.url), 'utf8');
+
+  assert.match(redTeam, /group:\s*flixo-final-red-team-\$\{\{ github\.event_name == 'pull_request' && github\.event\.pull_request\.number \|\| github\.ref \}\}/u);
+  assert.match(video, /group:\s*flixo-video-assurance-\$\{\{ github\.event_name == 'pull_request' && github\.event\.pull_request\.number \|\| github\.ref \}\}/u);
+  assert.match(redTeam, /cancel-in-progress:\s*\$\{\{ github\.event_name == 'push' && github\.ref == 'refs\/heads\/execution' \}\}/u);
+  assert.match(video, /cancel-in-progress: true/u);
+});
+
 test('canonical CI security workflows do not trigger on execution worker PRs', async () => {
   const files = [
     '.github/workflows/ci.yml',
