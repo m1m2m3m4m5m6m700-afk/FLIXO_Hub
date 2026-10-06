@@ -26,14 +26,13 @@ export const HOME_AR = {
   toolbox: 'صندوق الأدوات', toolboxTitle: 'ابدأ بالأدوات التي يحتاجها الناس فعلًا.', ready: 'جاهزة', empty: 'لا توجد أداة مطابقة بعد. جرّب عبارة أبسط أو افتح النية الذكية باستخدام Ctrl K.', builtForFocus: 'مصمم للتركيز', finalTitle: 'بحث واحد. نتيجة مفيدة واحدة.', finalLead: 'صُممت FLIXO لنقلك من النية إلى التنفيذ دون تحويل المهمة البسيطة إلى سير عمل معقد.', trySmart: 'جرّب النية الذكية', all: 'الكل', browserMeta: 'محلي · بدء فوري',
   ariaHome: 'العودة إلى FLIXO', ariaPrimary: 'التنقل الرئيسي', ariaFindTool: 'العثور على أداة', ariaTrust: 'إشارات الثقة', ariaCategories: 'تصنيفات الأدوات', quickTags: ['ضغط الصور', 'إزالة الخلفية', 'OCR', 'PDF'],
   tools: {
-    'image-compressor': 'ضاغط الصور', 'background-remover': 'إزالة الخلفية', 'image-upscaler': 'تكبير الصور', 'image-converter': 'محول الصور', 'ai-image-generator': 'مولد الصور بالذكاء الاصطناعي', 'object-remover': 'إزالة العناصر', 'watermark-remover': 'إزالة العلامة المائية', 'image-cropper': 'قص الصور', 'image-to-svg': 'تحويل الصورة إلى SVG', 'image-ocr': 'OCR للصور', 'background-blur': 'ضبابية الخلفية', 'passport-photo-maker': 'منشئ صور جواز السفر', 'watermark-adder': 'إضافة علامة مائية', 'meme-generator': 'منشئ الميمز', 'collage-maker': 'منشئ الكولاج', 'image-effects': 'تأثيرات الصور', 'exif-cleaner': 'منظف EXIF', 'svg-optimizer': 'محسن SVG', 'mockup-generator': 'منشئ النماذج', seed: 'Seed', pix: 'Pix Studio',
+    'image-compressor': 'ضاغط الصور', 'background-remover': 'إزالة الخلفية', 'image-upscaler': 'تكبير الصور', 'image-converter': 'محول الصور', 'object-remover': 'إزالة العناصر', 'watermark-remover': 'إزالة العلامة المائية', 'image-cropper': 'قص الصور', 'image-to-svg': 'تحويل الصورة إلى SVG', 'image-ocr': 'OCR للصور', 'background-blur': 'ضبابية الخلفية', 'passport-photo-maker': 'منشئ صور جواز السفر', 'watermark-adder': 'إضافة علامة مائية', 'meme-generator': 'منشئ الميمز', 'collage-maker': 'منشئ الكولاج', 'image-effects': 'تأثيرات الصور', 'exif-cleaner': 'منظف EXIF', 'svg-optimizer': 'محسن SVG', 'mockup-generator': 'منشئ النماذج', seed: 'Seed', pix: 'Pix Studio',
   },
   toolDescriptions: {
     'image-compressor': 'قلّل حجم صور JPG وPNG وWebP داخل المتصفح.',
     'background-remover': 'أزل الخلفيات المتصلة محليًا من صورك.',
     'image-upscaler': 'كبّر أبعاد الصور مع إعادة تحجيم عالية الجودة.',
     'image-converter': 'حوّل صيغ الصور الشائعة محليًا داخل المتصفح.',
-    'ai-image-generator': 'أنشئ الصور عبر نقطة AI المهيأة للمشروع.',
     'object-remover': 'أزل المناطق المحددة من الصور محليًا.',
     'watermark-remover': 'نظّف مناطق العلامات المائية المحددة.',
     'image-cropper': 'اقصص الصور واضبط أبعادها بدقة.',
