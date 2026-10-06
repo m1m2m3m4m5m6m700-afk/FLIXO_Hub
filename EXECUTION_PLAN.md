@@ -481,7 +481,7 @@ Sub-agents may be used for analysis/review tasks, but they do not receive author
 | Phase 4 | NOT STARTED                                       | pending                                    | pending                                                                                                                                          | pending                          |
 | Phase 5 | NOT STARTED                                       | pending                                    | pending                                                                                                                                          | pending                          |
 | Phase 6 | NOT STARTED                                       | pending                                    | pending                                                                                                                                          | pending                          |
-| Phase 7 | CURRENT RELEASE VERIFIED; FULL PROGRAM INCOMPLETE | `e37be44b89a50dec5ac633d052090aa73fe956fd` | CI, CodeQL, Secret Scan, Chromium smoke, trust-gate, exact-SHA proof, Cloudflare deployment, immutable identity, production browser verification | pre-authorized by active mandate |
+| Phase 7 | HISTORICAL EVIDENCE — NOT CURRENT CERTIFICATION | `e37be44b89a50dec5ac633d052090aa73fe956fd` | Historical release evidence retained for archaeology only; it is not reusable as current certification evidence and must be revalidated on the live candidate | historical record only |
 
 ## Completion Rule
 
