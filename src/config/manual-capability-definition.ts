@@ -1,4 +1,4 @@
-import { attachVideoBlobSource } from '../lib/video/blob-video-source.ts';
+import { attachVideoBlobSource, getBoundedVideoDuration } from '../lib/video/blob-video-source.ts';
 import { z, type ZodType } from "zod";
 
 export type CanonicalCapabilityState = "RECOGNIZED" | "PLANNABLE" | "EXECUTABLE" | "UNAVAILABLE";
@@ -206,8 +206,9 @@ async function readVideoDimensions(blob: Blob, signal?: AbortSignal): Promise<Me
     });
     releaseSource = await attachVideoBlobSource(video, blob, signal);
     await metadataReady;
-    if (!Number.isFinite(video.duration) || video.duration <= 0 || video.videoWidth <= 0 || video.videoHeight <= 0) return undefined;
-    return { width: video.videoWidth, height: video.videoHeight, duration: video.duration };
+    const duration = getBoundedVideoDuration(video, 10 * 60);
+    if (video.videoWidth <= 0 || video.videoHeight <= 0) return undefined;
+    return { width: video.videoWidth, height: video.videoHeight, duration };
   } finally {
     releaseSource?.();
     video.removeAttribute("src");
