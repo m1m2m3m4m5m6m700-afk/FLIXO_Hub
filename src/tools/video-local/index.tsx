@@ -255,7 +255,7 @@ export function VideoLocalTool() {
   }, [toolId, ui]);
 
   return (
-    <main lang={locale} dir={locale === 'ar' ? 'rtl' : 'ltr'} aria-labelledby="video-tool-title" style={{ maxWidth: 1080, margin: '0 auto', padding: 24 }}>
+    <div lang={locale} dir={locale === 'ar' ? 'rtl' : 'ltr'} aria-labelledby="video-tool-title" style={{ maxWidth: 1080, margin: '0 auto', padding: 24 }}>
       <header>
         <p style={{ opacity: 0.7 }}>FLIXO Hub · {ui.ready}</p>
         <h2 id="video-tool-title">{title}</h2>
