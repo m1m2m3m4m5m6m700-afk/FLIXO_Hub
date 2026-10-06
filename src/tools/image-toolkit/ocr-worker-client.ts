@@ -24,12 +24,19 @@ async function ensureTesseract(): Promise<TesseractApi> {
   return window.Tesseract;
 }
 
-async function preprocessWithWorker(blob: Blob): Promise<Blob> {
+async function preprocessWithWorker(blob: Blob, signal?: AbortSignal): Promise<Blob> {
   if (typeof Worker === 'undefined') throw new Error('Web Worker is unavailable.');
 
   return await new Promise<Blob>((resolve, reject) => {
     const worker = new Worker(new URL('./ocr-worker.ts', import.meta.url), { type: 'classic' });
-    const cleanup = () => worker.terminate();
+    const cleanup = () => {
+      worker.terminate();
+      signal?.removeEventListener('abort', onAbort);
+    };
+    const onAbort = () => {
+      cleanup();
+      reject(new DOMException('OCR preprocessing aborted.', 'AbortError'));
+    };
 
     worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
       cleanup();
@@ -45,12 +52,15 @@ async function preprocessWithWorker(blob: Blob): Promise<Blob> {
       reject(new Error('OCR preprocessing worker could not start.'));
     };
 
+    signal?.addEventListener('abort', onAbort, { once: true });
+    if (signal?.aborted) return onAbort();
     worker.postMessage({ blob });
   });
 }
 
-export async function recognizeWithOcrWorker(blob: Blob, language: string): Promise<OcrWorkerResult> {
-  const prepared = await preprocessWithWorker(blob);
+export async function recognizeWithOcrWorker(blob: Blob, language: string, signal?: AbortSignal): Promise<OcrWorkerResult> {
+  const prepared = await preprocessWithWorker(blob, signal);
+  if (signal?.aborted) throw new DOMException('OCR operation aborted.', 'AbortError');
   const tesseract = await ensureTesseract();
   const result = await tesseract.recognize(prepared, language);
   return { text: result.data.text };
