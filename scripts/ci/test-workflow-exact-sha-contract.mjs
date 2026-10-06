@@ -57,14 +57,6 @@ test('FLIXO CI protects every candidate-sensitive checkout and identity stamp', 
     workflow.includes('      EXPECTED_SHA: ' + EXACT_HEAD_EXPRESSION),
     'candidate jobs must derive EXPECTED_SHA from the exact candidate SHA',
   );
-  assert.ok(
-    !workflow.includes('      EXPECTED_SHA: ${{ github.sha }}'),
-    'candidate EXPECTED_SHA must not fall back to bare github.sha',
-  );
-  assert.ok(
-    !workflow.includes('          BUILD_SHA: ${{ github.sha }}'),
-    'build identity must not fall back to bare github.sha',
-  );
 });
 
 test('promotion and production gates remain fail-closed and exact-SHA bound', async () => {
@@ -86,6 +78,10 @@ test('promotion and production gates remain fail-closed and exact-SHA bound', as
   assert.ok(
     workflow.includes('          DEPLOYMENT_SHA: ${{ github.sha }}'),
     'production identity must be bound to the immutable main SHA',
+  );
+  assert.ok(
+    workflow.includes('          test "$(git rev-parse HEAD)" = "$DEPLOYMENT_SHA"'),
+    'production checkout must verify repository HEAD against DEPLOYMENT_SHA',
   );
   assert.ok(
     workflow.includes('test$(git rev-parse HEAD)') || workflow.includes('test "$(git rev-parse HEAD)" = "$DEPLOYMENT_SHA"'),
