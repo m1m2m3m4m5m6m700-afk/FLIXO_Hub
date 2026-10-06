@@ -278,13 +278,17 @@ export function collectSemanticDiff(mainRef = 'refs/remotes/origin/main', execut
     return { readable: false, mainSha: null, executionSha: null, changedFiles: [], sourceChanges: [], summary: { added: 0, removed: 0, modified: 0, semanticSourceChanges: 0 }, error: String(error) };
   }
 }
-export function collectGitRefSnapshot(ref = 'refs/remotes/origin/main') {
+export function collectGitRefSnapshot(
+  ref = process.env.GITHUB_REF === 'refs/heads/main' ? 'HEAD' : 'refs/remotes/origin/main',
+) {
   try {
     let resolvedRef;
     try {
       resolvedRef = sh('git', ['rev-parse', ref]);
     } catch {
-      if (ref !== 'refs/heads/main') {
+      if (ref !== 'refs/heads/main' && process.env.GITHUB_REF === 'refs/heads/main') {
+        resolvedRef = sh('git', ['rev-parse', 'HEAD']);
+      } else if (ref !== 'refs/heads/main') {
         resolvedRef = sh('git', ['rev-parse', 'refs/heads/main']);
       } else {
         throw new Error('main branch reference is unavailable');
