@@ -1,5 +1,24 @@
 export type VideoSourceCleanup = () => void;
 
+export function getBoundedVideoDuration(
+  video: HTMLVideoElement,
+  maxDurationSeconds: number,
+): number {
+  const metadataDuration = video.duration;
+  if (Number.isFinite(metadataDuration) && metadataDuration > 0 && metadataDuration <= maxDurationSeconds) {
+    return metadataDuration;
+  }
+
+  const ranges = video.buffered.length > 0 ? video.buffered : video.seekable;
+  if (ranges.length > 0) {
+    const end = ranges.end(ranges.length - 1);
+    if (Number.isFinite(end) && end > 0 && end <= maxDurationSeconds) return end;
+  }
+
+  throw new Error('VIDEO_DURATION_BOUNDARY_INVALID');
+}
+
+
 function cancelled(): Error {
   return typeof DOMException === 'function'
     ? new DOMException('Video media source attachment aborted.', 'AbortError')
