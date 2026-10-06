@@ -11,11 +11,14 @@ declare global {
   }
 }
 
+const TESSERACT_CDN_URL = 'https://cdn.jsdelivr.net/gh/naptha/tesseract.js@9d9b666/dist/tesseract.min.js';
+
 async function ensureTesseract(): Promise<TesseractApi> {
   if (window.Tesseract) return window.Tesseract;
   await new Promise<void>((resolve, reject) => {
     const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@6/dist/tesseract.min.js';
+    script.src = TESSERACT_CDN_URL;
+    script.crossOrigin = 'anonymous';
     script.onload = () => resolve();
     script.onerror = () => reject(new Error('OCR engine could not be loaded.'));
     document.head.appendChild(script);
