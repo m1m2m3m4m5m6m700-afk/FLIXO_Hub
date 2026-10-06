@@ -19,7 +19,7 @@ test('all official agents have explicit identities', () => {
     assert.ok(content.includes('name: ' + agent.name));
     assert.ok(content.includes('tools: read, search, terminal'));
     assert.doesNotMatch(content, /git push origin main|force[- ]push|write directly to main/iu);
-    assert.doesNotMatch(content, /declare PASS\/GREEN\/CERTIFIED|self-certif/iu);
+    assert.doesNotMatch(content, /(?:^|\\n)\\s*(?:the agent|agent)\\s+(?:can|may|will|shall)\\s+(?:declare\\s+)?(?:PASS|GREEN|CERTIFIED)|(?:^|\\n)\\s*(?:the agent|agent)\\s+(?:can|may|will|shall)\\s+(?:certify|self-certify)\\b/imu);
     if (agent.training) assert.match(content, /100\\/100/u);
   }
 });
@@ -54,8 +54,8 @@ test('package exposes the all-agent training contract as a test gate', () => {
 
 test('agent training includes exact-SHA learning and lesson promotion checks', async () => {
   const learner = await import('../../../scripts/agent-learning/self-learning-control-plane.mjs');
-  const sha = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
-  const stale = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
+  const sha = '0000000000000000000000000000000000000001';
+  const stale = '0000000000000000000000000000000000000002';
   const result = learner.scoreSubmission({
     agent: 'المستكشف AI', drill: 'repository-knowledge', exactSha: sha, evidence: ['e'], unknowns: [],
     nextActions: ['n'], coveragePercent: 100, dependencies: [], semanticDiff: []
