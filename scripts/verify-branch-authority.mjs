@@ -1,15 +1,25 @@
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import {
+  CONTROLLED_AGENT_REF,
+  HISTORICAL_REFS,
+  OPERATIONAL_REFS,
+  STALE_REFS,
+  assertWorkflowAuthority,
+  classifyBranchRef,
+  enumerateWorkflowAuthority,
+} from './ci/branch-authority-contract.mjs';
 import { execFileSync } from 'node:child_process';
 
-const OPERATIONAL_REFS = new Set(['refs/heads/main', 'refs/heads/execution']);
-const CONTROLLED_AGENT_REFS = /^refs\/heads\/(?:agent-(?:1|2|3|4)|agent3)\//u;
-const STALE_REFS = new Set(['refs/heads/agent-2-media-engines-20261006']);
-
-export function classifyBranchRef(ref) {
-  if (OPERATIONAL_REFS.has(ref)) return 'operational';
-  if (STALE_REFS.has(ref)) return 'stale';
-  if (CONTROLLED_AGENT_REFS.test(ref)) return 'controlled agent';
-  return 'unknown';
-}
+export {
+  CONTROLLED_AGENT_REF,
+  HISTORICAL_REFS,
+  OPERATIONAL_REFS,
+  STALE_REFS,
+  assertWorkflowAuthority,
+  classifyBranchRef,
+  enumerateWorkflowAuthority,
+};
 
 const source = execFileSync('git', ['ls-remote', '--heads', 'origin'], { encoding: 'utf8' });
 const refs = source
@@ -21,8 +31,7 @@ const refs = source
 
 const byClass = { operational: [], 'controlled agent': [], historical: [], stale: [], unknown: [] };
 for (const ref of refs) {
-  const classification = classifyBranchRef(ref);
-  byClass[classification].push(ref);
+  byClass[classifyBranchRef(ref)].push(ref);
 }
 
 const unknown = byClass.unknown.sort();
@@ -37,20 +46,19 @@ if (!byClass.operational.includes('refs/heads/main') || !byClass.operational.inc
   throw new Error('BRANCH_AUTHORITY_OPERATIONAL_REFS_MISSING');
 }
 
-const fs = await import('node:fs/promises');
-const ci = await fs.readFile('.github/workflows/ci.yml', 'utf8');
-const finalRedTeam = await fs.readFile('.github/workflows/final-red-team.yml', 'utf8');
-if (!ci.includes("if: github.event_name == 'push' && github.ref == 'refs/heads/main'")) {
-  throw new Error('PRODUCTION_AUTHORITY_NOT_MAIN_ONLY');
-}
-if (!/HEAD_BRANCH[^\n]+execution[^\n]+dependabot\[bot\]/u.test(ci)) {
-  throw new Error('MAIN_PROMOTION_SOURCE_NOT_EXECUTION_ONLY');
-}
-if (/production-deploy[\s\S]{0,12000}refs\/heads\/agent[-/]/u.test(ci)) {
-  throw new Error('AGENT_REF_HAS_PRODUCTION_AUTHORITY');
-}
-if (!finalRedTeam.includes('pull_request:\n    branches: [main]')) {
-  throw new Error('FINAL_RED_TEAM_MAIN_PROMOTION_SCOPE_CHANGED');
+const workflowDir = '.github/workflows';
+const workflowFiles = readdirSync(workflowDir)
+  .filter((name) => /\.(?:ya?ml)$/u.test(name))
+  .sort()
+  .map((name) => ({ path: join(workflowDir, name), source: readFileSync(join(workflowDir, name), 'utf8') }));
+
+const workflowInventory = enumerateWorkflowAuthority(workflowFiles);
+assertWorkflowAuthority(workflowInventory);
+
+for (const entry of workflowInventory) {
+  console.log(
+    `BRANCH_AUTHORITY_WORKFLOW=${entry.path}|productionDeploy=${entry.productionDeploy}|promotion=${entry.promotion}|authoritySensitive=${entry.authoritySensitive}`,
+  );
 }
 
 for (const ref of refs) {
@@ -61,5 +69,10 @@ for (const ref of refs) {
 for (const ref of byClass.stale) {
   console.log(`BRANCH_AUTHORITY_STALE_UNTRUSTED=${ref}`);
 }
+if (byClass.historical.length === 0) {
+  console.log('BRANCH_AUTHORITY_HISTORICAL=NONE_OBSERVED');
+} else {
+  for (const ref of byClass.historical) console.log(`BRANCH_AUTHORITY_HISTORICAL_UNTRUSTED=${ref}`);
+}
 
-console.log('BRANCH_AUTHORITY_PASS=main|execution|agent-scoped-no-production-trust');
+console.log('BRANCH_AUTHORITY_PASS=main|execution|agent-scoped-no-production-trust|all-workflows-enumerated');
