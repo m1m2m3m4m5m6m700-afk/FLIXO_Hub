@@ -1,34 +1,24 @@
-﻿# FLIXO Prompt 01 — Exact-SHA State Reconciliation
+# FLIXO Prompt 01 — Exact-SHA State Reconciliation
 
-STATUS: PASS — CURRENT EXACT-SHA EVIDENCE
-PROMPT_ID: 01
-CURRENT_RUNTIME_VERIFIED_SHA: $sha
-INTEGRATION_PR: #923
+Status: CURRENT TEMPLATE / NOT CERTIFICATION
 
-## Current runtime candidate
-- Main SHA: af261be4476eccf293956d792bbb15e2e019061
-- Execution SHA: $sha
-- PR base: af261be4476eccf293956d792bbb15e2e019061
-- PR head: $sha
+This file records the reconciliation protocol and must not embed mutable SHA-specific PASS claims. Resolve the live refs from GitHub when Prompt 01 is executed.
 
-## Exact-SHA evidence
-- FLIXO CI verify: PASS
-- Chromium browser smoke: PASS
-- trust-gate: PASS
-- Exact-SHA promotion proof: PASS
-- Agent Editor STEP 4: PASS
-- Agent Editor Step 5-6: PASS
-- Agent Editor Coverage/internal lcov: PASS
-- CodeQL: PASS
-- Secret Scan/Gitleaks: PASS
-- production audit gate: PASS
+- Production truth: `main`
+- Integration lane: `execution`
+- Current release PR: #1002
+- Authoritative scope: `docs/MVP-SCOPE-DECISION.md`
+- Canonical registry: `src/config/registry.ts`
+- Canonical execution authority: `src/lib/execution/canonical-executor.ts`
 
-## Freshness rule
-These claims are valid only for the exact SHA recorded above. Any subsequent commit invalidates these SHA-specific claims until reverified.
+## Required live evidence
+- CURRENT_MAIN_SHA
+- CURRENT_EXECUTION_SHA
+- PR_HEAD_SHA
+- PR_BASE_SHA
+- required workflow/check states for the exact PR head
+- stale evidence invalidation
+- governance blockers
 
-## Current release blockers
-1. GitHub main ruleset remains under-hardened.
-2. docs/MODEL_LICENSE_MANIFEST.json contains zero admitted production models.
-3. Final certification and promotion remain blocked until governance, model admission, Prompt 17–19, and owner-authorized promotion are satisfied on one lineage.
-
-Decision: NOT READY — BLOCKERS ENUMERATED.
+## Rule
+Any repository mutation invalidates SHA-specific evidence from the previous candidate. This record never upgrades itself to PASS; Prompt 19 is the certification authority.

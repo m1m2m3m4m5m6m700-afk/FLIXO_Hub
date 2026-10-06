@@ -1,12 +1,15 @@
-# FLIXO Final Certification Attestation — Pending Evidence
+# FLIXO Final Certification Attestation
 
-Status: PENDING / AWAITING POST-MERGE PRODUCTION EVIDENCE
+Status: PENDING / NO CERTIFICATION
 
-This attestation is intentionally not a certification. It records the exact main lineage that must receive post-merge CI, Cloudflare deployment, immutable production identity, and production browser evidence.
+This attestation is a post-merge evidence record, not a certification source.
 
-- Main SHA at preparation: `0df58b583430208d06020700c4d7dac0c6f93310`
-- Required production origin: `https://flixoai.m1m2m3m4m5m6m700.workers.dev`
-- Integration lane: `execution -> main`
-- Direct main writes: prohibited
+Required sequence:
+1. Prompt 19 certifies one exact execution candidate.
+2. Owner-approved promotion moves `execution -> main`.
+3. The new main SHA is independently verified by canonical CI and exact-SHA checks.
+4. Production deployment identity is verified against that main SHA.
+5. Production browser smoke is run against the verified deployment.
+6. Only then may this attestation be changed to a final PASS record.
 
-Certification is issued only after exact-SHA production evidence is independently verified.
+No current SHA is embedded here until the required post-merge evidence exists.
