@@ -39,10 +39,10 @@ grant execute on function public.council_claim_assistant_wake(text, text, text) 
 revoke execute on function public.council_dispatch_assistant_wake(uuid, text) from public, anon, authenticated;
 grant execute on function public.council_dispatch_assistant_wake(uuid, text) to service_role;
 
-revoke execute on function net.http_post(text, jsonb, jsonb, jsonb, integer) from public, anon, authenticated;
-grant execute on function net.http_post(text, jsonb, jsonb, jsonb, integer) to service_role;
-revoke execute on function net.http_get(text, jsonb, jsonb, integer) from public, anon, authenticated;
-grant execute on function net.http_get(text, jsonb, jsonb, integer) to service_role;
+-- Supabase-managed pg_net functions are platform-owned and their PUBLIC ACL cannot
+-- be changed per-project. The repository-controlled SECURITY DEFINER callers above
+-- remain service_role-only. Direct pg_net exposure is a platform/config hard-stop:
+-- the net schema must remain outside the Data API exposed schema set.
 
 create table if not exists public.flix_admin_login_rate_limits (
   bucket_key text primary key,
