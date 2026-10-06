@@ -286,10 +286,16 @@ export function collectGitRefSnapshot(
     try {
       resolvedRef = sh('git', ['rev-parse', ref]);
     } catch {
-      if (ref !== 'refs/heads/main' && process.env.GITHUB_REF === 'refs/heads/main') {
-        resolvedRef = sh('git', ['rev-parse', 'HEAD']);
-      } else if (ref !== 'refs/heads/main') {
-        resolvedRef = sh('git', ['rev-parse', 'refs/heads/main']);
+      if (ref !== 'refs/heads/main') {
+        try {
+          resolvedRef = sh('git', ['rev-parse', 'FETCH_HEAD']);
+        } catch {
+          if (process.env.GITHUB_REF === 'refs/heads/main') {
+            resolvedRef = sh('git', ['rev-parse', 'HEAD']);
+          } else {
+            resolvedRef = sh('git', ['rev-parse', 'refs/heads/main']);
+          }
+        }
       } else {
         throw new Error('main branch reference is unavailable');
       }
