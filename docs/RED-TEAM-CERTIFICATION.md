@@ -1,26 +1,41 @@
 # FLIXO Red Team Certification Record
 
-STATUS: LAST-VERIFIED-CANDIDATE RECORD — NOT READY
+STATUS: HISTORICAL — NOT CURRENT CERTIFICATION
 
-This is the current Red Team evidence record for FLIXO Hub. Historical Red Team results are not reusable as certification evidence for a new execution SHA.
+This document is retained as an evidence-history record. It is not a release certificate.
+Any historical PASS below is invalid for a new candidate and must be regenerated on the exact
+current candidate SHA.
 
-Last fully verified candidate before documentation rollover:
-- SHA: `a44958a97126b2e050746010947aef2cfa286729`
-- Prompt 17 clean-clone: PASS (workflow run 37437187406 / run #239)
+## Current repository context
 
-Current lane:
-- Repository: m1m2m3m4m5m6m700-afk/FLIXO_Hub
-- Candidate branch: execution
-- Integration PR: #1002
+- Repository: `m1m2m3m4m5m6m700-afk/FLIXO_Hub`
+- Integration path: `execution -> main`
+- Current candidate SHA: `REQUIRED`
+- Current workflow run: `REQUIRED`
+- Current Red Team evidence: `REQUIRED`
+- Production immutable identity: `REQUIRED`
+- Certification state: `NOT READY`
 
-Current adversarial coverage implemented in-repository:
-- canonical executor rejects unknown and non-admitted capabilities;
-- prompt-injection-shaped and oversized requests fail closed;
-- confirmation receipts cannot be replayed or transplanted to another file;
-- catalog fingerprint tampering is rejected;
-- filename traversal, MIME/signature spoofing, extension mismatch and ZIP-bomb ratios fail closed;
-- browser E2E covers Agent confirmation and Manual execution across the ten-tool MVP.
+## Historical evidence retained — NOT CURRENT RELEASE TRUTH
 
-The dedicated adversarial suite is `tests/red-team-control-plane.test.ts` and is required to pass on the final frozen candidate SHA.
+Last fully verified candidate before the documentation rollover:
+- Historical candidate SHA: `a44958a97126b2e050746010947aef2cfa286729`
+- Historical Prompt 17 workflow: run `37437187406` / run #239
+- Historical Prompt 17 result: PASS
+- Historical execution candidate before the current closure branch was opened:
+  `05e821dc735c54a8ad62a63c48ae97cf465c203e`
 
-Prompt 17 passed on the last verified candidate above. This documentation rollover creates a new execution SHA, so the new head must regenerate Prompt 17 evidence before any final RED_TEAM_PASS claim for the current candidate.
+These values are preserved for audit lineage only. They have no current certification authority.
+
+## Current control requirements
+
+The dedicated adversarial suite remains:
+`tests/red-team-control-plane.test.ts`
+
+A current Red Team PASS is valid only when:
+1. the test run is on the exact current candidate SHA;
+2. the workflow run is identified;
+3. CI/security/browser evidence is bound to the same SHA; and
+4. production identity is bound to that SHA where deployment is applicable.
+
+No historical PASS is reusable after mutation.
