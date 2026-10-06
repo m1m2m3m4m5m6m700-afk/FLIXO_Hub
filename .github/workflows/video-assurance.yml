@@ -10,7 +10,7 @@ permissions:
 
 concurrency:
   group: flixo-video-assurance-${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   video-assurance:
