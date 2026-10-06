@@ -66,7 +66,7 @@ function jobBlocks(workflow) {
       break;
     }
 
-    const jobMatch = /^ {2}([A-Za-z0-9_.-]+):\s*$/u.exec(line);
+    const jobMatch = /^\x20{2}([A-Za-z0-9_.-]+):\s*$/u.exec(line);
     if (jobMatch) {
       if (current) jobs.push(current);
       current = { id: jobMatch[1], lines: [] };
@@ -109,7 +109,7 @@ function hasMainOnlyPushTrigger(workflow) {
       triggerCount += 1;
       continue;
     }
-    if (inPush && /^ {4}branches:\s*\[\s*main\s*\]\s*$/u.test(line)) {
+    if (inPush && /^\x20{4}branches:\s*\[\s*main\s*\]\s*$/u.test(line)) {
       mainPush = true;
     }
   }
