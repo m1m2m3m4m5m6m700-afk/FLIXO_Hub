@@ -2,7 +2,7 @@
 import { execFileSync } from 'node:child_process';
 
 const allowed = new Set(['refs/heads/main', 'refs/heads/execution']);
-const coordinationPrefix = /^refs\/heads\/(?:agent-(?:1|2|3|3b|4)|agent3)\//u;
+const coordinationPrefix = /^refs\/heads\/(?:agent-\\d+[a-z]?|agent\\d+|agent-residual)\//u;
 
 // Quarantine only known legacy refs that are already part of this repository's historical Agent 2 lane.
 // This does not admit new legacy branch names; new refs still fail closed.
@@ -20,7 +20,7 @@ const unexpected = output
 
 if (unexpected.length > 0) {
   console.error('BRANCH_POLICY=FAIL');
-  console.error('Permitted refs are refs/heads/main, refs/heads/execution, and controlled agent-1/agent-2/agent-3/agent-3b/agent-4 coordination branches.');
+  console.error('Permitted refs are refs/heads/main, refs/heads/execution, and controlled agent-* / agentN / agent-residual coordination branches.');
   console.error(unexpected.join('\n'));
   process.exit(1);
 }
