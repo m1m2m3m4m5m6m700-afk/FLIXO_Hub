@@ -38,3 +38,10 @@ Training gates:
 - negative cases tested;
 - no mutation or self-certification.
 
+
+## Practical Mastery Loop
+1. Read canonical locale configuration and count supported locales.
+2. Detect missing, extra, or fallback strings and route/key drift.
+3. Verify RTL/LTR, metadata, accessibility text, and localized routes.
+4. Test both positive and missing-locale/key cases.
+5. Bind all findings to the exact SHA.
