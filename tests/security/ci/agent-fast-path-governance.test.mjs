@@ -42,6 +42,26 @@ test('STRICT governance still rejects relaxed review controls', () => {
   assert.match(result.failures.join('\n'), /At least one approving review is required/);
 });
 
+test('agent branch families are controlled and never production authority', () => {
+  for (const ref of [
+    'refs/heads/agent/ci-contract-closure-r3-20261006',
+    'refs/heads/agent-tools-consolidation-20261006',
+    'refs/heads/agent-3a/redteam-rt17-20261006',
+    'refs/heads/agent-3b/redteam-rt19-20261006',
+    'refs/heads/agent-3c/redteam-rt20-20261006',
+    'refs/heads/agent3/verification-20261006',
+    'refs/heads/agent-residual/redteam-closure-20261006',
+  ]) {
+    const result = classifyRef(ref);
+    assert.equal(result.allowed, true);
+    assert.ok(result.authority === 'controlled-agent' || result.authority === 'quarantined-stale');
+    assert.notEqual(result.authority, 'production');
+    assert.notEqual(result.authority, 'integration');
+  }
+
+  assert.equal(classifyRef('refs/heads/agent-2-media-engines-20261006').authority, 'quarantined-stale');
+});
+
 test('disposable worker branches are allowed', () => {
   for (const ref of [
     'refs/heads/agent-7/runtime-20261006',
