@@ -1,23 +1,68 @@
 export type VideoSourceCleanup = () => void;
 
-export function getBoundedVideoDuration(
+export async function getBoundedVideoDuration(
   video: HTMLVideoElement,
   maxDurationSeconds: number,
-): number {
-  const metadataDuration = video.duration;
-  if (Number.isFinite(metadataDuration) && metadataDuration > 0 && metadataDuration <= maxDurationSeconds) {
-    return metadataDuration;
-  }
+  signal?: AbortSignal,
+): Promise<number> {
+  const finiteBounded = (): number | undefined => {
+    const metadataDuration = video.duration;
+    if (Number.isFinite(metadataDuration) && metadataDuration > 0 && metadataDuration <= maxDurationSeconds) {
+      return metadataDuration;
+    }
+    const ranges = video.buffered.length > 0 ? video.buffered : video.seekable;
+    if (ranges.length > 0) {
+      const end = ranges.end(ranges.length - 1);
+      if (Number.isFinite(end) && end > 0 && end <= maxDurationSeconds) return end;
+    }
+    return undefined;
+  };
 
-  const ranges = video.buffered.length > 0 ? video.buffered : video.seekable;
-  if (ranges.length > 0) {
-    const end = ranges.end(ranges.length - 1);
-    if (Number.isFinite(end) && end > 0 && end <= maxDurationSeconds) return end;
+  const direct = finiteBounded();
+  if (direct !== undefined) return direct;
+  if (signal?.aborted) throw cancelled();
+
+  const previousTime = Number.isFinite(video.currentTime) ? video.currentTime : 0;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const cleanup = () => {
+    if (timer) clearTimeout(timer);
+    video.removeEventListener('durationchange', onSignal);
+    video.removeEventListener('timeupdate', onSignal);
+    video.removeEventListener('progress', onSignal);
+    signal?.removeEventListener('abort', onAbort);
+  };
+  let wake: (() => void) | null = null;
+  const onSignal = () => wake?.();
+  const onAbort = () => wake?.();
+  const waitForProbe = new Promise<void>((resolve) => { wake = resolve; });
+
+  video.addEventListener('durationchange', onSignal);
+  video.addEventListener('timeupdate', onSignal);
+  video.addEventListener('progress', onSignal);
+  signal?.addEventListener('abort', onAbort, { once: true });
+  timer = setTimeout(() => wake?.(), 2_000);
+
+  try {
+    try {
+      video.currentTime = 1e9;
+    } catch {
+      // The browser can reject an out-of-range seek before exposing final WebM duration.
+    }
+    await waitForProbe;
+    if (signal?.aborted) throw cancelled();
+    const refined = finiteBounded();
+    if (refined !== undefined) return refined;
+  } finally {
+    cleanup();
+    try {
+      video.currentTime = previousTime;
+    } catch {
+      // Ignore restoration failures during terminal cleanup.
+    }
   }
 
   throw new Error('VIDEO_DURATION_BOUNDARY_INVALID');
 }
-
 
 function cancelled(): Error {
   return typeof DOMException === 'function'
