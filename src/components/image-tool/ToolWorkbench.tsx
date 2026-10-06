@@ -7,7 +7,9 @@ import { LOCALES, type Locale } from '../../lib/i18n';
 import './ToolWorkbench.css';
 import { localizeToolUiValue } from '../../lib/i18n/tool-ui-runtime-completeness';
 import { ImageJob } from '../../image-core/job';
-import { validateFileSafety, type FileSafetyPolicy } from '../../lib/contracts/file-safety';
+import { validateFileSafety, MAGIC_BYTE_SIGNATURES, type FileSafetyPolicy } from '../../lib/contracts/file-safety';
+import { validateBrowserFile, IMAGE_BROWSER_FILE_POLICY } from '../../lib/contracts/browser-file-safety';
+import { validateOutputIntegrity } from '../../lib/contracts/output-integrity';
 
 export type ImageWorkbenchJobContext<P> = Readonly<{
   assetStore: ImageAssetStore;
@@ -59,38 +61,6 @@ export type ImageWorkbenchProps<P> = Readonly<{
 }>;
 
 type Dimensions = { width: number; height: number };
-
-async function decodeDimensions(file: File): Promise<Dimensions> {
-  if (typeof createImageBitmap === 'function') {
-    try {
-      const bitmap = await createImageBitmap(file);
-      try {
-        return { width: bitmap.width, height: bitmap.height };
-      } finally {
-        bitmap.close();
-      }
-    } catch {
-      // Fall through to HTMLImageElement for SVG and browsers with partial bitmap support.
-    }
-  }
-
-  const url = URL.createObjectURL(file);
-  try {
-    const image = new Image();
-    image.decoding = 'async';
-    const dimensions = await new Promise<Dimensions>((resolve, reject) => {
-      image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight });
-      image.onerror = () => reject(new Error('The selected image could not be decoded.'));
-      image.src = url;
-    });
-    if (!Number.isInteger(dimensions.width) || !Number.isInteger(dimensions.height) || dimensions.width < 1 || dimensions.height < 1) {
-      throw new Error('The selected image has invalid dimensions.');
-    }
-    return dimensions;
-  } finally {
-    URL.revokeObjectURL(url);
-  }
-}
 
 const LANGUAGE_LABELS: Readonly<Record<Locale, string>> = {
   ar: 'العربية', en: 'English', es: 'Español', fr: 'Français', de: 'Deutsch', hi: 'हिन्दी',
@@ -207,14 +177,15 @@ export function ToolWorkbench<P>({
     setOutputUrl('');
 
     validateBasicFile(file, inputPolicy);
-    const dimensions = await decodeDimensions(file);
-    if (inputPolicy) {
-      const result = validateFileSafety(
-        { name: file.name, mime: file.type, bytes: file.size, width: dimensions.width, height: dimensions.height },
-        inputPolicy,
-      );
-      if (!result.safe) throw new Error(`Input rejected by File Safety: ${result.failures.join('; ')}`);
+    const browserPolicy = {
+      ...(inputPolicy ?? IMAGE_BROWSER_FILE_POLICY),
+      maxPixels: inputPolicy?.maxPixels ?? 40_000_000,
+    };
+    const validated = await validateBrowserFile(file, browserPolicy);
+    if (!validated.safe || !validated.width || !validated.height) {
+      throw new Error(`Input rejected by File Safety: ${validated.failures.join('; ')}`);
     }
+    const dimensions = { width: validated.width, height: validated.height };
     await validateInput?.(file, dimensions);
     const id = assetStore.put({ blob: file, width: dimensions.width, height: dimensions.height, name: file.name });
     if (!mountedRef.current) return;
@@ -260,6 +231,33 @@ export function ToolWorkbench<P>({
       const job = createJob({ assetStore, inputAssetId, inputAsset, parameters: validatedParameters as P });
       const completed = await job.run();
       if (!mountedRef.current) return;
+      const outputAsset = assetStore.require(completed.result.outputAssetId);
+      const rasterOutputPolicy: Record<string, { extension: string; signature: string }> = {
+        'image/png': { extension: 'png', signature: '89504e470d0a1a0a' },
+        'image/jpeg': { extension: 'jpg', signature: 'ffd8ff' },
+        'image/webp': { extension: 'webp', signature: '52494646' },
+      };
+      const rasterPolicy = rasterOutputPolicy[outputAsset.mimeType];
+      if (rasterPolicy) {
+        const bytes = new Uint8Array(await outputAsset.blob.arrayBuffer());
+        const validation = validateOutputIntegrity(
+          outputAsset.size,
+          outputAsset.mimeType,
+          {
+            toolId,
+            allowedMime: [outputAsset.mimeType],
+            maxBytes: 50 * 1024 * 1024,
+            maxPixels: 40_000_000,
+            allowedExtensions: [rasterPolicy.extension],
+            signatures: [rasterPolicy.signature],
+            requireArtifact: true,
+            requireSafeFilename: true,
+          },
+          { width: outputAsset.width, height: outputAsset.height },
+          { filename: outputAsset.name, bytes },
+        );
+        if (!validation.valid) throw new Error(`Output integrity validation failed: ${validation.failures.join('; ')}`);
+      }
       const nextUrl = assetStore.createObjectURL(completed.result.outputAssetId);
       setOutputAssetId(completed.result.outputAssetId);
       setOutputUrl(nextUrl);
