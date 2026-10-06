@@ -1,4 +1,4 @@
-import { assertEffectParameters, assertImageDimensions, assertImageOutputBudget, assertRasterOutput, assertSafeRasterInput, MEDIA_LIMITS } from '../media/media-safety.ts';
+import { assertEffectParameters, assertImageDimensions, assertImageOutputBudget, assertRasterOutput, assertSafeRasterInput, MEDIA_LIMITS } from '../contracts/file-safety.ts';
 
 type EffectName = 'brightness' | 'contrast' | 'saturation' | 'grayscale';
 
