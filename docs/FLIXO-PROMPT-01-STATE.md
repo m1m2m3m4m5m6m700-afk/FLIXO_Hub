@@ -1,18 +1,21 @@
 # FLIXO Prompt 01 — Current State Reconciliation
 
-STATUS: LAST-VERIFIED-CANDIDATE RECORD — GOVERNANCE BLOCKED
+STATUS: NOT READY — THIS RECORD IS INVALIDATED BY ANY SUBSEQUENT MUTATION
 PROMPT_ID: 01
 SCOPE: READ_ONLY_STATE_RECORD
 RECORDED_AT_UTC: 2026-10-06
-START_SHA: 52413f0f610c34cc988ecfc523134247c6cae135
-END_SHA: PENDING_THIS_RECORD_COMMIT
-CURRENT_MAIN_SHA: 263827228cbe5f4851470297fde5f2858ff844de
-CURRENT_EXECUTION_SHA_AT_RECONCILIATION: 52413f0f610c34cc988ecfc523134247c6cae135
-PR: #1002
-PR_HEAD_SHA_AT_RECONCILIATION: 52413f0f610c34cc988ecfc523134247c6cae135
-PR_BASE_SHA: 263827228cbe5f4851470297fde5f2858ff844de
-PRIMARY_BRANCH: execution
-INTEGRATION_PATH: execution -> main
+
+START_SHA=REQUIRED
+END_SHA=PENDING_THIS_RECORD_COMMIT
+CURRENT_MAIN_SHA=REQUIRED
+CURRENT_EXECUTION_SHA_AT_RECONCILIATION=REQUIRED
+PR=REQUIRED
+PR_HEAD_SHA_AT_RECONCILIATION=REQUIRED
+PR_BASE_SHA=REQUIRED
+PRIMARY_BRANCH=execution
+INTEGRATION_PATH=execution -> main
+
+This state record is coordination/evidence metadata only. It is not a runtime source of truth and never constitutes release certification.
 
 ## Required exact-SHA evidence
 
@@ -25,80 +28,43 @@ INTEGRATION_PATH: execution -> main
 - exact-SHA coverage evidence
 - Red Team evidence
 
+Every candidate-specific result must be regenerated after any repository mutation. A prior PASS cannot be carried forward to the new head.
+
 ## Current candidate evidence state
 
-Exact current execution candidate at last reconciliation: 52413f0f610c34cc988ecfc523134247c6cae135.
-This state record is coordination metadata only; every mutation invalidates prior exact-SHA evidence.
-Latest observed evidence on the current exact candidate before this documentation correction:
-- Typecheck, lint, core contracts, production dependency audit, and build: PASS (FLIXO CI run 37440599986).
-- Exact-SHA internal coverage: PASS (FLIXO CI run 37440599986, coverage job 112193558491).
-- Red Team adversarial regression: PASS (FLIXO CI run 37440599986, job 112193139561).
-- FLIXO CodeQL: PASS (run 37440599974).
-- Gitleaks / Secret Scan: PASS (run 37440599929).
-- Chromium/browser smoke: IN_PROGRESS at the time of this correction.
-- Prompt 17 clean-clone final adversarial gate: IN_PROGRESS at the time of this correction.
-- FLIXO CI overall remains FAIL-CLOSED because Branch policy fails the live main-governance verification.
-- Main-governance verification fails because live ruleset 23854302 has required approvals and review/status protections below Prompt-12 policy.
-- Evidence from older SHAs remains historical and stale; this record is intentionally tied to the current documentation candidate and must itself be treated as invalidated once this commit lands.
+CURRENT_SHA=REQUIRED
+CURRENT_WORKFLOW_RUN=REQUIRED
+CURRENT_EVIDENCE=REQUIRED
+CERTIFIED_SHA=NOT_YET_CERTIFIED
+PRODUCTION_IDENTITY=REQUIRED
 
-## Governance evidence
+The record remains NOT READY until these identities and all required gates are bound to one exact candidate lineage.
 
-GitHub ruleset FLIXO-MAIN-PROTECTION (ID 23854302) is active on refs/heads/main but currently has:
-- required_approving_review_count = 0 (required: 1)
-- dismiss_stale_reviews_on_push = false (required: true)
-- require_code_owner_review = false (required: true)
-- require_last_push_approval = false (required: true)
-- required_review_thread_resolution = false (required: true)
-- strict_required_status_checks_policy = false (required: true)
+## Governance evidence contract
 
-Required status contexts are present:
-- trust-gate
-- Exact-SHA promotion proof
+GitHub main-governance state must be read live when certification is attempted. Any prior ruleset result, PR review result, or workflow result is historical after mutation and cannot be reused as current truth.
 
-PR #1002 currently has no independent human APPROVE. Existing reviews are automated COMMENTED reviews from github-advanced-security and do not satisfy the independent approval requirement.
+## Coordination contract
 
-## Agent-3 coordination repair applied
+Agent execution may use controlled coordination branches, but current certification authority remains bound to the exact release candidate and protected integration path. A coordination branch is never a release certificate.
 
-The three-agent execution model required controlled coordination branches. The execution lane was repaired without weakening main governance:
-- controlled branches matching refs/heads/agent-1/**, refs/heads/agent-2/**, refs/heads/agent-3/** are accepted by the branch-policy script;
-- main-only governance verification now runs on PRs targeting main or on main pushes, not on execution integration PRs.
+## HISTORICAL / INVALIDATED — NOT CURRENT CERTIFICATION
 
-Merged execution-lane repair commit:
-f76313b60e61c69e050473549a60f4612c959212
+STATUS=HISTORICAL — NOT CURRENT CERTIFICATION
 
-A documentation alignment commit followed:
-a0723f51c2cbfe00cf9804801659265d2c2ffb64
-
-## Task record
-
-TASK_ID=RT-COORD-001
-OWNER=AGENT-3
-STATUS=VERIFIED
-FILES_CHANGED=.github/workflows/ci.yml;scripts/ci/verify-branch-policy.mjs;المخطط التنفيذي.md
-DEPENDENCIES=three-agent execution model;main governance verification
-VALIDATION=execution branch policy pass;execution PR governance deferral verified
-EVIDENCE=f76313b60e61c69e050473549a60f4612c959212
-NEXT_ACTION=retain coordination boundary
-
-TASK_ID=GOV-001
-OWNER=AGENT-3
-STATUS=BLOCKED
-FILES_CHANGED=none
-DEPENDENCIES=repository ruleset administration;independent human approval
-VALIDATION=live ruleset read;verify-main-ruleset.mjs failure reproduced on exact candidate
-EVIDENCE=ruleset 23854302;PR #1002;FLIXO CI job 112193139730
-NEXT_ACTION=owner/admin must harden the ruleset and obtain legitimate independent approval
-
-## Hard blockers
-
-1. The connected GitHub interface exposes ruleset state as read-only; no safe ruleset mutation action is available in this execution environment.
-2. Independent human approval required by Prompt 12/20 is absent and cannot be fabricated.
-3. Prompt 18 freeze, Prompt 19 certification, and Prompt 20 promotion cannot truthfully close while these gates remain open.
-
-## Exact-SHA rule
-
-Any mutation after this record creates a new execution SHA and invalidates all candidate-specific PASS evidence recorded above. No final certification claim may be based on a stale SHA.
-
-## Next action
-
-Regenerate exact-SHA evidence on the new documentation head, then resolve the external main-governance policy and legitimate independent review before Prompt 18–20 can close.
+Previous Prompt 01 reconciliation record retained for audit lineage:
+- Historical START/END candidate reference: `52413f0f610c34cc988ecfc523134247c6cae135`
+- Historical main SHA: `263827228cbe5f4851470297fde5f2858ff844de`
+- Historical PR: #1002
+- Historical PR head at reconciliation: `52413f0f610c34cc988ecfc523134247c6cae135`
+- Historical PR base: `263827228cbe5f4851470297fde5f2858ff844de`
+- Historical FLIXO CI run: 37440599986
+- Historical FLIXO CodeQL run: 37440599974
+- Historical Secret Scan run: 37440599929
+- Historical exact-SHA coverage job: 112193558491
+- Historical Red Team job: 112193139561
+- Historical execution-lane coordination repair evidence: `f76313b60e61c69e050473549a60f4612c959212`
+- Historical documentation alignment evidence: `a0723f51c2cbfe00cf9804801659265d2c2ffb64`
+- Historical governance ruleset reference: 23854302
+- Historical governance review state recorded a missing independent human approval and under-hardened required checks.
+- All historical PASS/FAIL results above remain retained but are not current certification evidence.
