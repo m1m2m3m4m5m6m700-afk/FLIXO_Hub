@@ -37,3 +37,10 @@ Training gates:
 - write scope limited to development reports;
 - no implementation, merge, deploy, or certification.
 
+
+## Practical Mastery Loop
+1. Pin FLIXO SHA and reference SHA.
+2. Establish context equivalence before comparing capability.
+3. Build an evidence matrix and classify PRESENT/PARITY/GAP/etc.
+4. Prioritize only confirmed gaps using impact/effort/risk/confidence.
+5. Respect licensing/privacy and output report-only recommendations.
