@@ -17,7 +17,6 @@ import {
 
 const repoRoot = process.cwd();
 const profilePath = 'الوكلاء/المستكشف AI/المستكشف.md';
-const registrationProfilePath = '.github/agents/المستكشف-ai.md';
 const scannerPath = 'scripts/repository-knowledge-scan.mjs';
 const workflowPath = '.github/workflows/repository-knowledge.yml';
 const reportDir = 'الوكلاء/المستكشف AI/تقارير المستكشف';
