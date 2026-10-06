@@ -42,6 +42,8 @@ jobs:
           python3 tests/three_critic_review.test.py
       - name: Exact-SHA workflow contract tests
         run: node --test scripts/ci/test-workflow-exact-sha-contract.mjs
+      - name: Repository structure guard
+        run: npm run verify:structure
       - name: Model license and admission gate
         run: npm run test:model-license
       - name: Run npm test
