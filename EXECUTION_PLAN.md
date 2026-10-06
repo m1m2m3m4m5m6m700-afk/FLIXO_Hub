@@ -18,10 +18,10 @@ Achieve 100% verified completion of the browser-first tool expansion program: ar
 - Production deployment: PASS; Cloudflare immutable identity and production browser verification both PASS on the exact merge SHA `263827228cbe5f4851470297fde5f2858ff844de` after a transient first-probe retry.
 - Current canonical registry: 43 definitions; 42 tools are marked ready by the build/static-route generators.
 - Canonical locale set: 20 locales. Automated dictionary-key coverage: PASS for all 20; no non-canonical locale dictionary files remain.
-- Release agent runtime: deterministic browser-local Agent Guided Workflow is now implemented on the 20-tool certification scope; no external model/provider execution is required for the release gate.
+- Release agent runtime: deterministic browser-local Agent Guided Workflow is now being validated against the canonical ten-tool MVP; no external model/provider execution is required for the release gate.
 - Windows build portability: PASS via `scripts/generate-build-artifacts.mjs`; full local build completed with exit code 0.
 - Core verification: 19/19 tests PASS. The previous eight-route image-toolkit localization crash was fixed by binding each shared registry component to its canonical tool ID.
-- The 200-tool expansion remains a separate target catalog. This release candidate is explicitly limited to 20 browser-local image capabilities with Manual + Agent + Production verification.
+- The 200-tool expansion remains a separate target catalog. This release candidate is explicitly limited to the ten canonical MVP capabilities: six image + four video, with Manual + Agent verification.
 
 ## Non-negotiable operating rules
 
@@ -78,7 +78,7 @@ A phase is complete only when its implementation, tests, evidence, documentation
 ### P2.1 Core engines
 
 - [x] Image engine baseline: Canvas, ImageData, and reusable browser-local image transforms; OffscreenCanvas worker migration remains for heavy operations.
-- [x] Twenty-tool image admission: the certified set is bound to canonical schemas, intents, local executors, output verifiers, bounded recovery, and Agent adapters.
+- [x] Canonical MVP admission: the certified set is bound to canonical schemas, intents, local executors, output verifiers, bounded recovery, and Agent adapters.
 - [ ] PDF engine: PDF.js + pdf-lib.
 - [ ] Archive engine: JSZip and file streaming.
 - [ ] Crypto engine: Web Crypto.
