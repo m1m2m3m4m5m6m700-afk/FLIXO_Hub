@@ -26,6 +26,10 @@ test('candidate diagnostics stay bound to the exact PR head SHA', async () => {
     'bare github.sha must not label PR-head diagnostics',
   );
   assert.ok(
+    workflow.includes('  group: flixo-final-red-team-' + EXACT_HEAD_EXPRESSION),
+    'final Red Team concurrency identity must use the exact PR head SHA selector',
+  );
+  assert.ok(
     !workflow.includes('          name: flixo-final-red-team-${{ github.sha }}'),
     'bare github.sha must not label PR-head artifacts',
   );
