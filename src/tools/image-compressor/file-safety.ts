@@ -1,4 +1,4 @@
-import { validateFileSafety } from '../../lib/contracts/file-safety.ts';
+import { MAGIC_BYTE_SIGNATURES, validateFileSafety } from '../../lib/contracts/file-safety.ts';
 
 export const IMAGE_COMPRESSOR_MAX_INPUT_SIZE = 10 * 1024 * 1024;
 export const IMAGE_COMPRESSOR_MAX_PIXELS = 40_000_000;
@@ -21,6 +21,7 @@ export interface ImageSafetyInput {
   name: string;
   type: string;
   size: number;
+  content?: Uint8Array;
 }
 
 function safetyError(failures: string[]): Error {
@@ -44,10 +45,10 @@ function safetyError(failures: string[]): Error {
   return new Error(failures.join('; '));
 }
 
-export function assertSafeImageInput(
+export async function assertSafeImageInput(
   file: ImageSafetyInput,
   dimensions?: ImageDimensions,
-): void {
+): Promise<void> {
   if (!file.name.trim()) {
     throw new Error('Image file name is required');
   }
@@ -55,22 +56,31 @@ export function assertSafeImageInput(
     throw new Error('Invalid image file size');
   }
 
+  const content = file.content ?? new Uint8Array(await (file as ImageSafetyInput & { arrayBuffer?: () => Promise<ArrayBuffer> }).arrayBuffer?.() ?? []);
+  const extension = file.name.slice(file.name.lastIndexOf('.') + 1).trim().toLowerCase();
+  const policy = {
+    allowedMime: IMAGE_COMPRESSOR_ALLOWED_MIME,
+    maxBytes: IMAGE_COMPRESSOR_MAX_INPUT_SIZE,
+    allowedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'svg'],
+    ...(dimensions ? { maxPixels: IMAGE_COMPRESSOR_MAX_PIXELS } : {}),
+    ...(file.type === 'image/png' ? { magicBytes: [MAGIC_BYTE_SIGNATURES.png] } :
+      file.type === 'image/jpeg' ? { magicBytes: [MAGIC_BYTE_SIGNATURES.jpeg] } :
+      file.type === 'image/webp' ? { magicBytes: [MAGIC_BYTE_SIGNATURES.webp] } :
+      file.type === 'image/gif' ? { magicBytes: [MAGIC_BYTE_SIGNATURES.gif] } :
+      file.type === 'image/bmp' ? { magicBytes: [MAGIC_BYTE_SIGNATURES.bmp] } : {}),
+  } as const;
+  void extension;
   const result = validateFileSafety(
     {
       name: file.name,
       mime: file.type,
       bytes: file.size,
+      ...(content.byteLength === file.size ? { content } : {}),
       width: dimensions?.width,
       height: dimensions?.height,
     },
-    {
-      allowedMime: IMAGE_COMPRESSOR_ALLOWED_MIME,
-      maxBytes: IMAGE_COMPRESSOR_MAX_INPUT_SIZE,
-      ...(dimensions ? { maxPixels: IMAGE_COMPRESSOR_MAX_PIXELS } : {}),
-    },
+    policy,
   );
 
-  if (!result.safe) {
-    throw safetyError(result.failures);
-  }
+  if (!result.safe) throw safetyError(result.failures);
 }
