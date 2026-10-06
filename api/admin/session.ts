@@ -19,6 +19,7 @@ import {
 import { verifyAdminPassword } from '../../src/server/admin/credentials.ts';
 import { activeCapabilitiesForRole } from '../../src/lib/admin/roles.ts';
 import { persistAdminSession, revokeAdminSession, isAdminSessionStoreConfigured, getAdminSessionState, getAdminSessionRecord } from '../../src/server/admin/session-store.ts';
+import { consumeAdminLoginAttempt } from '../../src/server/admin/login-rate-limit.ts';
 
 interface AdminRequest extends IncomingMessage {
   body?: unknown;
@@ -30,10 +31,7 @@ interface BodyGuard<TBody> {
 }
 
 const LOGIN_TTL_SECONDS = 60 * 60;
-const LOGIN_LIMIT = 10;
-const LOGIN_WINDOW_MS = 60_000;
 const MAX_REQUEST_BODY_BYTES = 64 * 1024;
-const loginBuckets = new Map<string, { attempts: number; resetAt: number }>();
 
 const json = <
   TBody extends AdminErrorResponse
@@ -89,23 +87,6 @@ const allowMutationOrigin = (req: AdminRequest) => {
 
   const host = headerValue(req.headers.host)?.trim();
   return Boolean(host && origin === 'http://' + host);
-};
-
-const rateAllowed = (ip: string) => {
-  const now = Date.now();
-  const current = loginBuckets.get(ip);
-  if (loginBuckets.size > 10_000) {
-    for (const [key, bucket] of loginBuckets) {
-      if (now >= bucket.resetAt) loginBuckets.delete(key);
-    }
-  }
-  if (!current || now >= current.resetAt) {
-    loginBuckets.set(ip, { attempts: 1, resetAt: now + LOGIN_WINDOW_MS });
-    return true;
-  }
-  if (current.attempts >= LOGIN_LIMIT) return false;
-  current.attempts += 1;
-  return true;
 };
 
 const isAdminLoginRequest = (value: unknown): value is AdminLoginRequest => {
@@ -213,7 +194,13 @@ export default async function adminSession(req: AdminRequest, res: ServerRespons
   if (method === 'POST') {
     if (!allowMutationOrigin(req)) return fail(res, 403, 'csrf_origin_denied', correlationId);
     if (!configured()) return fail(res, 503, 'server_configuration_unavailable', correlationId);
-    if (!rateAllowed(clientIpFor(req))) return fail(res, 429, 'login_rate_limited', correlationId);
+    let rateLimit: Awaited<ReturnType<typeof consumeAdminLoginAttempt>>;
+    try {
+      rateLimit = await consumeAdminLoginAttempt(clientIpFor(req));
+    } catch {
+      return fail(res, 503, 'login_rate_limiter_unavailable', correlationId);
+    }
+    if (!rateLimit.allowed) return fail(res, 429, 'login_rate_limited', correlationId);
 
     const body = await parseBody(req, isAdminLoginRequest);
     const password = body?.password ?? '';
