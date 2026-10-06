@@ -23,38 +23,86 @@ export async function getBoundedVideoDuration(
   if (signal?.aborted) throw cancelled();
 
   const previousTime = Number.isFinite(video.currentTime) ? video.currentTime : 0;
-  const timer = setTimeout(() => wake?.(), 2_000);
-  const cleanup = () => {
-    if (timer) clearTimeout(timer);
-    video.removeEventListener('durationchange', onSignal);
-    video.removeEventListener('timeupdate', onSignal);
-    video.removeEventListener('progress', onSignal);
-    signal?.removeEventListener('abort', onAbort);
-  };
-  let wake: (() => void) | null = null;
-  const onSignal = () => wake?.();
-  const onAbort = () => wake?.();
-  const waitForProbe = new Promise<void>((resolve) => { wake = resolve; });
 
-  video.addEventListener('durationchange', onSignal);
-  video.addEventListener('timeupdate', onSignal);
-  video.addEventListener('progress', onSignal);
-  signal?.addEventListener('abort', onAbort, { once: true });
+  const waitForMediaSignal = (timeoutMs: number): Promise<void> => new Promise((resolve) => {
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      for (const type of events) video.removeEventListener(type, onSignal);
+      signal?.removeEventListener('abort', onSignal);
+      resolve();
+    };
+    const onSignal = () => finish();
+    const events = ['durationchange', 'timeupdate', 'progress', 'loadeddata', 'canplay', 'seeked', 'ended'] as const;
+    const timer = setTimeout(finish, Math.max(1, timeoutMs));
+    for (const type of events) video.addEventListener(type, onSignal);
+    signal?.addEventListener('abort', onSignal, { once: true });
+  });
 
   try {
     try {
       video.currentTime = 1e9;
     } catch {
-      // The browser can reject an out-of-range seek before exposing final WebM duration.
+      // Some WebM streams reject out-of-range seeks before exposing a finite duration.
     }
-    await waitForProbe;
+    await waitForMediaSignal(2_000);
+
     if (signal?.aborted) throw cancelled();
     const refined = finiteBounded();
     if (refined !== undefined) return refined;
+
     const observedTime = Number.isFinite(video.currentTime) ? video.currentTime : 0;
-    if (observedTime > 0 && observedTime <= maxDurationSeconds) return observedTime;
+    if (video.ended && observedTime > 0 && observedTime <= maxDurationSeconds) return observedTime;
+
+    // MediaRecorder-generated WebM can have no finite Duration element and no seekable
+    // range. In that case, use a muted, accelerated playback probe. This remains fully
+    // local, bounded by maxDurationSeconds, and never exposes the source to a provider.
+    const previousRate = video.playbackRate;
+    const fallbackTimeoutMs = Math.min(
+      45_000,
+      Math.max(3_000, Math.ceil((maxDurationSeconds * 1_000) / 16) + 2_000),
+    );
+    video.muted = true;
+    video.playbackRate = 16;
+    await new Promise<void>((resolve, reject) => {
+      if (video.ended) {
+        resolve();
+        return;
+      }
+      let settled = false;
+      const cleanup = () => {
+        clearTimeout(timer);
+        video.removeEventListener('ended', onEnded);
+        video.removeEventListener('error', onError);
+        signal?.removeEventListener('abort', onAbort);
+      };
+      const finish = (fn: () => void) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        fn();
+      };
+      const onEnded = () => finish(resolve);
+      const onError = () => finish(() => reject(new Error('VIDEO_MEDIA_EVENT_FAILED')));
+      const onAbort = () => finish(() => reject(cancelled()));
+      const timer = setTimeout(() => finish(() => reject(new Error('VIDEO_DURATION_PROBE_TIMEOUT'))), fallbackTimeoutMs);
+      video.addEventListener('ended', onEnded, { once: true });
+      video.addEventListener('error', onError, { once: true });
+      signal?.addEventListener('abort', onAbort, { once: true });
+      void video.play().catch(() => {
+        // The ended/error/timeout guards remain authoritative.
+      });
+    });
+
+    const fallbackDuration = finiteBounded();
+    if (fallbackDuration !== undefined) return fallbackDuration;
+    const endedTime = Number.isFinite(video.currentTime) ? video.currentTime : 0;
+    if (video.ended && endedTime > 0 && endedTime <= maxDurationSeconds) return endedTime;
   } finally {
-    cleanup();
+    video.pause();
+    video.playbackRate = Number.isFinite(video.playbackRate) ? 1 : 1;
     try {
       video.currentTime = previousTime;
     } catch {
