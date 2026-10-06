@@ -193,11 +193,11 @@ test('canonical MVP capability verifiers accept measurable valid artifacts and r
 });
 
 
-test('canonical MVP contains exactly twenty executable browser-local capabilities with complete contracts', async () => {
+test('canonical MVP contains exactly ten executable browser-local capabilities with complete contracts', async () => {
   const { MVP_EXECUTABLE_TOOL_IDS, CAPABILITY_DEFINITIONS } = await import('../src/config/manual-capability-definition.ts');
-  assert.equal(MVP_EXECUTABLE_TOOL_IDS.length, 20);
-  assert.equal(new Set(MVP_EXECUTABLE_TOOL_IDS).size, 20);
-  assert.equal(CAPABILITY_DEFINITIONS.length, 20);
+  assert.equal(MVP_EXECUTABLE_TOOL_IDS.length, 10);
+  assert.equal(new Set(MVP_EXECUTABLE_TOOL_IDS).size, 10);
+  assert.equal(CAPABILITY_DEFINITIONS.length, 10);
   for (const id of MVP_EXECUTABLE_TOOL_IDS) {
     const item = definition(id);
     assert.equal(item.state, 'EXECUTABLE');
