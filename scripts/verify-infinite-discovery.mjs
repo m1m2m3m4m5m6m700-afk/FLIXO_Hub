@@ -49,7 +49,8 @@ for(const p of profiles){
   const c=readFileSync(join(root,p),"utf8");
   if(!c.includes('tools: ["read", "search", "edit"]')) fail("Scout tool contract: "+p);
   if(!c.includes("Your only writable repository path is .agent-intelligence/inbox/.")) fail("Scout write boundary: "+p);
-  if(/Your only writable repository path is (?!\.agent-intelligence\/inbox\/)/u.test(c)) fail("Scout writable path is not inbox: "+p);\n  if(/writable.*(?:review-queue|التطوير\.md)/iu.test(c)) fail("Scout grants forbidden writable surface: "+p);
+  if(/Your only writable repository path is (?!\.agent-intelligence\/inbox\/)/u.test(c)) fail("Scout writable path is not inbox: "+p);
+  if(/writable.*(?:review-queue|التطوير\.md)/iu.test(c)) fail("Scout grants forbidden writable surface: "+p);
 }
 for(const f of readdirSync(join(root,".agent-intelligence","inbox"))) if(!f.endsWith(".yaml")&&f!==".gitkeep"&&f!=="README.md") fail("invalid inbox artifact: "+f);
 for(const f of readdirSync(join(root,".agent-intelligence","snapshots"))) if(!f.endsWith(".json")&&!f.endsWith(".raw")&&!f.endsWith(".txt")&&f!==".gitkeep"&&f!=="README.md") fail("invalid snapshot artifact: "+f);
