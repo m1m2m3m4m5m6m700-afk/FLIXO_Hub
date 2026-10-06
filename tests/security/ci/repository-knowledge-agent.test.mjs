@@ -99,7 +99,8 @@ test('scanner produces an exact-SHA report with zero uncovered authored lines', 
 
   assert.match(result.sha, /^[0-9a-f]{40}$/);
   assert.equal(result.uncoveredSourceLines, 0);
-  assert.equal(result.reportPath, reportDir + '/' + result.sha + '.md');
+  const normalizedReportPath = result.reportPath.replace(repoRoot + '/', '');
+  assert.equal(normalizedReportPath, reportDir + '/' + result.sha + '.md');
   assert.ok(result.trackedFiles > 0);
   assert.ok(result.sourceTextFiles > 0);
   assert.ok(result.symbolCount > 0);
