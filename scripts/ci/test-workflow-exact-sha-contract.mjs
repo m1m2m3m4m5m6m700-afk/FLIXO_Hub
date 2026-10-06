@@ -77,6 +77,22 @@ test('worker pull requests are filtered out of canonical release jobs', async ()
   }
 });
 
+test('final Red Team security wait is promotion-only after execution security deduplication', async () => {
+  const workflow = await readFile(new URL('../../.github/workflows/final-red-team.yml', import.meta.url), 'utf8');
+  const marker = '      - name: Wait for exact-SHA security workflows on promotion PRs';
+  const index = workflow.indexOf(marker);
+  assert.ok(index >= 0, 'final Red Team security wait must exist');
+  const next = workflow.indexOf('      - name:', index + marker.length);
+  const block = workflow.slice(index, next > 0 ? next : workflow.length);
+  assert.match(
+    block,
+    /if:\s*github\.event_name == 'pull_request' && github\.event\.pull_request\.base\.ref == 'main'/u,
+  );
+  assert.match(block, /event=push/u);
+  assert.match(block, /FLIXO CodeQL/u);
+  assert.match(block, /FLIXO Secret Scan/u);
+});
+
 test('promotion lineage checkout retains full history for merge-base verification', async () => {
   const workflow = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
   const marker = '      - name: Verify exact head identity and live promotion lineage';
