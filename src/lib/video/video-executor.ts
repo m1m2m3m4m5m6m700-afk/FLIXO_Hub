@@ -174,11 +174,19 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
     const draw = () => {
       if (!drawing || options.signal?.aborted) return;
       context.drawImage(video, source.x, source.y, source.width, source.height, 0, 0, canvas.width, canvas.height);
-      frameHandle = requestAnimationFrame(draw);
     };
 
-    activeRecorder.start(250);
+    // Paint one deterministic frame before recording starts. This avoids a Chromium
+    // headless race where a large resized canvas can otherwise produce no encoded
+    // video chunks before the bounded recording window expires.
     draw();
+    activeRecorder.start(100);
+    draw();
+
+    // requestAnimationFrame can be throttled for an off-screen processing surface.
+    // Use a bounded timer-driven sampler so resizing/cropping is independent of
+    // animation scheduling while remaining fully local and resource-bounded.
+    const frameInterval = setInterval(draw, 33);
     // Do not block the recorder on the media element's play() promise.
     // Headless Chromium can leave that promise pending even though the element
     // has a decodable local source. The bounded recording timer remains authoritative.
@@ -214,9 +222,13 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
     });
 
     drawing = false;
+    clearInterval(frameInterval);
     cancelAnimationFrame(frameHandle);
     video.pause();
-    if (activeRecorder.state !== 'inactive') activeRecorder.stop();
+    if (activeRecorder.state !== 'inactive') {
+      try { activeRecorder.requestData(); } catch { /* recorder may already be stopping */ }
+      activeRecorder.stop();
+    }
     await stopped;
 
     canvasStream.getTracks().forEach((track) => track.stop());
@@ -226,6 +238,7 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
     return new Blob(chunks, { type: 'video/webm' });
   } finally {
     drawing = false;
+    clearInterval(frameInterval);
     if (frameHandle) cancelAnimationFrame(frameHandle);
     video.pause();
     if (recorder && recorder.state !== 'inactive') {
