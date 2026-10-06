@@ -241,11 +241,12 @@ export async function executeAgentPlan(
     throw new Error('Execution denied: plan is stale relative to the current canonical tool catalog.');
   }
 
-  const record = receipt?.token ? confirmations.get(receipt.token) : undefined;
+  const confirmationToken = receipt?.token;
+  const record = confirmationToken ? confirmations.get(confirmationToken) : undefined;
   if (!record || record.file !== file || record.plan !== plan || record.identity !== identityOf(validated)) {
     throw new Error('Execution denied: confirmation receipt is missing, stale, or bound to another plan/file.');
   }
-  confirmations.delete(receipt.token);
+  confirmations.delete(confirmationToken);
 
   if (validated.steps.length !== 1) {
     throw new Error('Execution denied: the current Agent Guided MVP is bounded to one canonical tool step.');
