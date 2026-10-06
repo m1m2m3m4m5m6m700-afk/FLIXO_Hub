@@ -47,8 +47,8 @@ export type CanonicalCapabilityDefinition = Readonly<{
   }>;
 }>;
 
-const MIME_TYPES = ["image/webp", "image/jpeg", "image/png"] as const;
-const PARAMETER_SCHEMAS = {
+export const MIME_TYPES = ["image/webp", "image/jpeg", "image/png"] as const;
+export const PARAMETER_SCHEMAS = {
   "background-remover": z.object({ tolerance: z.number().finite().min(0).max(255).optional() }).strict(),
   "image-upscaler": z.object({ scale: z.number().finite().positive().max(8).optional() }).strict(),
   "image-cropper": z.object({
