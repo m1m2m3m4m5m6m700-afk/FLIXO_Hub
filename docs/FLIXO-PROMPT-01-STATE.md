@@ -4,12 +4,12 @@ STATUS: LAST-VERIFIED-CANDIDATE RECORD — GOVERNANCE BLOCKED
 PROMPT_ID: 01
 SCOPE: READ_ONLY_STATE_RECORD
 RECORDED_AT_UTC: 2026-10-06
-START_SHA: bfa98f6da5bdc28b21c4f22a926d4c219a7230a2
+START_SHA: a44958a97126b2e050746010947aef2cfa286729
 END_SHA: PENDING_THIS_RECORD_COMMIT
 CURRENT_MAIN_SHA: 263827228cbe5f4851470297fde5f2858ff844de
-CURRENT_EXECUTION_SHA_AT_RECONCILIATION: bfa98f6da5bdc28b21c4f22a926d4c219a7230a2
+CURRENT_EXECUTION_SHA_AT_RECONCILIATION: a44958a97126b2e050746010947aef2cfa286729
 PR: #1002
-PR_HEAD_SHA_AT_RECONCILIATION: bfa98f6da5bdc28b21c4f22a926d4c219a7230a2
+PR_HEAD_SHA_AT_RECONCILIATION: a44958a97126b2e050746010947aef2cfa286729
 PR_BASE_SHA: 263827228cbe5f4851470297fde5f2858ff844de
 PRIMARY_BRANCH: execution
 INTEGRATION_PATH: execution -> main
@@ -27,21 +27,21 @@ INTEGRATION_PATH: execution -> main
 
 ## Current candidate evidence state
 
-Exact current execution candidate at last verification: 7d9266a42690417511d0202b3d06b6b362f2d7d4.
+Exact current execution candidate at last verification: a44958a97126b2e050746010947aef2cfa286729.
 This state record is coordination metadata only; every mutation invalidates prior exact-SHA evidence.
 Latest observed evidence before this documentation mutation:
-- Typecheck, lint, core contracts, build: PASS.
-- Exact-SHA internal coverage: PASS.
-- Red Team adversarial regression: PASS.
-- Prompt 17 clean-clone final adversarial gate: PASS.
-- FLIXO CodeQL: PASS.
-- Gitleaks / Secret Scan: PASS.
-- TestSprite execution fallback: PASS.
-- Chromium/browser smoke: PASS.
+- Typecheck, lint, core contracts, build: PASS (CI run 37437187385).
+- Exact-SHA internal coverage: PASS (CI job 112184761277).
+- Red Team adversarial regression: PASS (CI job 112184332370).
+- Prompt 17 clean-clone final adversarial gate: PASS (run 37437187406 / run #239).
+- FLIXO CodeQL: PASS (run 37437187434 / run #1544).
+- Gitleaks / Secret Scan: PASS (run 37437187409 / run #1540).
+- Chromium/browser smoke: PASS (CI job 112184761227).
+- Current FLIXO CI on the documentation rollover parent still FAIL-CLOSED only at main governance, trust-gate, and promotion proof.
 - PR branch-policy on base main: FAIL because live main ruleset 23854302 does not satisfy Prompt 12.
 - Execution-push branch-policy: PASS with main governance verification intentionally deferred.
 - Trust-gate / Exact-SHA promotion proof: not certifiable until browser and main-governance gates are satisfied.
-Evidence from older SHAs remains historical and stale; the record is a snapshot of the bfa98f6d… candidate before this documentation rollover.
+Evidence from older SHAs remains historical and stale; the record is a snapshot of the parent candidate a44958a9… before this documentation rollover.
 
 ## Governance evidence
 

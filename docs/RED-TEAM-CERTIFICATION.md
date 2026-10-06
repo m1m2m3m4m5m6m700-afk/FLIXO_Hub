@@ -5,8 +5,8 @@ STATUS: LAST-VERIFIED-CANDIDATE RECORD — NOT READY
 This is the current Red Team evidence record for FLIXO Hub. Historical Red Team results are not reusable as certification evidence for a new execution SHA.
 
 Last fully verified candidate before documentation rollover:
-- SHA: `bfa98f6da5bdc28b21c4f22a926d4c219a7230a2`
-- Prompt 17 clean-clone: PASS
+- SHA: `a44958a97126b2e050746010947aef2cfa286729`
+- Prompt 17 clean-clone: PASS (workflow run 37437187406 / run #239)
 
 Current lane:
 - Repository: m1m2m3m4m5m6m700-afk/FLIXO_Hub
@@ -23,4 +23,4 @@ Current adversarial coverage implemented in-repository:
 
 The dedicated adversarial suite is `tests/red-team-control-plane.test.ts` and is required to pass on the final frozen candidate SHA.
 
-Prompt 17 passed on the last verified candidate above. This documentation rollover changes the execution SHA, so the new head must regenerate Prompt 17 evidence before any final RED_TEAM_PASS claim for the current candidate.
+Prompt 17 passed on the last verified candidate above. This documentation rollover creates a new execution SHA, so the new head must regenerate Prompt 17 evidence before any final RED_TEAM_PASS claim for the current candidate.

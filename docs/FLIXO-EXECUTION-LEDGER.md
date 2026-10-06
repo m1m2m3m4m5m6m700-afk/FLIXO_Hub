@@ -4,7 +4,7 @@ This ledger records live execution tasks on the `execution` integration line. A 
 
 ## Current candidate
 - Branch: `execution`
-- Current candidate SHA at this ledger reconciliation: `bfa98f6da5bdc28b21c4f22a926d4c219a7230a2`
+- Current candidate SHA at this ledger reconciliation: `a44958a97126b2e050746010947aef2cfa286729`
 - Integration PR: #1002
 - Production truth branch: `main`
 - Current main SHA: `263827228cbe5f4851470297fde5f2858ff844de`
@@ -24,7 +24,7 @@ This ledger records live execution tasks on the `execution` integration line. A 
 | EXEC-CERT-BLOCKER-001 | AGENT-3/Certification | BLOCKED | GitHub ruleset / PR review state | External repository governance | Live main ruleset has 0 required approvals and non-strict required checks; PR #1002 has no human approving review | Live ruleset inspection + PR review list | Harden Ruleset 23854302 and obtain legitimate independent approval |
 | EXEC-DOCS-AUDIT-001 | AGENT-2/Product | IMPLEMENTED | `docs/TOOL-EXPANSION-AUDIT.md` | Exact execution candidate | Audit reconciled to active PR #1002 | Latest exact candidate requires state refresh after every mutation | Refresh only as candidate advances |
 
-## Last fully verified exact-SHA CI evidence — candidate `bfa98f6da5bdc28b21c4f22a926d4c219a7230a2`
+## Last fully verified exact-SHA CI evidence — candidate `a44958a97126b2e050746010947aef2cfa286729`
 
 Exact candidate evidence before this documentation rollover:
 - Typecheck/lint/core contracts/build: PASS.
@@ -39,10 +39,10 @@ Exact candidate evidence before this documentation rollover:
 - Chromium browser smoke: PASS.
 - Trust-gate / promotion proof: governance remains blocked by live main ruleset and missing independent human review.
 - Production exact-SHA deployment: not applicable on execution by design; production truth begins on main after protected promotion.
-All evidence above is tied to `bfa98f6da5bdc28b21c4f22a926d4c219a7230a2`. This documentation rollover changes the execution SHA, so candidate-specific PASS evidence must be regenerated on the new head.
+All evidence above is tied to `bfa98f6da5bdc28b21c4f22a926d4c219a7230a2`. This This documentation rollover creates a new SHA, so candidate-specific PASS evidence remains bound to `a44958a97126b2e050746010947aef2cfa286729` until regenerated on the new head.
 
 ## Prompt-state reconciliation — current candidate
-- Prompt 01: BLOCKED_BY_EXTERNAL_GOVERNANCE — live execution/main state reconciled at b130f732ba4e333611040676ae3c21531480b62c.
+- Prompt 01: BLOCKED_BY_EXTERNAL_GOVERNANCE — live execution/main state reconciled at `a44958a97126b2e050746010947aef2cfa286729`.
 - Prompt 02: VERIFIED-IMPLEMENTATION / exact final certification pending.
 - Prompt 03: VERIFIED by canonical registry/executor/verifier/output-contract regression.
 - Prompt 04: VERIFIED by Agent Guided + Manual browser/local execution coverage.
@@ -58,7 +58,7 @@ All evidence above is tied to `bfa98f6da5bdc28b21c4f22a926d4c219a7230a2`. This d
 - Prompt 14: VERIFIED-DOCS-ALIGNMENT — current-state documents reconciled without changing runtime authority.
 - Prompt 15: BLOCKED until protected-main promotion and post-merge production identity verification.
 - Prompt 16: VERIFIED — active MVP file-editing path is persistence-independent; Supabase remains outside raw MVP file execution.
-- Prompt 17: VERIFIED on the pre-mutation exact candidate; clean-clone gate PASS.
+- Prompt 17: VERIFIED on `a44958a97126b2e050746010947aef2cfa286729` — clean-clone gate PASS.
 - Prompt 18: BLOCKED until Prompt 12 and the post-mutation exact candidate gates are closed.
 - Prompt 19: BLOCKED until Prompt 12 and Prompt 18 conditions are satisfied.
 - Prompt 20: BLOCKED until legitimate review/governance and protected promotion are available.

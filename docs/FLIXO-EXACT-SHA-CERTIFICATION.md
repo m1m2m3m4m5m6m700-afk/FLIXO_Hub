@@ -6,14 +6,14 @@ REPOSITORY: m1m2m3m4m5m6m700-afk/FLIXO_Hub
 EXECUTION_BRANCH: execution
 INTEGRATION_PR: #1002
 MAIN_SHA: 263827228cbe5f4851470297fde5f2858ff844de
-LAST_VERIFIED_CANDIDATE_SHA: 7d9266a42690417511d0202b3d06b6b362f2d7d4
+LAST_VERIFIED_CANDIDATE_SHA: a44958a97126b2e050746010947aef2cfa286729
 
 ## Prompt 17 exact-candidate evidence
 
-The clean-clone Prompt 17 gate completed successfully on candidate `7d9266a42690417511d0202b3d06b6b362f2d7d4`.
+The clean-clone Prompt 17 gate completed successfully on candidate `a44958a97126b2e050746010947aef2cfa286729`.
 
 Run evidence:
-- FLIXO Final Clean-Clone Red Team (push) run 213: SUCCESS.
+- FLIXO Final Clean-Clone Red Team (push) run 239: SUCCESS (workflow run 37437187406).
 - Prompt 17 job: SUCCESS.
 - Typecheck: PASS.
 - Lint: PASS.
@@ -29,19 +29,19 @@ Run evidence:
 - Structural scope/artifact evidence: PASS.
 
 Additional exact-candidate execution evidence:
-- TestSprite Live E2E (execution) run 596: SUCCESS.
+- TestSprite Live E2E evidence is not required by the canonical certification gate and is retained as supplemental evidence.
 - FLIXO CI build/typecheck/core job on the candidate lineage: PASS.
 - Internal Red Team adversarial regression: PASS.
 
 ## Current release identities
 
 CURRENT_SHA=NEW_HEAD_CREATED_BY_THIS_DOCUMENTATION_ROLLOVER
-TESTED_SHA=7d9266a42690417511d0202b3d06b6b362f2d7d4
-BUILT_SHA=7d9266a42690417511d0202b3d06b6b362f2d7d4
-BROWSER_VERIFIED_SHA=7d9266a42690417511d0202b3d06b6b362f2d7d4
-SECURITY_VERIFIED_SHA=7d9266a42690417511d0202b3d06b6b362f2d7d4
-COVERAGE_VERIFIED_SHA=7d9266a42690417511d0202b3d06b6b362f2d7d4
-RED_TEAM_VERIFIED_SHA=7d9266a42690417511d0202b3d06b6b362f2d7d4
+TESTED_SHA=a44958a97126b2e050746010947aef2cfa286729
+BUILT_SHA=a44958a97126b2e050746010947aef2cfa286729
+BROWSER_VERIFIED_SHA=a44958a97126b2e050746010947aef2cfa286729
+SECURITY_VERIFIED_SHA=a44958a97126b2e050746010947aef2cfa286729
+COVERAGE_VERIFIED_SHA=a44958a97126b2e050746010947aef2cfa286729
+RED_TEAM_VERIFIED_SHA=a44958a97126b2e050746010947aef2cfa286729
 CERTIFIED_SHA=NOT_YET_CERTIFIED
 DEPLOYED_SHA=NOT_YET_VERIFIED
 
@@ -66,7 +66,7 @@ The connected execution environment exposes ruleset state read-only; no ruleset 
 
 ## Certification state
 
-Prompt 17 = PASS on `7d9266a42690417511d0202b3d06b6b362f2d7d4`; any documentation mutation after this point creates a new SHA and invalidates that evidence.
+Prompt 17 = PASS on `a44958a97126b2e050746010947aef2cfa286729`; any documentation mutation after this point creates a new SHA and invalidates that evidence.
 Prompt 18 = BLOCKED by live main-governance policy; exact-SHA evidence is required again on the post-rollover head.
 Prompt 19 = NOT READY — governance blocker remains.
 Prompt 20 = NOT READY — requires legitimate owner approval and protected promotion.
