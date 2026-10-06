@@ -17,7 +17,7 @@ export const QUARANTINED_REFS = new Set([
 const PRODUCTION_REF = 'refs/heads/main';
 const INTEGRATION_REF = 'refs/heads/execution';
 
-const CONTROLLED_AGENT_REF = /^refs\/heads\/(?:agent(?:\/|-)|agent3\/|agent-3[abc]\/)/u;
+const CONTROLLED_AGENT_REF = /^refs\/heads\/(?:agent\/|agent-(?:1|2|3|4)(?:[abc])?\/|agent3\/)/u;
 const PRODUCTION_DEPLOYMENT_COMMAND =
   /\b(?:wrangler|vercel|supabase|flyctl|kubectl|terraform)\s+(?:deploy|apply|push|publish)\b|\b(?:npm|pnpm|yarn)\s+publish\b/iu;
 
@@ -34,11 +34,11 @@ export function classifyRef(ref) {
   if (ref === INTEGRATION_REF) {
     return { authority: 'integration', allowed: true, quarantined: false };
   }
-  if (CONTROLLED_AGENT_REF.test(ref)) {
-    return { authority: 'controlled-agent', allowed: true, quarantined: false };
-  }
   if (QUARANTINED_REFS.has(ref)) {
     return { authority: 'quarantined-stale', allowed: true, quarantined: true };
+  }
+  if (CONTROLLED_AGENT_REF.test(ref)) {
+    return { authority: 'controlled-agent', allowed: true, quarantined: false };
   }
   return { authority: 'working', allowed: true, quarantined: false };
 }
