@@ -29,7 +29,7 @@
     "verify:launch": "node scripts/cli/verify-all.mjs --launch",
     "verify:agents": "node scripts/verify-agent-profiles.mjs",
     "verify:i18n": "node scripts/verify-i18n-locales.mjs",
-    "test:security-governance": "node --test tests/security/ci/redteam-rt3-governance.test.mjs",
+    "test:security-governance": "node --test tests/security/ci/*.test.mjs",
     "test:red-team": "node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/red-team-control-plane.test.ts",
     "verify:all": "node scripts/cli/verify-all.mjs"
   },
