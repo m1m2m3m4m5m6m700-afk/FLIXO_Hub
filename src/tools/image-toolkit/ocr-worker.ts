@@ -27,11 +27,13 @@ const ocrWorkerScope = self as unknown as OcrWorkerScope;
 const ocrWorkerGlobal = globalThis as unknown as OcrWorkerGlobal;
 
 ocrWorkerScope.onmessage = async (event: MessageEvent<OcrWorkerMessage>) => {
+  let image: ImageBitmap | null = null;
+  let canvas: OcrWorkerCanvas | null = null;
   try {
     if (!ocrWorkerGlobal.OffscreenCanvas) throw new Error('OffscreenCanvas is unavailable.');
-    const image = await ocrWorkerGlobal.createImageBitmap(event.data.blob);
+    image = await ocrWorkerGlobal.createImageBitmap(event.data.blob);
     const scale = Math.min(2.5, Math.max(1, 1600 / Math.max(image.width, image.height)));
-    const canvas = new ocrWorkerGlobal.OffscreenCanvas(
+    canvas = new ocrWorkerGlobal.OffscreenCanvas(
       Math.max(1, Math.round(image.width * scale)),
       Math.max(1, Math.round(image.height * scale)),
     );
@@ -55,5 +57,13 @@ ocrWorkerScope.onmessage = async (event: MessageEvent<OcrWorkerMessage>) => {
       ok: false,
       error: error instanceof Error ? error.message : 'OCR preprocessing worker failed.',
     });
+  } finally {
+    image?.close();
+    if (canvas) {
+      canvas.width = 1;
+      canvas.height = 1;
+      canvas.width = 0;
+      canvas.height = 0;
+    }
   }
 };
