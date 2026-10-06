@@ -264,30 +264,30 @@ async function executeMvpTool(
     const options =
       toolId === 'video-trimmer'
         ? {
-            startSec: numberOr(parameters.startSec, 0),
+            startSec: parameters.startSec === undefined ? undefined : numberOr(parameters.startSec, 0),
             endSec: parameters.endSec === undefined ? undefined : numberOr(parameters.endSec, 0),
             signal,
           }
         : toolId === 'video-cropper'
           ? {
               crop: {
-                x: Math.max(0, Math.floor(numberOr(parameters.x, 0))),
-                y: Math.max(0, Math.floor(numberOr(parameters.y, 0))),
-                width: Math.max(1, Math.floor(numberOr(parameters.width, 1))),
-                height: Math.max(1, Math.floor(numberOr(parameters.height, 1))),
+                x: parameters.x === undefined ? 0 : numberOr(parameters.x, 0),
+                y: parameters.y === undefined ? 0 : numberOr(parameters.y, 0),
+                width: numberOr(parameters.width, 1),
+                height: numberOr(parameters.height, 1),
               },
               signal,
             }
           : toolId === 'video-resizer'
             ? {
-                width: Math.max(1, Math.floor(numberOr(parameters.width, 1))),
-                height: Math.max(1, Math.floor(numberOr(parameters.height, 1))),
-                fps: numberOr(parameters.fps, 30),
+                width: numberOr(parameters.width, 1),
+                height: numberOr(parameters.height, 1),
+                fps: parameters.fps === undefined ? 30 : numberOr(parameters.fps, 30),
                 signal,
               }
             : {
-                videoBitsPerSecond: Math.floor(numberOr(parameters.videoBitsPerSecond, 2_500_000)),
-                audioBitsPerSecond: Math.floor(numberOr(parameters.audioBitsPerSecond, 128_000)),
+                videoBitsPerSecond: parameters.videoBitsPerSecond === undefined ? 2_500_000 : numberOr(parameters.videoBitsPerSecond, 2_500_000),
+                audioBitsPerSecond: parameters.audioBitsPerSecond === undefined ? 128_000 : numberOr(parameters.audioBitsPerSecond, 128_000),
                 signal,
               };
     const blob = await renderVideoToWebm(input.blob, options);
