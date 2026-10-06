@@ -38,6 +38,14 @@ function assertSupportedFile(file: File): void {
 
 function matchedTools(prompt: string, file: File): Array<{ toolId: string; intent: string }> {
   const normalized = normalize(prompt);
+  if (file.type.startsWith('video/')) {
+    if (/resize|resolution|dimensions|تغيير حجم|غيّر حجم|غير حجم|دقة|أبعاد/u.test(normalized)) {
+      return [{ toolId: 'video-resizer', intent: 'resize video' }];
+    }
+    if (/compress|compression|ضغط|تصغير حجم/u.test(normalized)) {
+      return [{ toolId: 'video-compressor', intent: 'compress video' }];
+    }
+  }
   if (file.type.startsWith('image/')) {
     if (normalized.includes('compress') && normalized.includes('convert')) {
       return [
