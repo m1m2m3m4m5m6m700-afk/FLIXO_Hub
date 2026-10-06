@@ -6,6 +6,12 @@ on:
   push:
     branches: [main, execution]
   workflow_dispatch:
+    inputs:
+      strict_governance:
+        description: 'Run strict release governance verification'
+        required: false
+        default: false
+        type: boolean
   merge_group:
     types: [checks_requested]
 
@@ -210,10 +216,18 @@ jobs:
           test "$HEAD_REPO" = "$GITHUB_REPOSITORY"
           test "$BASE_REPO" = "$GITHUB_REPOSITORY"
           echo "PR_SOURCE_IDENTITY=PASS"
-      - name: Verify main governance ruleset
+      - name: Verify main governance ruleset (FAST agent mode)
         if: ${{ (github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main') || github.ref == 'refs/heads/main' }}
         env:
           GH_TOKEN: ${{ github.token }}
+          GOVERNANCE_MODE: fast
+        run: node scripts/ci/verify-main-ruleset.mjs
+
+      - name: Verify main governance ruleset (STRICT release mode)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.strict_governance == true }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GOVERNANCE_MODE: strict
         run: node scripts/ci/verify-main-ruleset.mjs
       - name: Record execution-branch governance deferral
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/execution' }}
