@@ -2,7 +2,7 @@
 # Coverage is explicit on high-impact paths; global wildcard remains only as fallback.
 # GitHub must separately enforce >=1 approving review, CODEOWNER review,
 # stale-review dismissal, latest-push approval, resolved review threads, and strict checks.
-* /m1m2m3m4m5m6m700-afk
+* @m1m2m3m4m5m6m700-afk
 /.github/workflows/ @m1m2m3m4m5m6m700-afk
 /.github/CODEOWNERS @m1m2m3m4m5m6m700-afk
 /.github/agents/ @m1m2m3m4m5m6m700-afk
