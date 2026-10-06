@@ -21,8 +21,8 @@ test('RT-01: privileged council SECURITY DEFINER functions use an explicit servi
     assert.ok(migration.includes('grant execute on function public.' + signature + ' to service_role;'), signature);
   }
   assert.match(migration, /alter function public\.flixo_retry_pending_assistant_wakes\(\) set search_path = pg_catalog, public, pg_temp/u);
-  assert.match(migration, /revoke execute on function net\.http_post\(text, jsonb, jsonb, jsonb, integer\) from public, anon, authenticated;/u);
-  assert.match(migration, /revoke execute on function net\.http_get\(text, jsonb, jsonb, integer\) from public, anon, authenticated;/u);
+  assert.match(migration, /Supabase-managed pg_net functions are platform-owned/u);
+  assert.match(migration, /net schema must remain outside the Data API exposed schema set/u);
 });
 
 test('RT-02: flixo-council-runtime authentication and session binding remain source-controlled and fail-closed', () => {
