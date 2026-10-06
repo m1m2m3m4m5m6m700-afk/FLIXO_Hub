@@ -256,7 +256,7 @@ test('workflow authority rejects production deployment actions without a main-pu
 
   const report = analyzeWorkflowAuthority('.github/workflows/fixture.yml', fixture);
   assert.equal(report.pass, false);
-  assert.match(report.findings[0], /not gated to a push of refs\/heads\/main/u);
+  assert.ok(report.findings[0].includes('not gated to a push of refs/heads/main'));
 });
 
 test('workflow-level contents:write must be explicitly constrained to main or execution', () => {
