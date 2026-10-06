@@ -53,15 +53,13 @@ export function loadImage(blob: Blob): Promise<HTMLImageElement> {
 }
 
 function canvasBlob(canvas: HTMLCanvasElement, type = 'image/png', quality = 0.96): Promise<Blob> {
-  return new Promise((resolve, reject) => {
-    canvas.toBlob(
-      (blob) => blob ? resolve(blob) : reject(new Error('Could not create output image.')),
-      type,
-      quality,
-    );
-  }).finally(() => {
-    canvas.width = 0;
-    canvas.height = 0;
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      canvas.width = 0;
+      canvas.height = 0;
+      if (blob) resolve(blob);
+      else reject(new Error('Could not create output image.'));
+    }, type, quality);
   });
 }
 
