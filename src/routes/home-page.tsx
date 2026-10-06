@@ -22,6 +22,7 @@ type ToolCardProps = Readonly<{
 const READY_TOOLS = TOOL_CATALOG.ready;
 const LANGUAGE_LABELS: Record<string, string> = { en: 'English', ar: 'العربية', es: 'Español', fr: 'Français', de: 'Deutsch', hi: 'हिन्दी', id: 'Bahasa Indonesia', it: 'Italiano', ja: '日本語', ko: '한국어', ms: 'Bahasa Melayu', nl: 'Nederlands', pl: 'Polski', pt: 'Português', ru: 'Русский', sv: 'Svenska', th: 'ไทย', tr: 'Türkçe', uk: 'Українська', vi: 'Tiếng Việt' };
 const FILTER_LABELS: Record<string, string> = { en: 'Filters', ar: 'الفلاتر', es: 'Filtros', fr: 'Filtres', de: 'Filter', hi: 'फ़िल्टर', id: 'Filter', it: 'Filtri', ja: 'フィルター', ko: '필터', ms: 'Penapis', nl: 'Filters', pl: 'Filtry', pt: 'Filtros', ru: 'Фильтры', sv: 'Filter', th: 'ฟิลเตอร์', tr: 'Filtreler', uk: 'Фільтри', vi: 'Bộ lọc' };
+const AGENT_LABELS: Readonly<Record<Locale, string>> = { en: 'FLIXO Agent', ar: 'وكيل FLIXO', es: 'Agente FLIXO', fr: 'Agent FLIXO', de: 'FLIXO-Agent', hi: 'FLIXO एजेंट', id: 'Agen FLIXO', it: 'Agente FLIXO', ja: 'FLIXOエージェント', ko: 'FLIXO 에이전트', ms: 'Ejen FLIXO', nl: 'FLIXO-agent', pl: 'Agent FLIXO', pt: 'Agente FLIXO', ru: 'Агент FLIXO', sv: 'FLIXO-agent', th: 'เอเจนต์ FLIXO', tr: 'FLIXO Ajanı', uk: 'Агент FLIXO', vi: 'Tác nhân FLIXO' };
 
 function toLocalizedTool(tool: ToolDefinition, locale: Locale): ToolCardProps {
   const localizedTitle = getAuthoritativeToolSeoName(tool, locale) ?? tool.title;
@@ -67,7 +68,7 @@ export function HomePage({ locale = 'en' as Locale }: { locale?: Locale }) {
       <nav className="home-nav" aria-label={copy.ariaPrimary}>
         <div className="home-container home-nav-inner">
           <Link className="home-brand" to="/" aria-label={copy.ariaHome}>FLIXO Hub</Link>
-          <div className="home-nav-links"><a href="#tools">{locale === 'ar' ? 'أدوات الصور' : copy.nav.tools}</a><Link to="/agent">{locale === 'ar' ? 'وكيل FLIXO' : 'FLIXO Agent'}</Link><Link to="/$locale/$tool" params={{ locale, tool: 'filter-mask' }}>{FILTER_LABELS[locale] ?? copy.nav.categories}</Link></div>
+          <div className="home-nav-links"><a href="#tools">{locale === 'ar' ? 'أدوات الصور' : copy.nav.tools}</a><Link to="/agent">{AGENT_LABELS[locale]}</Link><Link to="/$locale/$tool" params={{ locale, tool: 'filter-mask' }}>{FILTER_LABELS[locale] ?? copy.nav.categories}</Link></div>
           <label className="sr-only" htmlFor="home-language">{copy.nav.switch}</label>
           <select id="home-language" className="home-nav-language" value={locale} aria-label={copy.nav.switch} onChange={(event) => { const nextLocale = event.target.value as Locale; void navigate(nextLocale === 'en' ? { to: '/' } : { to: '/$locale', params: { locale: nextLocale } }); }}>
             {LOCALES.map((code) => <option key={code} value={code}>{LANGUAGE_LABELS[code] ?? code}</option>)}
