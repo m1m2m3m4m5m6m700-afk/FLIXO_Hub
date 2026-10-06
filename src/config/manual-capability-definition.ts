@@ -297,32 +297,6 @@ const changedImageVerifier: CanonicalCapabilityVerifier = async (input, output, 
   return hasMeaningfulPixelChange(input, output, signal);
 };
 
-const rotatedImageVerifier: CanonicalCapabilityVerifier = async (input, output, _parameters, signal) => {
-  if (signal?.aborted || output.size <= 0 || output.type !== "image/png") return false;
-  const [inputDimensions, outputDimensions] = await Promise.all([readImageDimensions(input, signal), readImageDimensions(output, signal)]);
-  if (!inputDimensions || !outputDimensions) return false;
-  const dimensionsMatch = outputDimensions.width === inputDimensions.height && outputDimensions.height === inputDimensions.width;
-  return dimensionsMatch && hasMeaningfulPixelChange(
-    input,
-    output,
-    signal,
-  );
-};
-
-const resizedImageVerifier: CanonicalCapabilityVerifier = async (input, output, parameters, signal) => {
-  if (signal?.aborted || output.size <= 0 || output.type !== "image/png") return false;
-  const [inputDimensions, outputDimensions] = await Promise.all([readImageDimensions(input, signal), readImageDimensions(output, signal)]);
-  if (!inputDimensions || !outputDimensions) return false;
-  const scale = typeof parameters.scale === "number" ? parameters.scale : 1.5;
-  if (
-    outputDimensions.width !== Math.max(1, Math.round(inputDimensions.width * scale)) ||
-    outputDimensions.height !== Math.max(1, Math.round(inputDimensions.height * scale))
-  ) {
-    return false;
-  }
-  return hasMeaningfulPixelChange(input, output, signal);
-};
-
 const targetSizeVerifier: CanonicalCapabilityVerifier = async (input, output, parameters, signal) => {
   if (signal?.aborted || output.size <= 0 || !output.type.startsWith("image/")) return false;
   const target = typeof parameters.targetSizeKB === "number" ? parameters.targetSizeKB : undefined;
