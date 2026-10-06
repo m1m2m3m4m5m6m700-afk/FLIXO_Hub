@@ -309,13 +309,12 @@ async function verifyOutputContract(
       if (typeof document === 'undefined') throw new Error('Browser runtime required for video output verification.');
       const video = document.createElement('video');
       video.preload = 'metadata';
-      const url = URL.createObjectURL(output.blob);
       try {
         const metadataReady = new Promise<void>((resolve, reject) => {
           video.onloadedmetadata = () => resolve();
           video.onerror = () => reject(new Error('Video output could not be decoded.'));
         });
-        video.src = url;
+        video.srcObject = output.blob;
         await withDeadline(
           metadataReady,
           Math.min(timeoutMs, 30_000),
