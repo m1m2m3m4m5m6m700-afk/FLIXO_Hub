@@ -1,6 +1,7 @@
 import type { ChangeEvent } from 'react';
 
 export type LocalToolId =
+  | 'ai-image-generator'
   | 'background-remover'
   | 'image-upscaler'
   | 'image-converter'
