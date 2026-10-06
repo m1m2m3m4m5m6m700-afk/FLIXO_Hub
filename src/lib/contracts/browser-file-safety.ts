@@ -1,15 +1,20 @@
 import { MAGIC_BYTE_SIGNATURES, validateFileSafety, type FileSafetyResult, type FileSafetyPolicy } from './file-safety.ts';
 
+export type BrowserFileDimensions = { width: number; height: number };
+
 export type BrowserFileValidationPolicy = FileSafetyPolicy & {
-  decoder?: (file: File) => Promise<void>;
+  decoder?: (file: File) => Promise<BrowserFileDimensions>;
 };
 
 export type BrowserFileValidationResult = FileSafetyResult & {
   decoded: boolean;
+  width?: number;
+  height?: number;
 };
 
 const DEFAULT_IMAGE_POLICY: BrowserFileValidationPolicy = {
   maxBytes: 25 * 1024 * 1024,
+  maxPixels: 40_000_000,
   allowedMime: ['image/avif', 'image/bmp', 'image/gif', 'image/jpeg', 'image/png', 'image/webp'],
   allowedExtensions: ['avif', 'bmp', 'gif', 'jpeg', 'jpg', 'png', 'webp'],
   magicBytes: [
@@ -22,26 +27,64 @@ const DEFAULT_IMAGE_POLICY: BrowserFileValidationPolicy = {
   ],
 };
 
-async function decodeImage(file: File): Promise<void> {
+const MIME_EXTENSION_MAP: Readonly<Record<string, readonly string[]>> = Object.freeze({
+  'image/avif': ['avif'],
+  'image/bmp': ['bmp'],
+  'image/gif': ['gif'],
+  'image/jpeg': ['jpeg', 'jpg'],
+  'image/png': ['png'],
+  'image/webp': ['webp'],
+});
+
+const MIME_MAGIC_MAP: Readonly<Record<string, FileSafetyPolicy['magicBytes']>> = Object.freeze({
+  'image/avif': [MAGIC_BYTE_SIGNATURES.avif],
+  'image/bmp': [MAGIC_BYTE_SIGNATURES.bmp],
+  'image/gif': [MAGIC_BYTE_SIGNATURES.gif],
+  'image/jpeg': [MAGIC_BYTE_SIGNATURES.jpeg],
+  'image/png': [MAGIC_BYTE_SIGNATURES.png],
+  'image/webp': [MAGIC_BYTE_SIGNATURES.webp],
+});
+
+async function decodeImage(file: File): Promise<BrowserFileDimensions> {
   if ('createImageBitmap' in window && typeof window.createImageBitmap === 'function') {
     const bitmap = await window.createImageBitmap(file);
-    bitmap.close();
-    return;
+    try {
+      return { width: bitmap.width, height: bitmap.height };
+    } finally {
+      bitmap.close();
+    }
   }
 
   const url = URL.createObjectURL(file);
   try {
     const image = new Image();
+    image.decoding = 'async';
     image.src = url;
     await image.decode();
+    const dimensions = { width: image.naturalWidth, height: image.naturalHeight };
+    if (!Number.isInteger(dimensions.width) || !Number.isInteger(dimensions.height) || dimensions.width < 1 || dimensions.height < 1) {
+      throw new Error('The selected image has invalid dimensions.');
+    }
+    return dimensions;
   } finally {
     URL.revokeObjectURL(url);
   }
 }
 
+const withCanonicalRasterChecks = (file: File, policy: BrowserFileValidationPolicy): BrowserFileValidationPolicy => {
+  const inferredExtensions = MIME_EXTENSION_MAP[file.type];
+  const inferredMagic = MIME_MAGIC_MAP[file.type];
+  if (!inferredExtensions || !inferredMagic) return policy;
+  return {
+    ...policy,
+    allowedExtensions: policy.allowedExtensions ?? inferredExtensions,
+    magicBytes: policy.magicBytes ?? inferredMagic,
+  };
+};
+
 export async function validateBrowserFile(
   file: File,
-  policy: BrowserFileValidationPolicy = DEFAULT_IMAGE_POLICY,
+  policy: BrowserFileValidationPolicy = { ...DEFAULT_IMAGE_POLICY, decoder: decodeImage },
 ): Promise<BrowserFileValidationResult> {
   const failures: string[] = [];
   let content: Uint8Array;
@@ -52,46 +95,47 @@ export async function validateBrowserFile(
     return { safe: false, failures: ['failed to read file bytes'], decoded: false };
   }
 
-  const extension = file.name.includes('.') ? file.name.slice(file.name.lastIndexOf('.') + 1).toLowerCase() : '';
-  if (extension && policy.allowedExtensions?.includes(extension)) {
-    const expectedMime = { ...EXTENSION_MIME_OVERRIDES }[extension];
-    if (expectedMime && file.type !== expectedMime) failures.push(`file extension does not match MIME type: .${extension} -> ${file.type}`);
-  }
-
+  const effectivePolicy = withCanonicalRasterChecks(file, policy);
   const safety = validateFileSafety(
     {
       name: file.name,
       mime: file.type,
       bytes: file.size,
       content,
-      signature: Array.from(content.slice(0, 16), (value) => value.toString(16).padStart(2, '0')).join(''),
     },
-    policy,
+    effectivePolicy,
   );
   failures.push(...safety.failures);
 
-  let decoded = false;
-  if (failures.length === 0 && policy.decoder) {
-    try {
-      await policy.decoder(file);
-      decoded = true;
-    } catch {
-      failures.push('file decoder rejected the input');
-    }
+  if (failures.length > 0 || !effectivePolicy.decoder) {
+    return { safe: failures.length === 0, failures, decoded: false };
   }
 
-  return { safe: failures.length === 0, failures, decoded };
+  try {
+    const dimensions = await effectivePolicy.decoder(file);
+    const dimensionCheck = validateFileSafety(
+      {
+        name: file.name,
+        mime: file.type,
+        bytes: file.size,
+        width: dimensions.width,
+        height: dimensions.height,
+      },
+      effectivePolicy,
+    );
+    if (!dimensionCheck.safe) failures.push(...dimensionCheck.failures);
+    return {
+      safe: failures.length === 0,
+      failures,
+      decoded: failures.length === 0,
+      width: dimensions.width,
+      height: dimensions.height,
+    };
+  } catch {
+    failures.push('file decoder rejected the input');
+    return { safe: false, failures, decoded: false };
+  }
 }
-
-const EXTENSION_MIME_OVERRIDES: Record<string, string> = Object.freeze({
-  avif: 'image/avif',
-  bmp: 'image/bmp',
-  gif: 'image/gif',
-  jpeg: 'image/jpeg',
-  jpg: 'image/jpeg',
-  png: 'image/png',
-  webp: 'image/webp',
-});
 
 export const IMAGE_BROWSER_FILE_POLICY: BrowserFileValidationPolicy = Object.freeze({
   ...DEFAULT_IMAGE_POLICY,
