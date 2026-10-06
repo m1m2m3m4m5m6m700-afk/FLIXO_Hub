@@ -79,7 +79,7 @@ export function ImageConverterTool({ locale }: { locale?: string }) {
       afterLabel={t("After")}
       runLabel={t("Run tool")}
       downloadLabel={t("Download now")}
-      downloadRole="button"
+      downloadRole="link"
     />
   );
 }
