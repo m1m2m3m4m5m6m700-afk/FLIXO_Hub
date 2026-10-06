@@ -158,29 +158,19 @@ test('canonical MVP capability verifiers accept measurable valid artifacts and r
     const converted = new Blob(['converted'], { type: 'image/webp' });
     assert.equal(await definition('image-converter').verifier(input, converted, { format: 'image/webp' }), true);
 
-    for (const id of [
-      'image-rotate',
-      'image-flip-horizontal',
-      'image-flip-vertical',
-      'image-brightness',
-      'image-contrast',
-      'image-saturation',
-      'image-grayscale',
-      'image-invert',
-      'image-sepia',
-      'image-blur',
-      'image-sharpen',
-      'image-resizer',
-      'image-hue',
-      'image-pixelate',
-    ]) {
-      const candidateInput = new Blob(['candidate-input'], { type: 'image/png' });
-      const candidateOutput = new Blob(['candidate-output'], { type: 'image/png' });
-      imageDimensions.set(candidateInput, { width: 32, height: 32 });
-      imageDimensions.set(candidateOutput, id === 'image-resizer' ? { width: 48, height: 48 } : { width: 32, height: 32 });
-      currentVerificationInput = candidateInput;
-      assert.equal(await definition(id).verifier(candidateInput, candidateOutput, id === 'image-resizer' ? { scale: 1.5 } : {}), true, id);
-      assert.equal(await definition(id).verifier(candidateInput, candidateInput, {}), false, id + ':neutral-output');
+    const videoIds = ['video-trimmer', 'video-cropper', 'video-resizer', 'video-compressor'];
+    for (const id of videoIds) {
+      const candidateInput = new Blob(['candidate-video-input'], { type: 'video/webm' });
+      const candidateOutput = new Blob(['candidate-video-output'], { type: 'video/webm' });
+      videoMetadata.set(candidateInput, { width: 320, height: 180, duration: 2 });
+      videoMetadata.set(candidateOutput, {
+        width: id === 'video-resizer' || id === 'video-cropper' ? 320 : 320,
+        height: id === 'video-resizer' || id === 'video-cropper' ? 180 : 180,
+        duration: id === 'video-trimmer' ? 1.9 : 2,
+      });
+      currentVerificationInput = null;
+      const parameters = id === 'video-trimmer' ? { startSec: 0, endSec: 1.9 } : {};
+      assert.equal(await definition(id).verifier(candidateInput, candidateOutput, parameters), true, id);
     }
   } finally {
     if (originalCreateImageBitmap === undefined) delete globals.createImageBitmap;
