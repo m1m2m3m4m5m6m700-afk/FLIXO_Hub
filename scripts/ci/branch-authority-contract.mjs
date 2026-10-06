@@ -64,7 +64,7 @@ export function assertWorkflowAuthority(inventory) {
     }
 
     if (entry.promotion) {
-      if (!/BASE_BRANCH[^\n]+main/u.test(source) || !/HEAD_BRANCH[^\n]+execution/u.test(source)) {
+      if (!/BASE_BRANCH[\s\S]{0,3000}["']main["']/u.test(source) || !/HEAD_BRANCH[\s\S]{0,3000}["']execution["']/u.test(source)) {
         throw new Error('PROMOTION_WORKFLOW_NOT_EXECUTION_TO_MAIN:' + entry.path);
       }
       if (/HEAD_BRANCH[^\n]+agent-(?:1|2|3|4|3a|3b|3c)\//u.test(source)) {
