@@ -280,7 +280,16 @@ export function collectSemanticDiff(mainRef = 'refs/remotes/origin/main', execut
 }
 export function collectGitRefSnapshot(ref = 'refs/remotes/origin/main') {
   try {
-    const resolvedRef = sh('git', ['rev-parse', ref]);
+    let resolvedRef;
+    try {
+      resolvedRef = sh('git', ['rev-parse', ref]);
+    } catch {
+      if (ref !== 'refs/heads/main') {
+        resolvedRef = sh('git', ['rev-parse', 'refs/heads/main']);
+      } else {
+        throw new Error('main branch reference is unavailable');
+      }
+    }
     const paths = sh('git', ['ls-tree', '-r', '-z', '--name-only', resolvedRef]).split('\0').filter(Boolean);
     let textFiles = 0;
     let binaryFiles = 0;
