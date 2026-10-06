@@ -1,86 +1,55 @@
 # FLIXO Exact-SHA Certification Record
 
-STATUS: LAST-VERIFIED-CANDIDATE / BLOCKED_ON_GOVERNANCE
+STATUS: NOT READY
 UPDATED: 2026-10-06
 REPOSITORY: m1m2m3m4m5m6m700-afk/FLIXO_Hub
-EXECUTION_BRANCH: execution
-INTEGRATION_PR: #1002
-MAIN_SHA: 263827228cbe5f4851470297fde5f2858ff844de
-LAST_VERIFIED_CANDIDATE_SHA: a44958a97126b2e050746010947aef2cfa286729
-
-## Prompt 17 exact-candidate evidence
-
-The clean-clone Prompt 17 gate completed successfully on candidate `a44958a97126b2e050746010947aef2cfa286729`.
-
-Run evidence:
-- FLIXO Final Clean-Clone Red Team (push) run 239: SUCCESS (workflow run 37437187406).
-- Prompt 17 job: SUCCESS.
-- Typecheck: PASS.
-- Lint: PASS.
-- Core and contract regression: PASS.
-- Adversarial control-plane regression: PASS.
-- Production dependency audit: PASS.
-- Production build: PASS.
-- Exact-SHA build artifact identity: PASS.
-- Exact-SHA coverage: PASS.
-- Browser E2E: PASS.
-- Exact-SHA CodeQL dependency gate: PASS.
-- Secret Scan: PASS.
-- Structural scope/artifact evidence: PASS.
-
-Additional exact-candidate execution evidence:
-- TestSprite Live E2E evidence is not required by the canonical certification gate and is retained as supplemental evidence.
-- FLIXO CI build/typecheck/core job on the candidate lineage: PASS.
-- Internal Red Team adversarial regression: PASS.
+INTEGRATION_PATH: execution -> main
 
 ## Current release identities
 
-CURRENT_SHA=NEW_HEAD_CREATED_BY_THIS_DOCUMENTATION_ROLLOVER
-TESTED_SHA=a44958a97126b2e050746010947aef2cfa286729
-BUILT_SHA=a44958a97126b2e050746010947aef2cfa286729
-BROWSER_VERIFIED_SHA=a44958a97126b2e050746010947aef2cfa286729
-SECURITY_VERIFIED_SHA=a44958a97126b2e050746010947aef2cfa286729
-COVERAGE_VERIFIED_SHA=a44958a97126b2e050746010947aef2cfa286729
-RED_TEAM_VERIFIED_SHA=a44958a97126b2e050746010947aef2cfa286729
-CERTIFIED_SHA=NOT_YET_CERTIFIED
-DEPLOYED_SHA=NOT_YET_VERIFIED
+CURRENT_SHA: `REQUIRED`
+CURRENT_BRANCH: `REQUIRED`
+CURRENT_WORKFLOW_RUN: `REQUIRED`
+CURRENT_EVIDENCE: `REQUIRED`
+TESTED_SHA: `REQUIRED`
+BUILT_SHA: `REQUIRED`
+BROWSER_VERIFIED_SHA: `REQUIRED`
+SECURITY_VERIFIED_SHA: `REQUIRED`
+COVERAGE_VERIFIED_SHA: `REQUIRED`
+CERTIFIED_SHA: `NOT_YET_CERTIFIED`
+DEPLOYED_SHA: `NOT_YET_VERIFIED`
+PRODUCTION_IMMUTABLE_IDENTITY: `REQUIRED`
 
-## Scope
+All current fields must be regenerated after any mutation and must resolve to one exact candidate lineage.
 
-The canonical executable MVP remains exactly ten browser-local capabilities:
-background-remover, image-upscaler, image-cropper, image-compressor, image-converter, image-effects, video-trimmer, video-cropper, video-resizer, video-compressor.
+## Current governance evidence
 
-## Governance blocker
-
-GitHub ruleset `FLIXO-MAIN-PROTECTION` (ID 23854302) is active but does not satisfy the repository's Prompt 12 policy contract:
+Live GitHub ruleset FLIXO-MAIN-PROTECTION (ID 23854302) is active on `refs/heads/main`, but its current policy does not satisfy the repository's required governance contract:
 - required approving reviews: 0 (required 1)
 - dismiss stale reviews on push: false (required true)
-- require code owner review: false (required true)
-- require last push approval: false (required true)
+- require Code Owner review: false (required true)
+- require latest-push approval: false (required true)
 - required review thread resolution: false (required true)
 - strict required status checks: false (required true)
+- required contexts currently present: `trust-gate`, `Exact-SHA promotion proof`
 
-PR #1002 currently has no legitimate independent human APPROVE review.
+This is an external Owner Action blocker. No bypass or self-approval is permitted.
 
-The connected execution environment exposes ruleset state read-only; no ruleset mutation action is available. No governance bypass, self-approval, or weakened verifier is permitted.
+## Historical evidence retained — NOT CURRENT RELEASE TRUTH
+
+The following exact-SHA evidence was valid only for historical candidates:
+- Historical verified candidate SHA: `a44958a97126b2e050746010947aef2cfa286729`
+- Historical Prompt 17 workflow run: `37437187406`
+- Historical documentation-rollover candidate SHA: `7d9266a42690417511d0202b3d06b6b362f2d7d4`
+- Historical state-reconciliation SHA: `52413f0f610c34cc988ecfc523134247c6cae135`
+- Historical main base SHA: `263827228cbe5f4851470297fde5f2858ff844de`
+- Historical PR context: `#1002`
+
+These values are preserved for audit lineage and MUST NOT be presented as the current candidate.
 
 ## Certification state
 
-Prompt 17 = PASS on `a44958a97126b2e050746010947aef2cfa286729`; any documentation mutation after this point creates a new SHA and invalidates that evidence.
-Prompt 18 = BLOCKED by live main-governance policy; exact-SHA evidence is required again on the post-rollover head.
-Prompt 19 = NOT READY — governance blocker remains.
-Prompt 20 = NOT READY — requires legitimate owner approval and protected promotion.
+CERTIFICATION: NOT READY
+REASON: current exact-SHA evidence has not been regenerated after this mutation, and live main governance remains below the required policy.
 
-Therefore:
-PLAN = NOT COMPLETE
-IMPLEMENTATION = COMPLETE FOR CURRENT MVP SCOPE
-TESTING = REQUIRES REGENERATION ON CURRENT SHA
-SECURITY = REQUIRES REGENERATION ON CURRENT SHA
-RED TEAM = REQUIRES REGENERATION ON CURRENT SHA
-INTEGRATION = BLOCKED BY GOVERNANCE
-CERTIFICATION = BLOCKED
-SCORE = NOT 100/100
-
-## Rule
-
-Any subsequent mutation creates another candidate SHA and requires complete exact-SHA evidence regeneration before certification.
+Any subsequent mutation invalidates candidate-specific evidence again.
