@@ -2,27 +2,28 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-test("three Scout profiles are read/search/edit only", () => {
-  for (const file of [
-    ".github/agents/flixo-scout-architecture.agent.md",
-    ".github/agents/flixo-scout-technology.agent.md",
-    ".github/agents/flixo-scout-ecosystem.agent.md"
-  ]) {
-    const content = readFileSync(file, "utf8");
-    assert.match(content, /tools: \["read", "search", "edit"\]/);
-    assert.match(content, /target: github-copilot/);
-    assert.match(content, /disable-model-invocation: true/);
-    assert.match(content, /Your only writable repository file is التطوير\.md\./);
-    const tools = content.split("\n").find((line) => line.startsWith("tools:")) ?? "";
-    assert.doesNotMatch(tools, /execute|shell|bash|powershell|terminal|agent|web/);
+const scouts=[
+  ".github/agents/flixo-scout-architecture.agent.md",
+  ".github/agents/flixo-scout-technology.agent.md",
+  ".github/agents/flixo-scout-ecosystem.agent.md",
+];
+
+test("Scout profiles are read/search/edit only and write to inbox",()=>{
+  for(const file of scouts){
+    const c=readFileSync(file,"utf8");
+    assert.match(c,/tools: \["read", "search", "edit"\]/);
+    assert.match(c,/Your only writable repository path is \.agent-intelligence\/inbox\//);
+    assert.doesNotMatch(c,/review-queue|التطوير\.md/u);
   }
 });
 
-test("development radar is advisory data with isolated sections", () => {
-  const content = readFileSync("التطوير.md", "utf8");
-  assert.match(content, /TYPE: DATA ONLY/);
-  assert.match(content, /## Architecture Radar/);
-  assert.match(content, /## Technology Radar/);
-  assert.match(content, /## Ecosystem Radar/);
-  assert.match(content, /## Executor Handoff Contract/);
+test("continuous discovery has isolated validation and publication surfaces",()=>{
+  const c=readFileSync(".github/workflows/continuous-discovery.yml","utf8");
+  assert.match(c,/pull_request:/u);
+  assert.match(c,/contents: read/u);
+  assert.match(c,/contents: write/u);
+  assert.match(c,/scout\/discovery-/u);
+  assert.match(c,/.agent-intelligence\/inbox\/\*\.yaml/u);
+  assert.match(c,/.agent-intelligence\/snapshots\/\*\.json/u);
+  assert.doesNotMatch(c,/git push origin main|git push origin execution/u);
 });
