@@ -59,5 +59,8 @@
   },
   "workspaces": [
     "packages/contracts"
-  ]
+  ],
+  "overrides": {
+    "seroval": "1.6.8"
+  }
 }
