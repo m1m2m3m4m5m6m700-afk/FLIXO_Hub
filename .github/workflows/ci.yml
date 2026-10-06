@@ -42,6 +42,8 @@ jobs:
           python3 tests/three_critic_review.test.py
       - name: Exact-SHA workflow contract tests
         run: node --test scripts/ci/test-workflow-exact-sha-contract.mjs
+      - name: Red Team closure workflow and trust contract tests
+        run: node --test tests/ci-redteam-closure.test.mjs
       - name: Model license and admission gate
         run: npm run test:model-license
       - name: Run npm test
@@ -185,7 +187,7 @@ jobs:
         with:
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 1
-          persist-credentials: true
+          persist-credentials: false
       - name: Assert only main and execution branches exist
         run: node scripts/ci/verify-branch-policy.mjs
       - name: Verify main governance ruleset
@@ -226,6 +228,9 @@ jobs:
     if: ${{ always() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
         with:
@@ -264,6 +269,12 @@ jobs:
           fi
 
           echo "EXACT_SHA_PROMOTION_PROOF=$EXPECTED_SHA"
+      
+      - name: Verify repository origin and live integration freshness
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/ci/verify-promotion-context.mjs
+
 
   production-deploy:
     name: Production exact-SHA deployment
@@ -331,25 +342,13 @@ jobs:
           test "$(cat "dist/__flixo/identity/$DEPLOYMENT_SHA/index.txt")" = "$DEPLOYMENT_SHA"
           test -s dist/index.html
 
-      - name: Bind exact deployment SHA into Worker runtime
+      - name: Verify deployment worktree purity
         shell: bash
-        env:
-          DEPLOYMENT_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          import os
-
-          path = Path('src/worker.ts')
-          text = path.read_text(encoding='utf-8')
-          marker = "const EMBEDDED_DEPLOYMENT_SHA = '__FLIXO_DEPLOYMENT_SHA__';"
-          replacement = f"const EMBEDDED_DEPLOYMENT_SHA = '{os.environ['DEPLOYMENT_SHA']}';"
-          assert text.count(marker) == 1
-          path.write_text(text.replace(marker, replacement), encoding='utf-8')
-          assert replacement in path.read_text(encoding='utf-8')
-          PY
-          grep -F "const EMBEDDED_DEPLOYMENT_SHA = '$DEPLOYMENT_SHA';" src/worker.ts
+          test "$(git rev-parse HEAD)" = "$DEPLOYMENT_SHA"
+          test -z "$(git diff --name-only)"
+          test -z "$(git diff --cached --name-only)"
 
       - name: Safety Guard — strict Cloudflare target allowlist
         shell: bash
