@@ -45,42 +45,46 @@ function safetyError(failures: string[]): Error {
   return new Error(failures.join('; '));
 }
 
-export async function assertSafeImageInput(
+export function assertSafeImageInput(
   file: ImageSafetyInput,
   dimensions?: ImageDimensions,
-): Promise<void> {
-  if (!file.name.trim()) {
-    throw new Error('Image file name is required');
-  }
-  if (!Number.isFinite(file.size) || file.size < 0) {
-    throw new Error('Invalid image file size');
-  }
+  content?: Uint8Array,
+): void {
+  if (!file.name.trim()) throw new Error('Image file name is required');
+  if (!Number.isFinite(file.size) || file.size < 0) throw new Error('Invalid image file size');
 
-  const content = file.content ?? new Uint8Array(await (file as ImageSafetyInput & { arrayBuffer?: () => Promise<ArrayBuffer> }).arrayBuffer?.() ?? []);
-  const extension = file.name.slice(file.name.lastIndexOf('.') + 1).trim().toLowerCase();
-  const policy = {
-    allowedMime: IMAGE_COMPRESSOR_ALLOWED_MIME,
-    maxBytes: IMAGE_COMPRESSOR_MAX_INPUT_SIZE,
-    allowedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'svg'],
-    ...(dimensions ? { maxPixels: IMAGE_COMPRESSOR_MAX_PIXELS } : {}),
-    ...(file.type === 'image/png' ? { magicBytes: [MAGIC_BYTE_SIGNATURES.png] } :
-      file.type === 'image/jpeg' ? { magicBytes: [MAGIC_BYTE_SIGNATURES.jpeg] } :
-      file.type === 'image/webp' ? { magicBytes: [MAGIC_BYTE_SIGNATURES.webp] } :
-      file.type === 'image/gif' ? { magicBytes: [MAGIC_BYTE_SIGNATURES.gif] } :
-      file.type === 'image/bmp' ? { magicBytes: [MAGIC_BYTE_SIGNATURES.bmp] } : {}),
-  } as const;
-  void extension;
+  const magicBytes =
+    file.type === 'image/png' ? [MAGIC_BYTE_SIGNATURES.png] :
+    file.type === 'image/jpeg' ? [MAGIC_BYTE_SIGNATURES.jpeg] :
+    file.type === 'image/webp' ? [MAGIC_BYTE_SIGNATURES.webp] :
+    file.type === 'image/gif' ? [MAGIC_BYTE_SIGNATURES.gif] :
+    file.type === 'image/bmp' ? [MAGIC_BYTE_SIGNATURES.bmp] :
+    undefined;
+
   const result = validateFileSafety(
     {
       name: file.name,
       mime: file.type,
       bytes: file.size,
-      ...(content.byteLength === file.size ? { content } : {}),
+      ...(content ? { content } : {}),
       width: dimensions?.width,
       height: dimensions?.height,
     },
-    policy,
+    {
+      allowedMime: IMAGE_COMPRESSOR_ALLOWED_MIME,
+      maxBytes: IMAGE_COMPRESSOR_MAX_INPUT_SIZE,
+      allowedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'svg'],
+      ...(magicBytes ? { magicBytes } : {}),
+      ...(dimensions ? { maxPixels: IMAGE_COMPRESSOR_MAX_PIXELS } : {}),
+    },
   );
 
   if (!result.safe) throw safetyError(result.failures);
 }
+
+export async function assertSafeImageFile(file: File): Promise<void> {
+  const content = new Uint8Array(await file.arrayBuffer());
+  if (content.byteLength !== file.size) throw new Error('File bytes could not be read completely');
+  assertSafeImageInput(file, undefined, content);
+}
+
