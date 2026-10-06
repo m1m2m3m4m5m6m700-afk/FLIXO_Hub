@@ -58,6 +58,16 @@ jobs:
       - name: Production dependency audit
         run: npm audit --omit=dev --audit-level=high
 
+      - name: Production build
+        run: npm run build
+
+      - name: Verify build artifact identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f dist/flixo-head-sha.txt
+          test "$(cat dist/flixo-head-sha.txt)" = "$EXPECTED_SHA"
+
       - name: Exact-SHA coverage
         run: npm run test:coverage
 
@@ -79,9 +89,7 @@ jobs:
           sha = os.environ["EXPECTED_SHA"]
           repo = os.environ["GITHUB_REPOSITORY"]
           out = subprocess.check_output([
-              "gh", "api", f"repos/{repo}/actions/runs",
-              "-f", f"head_sha={sha}",
-              "-f", "per_page=100",
+              "gh", "api", f"repos/{repo}/actions/runs?head_sha={sha}&event=push&per_page=100"
           ], text=True)
           data = json.loads(out)
           required = ["FLIXO CodeQL", "FLIXO Secret Scan"]
