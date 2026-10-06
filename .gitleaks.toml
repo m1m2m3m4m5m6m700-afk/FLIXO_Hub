@@ -28,5 +28,33 @@ id = "jwt"
     "1ced2a86f8a08311341342cbc446ebd5f8959fe4",
   ]
   paths = [
-    '''^src/lib/tool-runtime/tools/jwt-decoder\.tsx$''',
+    '''^src/lib/tool-runtime/tools/jwt-decoder\.tsx
+'',
   ]
+
+[[rules]]
+id = "generic-api-key"
+
+  [[rules.allowlists]]
+  description = "Historical adversarial test expression, not a credential value"
+  condition = "AND"
+  commits = ["9ed9a5f1a518defb915f1391a0c03f7e6d925a44"]
+  paths = ["'''^scripts/ci/test-auto-repair-chair1-audit\.mjs
+''"]
+
+  [[rules.allowlists]]
+  description = "Historical .env example endpoint configuration, not a secret"
+  condition = "AND"
+  commits = ["d034d5a06bdedf2c924bfd86a700d00461b46ca0"]
+  paths = ["'''^\.env\.example
+''"]
+
+[[rules]]
+id = "cloudflare-api-key"
+
+  [[rules.allowlists]]
+  description = "Historical task prose marker, not a credential"
+  condition = "AND"
+  commits = ["112bc0d8d4d104a4ade23aef8daf69a09379a9cc"]
+  paths = ["'''^المهام\.md
+''"]
