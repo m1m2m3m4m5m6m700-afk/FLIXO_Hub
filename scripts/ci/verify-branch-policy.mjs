@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process';
 
 const allowed = new Set(['refs/heads/main', 'refs/heads/execution']);
 const coordinationPrefix = /^refs\/heads\/(?:agent-(?:1|2|3|4)|agent3)\//u;
+const rt17CoordinationPrefix = /^refs\/heads\/agent-3a\/redteam-rt17-/u;
 
 // Quarantine only known legacy refs that are already part of this repository's historical Agent 2 lane.
 // This does not admit new legacy branch names; new refs still fail closed.
@@ -15,12 +16,12 @@ const unexpected = output
   .map((line) => line.trim())
   .filter(Boolean)
   .map((line) => line.split(/\s+/u)[1])
-  .filter((ref) => ref && !allowed.has(ref) && !coordinationPrefix.test(ref) && !legacyStaleRefs.has(ref))
+  .filter((ref) => ref && !allowed.has(ref) && !coordinationPrefix.test(ref) && !rt17CoordinationPrefix.test(ref) && !legacyStaleRefs.has(ref))
   .sort();
 
 if (unexpected.length > 0) {
   console.error('BRANCH_POLICY=FAIL');
-  console.error('Permitted refs are refs/heads/main, refs/heads/execution, and controlled agent-1/agent-2/agent-3/agent-4 coordination branches.');
+  console.error('Permitted refs are refs/heads/main, refs/heads/execution, and controlled agent-1/agent-2/agent-3/agent-4 coordination branches, plus the scoped agent-3a/redteam-rt17-* governance lane.');
   console.error(unexpected.join('\n'));
   process.exit(1);
 }
