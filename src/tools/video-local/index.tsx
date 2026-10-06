@@ -143,10 +143,12 @@ export function VideoLocalTool() {
   const title = ui.title[toolId];
   const description = ui.description[toolId];
 
-  useEffect(() => () => {
-    if (resultUrl) URL.revokeObjectURL(resultUrl);
-    if (resultUrlRef.current && resultUrlRef.current !== resultUrl) URL.revokeObjectURL(resultUrlRef.current);
-    if (fileUrlRef.current) URL.revokeObjectURL(fileUrlRef.current);
+  useEffect(() => {
+    return () => {
+      if (resultUrl) URL.revokeObjectURL(resultUrl);
+      if (resultUrlRef.current && resultUrlRef.current !== resultUrl) URL.revokeObjectURL(resultUrlRef.current);
+      if (fileUrlRef.current) URL.revokeObjectURL(fileUrlRef.current);
+    };
   }, [resultUrl]);
 
   const acceptFile = (next: File | null) => {
