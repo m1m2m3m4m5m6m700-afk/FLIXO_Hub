@@ -1,7 +1,15 @@
 # Security-sensitive repository control plane.
-# Enforce this file through the GitHub branch Ruleset/required-review setting.
+# Required-review enforcement is configured by the repository ruleset.
+# Keep every sensitive path covered by an actual repository path.
+
 /.github/workflows/ @m1m2m3m4m5m6m700-afk
 /.github/CODEOWNERS @m1m2m3m4m5m6m700-afk
-/scripts/ci/ @m1m2m3m4m5m6m700-afk
-/docs/security.md @m1m2m3m4m5m6m700-afk
-/docs/agents/ @m1m2m3m4m5m6m700-afk
+/scripts/cli/ @m1m2m3m4m5m6m700-afk
+/scripts/model-license-gate.mjs @m1m2m3m4m5m6m700-afk
+/src/lib/contracts/ @m1m2m3m4m5m6m700-afk
+/src/worker.ts @m1m2m3m4m5m6m700-afk
+/wrangler.jsonc @m1m2m3m4m5m6m700-afk
+/package.json @m1m2m3m4m5m6m700-afk
+/package-lock.json @m1m2m3m4m5m6m700-afk
+/SECURITY.md @m1m2m3m4m5m6m700-afk
+/docs/attestations/ @m1m2m3m4m5m6m700-afk

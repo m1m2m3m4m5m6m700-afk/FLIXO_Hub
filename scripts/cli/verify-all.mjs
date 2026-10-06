@@ -1,14 +1,16 @@
 #!/usr/bin/env node
 import { runArchitectureCheck } from './checks/architecture.mjs';
 import { runLaunchReadinessCheck } from './checks/launch-readiness.mjs';
+import { runQualityBarCheck } from './checks/quality-bar.mjs';
 
 const checks = new Map([
   ['architecture', runArchitectureCheck],
   ['launch', runLaunchReadinessCheck],
+  ['quality', runQualityBarCheck],
 ]);
 
 function usage() {
-  console.log('Usage: node scripts/cli/verify-all.mjs [--architecture] [--launch]');
+  console.log('Usage: node scripts/cli/verify-all.mjs [--architecture] [--launch] [--quality]');
   console.log('Runs the selected FLIXO verification gates; with no flags, runs all gates.');
 }
 
@@ -18,7 +20,7 @@ if (args.has('--help') || args.has('-h')) {
   process.exit(0);
 }
 
-const unknown = [...args].filter((arg) => !['--architecture', '--launch'].includes(arg));
+const unknown = [...args].filter((arg) => !['--architecture', '--launch', '--quality'].includes(arg));
 if (unknown.length) {
   console.error(`[verify-all] Unknown option(s): ${unknown.join(', ')}`);
   usage();
@@ -40,6 +42,7 @@ for (const name of selected) {
       console.error(error.message);
       if (Array.isArray(error.violations)) error.violations.forEach((entry) => console.error(entry));
       if (Array.isArray(error.missing)) error.missing.forEach((entry) => console.error(` - ${entry}`));
+      if (Array.isArray(error.failures)) error.failures.forEach((entry) => console.error(` - ${entry}`));
     } else {
       console.error(error);
     }

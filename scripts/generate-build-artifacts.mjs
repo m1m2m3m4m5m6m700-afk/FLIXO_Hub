@@ -1,6 +1,7 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { collectQualityBarReport } from "./cli/checks/quality-bar.mjs";
 
 const root = process.cwd();
 const env = {
@@ -51,6 +52,31 @@ const buildSha = (
 const generatedAt = new Date().toISOString();
 const attestationsDir = join(root, "dist", "attestations");
 mkdirSync(attestationsDir, { recursive: true });
+
+const qualityReport = collectQualityBarReport(root);
+
+const engineeringScorecard = {
+  schemaVersion: 1,
+  generatedAt,
+  commitSha: buildSha,
+  status: qualityReport.status,
+  checks: qualityReport.checks,
+  moduleBudgets: qualityReport.moduleBudgets,
+};
+
+writeFileSync(join(attestationsDir, "engineering-scorecard.json"), JSON.stringify(engineeringScorecard, null, 2) + "\n", "utf8");
+writeFileSync(join(attestationsDir, "engineering-scorecard.md"), [
+  "# FLIXO Engineering Scorecard",
+  "",
+  "- Generated at: " + generatedAt,
+  "- Commit SHA: " + buildSha,
+  "- Status: " + qualityReport.status,
+  "",
+  ...Object.entries(qualityReport.checks).map(([name, result]) => "- " + name + ": " + result),
+  "",
+  "The scorecard is generated from the exact build commit and is not manually maintained.",
+  "",
+].join("\n"), "utf8");
 
 const runtimeCertification = {
   schemaVersion: 1,

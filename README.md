@@ -22,6 +22,12 @@ The canonical locales are exactly:
 
 Arabic (`ar`) is the default locale.
 
+## Engineering quality
+
+The repository treats scripts/cli/verify-all.mjs --quality as the canonical engineering quality bar. It checks architecture boundaries, media resource-lifecycle contracts, module-size budgets, security ownership coverage, and the normative documentation set. Build CI also emits an exact-SHA engineering scorecard under dist/attestations/.
+
+Primary engineering references: docs/QUALITY-BAR.md, docs/OPERATIONS.md, and docs/adr/0001-engineering-source-of-truth.md.
+
 ## Core commands
 
 ```bash
