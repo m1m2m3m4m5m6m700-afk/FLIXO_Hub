@@ -1,6 +1,5 @@
 import { createRoute, Navigate } from '@tanstack/react-router';
 import { rootRoute } from './__root';
-import { OfficialHome } from '../components/OfficialHome';
 import { buildSeoMetadata } from '../lib/seo';
 
 const SEO = buildSeoMetadata({

@@ -26,9 +26,10 @@ const AGENT_LABELS: Readonly<Record<Locale, string>> = { en: 'FLIXO Agent', ar: 
 
 function toLocalizedTool(tool: ToolDefinition, locale: Locale): ToolCardProps {
   const localizedTitle = getAuthoritativeToolSeoName(tool, locale) ?? tool.title;
-  const localizedCategory = localizeMsUkCategory(locale, tool.category) ?? localizeToolCategory(locale, tool.category);
-  const localizedDescription = localizeMsUkDescription(locale, localizedTitle) ?? localizeToolDescription(locale, localizedTitle, tool.category);
-  return { id: tool.id, title: localizedTitle, description: localizedDescription, category: tool.category, categoryLabel: localizedCategory, path: `/${locale}/${tool.id}` };
+  const category: 'Images' | 'Video' = tool.family === 'video' ? 'Video' : 'Images';
+  const localizedCategory = localizeMsUkCategory(locale, category) ?? localizeToolCategory(locale, category);
+  const localizedDescription = localizeMsUkDescription(locale, localizedTitle) ?? localizeToolDescription(locale, localizedTitle, category);
+  return { id: tool.id, title: localizedTitle, description: localizedDescription, category, categoryLabel: localizedCategory, path: `/${locale}/${tool.id}` };
 }
 
 function renderHeroTitle(value: string) {
