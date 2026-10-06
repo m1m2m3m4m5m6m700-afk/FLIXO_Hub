@@ -2,10 +2,11 @@
 
 ## Branch policy
 
-The repository uses two operational branches only:
+The repository has two operational branches and a controlled agent coordination lane:
 
 - `main` — production/reference branch. Changes reach it through a pull request after the required certification gates pass.
-- `execution` — the sole development, repair, testing, and integration line.
+- `execution` — the sole operational development, repair, testing, and integration line.
+- `agent-1/*`, `agent-2/*`, and `agent-3/*` — short-lived controlled coordination branches for isolated agent work and pull requests back to `execution`. They are not production lines and may never promote directly to `main`.
 - No other development, repair, test, diagnostic, agent, or temporary branch may be created or used.
 - `main` is the production/reference destination and is never mutated directly.
 
@@ -20,7 +21,7 @@ The live `execution` HEAD may move while an agent is preparing a repair.
 - Patch Capsules are reconciled onto the current `execution` HEAD before publication.
 - Publication is serialized through the deterministic `assistantController` lane.
 - Publication is non-force and fast-forward only; a moved head causes retry/reconciliation, never overwrite.
-- No temporary or third development branch is permitted.
+- Controlled coordination branches must remain under the `agent-1/*`, `agent-2/*`, or `agent-3/*` prefixes.
 - The Patch Capsule workflow is documented in `docs/AGENT-PATCH-CAPSULE-AND-CAS.md`.
 
 ## Delivery lifecycle
