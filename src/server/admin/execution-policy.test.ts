@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { evaluateAdminExecution } from '../../src/server/admin/execution-policy.ts';
+import { evaluateAdminExecution } from './execution-policy.ts';
 
 const base = {
   subject: 'authorized-agent',
