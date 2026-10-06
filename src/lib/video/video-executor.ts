@@ -97,7 +97,7 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
 
   try {
     const metadataReady = waitForEvent(video, 'loadedmetadata');
-    // Feed the Blob directly to the media element; avoid a DOM URL sink for untrusted media data.
+    // Attach the Blob through the shared safe media-source adapter; no DOM object URL is created here.
     releaseSource = await attachVideoBlobSource(video, inputBlob, options.signal);
     await metadataReady;
     const duration = video.duration;
