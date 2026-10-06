@@ -9,26 +9,27 @@ const base = {
   preview: false,
 };
 
-test('authorized execution-lane work is not blocked by approval or rollback prompts', () => {
+test('execution-lane writes remain rollback and approval gated', () => {
   const result = evaluateAdminExecution({
     ...base,
     executionClass: 'HIGH_RISK_WRITE',
     target: 'execution',
   });
   assert.deepEqual(result, {
-    decision: 'ALLOW_EXECUTION',
-    reason: 'authenticated_execution',
+    decision: 'DENY',
+    reason: 'rollback_required',
     executionClass: 'HIGH_RISK_WRITE',
   });
 });
 
-test('execution sub-targets remain autonomous', () => {
+test('execution sub-targets do not bypass rollback or approval controls', () => {
   const result = evaluateAdminExecution({
     ...base,
     executionClass: 'DESTRUCTIVE',
     target: 'execution/tests',
   });
-  assert.equal(result.decision, 'ALLOW_EXECUTION');
+  assert.equal(result.decision, 'DENY');
+  assert.equal(result.reason, 'rollback_required');
 });
 
 test('production/main targets remain approval-gated', () => {
