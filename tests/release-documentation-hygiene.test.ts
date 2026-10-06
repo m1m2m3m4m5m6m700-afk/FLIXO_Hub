@@ -28,12 +28,15 @@ test('current release documents do not pin the retired PR #1002 as the active ca
     'docs/FLIXO-FINAL-RELEASE-CERTIFICATION.md',
     'docs/FLIXO-FINAL-CERTIFICATION-ATTESTATION.md',
     'docs/FLIXO-PUBLIC-RELEASE-MANIFEST.md',
+    'docs/TOOL-EXPANSION-AUDIT.md',
+    'docs/FLIXO-EXECUTION-LEDGER.md',
   ].map((path) => readFileSync(resolve(root, path), 'utf8'));
 
   for (const document of documents) {
     assert.doesNotMatch(document, /active release candidate.*PR #1002/iu);
     assert.doesNotMatch(document, /current release candidate: PR #1002/iu);
     assert.doesNotMatch(document, /live PR #1002/iu);
+    assert.doesNotMatch(document, /active release candidate.*PR #1002/iu);
   }
 });
 
