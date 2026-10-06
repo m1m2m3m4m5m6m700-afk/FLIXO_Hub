@@ -84,6 +84,11 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
 
   const url = URL.createObjectURL(inputBlob);
   const video = document.createElement('video');
+  let canvasStream: MediaStream | undefined;
+  let sourceStream: MediaStream | null = null;
+  let recorder: MediaRecorder | undefined;
+  let frameHandle = 0;
+  let drawing = false;
   video.preload = 'auto';
   video.muted = false;
   video.playsInline = true;
@@ -103,9 +108,9 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
     if (!context) throw new Error('VIDEO_CANVAS_CONTEXT_UNAVAILABLE');
 
     const fps = Math.max(1, Math.min(120, Number(options.fps ?? 30)));
-    const canvasStream = canvas.captureStream(fps);
+    canvasStream = canvas.captureStream(fps);
     const captureVideo = video as CaptureStreamVideoElement;
-    const sourceStream = typeof captureVideo.captureStream === 'function' ? captureVideo.captureStream() : null;
+    sourceStream = typeof captureVideo.captureStream === 'function' ? captureVideo.captureStream() : null;
     if (sourceStream) {
       for (const track of sourceStream.getAudioTracks()) {
         try { canvasStream.addTrack(track); } catch { /* track is already attached */ }
@@ -113,7 +118,7 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
     }
 
     const mimeType = supportedMimeType();
-    const recorder = new MediaRecorder(canvasStream, {
+    recorder = new MediaRecorder(canvasStream, {
       mimeType,
       ...(options.videoBitsPerSecond ? { videoBitsPerSecond: options.videoBitsPerSecond } : {}),
       ...(options.audioBitsPerSecond ? { audioBitsPerSecond: options.audioBitsPerSecond } : {}),
@@ -131,8 +136,7 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
     if (options.signal?.aborted) throw new DOMException('Video operation aborted.', 'AbortError');
     await seek(video, startSec, options.signal);
 
-    let drawing = true;
-    let frameHandle = 0;
+    drawing = true;
     const draw = () => {
       if (!drawing || options.signal?.aborted) return;
       context.drawImage(video, source.x, source.y, source.width, source.height, 0, 0, canvas.width, canvas.height);
@@ -174,7 +178,14 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
     if (!chunks.length) throw new Error('VIDEO_RECORDING_EMPTY');
     return new Blob(chunks, { type: 'video/webm' });
   } finally {
+    drawing = false;
+    if (frameHandle) cancelAnimationFrame(frameHandle);
     video.pause();
+    if (recorder && recorder.state !== 'inactive') {
+      try { recorder.stop(); } catch { /* recorder may already be stopping */ }
+    }
+    canvasStream?.getTracks().forEach((track) => track.stop());
+    sourceStream?.getTracks().forEach((track) => track.stop());
     video.removeAttribute('src');
     video.load();
     URL.revokeObjectURL(url);
