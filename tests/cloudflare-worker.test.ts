@@ -36,20 +36,20 @@ test('Cloudflare Worker returns the exact bound deployment SHA', async () => {
   assert.equal(response.headers.get('cache-control'), 'no-store, max-age=0');
 });
 
-test('Cloudflare Worker verifies the versioned asset when the deployment binding is absent', async () => {
+test('Cloudflare Worker verifies the versioned asset with an explicit deployment binding', async () => {
   const response = await worker.fetch(
     new Request('https://flixoai.example/__flixo-identity-' + SHA + '.txt'),
-    { ASSETS: assets },
+    { ASSETS: assets, FLIXO_DEPLOYMENT_SHA: SHA },
   );
 
   assert.equal(response.status, 200);
   assert.equal(await response.text(), SHA + '\n');
 });
 
-test('Cloudflare Worker serves the directory identity alias without SPA fallback', async () => {
+test('Cloudflare Worker serves the directory identity alias with an explicit deployment binding', async () => {
   const response = await worker.fetch(
     new Request('https://flixoai.example/__flixo/identity/' + SHA + '/index.txt'),
-    { ASSETS: assets },
+    { ASSETS: assets, FLIXO_DEPLOYMENT_SHA: SHA },
   );
 
   assert.equal(response.status, 200);
