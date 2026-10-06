@@ -169,6 +169,7 @@ export function ToolWorkbench<P>({
   afterLabel,
   noResultLabel,
   downloadLabel,
+  inputLabel,
   downloadRole = 'link',
 }: ImageWorkbenchProps<P>) {
   const navigate = useNavigate();
