@@ -167,6 +167,54 @@ export function classifyTaskSignal(line) {
   return null;
 }
 
+export function collectGitRefSnapshot(ref = 'refs/remotes/origin/main') {
+  try {
+    const resolvedRef = sh('git', ['rev-parse', ref]);
+    const paths = sh('git', ['ls-tree', '-r', '--name-only', resolvedRef]).split('\n').filter(Boolean);
+    let textFiles = 0;
+    let binaryFiles = 0;
+    let textLines = 0;
+    let bytes = 0;
+
+    for (const path of paths) {
+      const buffer = Buffer.from(sh('git', ['show', `${resolvedRef}:${path}`]), 'utf8');
+      bytes += buffer.length;
+      if (!looksText(buffer)) {
+        binaryFiles++;
+        continue;
+      }
+      textFiles++;
+      const normalized = buffer.toString('utf8').replace(/\r\n/g, '\n');
+      textLines += normalized === '' ? 0 : (normalized.endsWith('\n') ? normalized.slice(0, -1).split('\n').length : normalized.split('\n').length);
+    }
+
+    return {
+      ref,
+      resolvedRef,
+      sha: resolvedRef,
+      trackedFiles: paths.length,
+      textFiles,
+      binaryFiles,
+      textLines,
+      bytes,
+      readable: true,
+    };
+  } catch (error) {
+    return {
+      ref,
+      resolvedRef: null,
+      sha: null,
+      trackedFiles: 0,
+      textFiles: 0,
+      binaryFiles: 0,
+      textLines: 0,
+      bytes: 0,
+      readable: false,
+      error: String(error),
+    };
+  }
+}
+
 export function collectChangedFiles() {
   try {
     const parent = sh('git', ['rev-parse', 'HEAD^']);
@@ -302,6 +350,7 @@ export function collect() {
   }
 
   const model = buildKnowledgeModel(entries);
+  const mainSnapshot = collectGitRefSnapshot();
   const changed = collectChangedFiles();
   const unresolved = model.dependencyEdges.filter(edge => edge.resolution === 'UNRESOLVED_LOCAL');
   const status = unknownSourceLines === 0 && unresolved.length === 0
@@ -360,6 +409,16 @@ export function collect() {
     '- CAN_COMPLETE applies only to the configured static analysis contract.',
     '- CAN_COMPLETE_WITH_LIMITATIONS is mandatory when unresolved or semantic-review items remain.',
     '- STATIC_ANALYSIS must never be presented as TESTED or VERIFIED.',
+    '',
+    '## Main branch read snapshot',
+    '- Main ref requested: refs/remotes/origin/main',
+    '- Main SHA: ' + (mainSnapshot.sha || 'UNAVAILABLE'),
+    '- Main read status: ' + (mainSnapshot.readable ? 'READ_COMPLETE' : 'READ_UNAVAILABLE'),
+    '- Main tracked files read: ' + mainSnapshot.trackedFiles,
+    '- Main text files read: ' + mainSnapshot.textFiles,
+    '- Main binary/non-text files: ' + mainSnapshot.binaryFiles,
+    '- Main text lines read: ' + mainSnapshot.textLines,
+    ...(mainSnapshot.readable ? [] : ['- Main read error: ' + mainSnapshot.error]),
     '',
     '## Repository knowledge map',
     '- Task authority: المهام.md',
