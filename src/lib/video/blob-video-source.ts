@@ -60,7 +60,6 @@ export async function getBoundedVideoDuration(
     // MediaRecorder-generated WebM can have no finite Duration element and no seekable
     // range. In that case, use a muted, accelerated playback probe. This remains fully
     // local, bounded by maxDurationSeconds, and never exposes the source to a provider.
-    const previousRate = video.playbackRate;
     const fallbackTimeoutMs = Math.min(
       45_000,
       Math.max(3_000, Math.ceil((maxDurationSeconds * 1_000) / 16) + 2_000),
