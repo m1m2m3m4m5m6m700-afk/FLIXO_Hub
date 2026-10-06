@@ -4,7 +4,7 @@ This ledger records live execution tasks on the `execution` integration line. A 
 
 ## Current candidate
 - Branch: `execution`
-- Current candidate SHA at this ledger reconciliation: `a8b9c55d8c6cd16abe96ce3362f5693db399823a`
+- Current candidate SHA at this ledger reconciliation: `f76313b60e61c69e050473549a60f4612c959212`
 - Integration PR: #1002
 - Production truth branch: `main`
 - Current main SHA: `263827228cbe5f4851470297fde5f2858ff844de`
@@ -23,19 +23,42 @@ This ledger records live execution tasks on the `execution` integration line. A 
 | EXEC-CERT-BLOCKER-001 | AGENT-3/Certification | BLOCKED | GitHub ruleset / PR review state | External repository governance | Live main ruleset has 0 required approvals and non-strict required checks; PR #1002 has no human approving review | Live ruleset inspection + PR review list | Harden Ruleset 23854302 and obtain legitimate independent approval |
 | EXEC-DOCS-AUDIT-001 | AGENT-2/Product | IMPLEMENTED | `docs/TOOL-EXPANSION-AUDIT.md` | Exact execution candidate | Audit reconciled to active PR #1002 | Latest exact candidate requires state refresh after every mutation | Refresh only as candidate advances |
 
-## Current exact-SHA CI evidence — candidate `a8b9c55d8c6cd16abe96ce3362f5693db399823a`
+## Current exact-SHA CI evidence — candidate `f76313b60e61c69e050473549a60f4612c959212`
 
+Latest exact-SHA execution-push evidence:
 - FLIXO Secret Scan: PASS.
 - FLIXO CodeQL: PASS.
 - FLIXO Final Clean-Clone Red Team: PASS.
-- FLIXO CI `Typecheck, lint, core contracts, build`: PASS.
-- FLIXO CI `Exact-SHA internal coverage`: PASS.
-- FLIXO CI `Chromium browser smoke`: PASS.
-- FLIXO CI `Red Team adversarial regression`: PASS.
-- FLIXO CI `Branch policy`: FAIL CLOSED only at live main governance verification.
-- FLIXO CI `trust-gate`: FAIL CLOSED because Branch policy failed.
-- FLIXO CI `Exact-SHA promotion proof`: FAIL CLOSED because trust-gate failed.
-- Production exact-SHA deployment: SKIPPED for the execution candidate; no production identity claim is made.
+- FLIXO CI Typecheck/lint/core contracts/build: PASS.
+- FLIXO CI Exact-SHA internal coverage: PASS.
+- FLIXO CI Red Team adversarial regression: PASS.
+- FLIXO CI Branch policy: PASS on execution push.
+- FLIXO CI Chromium browser smoke: IN PROGRESS on the latest execution push; no browser PASS is claimed until completion.
+- Exact-SHA PR branch-policy: FAIL CLOSED because the live main ruleset violates Prompt 12.
+- PR trust-gate / promotion proof: not certifiable while the governance gate fails.
+- Production exact-SHA deployment: SKIPPED on execution, by design; no production identity claim is made.
+
+## Prompt-state reconciliation — current candidate
+- Prompt 01: BLOCKER — live state reconciled; governance blocker remains.
+- Prompt 02: VERIFIED-IMPLEMENTATION / exact final certification pending.
+- Prompt 03: VERIFIED by canonical registry/executor/verifier/output-contract regression.
+- Prompt 04: VERIFIED by Agent Guided + Manual browser/local execution coverage.
+- Prompt 05: VERIFIED by trust-boundary and adversarial regression suites.
+- Prompt 06: VERIFIED by browser-local media bounds, abort/timeout, signature, MIME, and output checks.
+- Prompt 07: VERIFIED by deterministic positive/negative MVP acceptance corpus.
+- Prompt 08: VERIFIED by output-integrity and capability-verifier coverage.
+- Prompt 09: VERIFIED-IMPLEMENTATION by canonical Agent Guided runtime tests and exact-SHA CI.
+- Prompt 10: VERIFIED for repository security gates; production governance remains blocked by Prompt 12.
+- Prompt 11: VERIFIED for the current CI/release workflow graph.
+- Prompt 12: BLOCKED — live ruleset 23854302 is under-hardened; connected GitHub mutation surface is read-only for ruleset administration.
+- Prompt 13: VERIFIED by current repository hygiene and branch coordination policy.
+- Prompt 14: IN_PROGRESS — current-state documents are being reconciled to exact candidate SHA.
+- Prompt 15: BLOCKED until protected-main promotion and post-merge production identity verification.
+- Prompt 16: VERIFIED — active MVP file-editing path is persistence-independent; Supabase remains outside raw MVP file execution.
+- Prompt 17: VERIFIED on the execution-push clean-clone gate; the latest PR instance is still being finalized independently.
+- Prompt 18: BLOCKED until a single final frozen candidate can satisfy governance and exact-SHA release gates.
+- Prompt 19: BLOCKED until Prompt 12/18 conditions are satisfied.
+- Prompt 20: BLOCKED until legitimate review/governance and protected promotion are available.
 
 ## Governance blocker
 
