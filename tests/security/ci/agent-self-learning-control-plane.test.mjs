@@ -8,8 +8,8 @@ import {
   scoreSubmission,
 } from '../../../scripts/agent-learning/self-learning-control-plane.mjs';
 
-const SHA = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
-const OTHER_SHA = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
+const SHA = '0000000000000000000000000000000000000001';
+const OTHER_SHA = '0000000000000000000000000000000000000002';
 
 test('the harness rejects evidence from a different SHA', () => {
   const result = scoreSubmission({
