@@ -110,7 +110,8 @@ async function preflightInput(
   if (typeof document === 'undefined') throw new Error('VIDEO_BROWSER_RUNTIME_REQUIRED');
   const video = document.createElement('video');
   video.preload = 'metadata';
-  video.srcObject = input.blob;
+  const url = URL.createObjectURL(input.blob);
+  video.src = url;
   try {
     await withDeadline(
       new Promise<void>((resolve, reject) => {
