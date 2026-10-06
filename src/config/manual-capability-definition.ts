@@ -206,7 +206,7 @@ async function readVideoDimensions(blob: Blob, signal?: AbortSignal): Promise<Me
     });
     releaseSource = await attachVideoBlobSource(video, blob, signal);
     await metadataReady;
-    const duration = getBoundedVideoDuration(video, 10 * 60);
+    const duration = await getBoundedVideoDuration(video, 10 * 60, signal);
     if (video.videoWidth <= 0 || video.videoHeight <= 0) return undefined;
     return { width: video.videoWidth, height: video.videoHeight, duration };
   } finally {
