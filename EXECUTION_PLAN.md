@@ -27,9 +27,9 @@ Achieve 100% verified completion of the browser-first tool expansion program: ar
 
 - `main` is production truth.
 - Integration lane is `execution → main`; no direct main writes.
-- Agent implementation is intentionally open and broad on the canonical `execution` lane; per-agent branches and PRs into `execution` are not part of the current architecture.
+- Agent implementation is intentionally open and broad. `execution` is the canonical integration lane, while short-lived worker branches may be used for isolation, parallelism, experiments, or review without a mandatory PR into `execution`.
 - Live GitHub rulesets/branch protection are external governance and cannot be simulated by repository text or verifier changes.
-- No merge, deployment, destructive repository change, critical execution, or task closure without explicit human approval for that decision.
+- Routine repository implementation is pre-authorized in Open Agent Execution Mode. Human approval is reserved for production promotion, product/legal scope decisions, and explicitly destructive or externally consequential actions.
 - No stale SHA evidence. Every certification claim is bound to the exact verified commit SHA.
 - Skipped, cancelled, neutral, or unavailable checks are not PASS.
 - Do not weaken branch protection or bypass required checks.
@@ -488,4 +488,10 @@ Sub-agents and execution workers may be used for broad implementation, testing, 
 
 ## Completion Rule
 
-Do not mark this mission complete, issue a final certificate, or report 100% completion until every required item is verified, all required evidence belongs to one exact SHA, live repository governance satisfies the required policy, production checks are PASS where applicable, and the corresponding human approvals are explicitly recorded. Open Agent Execution Mode expands implementation freedom; it does not relax release gates.
+Do not mark this mission complete, issue a final certificate, or report 100% completion until every required item is verified, all required evidence belongs to one exact SHA, live repository governance satisfies the required policy, production checks are PASS where applicable, and the corresponding human approvals are explicitly recorded. Open Agent Execution Mode expands implementation freedom and removes routine workflow friction; it does not relax production trust boundaries or final release gates.
+
+
+## Agent Fast Path Policy
+Routine agent work uses risk-based preflight rather than a fixed operation counter. Minimum preflight: current target SHA, task/scope, affected surface, intended regression, and safe publication path. Security-sensitive, production-facing, destructive, or externally consequential changes automatically receive deeper review. Routine implementation needs no mandatory handoff, lease, heartbeat, successor session, or conversational approval.
+
+Worker branches are valid disposable workspaces. Their inventory is informational and must never block unrelated agent execution.
