@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ToolWorkbench } from '../../components/image-tool/ToolWorkbench';
 import { ImageJob } from '../../image-core/job';
 import { getToolDefinition } from '../../config/canonical-tool-definition';
@@ -49,6 +49,8 @@ const copy = {
   },
 } as const;
 
+export const MAX_BATCH_INPUT_BYTES = 160 * 1024 * 1024;
+
 function extensionFor(format: CompressionFormat): string {
   return format === 'image/webp' ? 'webp' : format === 'image/png' ? 'png' : 'jpg';
 }
@@ -68,6 +70,10 @@ export function ImageCompressor({ locale }: { locale?: string }) {
   const [batchError, setBatchError] = useState('');
   const [batchZipUrl, setBatchZipUrl] = useState('');
 
+  useEffect(() => () => {
+    if (batchZipUrl) URL.revokeObjectURL(batchZipUrl);
+  }, [batchZipUrl]);
+
   const runBatch = async (files: readonly File[]) => {
     if (batchBusy || files.length < 2) return;
     setBatchBusy(true);
@@ -75,7 +81,14 @@ export function ImageCompressor({ locale }: { locale?: string }) {
     if (batchZipUrl) URL.revokeObjectURL(batchZipUrl);
     setBatchZipUrl('');
     try {
-      const selected = files.slice(0, MAX_FILES).filter((file) => file.size <= MAX_INPUT_SIZE);
+      const selected: File[] = [];
+      let selectedBytes = 0;
+      for (const file of files.slice(0, MAX_FILES)) {
+        if (file.size > MAX_INPUT_SIZE) continue;
+        if (selectedBytes + file.size > MAX_BATCH_INPUT_BYTES) break;
+        selected.push(file);
+        selectedBytes += file.size;
+      }
       const JSZip = (await import('jszip')).default;
       const zip = new JSZip();
       const format = parameters.format ?? 'image/webp';
