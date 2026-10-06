@@ -44,11 +44,12 @@ async function installMediaHooks(page: Page): Promise<void> {
     };
 
     const nativeSetTimeout = window.setTimeout.bind(window);
-    window.setTimeout = ((handler: TimerHandler, delay?: number, ...args: any[]) => {
+    const guardedSetTimeout: typeof window.setTimeout = (handler, delay, ...args) => {
       const accelerated = target.__flixoAccelerateVideoTimeout === true;
       const nextDelay = accelerated && Number(delay ?? 0) >= 500_000 ? 50 : delay;
       return nativeSetTimeout(handler, nextDelay, ...args);
-    }) as typeof window.setTimeout;
+    };
+    window.setTimeout = guardedSetTimeout;
   });
 }
 
@@ -101,7 +102,12 @@ async function buildFixture(page: Page, durationMs = 2_400): Promise<Buffer> {
     if (blob.size <= 4 || signature.join(',') !== '26,69,223,163') {
       throw new Error('VIDEO_FIXTURE_SIGNATURE_INVALID');
     }
-    return btoa(String.fromCharCode(...new Uint8Array(await blob.arrayBuffer())));
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    let binary = '';
+    for (let index = 0; index < bytes.length; index += 0x8000) {
+      binary += String.fromCharCode(...bytes.subarray(index, index + 0x8000));
+    }
+    return btoa(binary);
   }, duration).then((base64) => Buffer.from(base64, 'base64'));
 }
 
@@ -124,7 +130,30 @@ async function outputMetadata(page: Page) {
         video.onloadedmetadata = () => resolve();
         video.onerror = () => reject(new Error('VIDEO_OUTPUT_DECODE_FAILED'));
       });
-      return { size: blob.size, width: video.videoWidth, height: video.videoHeight, duration: video.duration };
+
+      let duration = video.duration;
+      if (!Number.isFinite(duration) || duration <= 0 || duration >= 600) {
+        try { video.currentTime = 1e9; } catch { /* bounded duration probe */ }
+        await new Promise<void>((resolve) => {
+          const done = () => {
+            video.removeEventListener('durationchange', done);
+            video.removeEventListener('timeupdate', done);
+            video.removeEventListener('progress', done);
+            resolve();
+          };
+          video.addEventListener('durationchange', done, { once: true });
+          video.addEventListener('timeupdate', done, { once: true });
+          video.addEventListener('progress', done, { once: true });
+          setTimeout(done, 2_000);
+        });
+        const ranges = video.buffered.length > 0 ? video.buffered : video.seekable;
+        const rangeDuration = ranges.length > 0 ? ranges.end(ranges.length - 1) : Number.NaN;
+        duration = [video.duration, rangeDuration].find(
+          (value) => Number.isFinite(value) && value > 0 && value < 600,
+        ) ?? Number.NaN;
+      }
+      if (!Number.isFinite(duration) || duration <= 0) throw new Error('VIDEO_OUTPUT_DURATION_INVALID');
+      return { size: blob.size, width: video.videoWidth, height: video.videoHeight, duration };
     } finally {
       URL.revokeObjectURL(objectUrl);
       video.removeAttribute('src');
