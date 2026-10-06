@@ -127,7 +127,9 @@ test('scanner produces an exact-SHA report with zero uncovered authored lines', 
 
   const report = readFileSync(result.reportPath, 'utf8');
   assert.match(report, new RegExp('Exact SHA: ' + result.sha));
-  assert.match(report, /## Main branch read snapshot/);\n  assert.match(report, /Main SHA:/);\n  assert.match(report, /## Dependency graph/);
+  assert.match(report, /## Main branch read snapshot/);
+  assert.match(report, /Main SHA:/);
+  assert.match(report, /## Dependency graph/);
   assert.match(report, /## Symbol index/);
   assert.match(report, /## Change delta/);
   assert.match(report, /## Capability boundary/);
