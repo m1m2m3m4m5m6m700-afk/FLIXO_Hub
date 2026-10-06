@@ -24,6 +24,37 @@ function imageFixture() {
   };
 }
 
+async function meaningfulImageFixture(page: Page) {
+  const bytes = await page.evaluate(async () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 128;
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('canvas context unavailable');
+
+    context.fillStyle = '#f5f5f5';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.fillStyle = '#202020';
+    context.fillRect(27, 27, 74, 74);
+    context.fillStyle = '#d24a2e';
+    context.beginPath();
+    context.arc(64, 64, 27, 0, Math.PI * 2);
+    context.fill();
+    context.fillStyle = '#f0c74a';
+    context.fillRect(50, 50, 28, 28);
+
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob((value) => value ? resolve(value) : reject(new Error('could not encode fixture')), 'image/png');
+    });
+    return Array.from(new Uint8Array(await blob.arrayBuffer()));
+  });
+  return {
+    name: 'flixo-release-fixture.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(bytes),
+  };
+}
+
 async function videoFixture(page: Page) {
   const bytes = await page.evaluate(async () => {
     const canvas = document.createElement('canvas');
@@ -71,7 +102,10 @@ async function executeManualImage(page: Page, toolId: (typeof IMAGE_TOOL_IDS)[nu
   await expect(page.locator('h1,h2').filter({ hasText: /./ }).first()).toBeVisible();
   const fileInput = page.locator('input[type=file]').first();
   await expect(fileInput).toHaveCount(1);
-  await fileInput.setInputFiles(imageFixture());
+  const fixture = ['background-remover', 'image-compressor', 'image-effects'].includes(toolId)
+    ? await meaningfulImageFixture(page)
+    : imageFixture();
+  await fileInput.setInputFiles(fixture);
 
   if (toolId === 'image-cropper') {
     await page.getByRole('textbox', { name: 'Crop width' }).fill('4');
@@ -151,7 +185,7 @@ test.describe('FLIXO ten-tool release verification', () => {
   }
 
   test('agent/background-remover-ar requires explicit confirmation and preserves RTL', async ({ page }) => {
-    await planAndExecuteAgent(page, 'إزالة الخلفية', 'background-remover', 'ar', imageFixture());
+    await planAndExecuteAgent(page, 'إزالة الخلفية', 'background-remover', 'ar', await meaningfulImageFixture(page));
   });
 
   test('agent/ambiguous contrast rejects guessing', async ({ page }) => {
@@ -166,7 +200,7 @@ test.describe('FLIXO ten-tool release verification', () => {
   test('agent/compound request generates and executes a multi-step canonical plan', async ({ page }) => {
     await page.goto('/agent', { waitUntil: 'domcontentloaded' });
     await page.locator('#agent-prompt').fill('compress this image under 200KB and convert to WebP');
-    await page.locator('#agent-file').setInputFiles(imageFixture());
+    await page.locator('#agent-file').setInputFiles(await meaningfulImageFixture(page));
     await page.getByTestId('agent-build-plan').click();
     const plan = page.locator('[aria-label="agent-plan"]');
     await expect(plan).toContainText('image-converter');
@@ -181,7 +215,7 @@ test.describe('FLIXO ten-tool release verification', () => {
   test('agent/compound request Arabic generates and executes the same canonical chain', async ({ page }) => {
     await page.goto('/agent', { waitUntil: 'domcontentloaded' });
     await page.locator('#agent-prompt').fill('ضغط الصورة إلى أقل من 200KB وتحويلها إلى WebP');
-    await page.locator('#agent-file').setInputFiles(imageFixture());
+    await page.locator('#agent-file').setInputFiles(await meaningfulImageFixture(page));
     await page.getByTestId('agent-build-plan').click();
     const plan = page.locator('[aria-label="agent-plan"]');
     await expect(plan).toContainText('image-converter');
@@ -211,7 +245,10 @@ test.describe('FLIXO ten-tool release verification', () => {
 
   for (const [toolId, prompt] of imageAgentCases) {
     test('agent/' + toolId + ' requires confirmation and reaches verified result', async ({ page }) => {
-      await planAndExecuteAgent(page, prompt, toolId, 'en', imageFixture());
+      const fixture = toolId === 'image-compressor' || toolId === 'image-effects'
+        ? await meaningfulImageFixture(page)
+        : imageFixture();
+      await planAndExecuteAgent(page, prompt, toolId, 'en', fixture);
     });
   }
 
