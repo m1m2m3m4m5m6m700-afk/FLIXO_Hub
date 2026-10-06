@@ -2,7 +2,7 @@
 ## Exact-SHA / Gap-Driven / Fail-Closed / Red-Team Verifiable
 
 STATUS: ACTIVE / EXECUTABLE
-REPOSITORY: m1m2m3m4m5m6m700-afk/FLIXO-AI-TOOLS
+REPOSITORY: m1m2m3m4m5m6m700-afk/FLIXO_Hub
 PRIMARY EXECUTION BRANCH: execution
 INTEGRATION PATH: execution -> main
 
