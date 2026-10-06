@@ -20,7 +20,7 @@ const unexpected = output
 
 if (unexpected.length > 0) {
   console.error('BRANCH_POLICY=FAIL');
-  console.error('Permitted refs are refs/heads/main, refs/heads/execution, and controlled agent-1/agent-2/agent-3/agent-4 coordination branches.');
+  console.error('Permitted refs are refs/heads/main, refs/heads/execution, and controlled agent-1/agent-2/agent-3/agent-3b/agent-4 coordination branches.');
   console.error(unexpected.join('\n'));
   process.exit(1);
 }
