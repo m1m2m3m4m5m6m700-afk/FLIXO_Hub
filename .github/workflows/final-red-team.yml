@@ -48,6 +48,9 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
 
+      - name: Fetch main governance snapshot
+        run: git fetch origin main --depth=1
+
       - name: Fresh install
         run: npm ci --no-audit --no-fund
 
