@@ -29,7 +29,7 @@ test('current MVP file-editing path is persistence independent', () => {
 
 test('MVP scope contract explicitly requires browser-local file execution without backend file processing', () => {
   const scope = readFileSync(resolve(root, 'src/lib/contracts/mvp-scope.ts'), 'utf8');
-  assert.match(scope, /userFileBytesMayCrossNetwork\\s*:\\s*false/u);
-  assert.match(scope, /backendRequiredForFileExecution\\s*:\\s*false/u);
-  assert.match(scope, /executionLocation\\s*:\\s*['"]BROWSER_ONLY['"]/u);
+  assert.match(scope, /userFileBytesMayCrossNetwork\s*:\s*false/u);
+  assert.match(scope, /backendRequiredForFileExecution\s*:\s*false/u);
+  assert.match(scope, /executionLocation\s*:\s*['"]BROWSER_ONLY['"]/u);
 });
