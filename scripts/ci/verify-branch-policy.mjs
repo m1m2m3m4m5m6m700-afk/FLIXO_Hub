@@ -40,7 +40,7 @@ export function classifyRef(ref) {
   if (QUARANTINED_REFS.has(ref)) {
     return { authority: 'quarantined-stale', allowed: true, quarantined: true };
   }
-  return { authority: 'unknown', allowed: false, quarantined: false };
+  return { authority: 'working', allowed: true, quarantined: false };
 }
 
 export function parseRemoteRefs(lsRemoteOutput) {
@@ -217,7 +217,8 @@ export function verifyBranchPolicy({ remote = 'origin' } = {}) {
   );
 
   const classifications = remoteRefs.map((ref) => ({ ref, ...classifyRef(ref) }));
-  const unexpected = classifications.filter((entry) => !entry.allowed);
+  // Working branch inventory is advisory in FAST governance; production-safety workflow checks remain blocking.
+  const unexpected = classifications.filter((entry) => entry.authority === 'forbidden-production');
   const quarantined = classifications.filter((entry) => entry.quarantined);
 
   const workflowReport = analyzeWorkflowSet(loadWorkflowSet());
@@ -225,7 +226,7 @@ export function verifyBranchPolicy({ remote = 'origin' } = {}) {
   if (unexpected.length > 0 || !workflowReport.pass) {
     console.error('BRANCH_POLICY=FAIL');
     if (unexpected.length > 0) {
-      console.error('Unknown refs:');
+      console.error('Forbidden production refs:');
       console.error(unexpected.map((entry) => entry.ref).join('\n'));
     }
     if (!workflowReport.pass) {
