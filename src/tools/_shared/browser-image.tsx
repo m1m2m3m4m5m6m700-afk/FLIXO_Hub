@@ -47,7 +47,7 @@ export function BrowserImageTool({ mode, title, accept = 'image/*', multi = fals
     run: canonical.runTool,
   };
   const dir = typeof document !== 'undefined' && document.documentElement.dir ? document.documentElement.dir : (resolvedLocale === 'ar' ? 'rtl' : 'ltr');
-  const [files, setFiles] = useState<File[]>([]); const [result, setResult] = useState<Result | null>(null); const [error, setError] = useState(''); const [busy, setBusy] = useState(false); const [text, setText] = useState('FLIXO'); const [top, setTop] = useState('TOP TEXT'); const [bottom, setBottom] = useState('BOTTOM TEXT'); const [effect, setEffect] = useState({ brightness: 100, contrast: 100, saturate: 100, grayscale: 0 });
+  const [files, setFiles] = useState<File[]>([]); const [result, setResult] = useState<Result | null>(null); const [error, setError] = useState(''); const [busy, setBusy] = useState(false); const [text, setText] = useState('FLIXO'); const [top, setTop] = useState('TOP TEXT'); const [bottom, setBottom] = useState('BOTTOM TEXT'); const [effect, setEffect] = useState({ brightness: 100, contrast: 110, saturate: 100, grayscale: 0 });
   const status = useMemo(() => result ? `${result.width ?? ''}×${result.height ?? ''} · ${Math.max(1, Math.round(result.blob.size / 1024))} KB` : copy.noResult, [result, copy.noResult]);
   async function run() {
     if (!files.length) { setError(copy.chooseImage); return; } setError(''); setBusy(true); setResult(null);
