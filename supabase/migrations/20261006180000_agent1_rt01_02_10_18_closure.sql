@@ -193,8 +193,8 @@ select encode(extensions.digest(convert_to(public.flixo_admin_canonical_jsonb(js
 )), 'UTF8'),'sha256'),'hex');
 $function$;
 
-update public.flix_admin_evidence set integrity_sha256=public.flixo_admin_evidence_integrity_sha(public.flix_admin_evidence);
-update public.flix_admin_audit_events set integrity_sha256=public.flixo_admin_audit_integrity_sha(public.flix_admin_audit_events);
+update public.flix_admin_evidence as evidence set integrity_sha256=public.flixo_admin_evidence_integrity_sha(evidence);
+update public.flix_admin_audit_events as audit set integrity_sha256=public.flixo_admin_audit_integrity_sha(audit);
 
 create or replace function public.flixo_admin_evidence_integrity_guard()
 returns trigger language plpgsql security definer set search_path to pg_catalog, public, pg_temp
