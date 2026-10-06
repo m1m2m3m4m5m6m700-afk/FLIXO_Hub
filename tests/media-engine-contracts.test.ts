@@ -36,7 +36,7 @@ test('video render validation enforces trim, crop, dimension, fps and bitrate bo
 
 test('image engine rejects unsupported blobs and unsafe dimensions', () => {
   assert.throws(() => validateImageEngineInput(new Blob([], { type: 'image/png' })), /IMAGE_INPUT_EMPTY/);
-  assert.throws(() => validateImageEngineInput(new Blob(['x'], { type: 'image/gif' })), /IMAGE_INPUT_UNSUPPORTED_MIME/);
+  assert.throws(() => validateImageEngineInput(new Blob(['x'], { type: 'image/svg+xml' })), /IMAGE_INPUT_UNSUPPORTED_MIME/);
   validateImageDimensions(4000, 4000);
   assert.throws(() => validateImageDimensions(8000, 2001), /IMAGE_PIXELS_EXCEEDED/);
   assert.throws(() => validateImageDimensions(8001, 1), /IMAGE_DIMENSIONS_INVALID/);
