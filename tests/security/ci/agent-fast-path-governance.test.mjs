@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
 import { evaluateMainGovernance } from '../../../scripts/ci/verify-main-ruleset.mjs';
 import { classifyRef } from '../../../scripts/ci/verify-branch-policy.mjs';
@@ -53,4 +54,16 @@ test('disposable worker branches are allowed', () => {
     assert.equal(result.allowed, true);
     assert.equal(result.authority, 'working');
   }
+});
+
+test('routine task governance does not restore a mandatory lease queue', () => {
+  const plan = readFileSync(new URL('../../../المخطط التنفيذي.md', import.meta.url), 'utf8');
+  const start = plan.indexOf('# PROMPT 22');
+  const end = plan.indexOf('## V3.9 — Fast Agent Governance', start);
+  assert.ok(start >= 0);
+  assert.ok(end > start);
+  const section = plan.slice(start, end);
+  assert.match(section, /SUPERSEDED FOR ROUTINE EXECUTION/);
+  assert.doesNotMatch(section, /AVAILABLE\s*->\s*CLAIMED/u);
+  assert.doesNotMatch(section, /lease\/heartbeat/u);
 });
