@@ -101,7 +101,7 @@ async function videoFixture(page: Page) {
         try {
           probe.currentTime = 1e9;
         } catch {
-          // Continue to range probes below.
+          void 0;
         }
         await new Promise<void>((resolve) => {
           const done = () => { probe.removeEventListener('durationchange', done); probe.removeEventListener('timeupdate', done); resolve(); };
@@ -109,7 +109,7 @@ async function videoFixture(page: Page) {
           probe.addEventListener('timeupdate', done, { once: true });
           setTimeout(done, 2_000);
         });
-        try { probe.currentTime = previous; } catch {}
+        try { probe.currentTime = previous; } catch { void 0; }
       }
       const ranges = probe.buffered.length > 0 ? probe.buffered : probe.seekable;
       const bounded = [probe.duration, ranges.length > 0 ? ranges.end(ranges.length - 1) : Number.NaN]
