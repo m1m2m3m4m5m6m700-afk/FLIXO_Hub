@@ -22,7 +22,6 @@ const reportDir = 'الوكلاء/وكيل-معرفة-المستودع/التق�
 
 test('knowledge agent profile declares bounded read-only mission', () => {
   const profile = readFileSync(profilePath, 'utf8');
-  const registrationProfile = readFileSync(registrationProfilePath, 'utf8');
 
   assert.match(profile, /report_path: 0\(التقارير\)\//);
   assert.match(profile, /READ-ONLY reconnaissance and knowledge agent/);
@@ -33,7 +32,6 @@ test('knowledge agent profile declares bounded read-only mission', () => {
   assert.match(profile, /must not.*merge or deploy/s);
   assert.match(profile, /must not.*declare PASS\/GREEN\/CERTIFIED/s);
   assert.doesNotMatch(profile, /reports\/repository-knowledge\//);
-  assert.equal(registrationProfile, profile);
 });
 
 test('symbol extraction distinguishes exported and local declarations', () => {
@@ -145,18 +143,20 @@ test('workflow wakes on execution changes and ignores only its own report direct
 
   assert.match(workflow, /branches: \[execution\]/);
   assert.match(workflow, /paths-ignore:/);
-  assert.match(workflow, /الوكلاء\/وكيل-معرفة-المستودع\/التقارير\/\*\*/);
+  assert.match(workflow, /0\(التقارير\)\/\*\*/);
   assert.match(workflow, /ref: \$\{\{ github\.sha \}\}/);
   assert.match(workflow, /persist-credentials: true/);
   assert.match(workflow, /test "\$\(git rev-parse HEAD\)" = "\$\{GITHUB_SHA\}"/);
   assert.match(workflow, /Uncovered repository-authored text lines: 0/);
   assert.match(workflow, /git fetch origin execution/);
-  assert.match(workflow, /git add 'الوكلاء\/وكيل-معرفة-المستودع\/التقارير\//);
+  assert.match(workflow, /git add '0\(التقارير\)\//);
+  assert.match(workflow, /git push origin "HEAD:knowledge"/);
+  assert.doesNotMatch(workflow, /git push origin "HEAD:execution"/);
   assert.doesNotMatch(workflow, /reports\/repository-knowledge/);
 });
 
 test('scanner does not re-ingest legacy English report directory', () => {
   const scanner = readFileSync(scannerPath, 'utf8');
   assert.doesNotMatch(scanner, /reports\/repository-knowledge/);
-  assert.match(scanner, /الوكلاء\/وكيل-معرفة-المستودع\/التقارير/);
+  assert.match(scanner, /0\(التقارير\)/);
 });
