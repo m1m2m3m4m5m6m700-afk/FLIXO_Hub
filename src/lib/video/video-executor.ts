@@ -56,8 +56,9 @@ function waitForEvent(target: EventTarget, type: string, signal?: AbortSignal): 
 
 async function seek(video: HTMLVideoElement, time: number, signal?: AbortSignal): Promise<void> {
   if (signal?.aborted) throw new DOMException('Video operation aborted.', 'AbortError');
+  const seeked = waitForEvent(video, 'seeked', signal);
   video.currentTime = Math.max(0, time);
-  await waitForEvent(video, 'seeked', signal);
+  await seeked;
 }
 
 function buildCanvas(video: HTMLVideoElement, options: VideoRenderOptions): { canvas: HTMLCanvasElement; source: { x: number; y: number; width: number; height: number } } {
@@ -92,10 +93,11 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
   video.preload = 'auto';
   video.muted = false;
   video.playsInline = true;
-  video.src = url;
 
   try {
-    await waitForEvent(video, 'loadedmetadata');
+    const metadataReady = waitForEvent(video, 'loadedmetadata');
+    video.src = url;
+    await metadataReady;
     const duration = video.duration;
     if (!Number.isFinite(duration) || duration <= 0) throw new Error('VIDEO_METADATA_INVALID');
 
