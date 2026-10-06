@@ -51,7 +51,7 @@ jobs:
       - name: Exact-SHA workflow contract tests
         run: node --test scripts/ci/test-workflow-exact-sha-contract.mjs
       - name: Fetch main governance snapshot for read-only contract tests
-        run: git fetch origin main --depth=1
+        run: git fetch origin main:refs/remotes/origin/main --depth=1
       - name: Agent 2 CI security contract tests
         run: node --test tests/security/ci/*.test.mjs
       - name: Model license and admission gate
