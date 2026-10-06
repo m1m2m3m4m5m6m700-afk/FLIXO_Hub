@@ -110,8 +110,7 @@ export function VideoLocalTool() {
           throw new Error('Execution denied: unknown video tool.');
       }
 
-      const output = await executeCanonicalTool(
-        id,
+      const output = await executeCanonicalTool(id,
         { blob: file, fileName: file.name },
         parameters,
         controller.signal,
