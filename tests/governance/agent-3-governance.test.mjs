@@ -252,7 +252,7 @@ test('workflow authority rejects production deployment actions without a main-pu
     '      - uses: cloudflare/wrangler-action@v4',
     '        with:',
     '          command: deploy --config wrangler.jsonc',
-  ].join('\\n');
+  ].join('\n');
 
   const report = analyzeWorkflowAuthority('.github/workflows/fixture.yml', fixture);
   assert.equal(report.pass, false);
@@ -268,7 +268,7 @@ test('workflow-level contents:write must be explicitly constrained to main or ex
     '    runs-on: ubuntu-latest',
     '    steps:',
     '      - run: echo test',
-  ].join('\\n');
+  ].join('\n');
   assert.equal(analyzeWorkflowAuthority('.github/workflows/fixture.yml', unauthorized).pass, false);
 
   const executionController = [
@@ -282,7 +282,7 @@ test('workflow-level contents:write must be explicitly constrained to main or ex
     '      - uses: actions/checkout@v5',
     '        with:',
     '          ref: execution',
-  ].join('\\n');
+  ].join('\n');
   assert.equal(analyzeWorkflowAuthority('.github/workflows/fixture.yml', executionController).pass, true);
 
   const mainOnlyRelease = [
@@ -296,7 +296,7 @@ test('workflow-level contents:write must be explicitly constrained to main or ex
     '    runs-on: ubuntu-latest',
     '    steps:',
     '      - run: echo release',
-  ].join('\\n');
+  ].join('\n');
   assert.equal(analyzeWorkflowAuthority('.github/workflows/fixture.yml', mainOnlyRelease).pass, true);
 });
 test('workflow authority rejects an unauthorized non-main production deployment', () => {
