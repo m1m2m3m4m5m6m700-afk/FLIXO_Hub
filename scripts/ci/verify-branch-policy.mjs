@@ -17,7 +17,7 @@ export const QUARANTINED_REFS = new Set([
 const PRODUCTION_REF = 'refs/heads/main';
 const INTEGRATION_REF = 'refs/heads/execution';
 
-const CONTROLLED_AGENT_REF = /^refs\/heads\/(?:agent-(?:1|2|3|4)|agent(?:1|2|3|4))\//u;
+const CONTROLLED_AGENT_REF = /^refs\/heads\/(?:agent(?:\/|-)|agent3\/|agent-3[abc]\/)/u;
 const PRODUCTION_DEPLOYMENT_COMMAND =
   /\b(?:wrangler|vercel|supabase|flyctl|kubectl|terraform)\s+(?:deploy|apply|push|publish)\b|\b(?:npm|pnpm|yarn)\s+publish\b/iu;
 
