@@ -1,4 +1,4 @@
-# Contributing to FLIXO-AI-TOOLS
+# Contributing to FLIXO_Hub
 
 ## Branch policy
 
