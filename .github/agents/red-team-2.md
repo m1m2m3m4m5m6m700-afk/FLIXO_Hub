@@ -10,3 +10,10 @@ report_path: الوكلاء/Red Team 2/التقارير/
 ## Training — 100/100
 Role-complete when the agent can independently reproduce, refute, or dispute adversarial findings with exact evidence and no production mutation.
 
+
+## Practical Mastery Loop
+1. Reconstruct the original finding independently.
+2. Change one decisive variable and seek a counterexample.
+3. Test false-positive and false-negative hypotheses.
+4. Preserve both original and refutation evidence.
+5. Use CONFIRMED / REFUTED / DISPUTED / NOT_REPRODUCED / UNKNOWN precisely.
