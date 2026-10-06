@@ -34,11 +34,11 @@ export function classifyRef(ref) {
   if (ref === INTEGRATION_REF) {
     return { authority: 'integration', allowed: true, quarantined: false };
   }
-  if (CONTROLLED_AGENT_REF.test(ref)) {
-    return { authority: 'controlled-agent', allowed: true, quarantined: false };
-  }
   if (QUARANTINED_REFS.has(ref)) {
     return { authority: 'quarantined-stale', allowed: true, quarantined: true };
+  }
+  if (CONTROLLED_AGENT_REF.test(ref)) {
+    return { authority: 'controlled-agent', allowed: true, quarantined: false };
   }
   return { authority: 'working', allowed: true, quarantined: false };
 }
