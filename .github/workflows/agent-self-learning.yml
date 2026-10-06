@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: flixo-agent-self-learning
@@ -25,7 +25,7 @@ jobs:
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
-          persist-credentials: true
+          persist-credentials: false
 
       - name: Setup Node
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
@@ -70,37 +70,14 @@ jobs:
             exit 1
           }
 
-      - name: Publish report to isolated learning branch
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name "FLIXO Agent Training"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          REPORT="الوكلاء/تدريب الوكلاء/تقارير التدريب/${GITHUB_SHA}.md"
-          ROLE_REPORT="الوكلاء/تدريب الوكلاء/تقارير التدريب/${GITHUB_SHA}-role-drills.md"
-          REPORT_COPY="${RUNNER_TEMP}/flixo-training-${GITHUB_SHA}.md"
-          ROLE_REPORT_COPY="${RUNNER_TEMP}/flixo-training-${GITHUB_SHA}-role-drills.md"
-          READINESS_REPORT="الوكلاء/تدريب الوكلاء/تقارير التدريب/${GITHUB_SHA}-readiness.md"
-          READINESS_COPY="${RUNNER_TEMP}/flixo-training-${GITHUB_SHA}-readiness.md"
-          cp "$REPORT" "$REPORT_COPY"
-          cp "$ROLE_REPORT" "$ROLE_REPORT_COPY"
-          cp "$READINESS_REPORT" "$READINESS_COPY"
-
-          if git ls-remote --exit-code --heads origin agent-learning >/dev/null 2>&1; then
-            git fetch origin agent-learning
-            git switch --create agent-learning --track origin/agent-learning
-          else
-            git switch --orphan agent-learning
-            git rm -rf . >/dev/null 2>&1 || true
-          fi
-
-          rm -rf 'الوكلاء/تدريب الوكلاء/تقارير التدريب'
-          mkdir -p 'الوكلاء/تدريب الوكلاء/تقارير التدريب'
-          cp "$REPORT_COPY" "$REPORT"
-          cp "$ROLE_REPORT_COPY" "$ROLE_REPORT"
-          cp "$READINESS_COPY" "$READINESS_REPORT"
-          git add 'الوكلاء/تدريب الوكلاء/تقارير التدريب/'
-          git diff --cached --name-only
-          test -n "$(git diff --cached --name-only)"
-          git commit -m "docs(training): publish agent readiness ${GITHUB_SHA}"
-          git push origin "HEAD:agent-learning"
+      - name: Upload SHA-bound training evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: agent-training-${{ github.sha }}
+          path: |
+            الوكلاء/تدريب الوكلاء/تقارير التدريب/${{ github.sha }}.md
+            الوكلاء/تدريب الوكلاء/تقارير التدريب/${{ github.sha }}-role-drills.md
+            الوكلاء/تدريب الوكلاء/تقارير التدريب/${{ github.sha }}-readiness.md
+          if-no-files-found: error
+          retention-days: 30
