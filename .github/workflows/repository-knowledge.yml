@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: flixo-repository-knowledge
@@ -17,6 +17,10 @@ concurrency:
 jobs:
   knowledge:
     name: Read complete repository and publish SHA-bound knowledge report
+    permissions:
+      contents: write
+    env:
+      FLIXO_TARGET_BRANCH: knowledge
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:

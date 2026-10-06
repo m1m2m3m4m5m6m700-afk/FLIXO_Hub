@@ -133,6 +133,9 @@ export function analyzeWorkflowAuthority(path, workflow) {
     const executionTarget =
       /FLIXO_TARGET_BRANCH:\s*execution\b/u.test(jobText) &&
       /\bref:\s*execution\b/u.test(jobText);
+    const isolatedKnowledgeTarget =
+      /FLIXO_TARGET_BRANCH:\s*knowledge\b/u.test(jobText) &&
+      /git\s+push\s+origin\s+"?HEAD:knowledge"?/u.test(jobText);
 
     if (
       (PRODUCTION_DEPLOYMENT_COMMAND.test(jobText) || PRODUCTION_DEPLOYMENT_ACTION.test(jobText)) &&
@@ -152,7 +155,7 @@ export function analyzeWorkflowAuthority(path, workflow) {
     const jobContentsWrite = /contents:\s*write\b/iu.test(jobText);
     if (jobContentsWrite || workflowContentsWrite) {
       const safeMainWrite = mainPushGate || workflowMainOnlyPush;
-      const safeExecutionWrite = executionTarget;
+      const safeExecutionWrite = executionTarget || isolatedKnowledgeTarget;
       if (!safeMainWrite && !safeExecutionWrite) {
         findings.push(
           `${path}#${job.id}: contents:write has neither an explicit main-push gate nor an execution-only mutation target.`,
