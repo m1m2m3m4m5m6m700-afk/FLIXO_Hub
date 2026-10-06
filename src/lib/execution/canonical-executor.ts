@@ -313,8 +313,10 @@ async function verifyOutputContract(
         );
         dimensions = { width: video.videoWidth, height: video.videoHeight };
       } finally {
+        video.removeAttribute('src');
         video.srcObject = null;
         video.load();
+        URL.revokeObjectURL(url);
       }
     } else {
       dimensions = await withDeadline(readImageDimensions(output.blob, signal), Math.min(timeoutMs, 30_000), signal);
