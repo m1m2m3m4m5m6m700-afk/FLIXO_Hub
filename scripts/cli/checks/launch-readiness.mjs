@@ -27,8 +27,8 @@ export function runLaunchReadinessCheck(root = process.cwd()) {
   const certificate = readFileSync(resolve(root, "docs/FLIXO-PUBLIC-LAUNCH-CERTIFICATE-TEMPLATE.md"), "utf8");
   const blockers = readFileSync(resolve(root, "docs/FLIXO-LEGAL-LAUNCH-BLOCKERS.md"), "utf8");
 
-  if (!/Candidate SHA: `REQUIRED`/.test(manifest)) {
-    throw new Error("[launch-readiness] BLOCKED: release manifest is not in candidate-template state.");
+  if (!/Candidate SHA: `(?:REQUIRED|[a-f0-9]{40})`/.test(manifest)) {
+    throw new Error("[launch-readiness] BLOCKED: release manifest candidate SHA field is malformed.");
   }
   if (!/Status: NOT CERTIFIED/.test(certificate)) {
     throw new Error("[launch-readiness] BLOCKED: certificate template state is invalid.");
