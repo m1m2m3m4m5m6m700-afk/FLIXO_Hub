@@ -1,14 +1,4 @@
-import type { ToolDefinition } from '../canonical-tool-definition.ts';
-
-export type ManagedTool = ToolDefinition;
-
-export type ToolCatalog = Readonly<{
-  readonly all: readonly ManagedTool[];
-  readonly ready: readonly ManagedTool[];
-  readonly byId: ReadonlyMap<string, ManagedTool>;
-  readonly byPath: ReadonlyMap<string, ManagedTool>;
-  readonly byAlias: ReadonlyMap<string, ManagedTool>;
-  readonly fingerprint: string;
-}>;
-
-export type ToolCatalogSource = ToolDefinition;
+/** @deprecated Import tool types from '@/lib/tools/tool-registry' instead. */
+export type { ToolDefinition } from '../../lib/tools/tool-registry.ts';
+export type { ManagedTool, ToolCatalog } from '../../lib/tools/tool-registry.ts';
+export type ToolCatalogSource = import('../../lib/tools/tool-registry.ts').ToolDefinition;
