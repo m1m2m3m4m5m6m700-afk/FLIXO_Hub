@@ -32,9 +32,10 @@ async function preprocessWithWorker(blob: Blob): Promise<Blob> {
   return await new Promise<Blob>((resolve, reject) => {
     const worker = new Worker(new URL('./ocr-worker.ts', import.meta.url), { type: 'classic' });
     let settled = false;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
     const cleanup = () => {
       worker.terminate();
-      clearTimeout(timeout);
+      if (timeout) clearTimeout(timeout);
     };
     const fail = (error: Error) => {
       if (settled) return;
@@ -42,7 +43,7 @@ async function preprocessWithWorker(blob: Blob): Promise<Blob> {
       cleanup();
       reject(error);
     };
-    const timeout = setTimeout(() => fail(new Error('OCR preprocessing worker timed out.')), OCR_WORKER_TIMEOUT_MS);
+    timeout = setTimeout(() => fail(new Error('OCR preprocessing worker timed out.')), OCR_WORKER_TIMEOUT_MS);
 
     worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
       if (settled) return;
