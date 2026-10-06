@@ -119,7 +119,7 @@ async function preflightInput(
   if (typeof document === 'undefined') throw new Error('VIDEO_BROWSER_RUNTIME_REQUIRED');
   const video = document.createElement('video');
   let releaseSource: (() => void) | null = null;
-  video.preload = 'metadata';
+  video.preload = 'auto';
   try {
     const metadataReady = new Promise<void>((resolve, reject) => {
       video.onloadedmetadata = () => resolve();
@@ -132,7 +132,7 @@ async function preflightInput(
       Math.min(timeoutMs, 30_000),
       signal,
     );
-    getBoundedVideoDuration(video, MAX_VIDEO_DURATION_SECONDS);
+    await getBoundedVideoDuration(video, MAX_VIDEO_DURATION_SECONDS, signal);
     if (!Number.isInteger(video.videoWidth) || !Number.isInteger(video.videoHeight) || video.videoWidth < 1 || video.videoHeight < 1) {
       throw new Error('Execution denied: video dimensions are invalid.');
     }
@@ -374,7 +374,7 @@ async function verifyOutputContract(
       if (typeof document === 'undefined') throw new Error('Browser runtime required for video output verification.');
       const video = document.createElement('video');
       let releaseSource: (() => void) | null = null;
-      video.preload = 'metadata';
+      video.preload = 'auto';
       try {
         const metadataReady = new Promise<void>((resolve, reject) => {
           video.onloadedmetadata = () => resolve();
@@ -387,7 +387,7 @@ async function verifyOutputContract(
           signal,
         );
         dimensions = { width: video.videoWidth, height: video.videoHeight };
-        getBoundedVideoDuration(video, MAX_VIDEO_DURATION_SECONDS);
+        await getBoundedVideoDuration(video, MAX_VIDEO_DURATION_SECONDS, signal);
       } finally {
         releaseSource?.();
         video.removeAttribute('src');
