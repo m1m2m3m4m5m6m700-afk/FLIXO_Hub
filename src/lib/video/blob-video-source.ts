@@ -23,6 +23,7 @@ export async function getBoundedVideoDuration(
   if (signal?.aborted) throw cancelled();
 
   const previousTime = Number.isFinite(video.currentTime) ? video.currentTime : 0;
+  const previousPlaybackRate = Number.isFinite(video.playbackRate) && video.playbackRate > 0 ? video.playbackRate : 1;
 
   const waitForMediaSignal = (timeoutMs: number): Promise<void> => new Promise((resolve) => {
     let settled = false;
@@ -102,7 +103,7 @@ export async function getBoundedVideoDuration(
     if (video.ended && endedTime > 0 && endedTime <= maxDurationSeconds) return endedTime;
   } finally {
     video.pause();
-    video.playbackRate = Number.isFinite(video.playbackRate) ? 1 : 1;
+    video.playbackRate = previousPlaybackRate;
     try {
       video.currentTime = previousTime;
     } catch {
