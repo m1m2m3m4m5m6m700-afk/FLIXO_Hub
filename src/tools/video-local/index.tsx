@@ -144,9 +144,10 @@ export function VideoLocalTool() {
   const description = ui.description[toolId];
 
   useEffect(() => () => {
-    if (resultUrlRef.current) URL.revokeObjectURL(resultUrlRef.current);
+    if (resultUrl) URL.revokeObjectURL(resultUrl);
+    if (resultUrlRef.current && resultUrlRef.current !== resultUrl) URL.revokeObjectURL(resultUrlRef.current);
     if (fileUrlRef.current) URL.revokeObjectURL(fileUrlRef.current);
-  }, []);
+  }, [resultUrl]);
 
   const acceptFile = (next: File | null) => {
     if (!next) return;
@@ -207,7 +208,8 @@ export function VideoLocalTool() {
     setError('');
     clearResult();
     try {
-      const output = await executeCanonicalTool(toolId, { blob: file, fileName: file.name }, buildParameters());
+      const id = toolId;
+      const output = await executeCanonicalTool(id, { blob: file, fileName: file.name }, buildParameters());
       const url = URL.createObjectURL(output.blob);
       resultUrlRef.current = url;
       setResult(output.blob);
