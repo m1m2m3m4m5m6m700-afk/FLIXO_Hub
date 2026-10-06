@@ -329,7 +329,7 @@ export function VideoLocalTool() {
           </>
         ) : <p>{ui.noResult}</p>}
       </section>
-    </main>
+    </div>
   );
 }
 
