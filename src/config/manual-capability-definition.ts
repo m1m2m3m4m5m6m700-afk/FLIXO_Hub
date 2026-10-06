@@ -185,8 +185,6 @@ async function readImageDimensions(blob: Blob, signal?: AbortSignal): Promise<Me
       image.onerror = () => { cleanup(); reject(new Error("Image output could not be decoded.")); };
       signal?.addEventListener("abort", onAbort, { once: true });
     });
-    releaseSource = await attachVideoBlobSource(video, blob, signal);
-    await metadataReady;
     return { width: image.naturalWidth, height: image.naturalHeight };
   } finally {
     URL.revokeObjectURL(url);
