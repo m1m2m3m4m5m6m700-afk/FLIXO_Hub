@@ -65,3 +65,16 @@ test('agent training includes exact-SHA learning and lesson promotion checks', a
     testedSha: sha, evidence: ['e'], review: { decision: 'CONFIRMED' }, repeatPasses: 2, regressionTest: true
   }, sha).status, 'PROMOTED');
 });
+
+test('all core agents have canonical package contracts', () => {
+  const packages = [
+    'الوكلاء/i18n Agent/العقد.md',
+    'الوكلاء/Maintainer Agent/العقد.md',
+    'الوكلاء/QA Agent/العقد.md',
+  ];
+  for (const path of packages) {
+    const content = readFileSync(path, 'utf8');
+    assert.match(content, /100\/100/u);
+    assert.match(content, /Exact-SHA|exact-SHA/iu);
+  }
+});
