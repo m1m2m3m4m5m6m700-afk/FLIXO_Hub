@@ -123,7 +123,7 @@ async function buildFixture(page: Page, seconds = 1.4): Promise<Buffer> {
       });
       if (!Number.isFinite(probe.duration) || probe.duration <= 0) throw new Error('VIDEO_FIXTURE_DURATION_INVALID');
     } finally {
-      URL.revokeObjectURL(url);
+      URL.revokeObjectURL(outputUrl);
       probe.removeAttribute('src');
       probe.load();
     }
@@ -157,9 +157,9 @@ async function readOutput(page: Page): Promise<{
     if (bytes[0] !== 0x1a || bytes[1] !== 0x45 || bytes[2] !== 0xdf || bytes[3] !== 0xa3) throw new Error('VIDEO_OUTPUT_MAGIC_INVALID');
 
     const video = document.createElement('video');
-    const url = URL.createObjectURL(blob);
+    const outputUrl = URL.createObjectURL(blob);
     video.preload = 'metadata';
-    video.src = url;
+    video.src = outputUrl;
     try {
       await new Promise<void>((resolve, reject) => {
         video.onloadedmetadata = () => resolve();
