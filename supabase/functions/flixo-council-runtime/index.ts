@@ -529,7 +529,7 @@ const invokeOpenAIForMaster3 = async ({
         ok: false,
         reason: "OPENAI_HTTP_" + result.status,
         model,
-        error: typeof data.error === "object" && data.error ? (data.error as Record<string, unknown>).message ?? null : null,
+        errorCode: "OPENAI_HTTP_ERROR",
       };
     }
 
@@ -558,7 +558,7 @@ const invokeOpenAIForMaster3 = async ({
       ok: false,
       reason: "OPENAI_REQUEST_FAILED",
       model,
-      error: error instanceof Error ? error.message : String(error),
+      errorCode: "OPENAI_REQUEST_FAILED",
     };
   } finally {
     clearTimeout(timeout);
@@ -1142,7 +1142,7 @@ Deno.serve(async (req) => {
           body: JSON.stringify({ p_limit: 25 }),
         }) as Array<Record<string, unknown>>;
       } catch (error) {
-        rpcRecoveryError = error instanceof Error ? error.message : String(error);
+        rpcRecoveryError = "RECOVERY_RPC_FAILED";
       }
 
       const guardianRows = await directGuardianRecovery();
@@ -1183,7 +1183,7 @@ Deno.serve(async (req) => {
             push.ok = r.ok;
             push.reason = r.ok ? "DELIVERED" : "HTTP_" + r.status;
           } catch (error) {
-            push.reason = error instanceof Error ? error.message : String(error);
+            push.reason = "WAKE_PUSH_FAILED";
           }
 
           if (!push.ok) {
@@ -1231,7 +1231,7 @@ Deno.serve(async (req) => {
       return response({
         ok: healthy,
         guardian: "EXTERNAL_COUNCIL_GUARDIAN_V3",
-        rpcRecoveryError: rpcRecoveryError || null,
+        rpcRecoveryError: rpcRecoveryError ? "RECOVERY_RPC_FAILED" : null,
         recovered,
         health: {
           healthy,
