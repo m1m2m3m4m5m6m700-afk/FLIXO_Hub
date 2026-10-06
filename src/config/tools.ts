@@ -1,4 +1,4 @@
-import { TOOL_MANIFEST } from '../lib/tools/tool-registry.ts';
+import { TOOL_MANIFEST, type ToolDefinition } from '../lib/tools/tool-registry.ts';
 
 /** @deprecated Import from '@/lib/tools/tool-registry' for the consolidated tool source. */
 export {
@@ -8,7 +8,7 @@ export {
   getToolByRoute as getToolConfigByPath,
   getToolManifest,
 } from '../lib/tools/tool-registry.ts';
-export type { ToolDefinition as ToolConfig } from './canonical-tool-definition.ts';
-export type ToolComponent = ToolConfig['component'];
+export type ToolConfig = ToolDefinition;
+export type ToolComponent = ToolDefinition['component'];
 
 export const getReadyToolConfigs = () => TOOL_MANIFEST.filter((tool) => tool.isReady);
