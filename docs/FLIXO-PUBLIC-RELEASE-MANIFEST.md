@@ -6,10 +6,10 @@ This manifest is the single release-truth record for the public launch candidate
 
 ## Candidate identity
 
-- Candidate SHA: live PR #1002 head at verification time; last fully verified candidate: `7d9266a42690417511d0202b3d06b6b362f2d7d4`.
-- Last fully verified candidate before this documentation rollover: `7d9266a42690417511d0202b3d06b6b362f2d7d4`
+- Candidate SHA: PENDING — resolve the live `execution` head at verification time; no fixed PR number is authoritative.
+- Last fully verified historical candidate before this documentation rollover: `7d9266a42690417511d0202b3d06b6b362f2d7d4`
 - Candidate branch: `execution`
-- Source main SHA at freeze: `263827228cbe5f4851470297fde5f2858ff844de`
+- Source main SHA at last recorded freeze: `263827228cbe5f4851470297fde5f2858ff844de`
 - Release tag: `PENDING`
 - Production deployment ID: `REQUIRED`
 - Production immutable identity: `REQUIRED`
@@ -17,7 +17,7 @@ This manifest is the single release-truth record for the public launch candidate
 
 ## Required evidence
 
-After any manifest mutation, current candidate evidence must be regenerated on the live PR #1002 head; no prior-SHA evidence is reused.
+After any manifest mutation, current candidate evidence must be regenerated on the live `execution` candidate; no prior-SHA evidence is reused. PR #1002 is historical context only.
 
 - [ ] CI PASS on candidate SHA
 - [ ] CodeQL PASS on candidate SHA
