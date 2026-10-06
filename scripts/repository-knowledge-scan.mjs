@@ -225,7 +225,7 @@ export function extractAstFacts(path, content) {
 
 function collectGitRefIndex(ref) {
   const resolvedRef = sh('git', ['rev-parse', ref]);
-  const rows = sh('git', ['ls-tree', '-r', resolvedRef]).split('\n').filter(Boolean);
+  const rows = sh('git', ['ls-tree', '-r', '-z', resolvedRef]).split('\0').filter(Boolean);
   const files = new Map();
   for (const row of rows) {
     const match = row.match(/^(\d+) (blob|tree) ([0-9a-f]{40})\t(.+)$/);
@@ -281,7 +281,7 @@ export function collectSemanticDiff(mainRef = 'refs/remotes/origin/main', execut
 export function collectGitRefSnapshot(ref = 'refs/remotes/origin/main') {
   try {
     const resolvedRef = sh('git', ['rev-parse', ref]);
-    const paths = sh('git', ['ls-tree', '-r', '--name-only', resolvedRef]).split('\n').filter(Boolean);
+    const paths = sh('git', ['ls-tree', '-r', '-z', '--name-only', resolvedRef]).split('\0').filter(Boolean);
     let textFiles = 0;
     let binaryFiles = 0;
     let textLines = 0;
