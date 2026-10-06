@@ -4,13 +4,13 @@ import test from 'node:test';
 
 const agents = [
   { name: 'المستكشف AI', registration: '.github/agents/المستكشف-ai.md', training: true },
-  { name: 'المستكشف 2', registration: '.github/agents/المستكشف-2.md', training: false },
+  { name: 'المستكشف 2', registration: '.github/agents/المستكشف-2.md', training: true },
   { name: 'المطور AI', registration: '.github/agents/المطور-ai.md', training: true },
   { name: 'FLIXO i18n Agent', registration: '.github/agents/flixo-i18n-agent.md', training: true },
   { name: 'FLIXO Repository Maintainer Agent', registration: '.github/agents/flixo-maintainer-agent.md', training: true },
   { name: 'FLIXO QA Agent', registration: '.github/agents/flixo-qa-agent.md', training: true },
-  { name: 'Red Team 1', registration: '.github/agents/red-team-1.md', training: false },
-  { name: 'Red Team 2', registration: '.github/agents/red-team-2.md', training: false },
+  { name: 'Red Team 1', registration: '.github/agents/red-team-1.md', training: true },
+  { name: 'Red Team 2', registration: '.github/agents/red-team-2.md', training: true },
 ];
 
 test('all official agents have explicit identities', () => {
