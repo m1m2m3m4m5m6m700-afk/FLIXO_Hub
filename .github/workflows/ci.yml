@@ -206,6 +206,8 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: read
+    env:
+      GH_TOKEN: ${{ secrets.FLIXO_GOVERNANCE_READ_TOKEN || github.token }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
         with:
