@@ -17,13 +17,14 @@ const PRODUCTION_REF = 'refs/heads/main';
 const INTEGRATION_REF = 'refs/heads/execution';
 
 const CONTROLLED_AGENT_REF = /^refs\/heads\/(?:agent-(?:1|2|3|4)|agent(?:1|2|3|4))\//u;
-const LEGACY_AGENT_REF = /^refs\/heads\/agent-(?:1|2|3|4)-[^/]+$/u;
-
 const PRODUCTION_DEPLOYMENT_COMMAND =
   /\b(?:wrangler|vercel|supabase|flyctl|kubectl|terraform)\s+(?:deploy|apply|push|publish)\b|\b(?:npm|pnpm|yarn)\s+publish\b/iu;
 
 const MAIN_REF_MUTATION =
   /\b(?:git\s+push[^\n]*(?:refs\/heads\/main\b|\bmain\b)|git\s+update-ref[^\n]*(?:refs\/heads\/main\b|\bmain\b)|gh\s+api[^\n]*git\/refs\/heads\/main\b)/iu;
+
+const PRODUCTION_DEPLOYMENT_ACTION =
+  /(^|\n)\s*-?\s*uses:\s*(?:cloudflare\/wrangler-action|actions\/deploy-pages|JamesIves\/github-pages-deploy-action|amondnet\/vercel-action|vercel\/[^\s@]+)@/imu;
 
 export function classifyRef(ref) {
   if (ref === PRODUCTION_REF) {
@@ -35,7 +36,7 @@ export function classifyRef(ref) {
   if (CONTROLLED_AGENT_REF.test(ref)) {
     return { authority: 'controlled-agent', allowed: true, quarantined: false };
   }
-  if (LEGACY_AGENT_REF.test(ref) || QUARANTINED_REFS.has(ref)) {
+  if (QUARANTINED_REFS.has(ref)) {
     return { authority: 'quarantined-stale', allowed: true, quarantined: true };
   }
   return { authority: 'unknown', allowed: false, quarantined: false };
@@ -126,8 +127,11 @@ function hasWorkflowDispatch(workflow) {
 export function analyzeWorkflowAuthority(path, workflow) {
   const findings = [];
   const jobs = jobBlocks(workflow);
-  const mainPushTrigger = hasMainPushTrigger(workflow);
-  const workflowDispatch = hasWorkflowDispatch(workflow);
+  const workflowContentsWrite = hasTopLevelContentsWrite(workflow);
+
+  if (workflowContentsWrite && jobs.length === 0) {
+    findings.push(`${path}: top-level contents:write has no job boundary to constrain mutation authority.`);
+  }
 
   for (const job of jobs) {
     const jobText = job.lines.join('\n');
@@ -177,6 +181,28 @@ export function analyzeWorkflowSet(workflows) {
   }
 
   return { pass: findings.length === 0, findings, reports };
+}
+
+function hasTopLevelContentsWrite(workflow) {
+  const lines = workflow.split('\n');
+  let inPermissions = false;
+
+  for (const line of lines) {
+    if (/^permissions:\s*$/u.test(line)) {
+      inPermissions = true;
+      continue;
+    }
+    if (inPermissions && /^\S/u.test(line)) {
+      inPermissions = false;
+    }
+    if (!inPermissions) {
+      if (/^permissions:\s*(?:write-all|\{[^}]*contents:\s*write)/iu.test(line)) return true;
+      continue;
+    }
+    if (/^\s{2}contents:\s*write\s*$/iu.test(line)) return true;
+  }
+
+  return false;
 }
 
 function loadWorkflowSet() {
