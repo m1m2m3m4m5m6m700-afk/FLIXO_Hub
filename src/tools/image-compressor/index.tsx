@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ToolWorkbench } from '../../components/image-tool/ToolWorkbench';
 import { ImageJob } from '../../image-core/job';
 import { getToolDefinition } from '../../config/canonical-tool-definition';
@@ -67,13 +67,30 @@ export function ImageCompressor({ locale }: { locale?: string }) {
   const [batchBusy, setBatchBusy] = useState(false);
   const [batchError, setBatchError] = useState('');
   const [batchZipUrl, setBatchZipUrl] = useState('');
+  const batchZipUrlRef = useRef('');
+  const batchAbortRef = useRef<AbortController | null>(null);
+
+  const replaceBatchZipUrl = (next: string) => {
+    if (batchZipUrlRef.current) URL.revokeObjectURL(batchZipUrlRef.current);
+    batchZipUrlRef.current = next;
+    setBatchZipUrl(next);
+  };
+
+  useEffect(() => () => {
+    batchAbortRef.current?.abort();
+    batchAbortRef.current = null;
+    if (batchZipUrlRef.current) URL.revokeObjectURL(batchZipUrlRef.current);
+    batchZipUrlRef.current = '';
+  }, []);
 
   const runBatch = async (files: readonly File[]) => {
     if (batchBusy || files.length < 2) return;
     setBatchBusy(true);
     setBatchError('');
-    if (batchZipUrl) URL.revokeObjectURL(batchZipUrl);
-    setBatchZipUrl('');
+    batchAbortRef.current?.abort();
+    const controller = new AbortController();
+    batchAbortRef.current = controller;
+    replaceBatchZipUrl('');
     try {
       const selected = files.slice(0, MAX_FILES).filter((file) => file.size <= MAX_INPUT_SIZE);
       const JSZip = (await import('jszip')).default;
@@ -86,6 +103,7 @@ export function ImageCompressor({ locale }: { locale?: string }) {
           maxWidth: parameters.maxWidth,
           maxHeight: parameters.maxHeight,
           targetSizeKB: parameters.targetSizeKB,
+          signal: controller.signal,
         });
         const outputBytes = new Uint8Array(await compressed.blob.arrayBuffer());
         const outputName = `${file.name.replace(/\.[^.]+$/, '') || 'image'}-flixo.${extensionFor(format)}`;
@@ -111,10 +129,11 @@ export function ImageCompressor({ locale }: { locale?: string }) {
         signatures: ['504b0304'],
       }, undefined, { filename: 'flixo-compressed-images.zip', bytes: zipBytes });
       if (!zipValidation.valid) throw new Error(`ZIP output integrity validation failed: ${zipValidation.failures.join('; ')}`);
-      setBatchZipUrl(URL.createObjectURL(zipBlob));
+      replaceBatchZipUrl(URL.createObjectURL(zipBlob));
     } catch (cause) {
       setBatchError(cause instanceof Error ? cause.message : 'Batch compression failed.');
     } finally {
+      if (batchAbortRef.current === controller) batchAbortRef.current = null;
       setBatchBusy(false);
     }
   };
