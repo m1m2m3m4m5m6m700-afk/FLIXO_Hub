@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { recordToolPerformance } from '../../lib/diagnostics/performance';
+import { assertImageDimensions, assertRasterOutput, assertSafeRasterInput, MEDIA_LIMITS } from '../../lib/media/media-safety.ts';
 import { validateFileSafety } from '../../lib/contracts/file-safety';
 import { assertExifCleanerOutputIntegrity } from '../exif-cleaner/output-integrity';
 import { validateSvgOutput } from '../image-to-svg/output-integrity';
@@ -28,7 +29,51 @@ function assertDecodedImageSafe(file: File, width: number, height: number) { con
 function download(result: Result) { const link = document.createElement('a'); link.href = result.url; link.download = result.name; link.click(); setTimeout(() => URL.revokeObjectURL(result.url), 0); }
 async function loadImage(file: File) { const url = URL.createObjectURL(file); try { const image = new Image(); image.decoding = 'async'; image.src = url; await image.decode(); return image; } finally { URL.revokeObjectURL(url); } }
 async function canvasResult(canvas: HTMLCanvasElement, name: string, mime = 'image/png', quality = 0.96): Promise<Result> { const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob((value) => value ? resolve(value) : reject(new Error('Could not encode output.')), mime, quality)); return { blob, url: URL.createObjectURL(blob), name, width: canvas.width, height: canvas.height }; }
-async function runImageEffectsWorker(blob: Blob, effect: { brightness: number; contrast: number; saturate: number; grayscale: number }, width: number, height: number): Promise<Result> { if (typeof Worker === 'undefined') throw new Error('Image Effects Worker is unavailable.'); const startedAt = typeof performance === 'undefined' ? Date.now() : performance.now(); return await new Promise<Result>((resolve, reject) => { const worker = new Worker(new URL('./image-effects-worker.ts', import.meta.url), { type: 'classic' }); const cleanup = () => worker.terminate(); worker.onmessage = (event: MessageEvent<EffectsWorkerResponse>) => { const workerDurationMs = Math.max(0, (typeof performance === 'undefined' ? Date.now() : performance.now()) - startedAt); cleanup(); if (event.data.ok && event.data.blob instanceof Blob) { const output = event.data.blob; recordToolPerformance({ toolId: 'image-effects', operation: 'worker-transform', durationMs: workerDurationMs, workerDurationMs, encodeDurationMs: workerDurationMs }); resolve({ blob: output, url: URL.createObjectURL(output), name: 'flixo-image-effects.png', width, height }); } else reject(new Error(event.data.error || 'Image Effects Worker failed.')); }; worker.onerror = () => { cleanup(); reject(new Error('Image Effects Worker could not start.')); }; worker.postMessage({ blob, width, height, ...effect }); }); }
+async function runImageEffectsWorker(blob: Blob, effect: { brightness: number; contrast: number; saturate: number; grayscale: number }, width: number, height: number): Promise<Result> {
+  if (typeof Worker === 'undefined') throw new Error('Image Effects Worker is unavailable.');
+  await assertSafeRasterInput(blob);
+  assertImageDimensions(width, height, MEDIA_LIMITS.rasterInputPixels);
+  if (!Number.isFinite(effect.brightness) || effect.brightness < 0 || effect.brightness > 200) throw new Error('Brightness must be between 0 and 200.');
+  if (!Number.isFinite(effect.contrast) || effect.contrast < 0 || effect.contrast > 200) throw new Error('Contrast must be between 0 and 200.');
+  if (!Number.isFinite(effect.saturate) || effect.saturate < 0 || effect.saturate > 200) throw new Error('Saturation must be between 0 and 200.');
+  if (!Number.isFinite(effect.grayscale) || effect.grayscale < 0 || effect.grayscale > 100) throw new Error('Grayscale must be between 0 and 100.');
+
+  const startedAt = typeof performance === 'undefined' ? Date.now() : performance.now();
+  return await new Promise<Result>((resolve, reject) => {
+    const worker = new Worker(new URL('./image-effects-worker.ts', import.meta.url), { type: 'classic' });
+    let settled = false;
+    const cleanup = () => {
+      worker.terminate();
+      clearTimeout(timeoutId);
+    };
+    const settle = (fn: () => void) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      fn();
+    };
+    const timeoutId = globalThis.setTimeout(() => settle(() => reject(new Error('IMAGE_EFFECTS_WORKER_TIMEOUT'))), MEDIA_LIMITS.workerTimeoutMs);
+
+    worker.onmessage = async (event: MessageEvent<EffectsWorkerResponse>) => {
+      const workerDurationMs = Math.max(0, (typeof performance === 'undefined' ? Date.now() : performance.now()) - startedAt);
+      if (!event.data.ok || !(event.data.blob instanceof Blob)) {
+        settle(() => reject(new Error(event.data.error || 'Image Effects Worker failed.')));
+        return;
+      }
+      try {
+        await assertRasterOutput(event.data.blob, 'image/png');
+        settle(() => {
+          recordToolPerformance({ toolId: 'image-effects', operation: 'worker-transform', durationMs: workerDurationMs, workerDurationMs, encodeDurationMs: workerDurationMs });
+          resolve({ blob: event.data.blob!, url: URL.createObjectURL(event.data.blob!), name: 'flixo-image-effects.png', width, height });
+        });
+      } catch (error) {
+        settle(() => reject(error instanceof Error ? error : new Error('Image Effects output validation failed.')));
+      }
+    };
+    worker.onerror = () => settle(() => reject(new Error('Image Effects Worker could not start.')));
+    worker.postMessage({ blob, width, height, ...effect });
+  });
+}
 
 export function BrowserImageTool({ mode, title, accept = 'image/*', multi = false, locale }: Props) {
   void title;
