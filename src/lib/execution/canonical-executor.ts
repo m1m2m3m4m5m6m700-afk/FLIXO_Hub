@@ -77,22 +77,27 @@ async function preflightInput(
   const allowedMime = isVideo ? VIDEO_MIME : IMAGE_MIME;
   const allowedExtensions = isVideo ? VIDEO_EXTENSIONS : IMAGE_EXTENSIONS;
   const contentPrefix = new Uint8Array(await input.blob.slice(0, 64).arrayBuffer());
+  const videoMagicBytes = input.blob.type === 'video/webm' || input.blob.type === 'video/x-matroska'
+    ? [{ name: 'EBML', bytes: [0x1a, 0x45, 0xdf, 0xa3] }]
+    : input.blob.type === 'video/mp4' || input.blob.type === 'video/quicktime'
+      ? [{ name: 'ISO Base Media File Format', bytes: [0x66, 0x74, 0x79, 0x70], offset: 4 }]
+      : input.blob.type === 'video/ogg'
+        ? [{ name: 'Ogg', bytes: [0x4f, 0x67, 0x67, 0x53] }]
+        : [];
   const safety = validateFileSafety(
     {
       name: input.fileName,
       mime: input.blob.type,
-      bytes: contentPrefix.byteLength,
+      bytes: input.blob.size,
       content: contentPrefix,
     },
     {
       allowedMime,
       allowedExtensions,
       maxBytes,
-      ...(isVideo
-        ? {}
-        : {
-            magicBytes: [MAGIC_BYTE_SIGNATURES.png, MAGIC_BYTE_SIGNATURES.jpeg, MAGIC_BYTE_SIGNATURES.webp],
-          }),
+      magicBytes: isVideo
+        ? videoMagicBytes
+        : [MAGIC_BYTE_SIGNATURES.png, MAGIC_BYTE_SIGNATURES.jpeg, MAGIC_BYTE_SIGNATURES.webp],
     },
   );
   if (!safety.safe) {
