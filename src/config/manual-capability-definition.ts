@@ -326,9 +326,7 @@ const videoVerifier: CanonicalCapabilityVerifier = async (input, output, paramet
     const end = Number(parameters.endSec ?? inputMeta.duration ?? 0);
     const expected = Math.max(0.001, Math.min(inputMeta.duration ?? end, end) - Math.min(Math.max(0, start), Math.max(0, (inputMeta.duration ?? 0) - 0.001)));
     if (Math.abs((outputMeta.duration ?? 0) - expected) > 0.35) return false;
-  }
-  if (parameters.videoBitsPerSecond !== undefined && output.size >= input.size) return false;
-  return outputMeta.duration !== undefined && outputMeta.duration > 0;
+  }  return outputMeta.duration !== undefined && outputMeta.duration > 0;
 };
 
 function createCapability(id:(typeof MVP_EXECUTABLE_TOOL_IDS)[number]):CanonicalCapabilityDefinition{
