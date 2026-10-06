@@ -1,29 +1,17 @@
-# FLIXO — Final Release Evidence
+# FLIXO Final Release Certification
 
-Status: NOT YET CERTIFIED / NOT YET PROMOTED
+STATUS: NOT READY
 
-## Current integration lane
-- Repository: `m1m2m3m4m5m6m700-afk/FLIXO_Hub`
-- Promotion path: `execution -> main`
-- Current release PR: #1002
-- Direct main mutation: forbidden
+The active release candidate is tracked by PR #1002 on branch `execution`.
 
-## Required evidence
-- exact-SHA CI verify/build;
-- Chromium browser E2E;
-- trust-gate;
-- Exact-SHA promotion proof;
-- CodeQL;
-- Secret Scan;
-- coverage;
-- clean-clone Red Team;
-- governance evidence;
-- production identity and browser proof when applicable.
+This file intentionally contains no PASS or RELEASE VERIFIED claim. Final certification requires:
+1. Prompt 17 clean-clone Red Team PASS.
+2. Prompt 18 release-candidate freeze.
+3. Prompt 19 exact-SHA certification evidence.
+4. Required GitHub governance policy on `main`.
+5. Owner-authorized promotion through `execution -> main`.
+6. Post-merge CI and production identity verification when deployment is applicable.
 
-## Current known blockers
-1. The live main ruleset currently has no required approving review and does not require Code Owner review.
-2. The live main ruleset currently has non-strict required-status-check policy.
-3. No independent human approval is recorded on PR #1002.
-4. Final clean-clone, coverage, deployment, and post-merge evidence must be generated on the final candidate lineage.
+The current deterministic browser-local MVP does not admit a production LLM model. The empty model license manifest is therefore intentional for this scope; candidate models remain non-admitting. No provider model may be treated as production runtime authority without a separate exact admission record.
 
-This document must remain NOT READY until Prompt 19 and Prompt 20 requirements are genuinely satisfied.
+Until the gates above are satisfied, this document must remain NOT READY.
