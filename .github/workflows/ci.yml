@@ -221,14 +221,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GOVERNANCE_MODE: fast
-        run: node scripts/ci/verify-main-ruleset.mjs
+        run: bash scripts/ci/check-governance.sh
 
       - name: Verify main governance ruleset (STRICT release mode)
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.strict_governance == true }}
         env:
           GH_TOKEN: ${{ github.token }}
           GOVERNANCE_MODE: strict
-        run: node scripts/ci/verify-main-ruleset.mjs
+        run: bash scripts/ci/check-governance.sh
       - name: Record execution-branch governance deferral
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/execution' }}
         run: echo 'MAIN_GOVERNANCE=PR_OR_MAIN_ONLY'
