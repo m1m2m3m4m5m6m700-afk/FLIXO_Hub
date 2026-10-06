@@ -70,8 +70,15 @@ The official repository explorer package is centralized under `الوكلاء/ا
 
 - Official agent name: `المستكشف AI`
 - Canonical agent contract: `الوكلاء/المستكشف AI/المستكشف.md`
-- Review/readme: `الوكلاء/المستكشف AI/README.md`
-- Authority contract: `الوكلاء/المستكشف AI/العقد.md`
 - SHA-bound reports: `الوكلاء/المستكشف AI/تقارير المستكشف/`
 - GitHub agent registration: `.github/agents/المستكشف-ai.md`
-- Red Team agents use separate official packages and separate report scopes; their files must not be merged into the explorer package.
+
+The official comparison agent package is centralized under `الوكلاء/المقارن AI/`.
+
+- Official agent name: `المقارن AI`
+- Canonical agent contract: `الوكلاء/المقارن AI/المقارن.md`
+- Development reports: `الوكلاء/المقارن AI/تقارير التطوير/`
+- GitHub agent registration: `.github/agents/المقارن-ai.md`
+- Write authority is limited to development reports. It never edits implementation, tasks, governance, or release state.
+
+Red Team agents use separate official packages and separate report scopes; comparison reports are not Red Team reports.
