@@ -186,7 +186,7 @@ jobs:
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 1
           persist-credentials: true
-      - name: Assert only main and execution branches exist
+      - name: Assert branch authority and reject unknown refs
         run: node scripts/ci/verify-branch-policy.mjs
       - name: Verify main governance ruleset
         if: ${{ (github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main') || github.ref == 'refs/heads/main' }}
