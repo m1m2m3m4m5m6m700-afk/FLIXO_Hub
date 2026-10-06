@@ -4,6 +4,7 @@ import { readFileSync, statSync, mkdirSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join, extname, posix } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import ts from 'typescript';
 
 const root = process.cwd();
 const REPORT_DIR = 'الوكلاء/المستكشف AI/تقارير المستكشف';
@@ -167,6 +168,116 @@ export function classifyTaskSignal(line) {
   return null;
 }
 
+function scriptKindForPath(path) {
+  switch (extname(path).toLowerCase()) {
+    case '.tsx': return ts.ScriptKind.TSX;
+    case '.jsx': return ts.ScriptKind.JSX;
+    case '.ts': return ts.ScriptKind.TS;
+    case '.js':
+    case '.mjs':
+    case '.cjs': return ts.ScriptKind.JS;
+    default: return ts.ScriptKind.Unknown;
+  }
+}
+
+function declarationName(node) {
+  return node.name?.getText?.() || null;
+}
+
+function addCallTarget(node, callTargets) {
+  const expression = node.expression;
+  if (ts.isIdentifier(expression)) { callTargets.add(expression.text); return; }
+  if (ts.isPropertyAccessExpression(expression)) callTargets.add(expression.getText());
+}
+
+export function extractAstFacts(path, content) {
+  if (sourceLanguage(path) !== 'javascript-family') return null;
+  const sourceFile = ts.createSourceFile(path, content, ts.ScriptTarget.Latest, true, scriptKindForPath(path));
+  const declarations = [];
+  const imports = [];
+  const exports = [];
+  const callTargets = new Set();
+  const controlFlow = { if: 0, switch: 0, loops: 0, try: 0, conditional: 0 };
+  let callExpressions = 0;
+
+  function visit(node) {
+    if (ts.isFunctionDeclaration(node) || ts.isClassDeclaration(node) || ts.isInterfaceDeclaration(node) || ts.isTypeAliasDeclaration(node) || ts.isEnumDeclaration(node)) {
+      const name = declarationName(node);
+      if (name) declarations.push({ name, kind: ts.SyntaxKind[node.kind], line: sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1 });
+    } else if (ts.isVariableStatement(node)) {
+      for (const declaration of node.declarationList.declarations) {
+        declarations.push({ name: declaration.name.getText(sourceFile), kind: 'VariableDeclaration', line: sourceFile.getLineAndCharacterOfPosition(declaration.getStart(sourceFile)).line + 1 });
+      }
+    }
+    if (ts.isImportDeclaration(node) || ts.isImportEqualsDeclaration(node)) imports.push(node.getText(sourceFile).split('\n')[0].slice(0, 300));
+    if (ts.isExportDeclaration(node) || ts.isExportAssignment(node)) exports.push(node.getText(sourceFile).split('\n')[0].slice(0, 300));
+    if (ts.isCallExpression(node) || ts.isNewExpression(node)) { callExpressions++; addCallTarget(node, callTargets); }
+    if (ts.isIfStatement(node)) controlFlow.if++;
+    if (ts.isSwitchStatement(node)) controlFlow.switch++;
+    if (ts.isForStatement(node) || ts.isForInStatement(node) || ts.isForOfStatement(node) || ts.isWhileStatement(node) || ts.isDoStatement(node)) controlFlow.loops++;
+    if (ts.isTryStatement(node) || ts.isCatchClause(node)) controlFlow.try++;
+    if (ts.isConditionalExpression(node)) controlFlow.conditional++;
+    ts.forEachChild(node, visit);
+  }
+  visit(sourceFile);
+  return { parser: 'typescript-compiler-api', parseDiagnostics: sourceFile.parseDiagnostics.length, declarations, imports, exports, callExpressions, callTargets: Array.from(callTargets).sort(), controlFlow };
+}
+
+function collectGitRefIndex(ref) {
+  const resolvedRef = sh('git', ['rev-parse', ref]);
+  const rows = sh('git', ['ls-tree', '-r', resolvedRef]).split('\n').filter(Boolean);
+  const files = new Map();
+  for (const row of rows) {
+    const match = row.match(/^(\d+) (blob|tree) ([0-9a-f]{40})\t(.+)$/);
+    if (!match || match[2] !== 'blob') continue;
+    files.set(match[4], { mode: match[1], type: match[2], blobSha: match[3] });
+  }
+  return { ref, resolvedRef, files };
+}
+
+function setDiff(before, after) {
+  const a = new Set(before);
+  const b = new Set(after);
+  return { added: Array.from(b).filter(value => !a.has(value)).sort(), removed: Array.from(a).filter(value => !b.has(value)).sort() };
+}
+
+export function collectSemanticDiff(mainRef = 'refs/remotes/origin/main', executionRef = 'HEAD') {
+  try {
+    const main = collectGitRefIndex(mainRef);
+    const execution = collectGitRefIndex(executionRef);
+    const paths = new Set([...main.files.keys(), ...execution.files.keys()]);
+    const changedFiles = [];
+    const sourceChanges = [];
+    let added = 0; let removed = 0; let modified = 0;
+    for (const path of Array.from(paths).sort()) {
+      const before = main.files.get(path);
+      const after = execution.files.get(path);
+      if (!before && after) { added++; changedFiles.push({ path, status: 'ADDED' }); continue; }
+      if (before && !after) { removed++; changedFiles.push({ path, status: 'REMOVED' }); continue; }
+      if (!before || !after || before.blobSha === after.blobSha) continue;
+      modified++; changedFiles.push({ path, status: 'MODIFIED' });
+      if (sourceLanguage(path) !== 'javascript-family') continue;
+      const beforeContent = sh('git', ['show', main.resolvedRef + ':' + path]);
+      const afterContent = sh('git', ['show', execution.resolvedRef + ':' + path]);
+      const beforeFacts = extractAstFacts(path, beforeContent);
+      const afterFacts = extractAstFacts(path, afterContent);
+      const declarationDelta = setDiff((beforeFacts?.declarations || []).map(item => [item.kind, item.name].join(':')), (afterFacts?.declarations || []).map(item => [item.kind, item.name].join(':')));
+      const callTargetDelta = setDiff(beforeFacts?.callTargets || [], afterFacts?.callTargets || []);
+      const importDelta = setDiff(beforeFacts?.imports || [], afterFacts?.imports || []);
+      const exportDelta = setDiff(beforeFacts?.exports || [], afterFacts?.exports || []);
+      sourceChanges.push({
+        path,
+        parseDiagnostics: { main: beforeFacts?.parseDiagnostics ?? null, execution: afterFacts?.parseDiagnostics ?? null },
+        declarationDelta, callTargetDelta, importDelta, exportDelta,
+        controlFlow: { main: beforeFacts?.controlFlow ?? null, execution: afterFacts?.controlFlow ?? null },
+        shapeChanged: JSON.stringify(beforeFacts) !== JSON.stringify(afterFacts),
+      });
+    }
+    return { readable: true, mainSha: main.resolvedRef, executionSha: execution.resolvedRef, changedFiles, sourceChanges, summary: { added, removed, modified, semanticSourceChanges: sourceChanges.length } };
+  } catch (error) {
+    return { readable: false, mainSha: null, executionSha: null, changedFiles: [], sourceChanges: [], summary: { added: 0, removed: 0, modified: 0, semanticSourceChanges: 0 }, error: String(error) };
+  }
+}
 export function collectGitRefSnapshot(ref = 'refs/remotes/origin/main') {
   try {
     const resolvedRef = sh('git', ['rev-parse', ref]);
@@ -293,6 +404,7 @@ export function collect() {
         lineCount: 0,
         description: 'Binary/non-text file; metadata recorded without semantic text claims.',
         lineLedger: [],
+      ast: null,
       });
       continue;
     }
@@ -303,6 +415,7 @@ export function collect() {
     const symbols = generated ? [] : extractSymbols(path, contentText);
     const imports = generated ? [] : extractImports(path, contentText);
     const signals = generated ? {} : detectSignals(path, contentText);
+    const ast = generated ? null : extractAstFacts(path, contentText);
     const symbolByLine = new Map(symbols.map(symbol => [symbol.line, symbol]));
     const lineLedger = [];
 
@@ -346,11 +459,13 @@ export function collect() {
       imports: resolvedImports,
       signals,
       lineLedger,
+      ast,
     });
   }
 
   const model = buildKnowledgeModel(entries);
   const mainSnapshot = collectGitRefSnapshot();
+  const semanticDiff = collectSemanticDiff();
   const changed = collectChangedFiles();
   const unresolved = model.dependencyEdges.filter(edge => edge.resolution === 'UNRESOLVED_LOCAL');
   const status = unknownSourceLines === 0 && unresolved.length === 0
@@ -425,6 +540,26 @@ export function collect() {
     '- Knowledge authority: الوكلاء/المستكشف AI/تقارير المستكشف/<EXACT-SHA>.md',
     '- This report is knowledge, not task authority and not certification evidence.',
     '',
+    '## Semantic comparison: main vs execution',
+    '- Comparison status: ' + (semanticDiff.readable ? 'READ_COMPLETE' : 'READ_UNAVAILABLE'),
+    '- Main SHA: ' + (semanticDiff.mainSha || 'UNAVAILABLE'),
+    '- Execution SHA: ' + (semanticDiff.executionSha || sha),
+    '- Files added: ' + semanticDiff.summary.added,
+    '- Files removed: ' + semanticDiff.summary.removed,
+    '- Files modified: ' + semanticDiff.summary.modified,
+    '- Source files with AST semantic comparison: ' + semanticDiff.summary.semanticSourceChanges,
+    ...(semanticDiff.readable ? [] : ['- Semantic comparison error: ' + semanticDiff.error]),
+    ...semanticDiff.sourceChanges.slice(0, 2000).flatMap(change => [
+      '- ' + change.path + ': shapeChanged=' + change.shapeChanged + ', mainDiagnostics=' + change.parseDiagnostics.main + ', executionDiagnostics=' + change.parseDiagnostics.execution,
+      '  - Declarations added: ' + change.declarationDelta.added.join(', '),
+      '  - Declarations removed: ' + change.declarationDelta.removed.join(', '),
+      '  - Call targets added: ' + change.callTargetDelta.added.join(', '),
+      '  - Call targets removed: ' + change.callTargetDelta.removed.join(', '),
+      '  - Imports added/removed: +' + change.importDelta.added.length + '/-' + change.importDelta.removed.length,
+      '  - Exports added/removed: +' + change.exportDelta.added.length + '/-' + change.exportDelta.removed.length,
+      '  - Control flow main/execution: ' + JSON.stringify(change.controlFlow.main) + ' -> ' + JSON.stringify(change.controlFlow.execution),
+    ]),
+    '',
     '## Change delta',
     '- Comparison base: ' + (changed.base || 'UNKNOWN'),
     '- Changed files since base: ' + changed.files.length,
@@ -470,6 +605,11 @@ export function collect() {
     if (!entry.binary && !entry.generated) {
       sections.push('- Line coverage: 1-' + entry.lineCount + ' (all repository-authored lines classified)');
       sections.push(...entry.lineLedger);
+      if (entry.ast) {
+        sections.push('- AST facts: parser=' + entry.ast.parser + ', parseDiagnostics=' + entry.ast.parseDiagnostics + ', callExpressions=' + entry.ast.callExpressions);
+        sections.push('  - Control flow: ' + JSON.stringify(entry.ast.controlFlow));
+        sections.push('  - Call targets: ' + (entry.ast.callTargets.length ? entry.ast.callTargets.join(', ') : 'none detected'));
+      }
       if (entry.symbols.length) {
         sections.push('- Symbols:');
         sections.push(...entry.symbols.map(symbol => '  - L' + symbol.line + ' ' + symbol.kind + ' ' + symbol.name + ' exported=' + symbol.exported));
