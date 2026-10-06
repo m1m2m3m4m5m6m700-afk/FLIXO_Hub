@@ -200,6 +200,11 @@ test('canonical MVP capability verifiers accept measurable valid artifacts and r
           ? { x: 0, y: 0, width: 9999, height: 9999 }
           : {};
       assert.equal(await definition(id).verifier(candidateInput, candidateOutput, parameters), true, id);
+      if (id === 'video-compressor') {
+        const oversizedOutput = new Blob(['candidate-video-output'.repeat(10)], { type: 'video/webm' });
+        videoMetadata.set(oversizedOutput, { width: 320, height: 180, duration: 2 });
+        assert.equal(await definition(id).verifier(candidateInput, oversizedOutput, parameters), false, id);
+      }
     }
   } finally {
     if (originalCreateImageBitmap === undefined) delete globals.createImageBitmap;

@@ -353,9 +353,13 @@ const videoVerifier: CanonicalCapabilityVerifier = async (input, output, paramet
     if (Math.abs((outputMeta.duration ?? 0) - expected) > 0.35) return false;
   }
   // A trimmer with no explicit range is a valid local no-op-style render request;
-  // byte-size reduction is not a semantic requirement for trimming. Compression
-  // has its own explicit size/bandwidth contract.
+  // byte-size reduction is not a semantic requirement for trimming.
   return outputMeta.duration !== undefined && outputMeta.duration > 0;
+};
+
+const videoCompressorVerifier: CanonicalCapabilityVerifier = async (input, output, parameters, signal) => {
+  const validVideo = await videoVerifier(input, output, parameters, signal);
+  return validVideo && output.size < input.size;
 };
 
 function createCapability(id:(typeof MVP_EXECUTABLE_TOOL_IDS)[number]):CanonicalCapabilityDefinition{
@@ -373,6 +377,7 @@ function createCapability(id:(typeof MVP_EXECUTABLE_TOOL_IDS)[number]):Canonical
     id === "image-converter" ? formatVerifier :
     id === "image-effects" ? effectsVerifier :
     id === "video-cropper" ? videoCropperVerifier :
+    id === "video-compressor" ? videoCompressorVerifier :
     isVideo ? videoVerifier :
     changedImageVerifier;
   return Object.freeze({
