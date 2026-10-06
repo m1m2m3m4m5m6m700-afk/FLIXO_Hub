@@ -124,7 +124,28 @@ async function outputMetadata(page: Page) {
         video.onloadedmetadata = () => resolve();
         video.onerror = () => reject(new Error('VIDEO_OUTPUT_DECODE_FAILED'));
       });
-      return { size: blob.size, width: video.videoWidth, height: video.videoHeight, duration: video.duration };
+      let duration = video.duration;
+      if (!Number.isFinite(duration) || duration <= 0 || duration >= 600) {
+        try { video.currentTime = 1e9; } catch { /* bounded duration probe */ }
+        await new Promise<void>((resolve) => {
+          const done = () => {
+            video.removeEventListener('durationchange', done);
+            video.removeEventListener('timeupdate', done);
+            video.removeEventListener('progress', done);
+            resolve();
+          };
+          video.addEventListener('durationchange', done, { once: true });
+          video.addEventListener('timeupdate', done, { once: true });
+          video.addEventListener('progress', done, { once: true });
+          setTimeout(done, 2_000);
+        });
+        const ranges = video.buffered.length > 0 ? video.buffered : video.seekable;
+        duration = ranges.length > 0 ? ranges.end(ranges.length - 1) : Number.NaN;
+      }
+      if (!Number.isFinite(duration) || duration <= 0 || duration >= 600) {
+        throw new Error('VIDEO_OUTPUT_DURATION_INVALID');
+      }
+      return { size: blob.size, width: video.videoWidth, height: video.videoHeight, duration };
     } finally {
       URL.revokeObjectURL(objectUrl);
       video.removeAttribute('src');
