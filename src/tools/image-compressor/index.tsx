@@ -78,7 +78,6 @@ export function ImageCompressor({ locale }: { locale?: string }) {
     if (batchBusy || files.length < 2) return;
     setBatchBusy(true);
     setBatchError('');
-    if (batchZipUrl) URL.revokeObjectURL(batchZipUrl);
     setBatchZipUrl('');
     try {
       const selected: File[] = [];
