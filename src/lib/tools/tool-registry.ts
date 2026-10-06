@@ -359,6 +359,37 @@ export type ToolSource = Readonly<{
   component: LazyExoticComponent<ComponentType>;
 }>;
 
+type ToolConfig = ToolSource;
+
+export type CapabilityState = CanonicalCapabilityState;
+export type ExecutionMode = CanonicalExecutionMode;
+export type CapabilityParameters = CanonicalCapabilityParameters;
+export type CapabilityVerifier = CanonicalCapabilityVerifier;
+export type CapabilityLimits = CanonicalCapabilityLimits;
+
+export type ToolDefinition = Readonly<{
+  id: string;
+  family: ToolFamily;
+  title: string;
+  description: string;
+  category: ToolCategory;
+  isReady: boolean;
+  path: string;
+  routes: Readonly<Record<Locale, string>>;
+  aliases: readonly string[];
+  component: LazyExoticComponent<ComponentType>;
+  capability: Readonly<{ state: CapabilityState; intents: readonly string[] }>;
+  executionMode: ExecutionMode;
+  parameterSchema: ZodType;
+  safetyLimits: CapabilityLimits;
+  verifier: CapabilityVerifier;
+  requirements: ToolRequirements;
+  recovery: ToolRecoveryPolicy;
+  operational: ToolOperationalProfile;
+  localization: Readonly<{ titleKey: string; descriptionKey: string }>;
+  seo: Readonly<{ title: string; description: string; robots: 'index,follow,max-image-preview:large' }>;
+}>;
+
 // ToolConfig is the canonical source shape consumed by the definition builder.
 type ToolConfig = ToolSource;
 
@@ -536,8 +567,6 @@ export function toToolDefinition(tool: ToolConfig): ToolDefinition {
 
 export const TOOL_DEFINITIONS: readonly ToolDefinition[] = Object.freeze(IMAGE_TOOL_CONFIGS.map(toToolDefinition));
 
-const byId = new Map(TOOL_DEFINITIONS.map((tool) => [tool.id, tool]));
-export function getToolDefinition(id: string): ToolDefinition | undefined { return byId.get(id); }
 export type ManagedTool = ToolDefinition;
 export type ToolCatalog = Readonly<{
   readonly all: readonly ManagedTool[];
