@@ -57,8 +57,11 @@ function waitForEvent(target: EventTarget, type: string, signal?: AbortSignal): 
 
 async function seek(video: HTMLVideoElement, time: number, signal?: AbortSignal): Promise<void> {
   if (signal?.aborted) throw new DOMException('Video operation aborted.', 'AbortError');
+  const target = Math.max(0, time);
+  // A no-op seek (especially the common startSec=0 case) may not emit a seeked event.
+  if (video.readyState >= 2 && Math.abs(video.currentTime - target) < 0.001) return;
   const seeked = waitForEvent(video, 'seeked', signal);
-  video.currentTime = Math.max(0, time);
+  video.currentTime = target;
   await seeked;
 }
 
