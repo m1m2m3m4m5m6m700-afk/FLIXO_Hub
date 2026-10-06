@@ -60,6 +60,12 @@ jobs:
           grep -Fq -- "- Exact SHA: ${GITHUB_SHA}" "$REPORT"
           grep -Fq -- "- Uncovered repository-authored text lines: 0" "$REPORT"
 
+      - name: Fetch main branch snapshot for read-only knowledge tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main:refs/remotes/origin/main --depth=1
+
       - name: Run strict knowledge-agent contract tests
         env:
           ALLOW_KNOWLEDGE_LIMITATIONS: "1"
