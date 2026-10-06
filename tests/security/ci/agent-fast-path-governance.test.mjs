@@ -57,13 +57,14 @@ test('disposable worker branches are allowed', () => {
 });
 
 test('routine task governance does not restore a mandatory lease queue', () => {
-  const plan = readFileSync(new URL('../../../المخطط التنفيذي.md', import.meta.url), 'utf8');
-  const start = plan.indexOf('# PROMPT 22');
-  const end = plan.indexOf('## V3.9 — Fast Agent Governance', start);
+  const ledger = readFileSync(new URL('../../../المهام.md', import.meta.url), 'utf8');
+  assert.match(ledger, /Canonical Agent Task Ledger/);
+  const start = ledger.indexOf('# ACTIVE DISPATCH QUEUE');
+  const end = ledger.indexOf('## 7. STATUS SEMANTICS', start);
   assert.ok(start >= 0);
   assert.ok(end > start);
-  const section = plan.slice(start, end);
-  assert.match(section, /SUPERSEDED FOR ROUTINE EXECUTION/);
-  assert.doesNotMatch(section, /AVAILABLE\s*->\s*CLAIMED/u);
-  assert.doesNotMatch(section, /lease\/heartbeat/u);
+  const activeQueue = ledger.slice(start, end);
+  assert.doesNotMatch(activeQueue, /AVAILABLE\s*->\s*CLAIMED/u);
+  assert.doesNotMatch(activeQueue, /lease\/heartbeat/u);
+  assert.match(activeQueue, /EXEC-CERT-001/);
 });
