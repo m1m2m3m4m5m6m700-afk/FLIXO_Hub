@@ -329,6 +329,12 @@ export default function SeedTool({ locale = 'en' as Locale }: { locale?: Locale 
       renderAdvanced(ctx, advanced);
       const blob = await new Promise<Blob | null>((resolve) => output.toBlob(resolve, 'image/png'));
       if (!blob || blob.size < 32) throw new Error('Export produced an invalid image.');
+      const bytes = new Uint8Array(await blob.arrayBuffer());
+      const validation = validateUploadBoundary(
+        { name: 'seed-edited.png', mime: blob.type || 'image/png', bytes, width: output.width, height: output.height },
+        { allowedMime: ['image/png'], maxBytes: 25 * 1024 * 1024, maxPixels: 40_000_000, signatures: ['89504e470d0a1a0a'], magicBytes: [MAGIC_BYTE_SIGNATURES.png], allowedExtensions: ['png'] },
+      );
+      if (!validation.safe) throw new Error('Export output failed media safety validation: ' + validation.failures.join('; '));
       const url = URL.createObjectURL(blob); const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'seed-edited.png';
       document.body.appendChild(anchor); anchor.click();
       window.setTimeout(() => { URL.revokeObjectURL(url); anchor.remove(); }, 1000);
