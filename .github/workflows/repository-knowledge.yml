@@ -51,7 +51,12 @@ jobs:
           REPORT="0(التقارير)/${GITHUB_SHA}.md"
           test -s "$REPORT"
           grep -Fq -- "- SHA: ${GITHUB_SHA}" "$REPORT"
-          grep -Fq -- "- Uncovered text lines: 0" "$REPORT"
+          grep -Fq -- "- Uncovered repository-authored text lines: 0" "$REPORT"
+
+      - name: Run strict knowledge-agent contract tests
+        env:
+          ALLOW_KNOWLEDGE_LIMITATIONS: "1"
+        run: node --test tests/security/ci/repository-knowledge-agent.test.mjs
 
       - name: Reconcile current execution HEAD before publication
         shell: bash
