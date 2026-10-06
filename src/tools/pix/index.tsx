@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { getToolUiCopy } from '../../data/tool-ui-i18n';
+import { validateBrowserFile } from '../../lib/contracts/browser-file-safety';
+import { validateOutputIntegrity } from '../../lib/contracts/output-integrity';
 
 export type ToolMode = 'tune' | 'liquify' | 'dispersion' | 'text';
 export interface FilterSettings { brightness: number; contrast: number; saturation: number; hue: number; blur: number; }
@@ -161,32 +163,41 @@ export default function PixTool() {
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
-    const url = URL.createObjectURL(file);
-    if (imageUrlRef.current) URL.revokeObjectURL(imageUrlRef.current);
-    imageUrlRef.current = url;
-    const img = new Image();
-    img.onload = () => {
-      const working = document.createElement('canvas');
-      working.width = img.naturalWidth;
-      working.height = img.naturalHeight;
-      const ctx = working.getContext('2d');
-      if (!ctx) return;
-      ctx.drawImage(img, 0, 0);
-      workingCanvasRef.current = working;
-      setImage(img);
-      setActiveTool('tune');
-      setFilters(cloneFilters(DEFAULT_FILTERS));
-      setTextLayers([]);
-      setParticles([]);
-      const initial: Snapshot = { imageData: ctx.getImageData(0, 0, working.width, working.height), textLayers: [], filters: cloneFilters(DEFAULT_FILTERS) };
-      historyRef.current = [initial];
-      historyIndexRef.current = 0;
-      setHistoryIndex(0);
-      setHistoryLength(1);
-    };
-    img.src = url;
     event.currentTarget.value = '';
+    if (!file) return;
+    const policy = {
+      allowedMime: ['image/avif', 'image/bmp', 'image/gif', 'image/jpeg', 'image/png', 'image/webp'],
+      maxBytes: 25 * 1024 * 1024,
+      maxPixels: 40_000_000,
+    } as const;
+    void validateBrowserFile(file, policy).then((validation) => {
+      if (!validation.safe) throw new Error(`Input rejected by File Safety: ${validation.failures.join('; ')}`);
+      const url = URL.createObjectURL(file);
+      if (imageUrlRef.current) URL.revokeObjectURL(imageUrlRef.current);
+      imageUrlRef.current = url;
+      const img = new Image();
+      img.onload = () => {
+        const working = document.createElement('canvas');
+        working.width = img.naturalWidth;
+        working.height = img.naturalHeight;
+        const ctx = working.getContext('2d');
+        if (!ctx) return;
+        ctx.drawImage(img, 0, 0);
+        workingCanvasRef.current = working;
+        setImage(img);
+        setActiveTool('tune');
+        setFilters(cloneFilters(DEFAULT_FILTERS));
+        setTextLayers([]);
+        setParticles([]);
+        const initial: Snapshot = { imageData: ctx.getImageData(0, 0, working.width, working.height), textLayers: [], filters: cloneFilters(DEFAULT_FILTERS) };
+        historyRef.current = [initial];
+        historyIndexRef.current = 0;
+        setHistoryIndex(0);
+        setHistoryLength(1);
+      };
+      img.onerror = () => setError('Unable to decode this image.');
+      img.src = url;
+    }).catch((cause) => setError(cause instanceof Error ? cause.message : 'Unable to validate this image.'));
   };
 
   const getCanvasPoint = (event: React.PointerEvent<HTMLCanvasElement>) => {
@@ -269,7 +280,16 @@ export default function PixTool() {
       ctx.restore();
     });
     const blob = await new Promise<Blob | null>((resolve) => output.toBlob(resolve, 'image/png', 1));
-    if (!blob || blob.size <= 20) return;
+    if (!blob) return;
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    const validation = validateOutputIntegrity(
+      blob.size,
+      blob.type,
+      { toolId: 'pix', allowedMime: ['image/png'], maxBytes: 25 * 1024 * 1024, minBytes: 32, maxPixels: 40_000_000, allowedExtensions: ['png'], signatures: ['89504e470d0a1a0a'], requireArtifact: true, requireSafeFilename: true },
+      { width: output.width, height: output.height },
+      { filename: 'pix-studio-export.png', bytes },
+    );
+    if (!validation.valid) { setError(`Export integrity validation failed: ${validation.failures.join('; ')}`); return; }
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.download = 'pix-studio-export.png';
