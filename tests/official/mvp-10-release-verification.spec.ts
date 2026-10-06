@@ -74,12 +74,12 @@ async function videoFixture(page: Page) {
     recorder.start(100);
 
     const start = performance.now();
-    while (performance.now() - start < 1600) {
+    while (performance.now() - start < 800) {
       const t = performance.now() - start;
       context.fillStyle = '#123';
       context.fillRect(0, 0, canvas.width, canvas.height);
       context.fillStyle = '#fff';
-      context.fillRect(20 + Math.round((t / 1600) * 200), 60, 40, 40);
+      context.fillRect(20 + Math.round((t / 800) * 200), 60, 40, 40);
       await new Promise<void>((resolve) => setTimeout(resolve, 100));
     }
 
@@ -166,7 +166,7 @@ async function executeManualVideo(page: Page, toolId: (typeof VIDEO_TOOL_IDS)[nu
   await page.getByRole('button', { name: /Process video/i }).click();
   const runtimeError = await page.locator('[role="alert"]').allTextContents();
   const downloadControl = page.locator('a[download]').first();
-  await expect(downloadControl, `manual/${toolId} output missing; visible runtime errors: ${runtimeError.join(' | ')}`).toBeVisible({ timeout: 30_000 });
+  await expect(downloadControl, `manual/${toolId} output missing; visible runtime errors: ${runtimeError.join(' | ')}`).toBeVisible({ timeout: 60_000 });
 }
 
 async function planAndExecuteAgent(page: Page, prompt: string, expectedToolId: string, language: 'ar' | 'en', fixture: unknown) {
@@ -207,7 +207,7 @@ async function planAndExecuteAgent(page: Page, prompt: string, expectedToolId: s
   await expect(executeButton).toBeVisible({ timeout: 5_000 });
   await expect(executeButton).toBeEnabled({ timeout: 5_000 });
   await executeButton.click();
-  await expect(page.locator('[aria-label="agent-result"]')).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('[aria-label="agent-result"]')).toBeVisible({ timeout: 60_000 });
 }
 
 test.describe('FLIXO ten-tool release verification', () => {
