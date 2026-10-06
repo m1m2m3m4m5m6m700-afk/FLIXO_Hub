@@ -61,7 +61,7 @@ function matchedTools(prompt: string, file: File): Array<{ toolId: string; inten
     }
   }
   if (file.type.startsWith('image/')) {
-    if (normalized.includes('compress') && normalized.includes('convert')) {
+    if (/(?:compress|ضغط)/u.test(normalized) && /(?:convert|تحويل)/u.test(normalized)) {
       return [
         { toolId: 'image-converter', intent: 'convert format' },
         { toolId: 'image-compressor', intent: 'compress' },
