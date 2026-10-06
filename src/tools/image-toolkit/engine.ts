@@ -18,12 +18,17 @@ export function imageInfo(blob: Blob): Promise<ImageInfo> {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(blob);
     const image = new Image();
-    image.onload = () => {
+    const cleanup = () => {
       URL.revokeObjectURL(url);
-      resolve({ width: image.naturalWidth, height: image.naturalHeight });
+      image.removeAttribute('src');
+    };
+    image.onload = () => {
+      const info = { width: image.naturalWidth, height: image.naturalHeight };
+      cleanup();
+      resolve(info);
     };
     image.onerror = () => {
-      URL.revokeObjectURL(url);
+      cleanup();
       reject(new Error('Image could not be decoded.'));
     };
     image.src = url;
@@ -40,6 +45,7 @@ export function loadImage(blob: Blob): Promise<HTMLImageElement> {
     };
     image.onerror = () => {
       URL.revokeObjectURL(url);
+      image.removeAttribute('src');
       reject(new Error('Image could not be decoded.'));
     };
     image.src = url;
@@ -47,7 +53,16 @@ export function loadImage(blob: Blob): Promise<HTMLImageElement> {
 }
 
 function canvasBlob(canvas: HTMLCanvasElement, type = 'image/png', quality = 0.96): Promise<Blob> {
-  return new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Could not create output image.')), type, quality));
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => blob ? resolve(blob) : reject(new Error('Could not create output image.')),
+      type,
+      quality,
+    );
+  }).finally(() => {
+    canvas.width = 0;
+    canvas.height = 0;
+  });
 }
 
 function clamp(n: number, min: number, max: number) {
@@ -95,6 +110,10 @@ function progressiveResize(image: HTMLImageElement, width: number, height: numbe
     stepContext.imageSmoothingEnabled = true;
     stepContext.imageSmoothingQuality = 'high';
     stepContext.drawImage(source, 0, 0, sourceWidth, sourceHeight, 0, 0, nextWidth, nextHeight);
+    if (source instanceof HTMLCanvasElement) {
+      source.width = 0;
+      source.height = 0;
+    }
     source = stepCanvas;
     sourceWidth = nextWidth;
     sourceHeight = nextHeight;
@@ -107,6 +126,10 @@ function progressiveResize(image: HTMLImageElement, width: number, height: numbe
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(source, 0, 0, sourceWidth, sourceHeight, 0, 0, width, height);
+  if (source instanceof HTMLCanvasElement) {
+    source.width = 0;
+    source.height = 0;
+  }
   return canvas;
 }
 
