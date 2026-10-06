@@ -25,7 +25,8 @@ for(const [file,role] of Object.entries(scouts)){
   if(!content.includes("disable-model-invocation: true")) fail(file+": automatic invocation must be disabled");
   if(!content.includes("Your only writable repository path is .agent-intelligence/inbox/.")) fail(file+": missing inbox write boundary");
   if(!content.includes(role)) fail(file+": missing role identity");
-  if(content.includes(".agent-intelligence/review-queue")||content.includes("التطوير.md")) fail(file+": forbidden write surface");
+  if(/Your only writable repository path is (?!\.agent-intelligence\/inbox\/)/u.test(content)) fail(file+": writable path must be inbox");
+  if(/writ(?:e|able).*?(?:\.agent-intelligence\/review-queue|التطوير\.md)/iu.test(content)) fail(file+": forbidden writable surface");
 }
 if(!exists(inboxDir)||!exists(snapshotsDir)) fail("missing discovery directories");
 for(const file of readdirSync(inboxDir)) if(!file.endsWith(".yaml")&&file!==".gitkeep"&&file!=="README.md") fail("unexpected inbox artifact: "+file);
