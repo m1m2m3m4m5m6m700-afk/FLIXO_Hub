@@ -147,3 +147,11 @@ test('video renderer cleans active media resources on every terminal path', () =
   assert.match(executor, /sourceStream\?\.getTracks\(\)\.forEach\(\(track\) => track\.stop\(\)\)/u);
   assert.match(executor, /if \(frameHandle\) cancelAnimationFrame\(frameHandle\)/u);
 });
+
+test('tool-chain panel UI matches the canonical chain/media boundary', () => {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+  const panel = readFileSync(resolve(root, 'src/components/tool-chain-panel.tsx'), 'utf8');
+  assert.match(panel, /\{selected\.length\}\/4 steps/u);
+  assert.match(panel, /selected\.length >= 4/u);
+  assert.match(panel, /accept="image\/\*,video\/\*"/u);
+});
