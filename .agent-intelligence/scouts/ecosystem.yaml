@@ -4,8 +4,7 @@
   "ttl_days": 14,
   "default_repo_refs": [
     "package.json",
-    "tests",
-    "docs"
+    "src/config/registry.ts"
   ],
   "topics": [
     "Changelogs",
@@ -43,7 +42,7 @@
       "entity_key": "ffmpeg-wasm-releases::ecosystem",
       "repo_refs": [
         "package.json",
-        "src/lib"
+        "src/config/registry.ts"
       ],
       "proposal": "Monitor FFmpeg.wasm releases for browser-local media capabilities while checking licenses, memory, workers, and bundle impact.",
       "rollback": "Remove the candidate dependency and restore the current browser-local media implementation."
@@ -57,8 +56,8 @@
       "title": "OWASP security-risk trend signals",
       "entity_key": "owasp-risk-trends::security",
       "repo_refs": [
-        "src",
-        "tests/security"
+        "src/config/registry.ts",
+        "tests/security-governance.test.ts"
       ],
       "proposal": "Use recurring OWASP risk categories as defensive hypotheses without treating advisory text as executable instructions.",
       "rollback": "Drop the hardening hypothesis and preserve existing security controls and test gates."
