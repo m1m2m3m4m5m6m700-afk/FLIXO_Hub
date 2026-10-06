@@ -1,14 +1,16 @@
-# FLIXO Public Release Manifest
+# FLIXO Hub Public Release Manifest
 
 Status: CANDIDATE / NOT CERTIFIED
 
-This manifest is the single release-truth record for the public launch candidate. It must be updated only when the candidate SHA changes. Every PASS below must refer to the same exact 40-character SHA.
+This manifest is intentionally unfrozen at rest. A release candidate must be populated only after the active controlled integration PR is frozen and all evidence is bound to one exact SHA.
 
-## Candidate identity
+## Current repository identity
 
-- Candidate SHA: `b3dd497f354a54434938582128e9ae45e2e94067`
-- Candidate branch: `main`
-- Source main SHA at freeze: `b3dd497f354a54434938582128e9ae45e2e94067`
+- Repository: `m1m2m3m4m5m6m700-afk/FLIXO_Hub`
+- Current integration lane: `execution -> main`
+- Candidate SHA: `REQUIRED`
+- Candidate branch: `REQUIRED`
+- Source main SHA at freeze: `REQUIRED`
 - Release tag: `PENDING`
 - Production deployment ID: `REQUIRED`
 - Production immutable identity: `REQUIRED`
@@ -36,3 +38,9 @@ Evidence from any other SHA is stale for this release candidate. A cancelled, sk
 Promotion is execution -> pull request -> required checks -> review -> merge -> post-merge exact-SHA verification -> production identity verification -> browser verification -> release tag.
 
 No direct writes to `main`.
+
+## Historical stale identities explicitly retired
+
+- `b3dd497f354a54434938582128e9ae45e2e94067` — historical candidate SHA; not current release truth.
+- `9d38d896d52514a916c3c5d7ed3244ae8db3a601` — historical certification candidate; not current release truth.
+- `faf261be4476eccf293956d792bbb15e2e019061` — historical production baseline; not current release truth.
