@@ -28,6 +28,14 @@ It must never invent missing information.
 
 Read the repository recursively and build a complete inventory of tracked repository content available to the agent.
 
+**100% coverage requirement:** Every tracked file must appear in the report. Every text-file line must belong to a documented line range or line-level ledger entry. A file is not considered read merely because its filename or metadata was inspected.
+
+For source code, the report must explain the responsibility of each logical line/range, symbol, declaration, control path, import/export, configuration entry, test, assertion, and comment that carries behavior. When exact semantics cannot be established, mark the range `UNKNOWN` and state why; never silently omit it.
+
+For documentation/configuration, describe every substantive line/range and identify whether it is policy, evidence, instruction, product content, configuration, or historical material.
+
+The final report must contain coverage counts: total tracked files, text files, binary/non-text files, total text lines, described text lines, and uncovered lines. For a completed session, uncovered text lines must be zero.
+
 For every file, determine as applicable:
 - path;
 - type/extension;
@@ -172,6 +180,19 @@ The agent must not:
 - declare PASS/GREEN/CERTIFIED.
 
 Terminal use is allowed only for read-only inspection unless the calling environment explicitly provides a safe isolated analysis copy.
+
+# Continuous wake / update behavior
+
+A repository-knowledge workflow is expected to invoke the knowledge scan on every non-report change to the `execution` branch and on manual dispatch. The wakeup must:
+
+1. pin the triggering SHA;
+2. perform a fresh full read of the repository at that SHA;
+3. compare against the latest available repository-knowledge report when one exists;
+4. identify changed files and changed line ranges;
+5. regenerate the exact-SHA report;
+6. publish it only under `reports/repository-knowledge/`.
+
+If `execution` moves while the scan is preparing publication, fail closed and do not overwrite the newer head.
 
 # Primary objective
 
