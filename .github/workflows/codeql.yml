@@ -49,7 +49,13 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p codeql-sarif
-          mapfile -t sarif_files < <(find "$GITHUB_WORKSPACE/results" -maxdepth 1 -type f -name '*.sarif' -print | sort)
+          sarif_files=()
+          for candidate in \
+            "$GITHUB_WORKSPACE/results/javascript.sarif" \
+            "$GITHUB_WORKSPACE/../results/javascript.sarif" \
+            "$RUNNER_TEMP/codeql_databases/javascript/results/javascript.sarif"; do
+            if [ -f "$candidate" ]; then sarif_files+=("$candidate"); fi
+          done
           test "${#sarif_files[@]}" -eq 1
           cp "${sarif_files[0]}" "codeql-sarif/${{ matrix.language }}.sarif"
           sha256sum "codeql-sarif/${{ matrix.language }}.sarif" > "codeql-sarif/${{ matrix.language }}.sarif.sha256"
