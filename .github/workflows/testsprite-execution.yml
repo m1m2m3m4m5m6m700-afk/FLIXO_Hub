@@ -103,13 +103,9 @@ jobs:
 
       - name: Native exact-SHA canonical ten-tool E2E fallback
         if: steps.testsprite-config.outputs.configured != 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-          npx playwright install --with-deps chromium
-          mkdir -p testsprite-fallback
-          PLAYWRIGHT_REUSE_SERVER=true npm run test:e2e -- --project=chromium tests/official/mvp-10-release-verification.spec.ts
-          printf '{"testsprite":"not-configured","fallback":"native-playwright","sha":"%s","status":"PASS"}\n' "$(git rev-parse HEAD)" > testsprite-fallback/summary.json
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: node scripts/ci/testsprite-fallback.mjs
       - name: Reconcile committed manual TestSprite cases
         if: steps.testsprite-config.outputs.configured == 'true'
         env:
