@@ -332,9 +332,9 @@ const videoVerifier: CanonicalCapabilityVerifier = async (input, output, paramet
     const expected = Math.max(0.001, Math.min(inputMeta.duration ?? end, end) - Math.min(Math.max(0, start), Math.max(0, (inputMeta.duration ?? 0) - 0.001)));
     if (Math.abs((outputMeta.duration ?? 0) - expected) > 0.35) return false;
   }
-  if (parameters.width === undefined && parameters.height === undefined && parameters.startSec === undefined && parameters.endSec === undefined) {
-    return typeof outputMeta.duration === 'number' && outputMeta.duration > 0 && output.size < input.size;
-  }
+  // A trimmer with no explicit range is a valid local no-op-style render request;
+  // byte-size reduction is not a semantic requirement for trimming. Compression
+  // has its own explicit size/bandwidth contract.
   return outputMeta.duration !== undefined && outputMeta.duration > 0;
 };
 
