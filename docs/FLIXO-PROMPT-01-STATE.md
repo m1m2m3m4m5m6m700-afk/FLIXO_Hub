@@ -4,12 +4,12 @@ STATUS: BLOCKED_BY_EXTERNAL_GOVERNANCE
 PROMPT_ID: 01
 SCOPE: READ_ONLY_STATE_RECORD
 RECORDED_AT_UTC: 2026-10-06
-START_SHA: a0723f51c2cbfe00cf9804801659265d2c2ffb64
-END_SHA: PENDING_THIS_RECORD
+START_SHA: b130f732ba4e333611040676ae3c21531480b62c
+END_SHA: PENDING_THIS_RECORD_COMMIT
 CURRENT_MAIN_SHA: 263827228cbe5f4851470297fde5f2858ff844de
-CURRENT_EXECUTION_SHA: a0723f51c2cbfe00cf9804801659265d2c2ffb64
+CURRENT_EXECUTION_SHA: b130f732ba4e333611040676ae3c21531480b62c
 PR: #1002
-PR_HEAD_SHA: a0723f51c2cbfe00cf9804801659265d2c2ffb64
+PR_HEAD_SHA: b130f732ba4e333611040676ae3c21531480b62c
 PR_BASE_SHA: 263827228cbe5f4851470297fde5f2858ff844de
 PRIMARY_BRANCH: execution
 INTEGRATION_PATH: execution -> main
@@ -27,15 +27,21 @@ INTEGRATION_PATH: execution -> main
 
 ## Current candidate evidence state
 
-Known on candidate a0723f51c2cbfe00cf9804801659265d2c2ffb64:
-- Secret Scan: PASS.
+Exact current execution head at reconciliation: b130f732ba4e333611040676ae3c21531480b62c.
+This state record is coordination metadata only; every mutation invalidates prior exact-SHA evidence.
+Latest observed evidence before this documentation mutation:
+- Typecheck, lint, core contracts, build: PASS.
+- Exact-SHA internal coverage: PASS.
+- Red Team adversarial regression: PASS.
+- Prompt 17 clean-clone final adversarial gate: PASS.
+- FLIXO CodeQL: PASS.
+- Gitleaks / Secret Scan: PASS.
 - TestSprite execution fallback: PASS.
-- FLIXO CI: running; current branch-policy subcheck fails only because the live main governance ruleset does not satisfy Prompt 12.
-- CodeQL: running.
-- Clean-clone Red Team: running.
-- Chromium/browser evidence: not yet certified on this candidate.
-- Coverage: not yet certified on this candidate.
-- Any evidence from another SHA is historical and stale.
+- Chromium/browser smoke: IN_PROGRESS; no browser PASS claim until completion.
+- PR branch-policy on base main: FAIL because live main ruleset 23854302 does not satisfy Prompt 12.
+- Execution-push branch-policy: PASS with main governance verification intentionally deferred.
+- Trust-gate / Exact-SHA promotion proof: not certifiable until browser and main-governance gates are satisfied.
+Evidence from older SHAs remains historical and stale.
 
 ## Governance evidence
 
@@ -69,21 +75,21 @@ a0723f51c2cbfe00cf9804801659265d2c2ffb64
 
 TASK_ID=RT-COORD-001
 OWNER=AGENT-3
-STATUS=IMPLEMENTED
+STATUS=VERIFIED
 FILES_CHANGED=.github/workflows/ci.yml;scripts/ci/verify-branch-policy.mjs;المخطط التنفيذي.md
 DEPENDENCIES=three-agent execution model;main governance verification
-VALIDATION=execution branch policy pass;execution PR governance no longer blocks
+VALIDATION=execution branch policy pass;execution PR governance deferral verified
 EVIDENCE=f76313b60e61c69e050473549a60f4612c959212
-NEXT_ACTION=final candidate evidence regeneration
+NEXT_ACTION=retain coordination boundary
 
 TASK_ID=GOV-001
 OWNER=AGENT-3
 STATUS=BLOCKED
 FILES_CHANGED=none
 DEPENDENCIES=repository ruleset administration;independent human approval
-VALIDATION=live ruleset read;verify-main-ruleset.mjs failure reproduced with "one approving review is required"
+VALIDATION=live ruleset read;verify-main-ruleset.mjs failure reproduced
 EVIDENCE=ruleset 23854302;PR #1002
-NEXT_ACTION=owner/admin must harden the ruleset and provide a legitimate independent approval
+NEXT_ACTION=owner/admin must harden the ruleset and obtain legitimate independent approval
 
 ## Hard blockers
 
@@ -97,4 +103,4 @@ Any mutation after this record creates a new execution SHA and invalidates all c
 
 ## Next action
 
-Resolve governance and legitimate human review first; then rerun the complete exact-SHA certification chain on the resulting execution candidate.
+Complete the exact-SHA browser gate after the documentation reconciliation, then resolve the external main-governance policy and legitimate independent review before Prompt 18–20 can close.

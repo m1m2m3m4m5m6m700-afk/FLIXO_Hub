@@ -23,23 +23,25 @@ This ledger records live execution tasks on the `execution` integration line. A 
 | EXEC-CERT-BLOCKER-001 | AGENT-3/Certification | BLOCKED | GitHub ruleset / PR review state | External repository governance | Live main ruleset has 0 required approvals and non-strict required checks; PR #1002 has no human approving review | Live ruleset inspection + PR review list | Harden Ruleset 23854302 and obtain legitimate independent approval |
 | EXEC-DOCS-AUDIT-001 | AGENT-2/Product | IMPLEMENTED | `docs/TOOL-EXPANSION-AUDIT.md` | Exact execution candidate | Audit reconciled to active PR #1002 | Latest exact candidate requires state refresh after every mutation | Refresh only as candidate advances |
 
-## Current exact-SHA CI evidence — candidate `f76313b60e61c69e050473549a60f4612c959212`
+## Current exact-SHA CI evidence — candidate `b130f732ba4e333611040676ae3c21531480b62c`
 
-Latest exact-SHA execution-push evidence:
-- FLIXO Secret Scan: PASS.
+Latest observed exact-SHA evidence before this documentation mutation:
+- Typecheck/lint/core contracts/build: PASS.
+- Exact-SHA internal coverage: PASS.
+- Red Team adversarial regression: PASS.
+- Prompt 17 clean-clone final adversarial gate: PASS.
 - FLIXO CodeQL: PASS.
-- FLIXO Final Clean-Clone Red Team: PASS.
-- FLIXO CI Typecheck/lint/core contracts/build: PASS.
-- FLIXO CI Exact-SHA internal coverage: PASS.
-- FLIXO CI Red Team adversarial regression: PASS.
-- FLIXO CI Branch policy: PASS on execution push.
-- FLIXO CI Chromium browser smoke: IN PROGRESS on the latest execution push; no browser PASS is claimed until completion.
-- Exact-SHA PR branch-policy: FAIL CLOSED because the live main ruleset violates Prompt 12.
-- PR trust-gate / promotion proof: not certifiable while the governance gate fails.
-- Production exact-SHA deployment: SKIPPED on execution, by design; no production identity claim is made.
+- Gitleaks / Secret Scan: PASS.
+- TestSprite execution fallback: PASS.
+- Execution-push branch policy: PASS with main governance intentionally deferred.
+- PR-to-main branch policy: FAIL CLOSED because live ruleset 23854302 does not satisfy Prompt 12.
+- Chromium browser smoke: IN PROGRESS.
+- Trust-gate / promotion proof: cannot close while browser and main governance remain open.
+- Production exact-SHA deployment: not applicable on execution by design; production truth begins on main after protected promotion.
+All evidence above is tied to the pre-mutation candidate and is invalid for certification after this documentation commit.
 
 ## Prompt-state reconciliation — current candidate
-- Prompt 01: BLOCKER — live state reconciled; governance blocker remains.
+- Prompt 01: BLOCKED_BY_EXTERNAL_GOVERNANCE — live execution/main state reconciled at b130f732ba4e333611040676ae3c21531480b62c.
 - Prompt 02: VERIFIED-IMPLEMENTATION / exact final certification pending.
 - Prompt 03: VERIFIED by canonical registry/executor/verifier/output-contract regression.
 - Prompt 04: VERIFIED by Agent Guided + Manual browser/local execution coverage.
@@ -52,12 +54,12 @@ Latest exact-SHA execution-push evidence:
 - Prompt 11: VERIFIED for the current CI/release workflow graph.
 - Prompt 12: BLOCKED — live ruleset 23854302 is under-hardened; connected GitHub mutation surface is read-only for ruleset administration.
 - Prompt 13: VERIFIED by current repository hygiene and branch coordination policy.
-- Prompt 14: IN_PROGRESS — current-state documents are being reconciled to exact candidate SHA.
+- Prompt 14: VERIFIED-DOCS-ALIGNMENT — current-state documents reconciled without changing runtime authority.
 - Prompt 15: BLOCKED until protected-main promotion and post-merge production identity verification.
 - Prompt 16: VERIFIED — active MVP file-editing path is persistence-independent; Supabase remains outside raw MVP file execution.
-- Prompt 17: VERIFIED on the execution-push clean-clone gate; the latest PR instance is still being finalized independently.
-- Prompt 18: BLOCKED until a single final frozen candidate can satisfy governance and exact-SHA release gates.
-- Prompt 19: BLOCKED until Prompt 12/18 conditions are satisfied.
+- Prompt 17: VERIFIED on the pre-mutation exact candidate; clean-clone gate PASS.
+- Prompt 18: BLOCKED until Prompt 12 and the post-mutation exact candidate gates are closed.
+- Prompt 19: BLOCKED until Prompt 12 and Prompt 18 conditions are satisfied.
 - Prompt 20: BLOCKED until legitimate review/governance and protected promotion are available.
 
 ## Governance blocker
