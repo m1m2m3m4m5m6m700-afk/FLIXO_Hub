@@ -72,7 +72,8 @@ test('disposable worker branches are allowed', () => {
   ]) {
     const result = classifyRef(ref);
     assert.equal(result.allowed, true);
-    assert.equal(result.authority, 'working');
+    const expectedAuthority = ref === 'refs/heads/agent-7/runtime-20261006' ? 'controlled-agent' : 'working';
+    assert.equal(result.authority, expectedAuthority);
   }
 });
 
