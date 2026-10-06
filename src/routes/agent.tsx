@@ -57,7 +57,7 @@ const COPY = {
 } as const;
 
 export function AgentPage() {
-  const [language, setLanguage] = useState<'en' | 'ar'>('ar');
+  const [language, setLanguage] = useState<'en' | 'ar'>('en');
   const [prompt, setPrompt] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [plan, setPlan] = useState<AgentPlan | null>(null);
