@@ -151,7 +151,9 @@ async function executeManualImage(page: Page, toolId: (typeof IMAGE_TOOL_IDS)[nu
   await expect(runButton).toBeEnabled({ timeout: 10_000 });
   await runButton.click();
   const runtimeError = await page.locator('[role="alert"]').allTextContents();
-  const downloadControl = page.locator('a[download]').first();
+  const downloadControl = toolId === 'image-effects'
+    ? page.getByRole('button', { name: /Download now/i })
+    : page.locator('a[download]').first();
   await expect(downloadControl, `manual/${toolId} output missing; visible runtime errors: ${runtimeError.join(' | ')}`).toBeVisible({ timeout: 20_000 });
 }
 
