@@ -1,41 +1,62 @@
 # FLIXO Public Release Manifest
 
-Status: CANDIDATE / NOT CERTIFIED
+Status: NOT READY
 
-This manifest is the single release-truth record for the public launch candidate. It must be updated only when the candidate SHA changes. Every PASS below must refer to the same exact 40-character SHA.
+REPOSITORY: m1m2m3m4m5m6m700-afk/FLIXO_Hub
+BRANCH: execution
+CURRENT_SHA=REQUIRED
+CURRENT_WORKFLOW_RUN=REQUIRED
+CURRENT_EVIDENCE=REQUIRED
+PRODUCTION_IDENTITY=REQUIRED
+CERTIFIED_SHA=NOT_YET_CERTIFIED
+
+This manifest is the current release-truth template. It must never present historical candidate evidence as current truth. A candidate-specific evidence record is valid only when every required artifact is bound to the same exact SHA and workflow run.
 
 ## Candidate identity
 
-- Candidate SHA: live PR #1002 head at verification time; last fully verified candidate: `7d9266a42690417511d0202b3d06b6b362f2d7d4`.
-- Last fully verified candidate before this documentation rollover: `7d9266a42690417511d0202b3d06b6b362f2d7d4`
-- Candidate branch: `execution`
-- Source main SHA at freeze: `263827228cbe5f4851470297fde5f2858ff844de`
-- Release tag: `PENDING`
+- Current candidate branch: `execution`
+- Integration PR: `REQUIRED`
+- Release tag: `REQUIRED`
 - Production deployment ID: `REQUIRED`
 - Production immutable identity: `REQUIRED`
 - Canonical production origin: `https://flixoai.m1m2m3m4m5m6m700.workers.dev`
 
-## Required evidence
+## Required current evidence
 
-After any manifest mutation, current candidate evidence must be regenerated on the live PR #1002 head; no prior-SHA evidence is reused.
-
-- [ ] CI PASS on candidate SHA
-- [ ] CodeQL PASS on candidate SHA
-- [ ] Secret scan PASS on candidate SHA
-- [ ] Dependency/security audit PASS on candidate SHA
-- [ ] Red Team PASS on candidate SHA
-- [ ] Browser E2E PASS on candidate SHA
-- [ ] Production identity matches candidate SHA
-- [ ] Production smoke PASS on candidate SHA
+- [ ] Exact candidate SHA
+- [ ] Exact workflow-run identity
+- [ ] CI PASS on that candidate SHA
+- [ ] CodeQL PASS on that candidate SHA
+- [ ] Secret scan PASS on that candidate SHA
+- [ ] Dependency/security audit PASS on that candidate SHA
+- [ ] Red Team PASS on that candidate SHA
+- [ ] Browser E2E PASS on that candidate SHA
+- [ ] Production identity matches that candidate SHA when applicable
+- [ ] Production smoke PASS on that candidate SHA
 - [ ] No Critical/High unresolved security findings
 - [ ] Public claims reviewed against the candidate capability registry
 
-## Evidence integrity
+Until those artifacts exist on one exact lineage, the release state remains NOT READY.
 
-Evidence from any other SHA is stale for this release candidate. A cancelled, skipped, neutral, expired, or unavailable check is not PASS. If any required artifact cannot be bound to the candidate SHA, the release gate is BLOCKED.
+## Evidence integrity contract
+
+Evidence from any other SHA is stale for this release candidate. A cancelled, skipped, neutral, expired, unavailable, or mixed-lineage check is not PASS.
+
+Any repository mutation creates a new candidate SHA and invalidates all previous candidate-specific PASS evidence. Historical evidence is retained only as historical evidence and cannot promote itself into current release truth.
 
 ## Promotion rule
 
-Promotion is execution -> pull request -> required checks -> review -> merge -> post-merge exact-SHA verification -> production identity verification -> browser verification -> release tag.
+Promotion is `execution -> pull request -> required checks -> review -> merge -> post-merge exact-SHA verification -> production identity verification -> browser verification -> release tag`.
 
 No direct writes to `main`.
+
+## HISTORICAL / INVALIDATED — NOT CURRENT CERTIFICATION
+
+STATUS=HISTORICAL — NOT CURRENT CERTIFICATION
+
+Previous execution records retained for lineage archaeology:
+- Historical candidate referenced during an earlier documentation rollover: `7d9266a42690417511d0202b3d06b6b362f2d7d4`
+- Earlier candidate-specific release evidence must be treated as stale after subsequent mutations.
+- Historical source-main freeze: `263827228cbe5f4851470297fde5f2858ff844de`
+- Historical integration reference: PR #1002
+- Historical candidate wording included a live PR head reference and is retired from current identity fields.
