@@ -2,7 +2,7 @@ export type VideoSourceCleanup = () => void;
 
 type MediaSourceCtor = typeof MediaSource;
 
-function cancelled(signal?: AbortSignal): Error {
+function cancelled(): Error {
   return typeof DOMException === 'function'
     ? new DOMException('Video media source attachment aborted.', 'AbortError')
     : new Error('Video media source attachment aborted.');
@@ -24,12 +24,12 @@ async function appendBlobToSourceBuffer(
 ): Promise<void> {
   const chunkSize = 4 * 1024 * 1024;
   for (let offset = 0; offset < blob.size; offset += chunkSize) {
-    if (signal?.aborted) throw cancelled(signal);
+    if (signal?.aborted) throw cancelled();
     const bytes = await blob.slice(offset, Math.min(blob.size, offset + chunkSize)).arrayBuffer();
     await new Promise<void>((resolve, reject) => {
       const onAbort = () => {
         cleanup();
-        reject(cancelled(signal));
+        reject(cancelled());
       };
       const onUpdateEnd = () => {
         cleanup();
@@ -63,27 +63,28 @@ export async function attachVideoBlobSource(
   signal?: AbortSignal,
 ): Promise<VideoSourceCleanup> {
   if (!blob.size) throw new Error('VIDEO_INPUT_EMPTY');
-  if (signal?.aborted) throw cancelled(signal);
+  if (signal?.aborted) throw cancelled();
 
   const mime = blob.type || 'video/webm';
   const MediaSourceClass = globalThis.MediaSource as MediaSourceCtor | undefined;
 
   if (MediaSourceClass && supportsMediaSource(mime)) {
     const mediaSource = new MediaSourceClass();
-    let sourceBuffer: SourceBuffer | null = null;
     let closed = false;
-    const close = () => {
+    let abortListener: (() => void) | undefined;
+
+    const cleanup = () => {
       if (closed) return;
       closed = true;
-      signal?.removeEventListener('abort', onAbort);
+      if (abortListener) signal?.removeEventListener('abort', abortListener);
       video.srcObject = null;
       if (mediaSource.readyState === 'open') {
         try { mediaSource.endOfStream(); } catch { /* source may already be closing */ }
       }
     };
-    const onAbort = () => close();
+    abortListener = () => cleanup();
 
-    signal?.addEventListener('abort', onAbort, { once: true });
+    signal?.addEventListener('abort', abortListener, { once: true });
     video.srcObject = mediaSource;
 
     try {
@@ -91,8 +92,8 @@ export async function attachVideoBlobSource(
         const onSourceOpen = async () => {
           mediaSource.removeEventListener('sourceopen', onSourceOpen);
           try {
-            if (signal?.aborted) throw cancelled(signal);
-            sourceBuffer = mediaSource.addSourceBuffer(mime);
+            if (signal?.aborted) throw cancelled();
+            const sourceBuffer = mediaSource.addSourceBuffer(mime);
             await appendBlobToSourceBuffer(sourceBuffer, blob, signal);
             if (mediaSource.readyState === 'open') mediaSource.endOfStream();
             resolve();
@@ -108,9 +109,9 @@ export async function attachVideoBlobSource(
         mediaSource.addEventListener('sourceended', onSourceEnded, { once: true });
         if (mediaSource.readyState === 'open') void onSourceOpen();
       });
-      return close;
+      return cleanup;
     } catch (error) {
-      close();
+      cleanup();
       throw error;
     }
   }
