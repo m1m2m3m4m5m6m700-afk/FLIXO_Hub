@@ -115,11 +115,12 @@ async function preprocessForOcr(file: File): Promise<Blob> {
   }
   context.putImageData(data, 0, 0);
   image.close();
-  return new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Could not prepare OCR input.')), 'image/png'))
-    .finally(() => {
-      canvas.width = 0;
-      canvas.height = 0;
-    });
+  return new Promise<Blob>((resolve, reject) => canvas.toBlob((blob) => {
+    canvas.width = 0;
+    canvas.height = 0;
+    if (blob) resolve(blob);
+    else reject(new Error('Could not prepare OCR input.'));
+  }, 'image/png'));
 }
 
 async function createResult(blob: Blob, fileName: string, info?: Result['info'], text?: string): Promise<Result> {
