@@ -19,6 +19,7 @@ import {
 import { verifyAdminPassword } from '../../src/server/admin/credentials.ts';
 import { activeCapabilitiesForRole } from '../../src/lib/admin/roles.ts';
 import { persistAdminSession, revokeAdminSession, isAdminSessionStoreConfigured, getAdminSessionState, getAdminSessionRecord } from '../../src/server/admin/session-store.ts';
+import { consumeAdminLoginRateLimit, resetAdminLoginRateLimit } from '../../src/server/admin/login-rate-limit.ts';
 
 interface AdminRequest extends IncomingMessage {
   body?: unknown;
@@ -31,9 +32,8 @@ interface BodyGuard<TBody> {
 
 const LOGIN_TTL_SECONDS = 60 * 60;
 const LOGIN_LIMIT = 10;
-const LOGIN_WINDOW_MS = 60_000;
+const LOGIN_WINDOW_SECONDS = 60;
 const MAX_REQUEST_BODY_BYTES = 64 * 1024;
-const loginBuckets = new Map<string, { attempts: number; resetAt: number }>();
 
 const json = <
   TBody extends AdminErrorResponse
@@ -91,22 +91,8 @@ const allowMutationOrigin = (req: AdminRequest) => {
   return Boolean(host && origin === 'http://' + host);
 };
 
-const rateAllowed = (ip: string) => {
-  const now = Date.now();
-  const current = loginBuckets.get(ip);
-  if (loginBuckets.size > 10_000) {
-    for (const [key, bucket] of loginBuckets) {
-      if (now >= bucket.resetAt) loginBuckets.delete(key);
-    }
-  }
-  if (!current || now >= current.resetAt) {
-    loginBuckets.set(ip, { attempts: 1, resetAt: now + LOGIN_WINDOW_MS });
-    return true;
-  }
-  if (current.attempts >= LOGIN_LIMIT) return false;
-  current.attempts += 1;
-  return true;
-};
+const consumeLoginRateLimit = async (ip: string) =>
+  consumeAdminLoginRateLimit(ip, LOGIN_LIMIT, LOGIN_WINDOW_SECONDS);
 
 const isAdminLoginRequest = (value: unknown): value is AdminLoginRequest => {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
@@ -213,12 +199,23 @@ export default async function adminSession(req: AdminRequest, res: ServerRespons
   if (method === 'POST') {
     if (!allowMutationOrigin(req)) return fail(res, 403, 'csrf_origin_denied', correlationId);
     if (!configured()) return fail(res, 503, 'server_configuration_unavailable', correlationId);
-    if (!rateAllowed(clientIpFor(req))) return fail(res, 429, 'login_rate_limited', correlationId);
+    let rateLimit: Awaited<ReturnType<typeof consumeLoginRateLimit>>;
+    try {
+      rateLimit = await consumeLoginRateLimit(clientIpFor(req));
+    } catch {
+      return fail(res, 503, 'login_rate_limit_store_unavailable', correlationId);
+    }
+    if (!rateLimit.allowed) return fail(res, 429, 'login_rate_limited', correlationId);
 
     const body = await parseBody(req, isAdminLoginRequest);
     const password = body?.password ?? '';
     if (!password || password.length > 256) return fail(res, 400, 'invalid_credentials_payload', correlationId);
     if (!verifyAdminPassword(password)) return fail(res, 401, 'invalid_credentials', correlationId);
+    try {
+      await resetAdminLoginRateLimit(clientIpFor(req));
+    } catch {
+      return fail(res, 503, 'login_rate_limit_store_unavailable', correlationId);
+    }
 
     const sessionId = randomUUID();
     const role = 'OWNER' as const;
