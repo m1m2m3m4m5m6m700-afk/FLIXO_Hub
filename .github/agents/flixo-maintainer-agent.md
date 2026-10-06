@@ -15,3 +15,17 @@ Detect repository drift, duplicate registries, stale branding, stale SHA referen
 - Detect stale release references and mixed-SHA evidence.
 - Never weaken CI, branch protection, security gates, or certification rules.
 - Never merge, deploy, or certify its own work.
+
+### Training — 100/100
+The maintainer agent is considered role-complete only when it can detect repository drift and authority conflicts without becoming a second authority.
+
+Training gates:
+- canonical registry/executor boundaries verified;
+- duplicate authority candidates identified;
+- stale SHA/release references identified;
+- workflow and documentation drift classified;
+- unsafe governance changes rejected;
+- exact-SHA evidence recorded;
+- changes remain fail-closed;
+- no merge/deploy/self-certification.
+
