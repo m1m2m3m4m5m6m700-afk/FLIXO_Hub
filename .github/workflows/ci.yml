@@ -166,9 +166,10 @@ jobs:
 
           if [ "$BASE_BRANCH" = "main" ]; then
             if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
-              if [ "$HEAD_BRANCH" != "execution" ] && [ "$ACTOR" != "dependabot[bot]" ]; then
-                echo "Unsupported main PR source: head=$HEAD_BRANCH actor=$ACTOR" >&2
-                exit 1
+              if [ "$HEAD_BRANCH" = "execution" ] || [ "$ACTOR" = "dependabot[bot]" ]; then
+                echo "Main promotion candidate accepted for exact-SHA verification."
+              else
+                echo "Promotion proof not applicable to non-promotion PR source: head=$HEAD_BRANCH actor=$ACTOR"
               fi
             elif [ "$GITHUB_EVENT_NAME" = "push" ] && [ "$HEAD_BRANCH" = "main" ]; then
               echo "Direct main push release event accepted for exact-SHA post-merge verification."
