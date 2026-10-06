@@ -40,7 +40,7 @@ export function assertRasterMime(mime: string): asserts mime is RasterImageMime 
   if (!(mime in RASTER_SIGNATURES)) throw new Error(`Unsupported raster image format: ${mime || '(missing MIME)'}`);
 }
 
-export async function assertSafeRasterInput(blob: Blob, maxPixels = MEDIA_LIMITS.rasterInputPixels): Promise<void> {
+export async function assertSafeRasterInput(blob: Blob, maxPixels: number = MEDIA_LIMITS.rasterInputPixels): Promise<void> {
   assertRasterMime(blob.type);
   if (!Number.isInteger(blob.size) || blob.size < 1) throw new Error('Image input is empty.');
   if (blob.size > MEDIA_LIMITS.rasterInputBytes) throw new Error('Image input exceeds the 25 MB browser limit.');
