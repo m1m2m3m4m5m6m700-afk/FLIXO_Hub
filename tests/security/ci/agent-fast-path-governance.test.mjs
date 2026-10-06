@@ -58,12 +58,11 @@ test('disposable worker branches are allowed', () => {
 
 test('routine task governance does not restore a mandatory lease queue', () => {
   const plan = readFileSync(new URL('../../../المخطط التنفيذي.md', import.meta.url), 'utf8');
-  const start = plan.indexOf('# PROMPT 22');
-  const end = plan.indexOf('## V3.9 — Fast Agent Governance', start);
+  const start = plan.indexOf('## V3.9 — Fast Agent Governance');
   assert.ok(start >= 0);
-  assert.ok(end > start);
-  const section = plan.slice(start, end);
-  assert.match(section, /SUPERSEDED FOR ROUTINE EXECUTION/);
+  const nextHeading = plan.indexOf('\n## ', start + 3);
+  const section = plan.slice(start, nextHeading >= 0 ? nextHeading : plan.length);
+  assert.match(section, /approvals وleases وheartbeats الروتينية ليست blockers للتنفيذ/u);
   assert.doesNotMatch(section, /AVAILABLE\s*->\s*CLAIMED/u);
-  assert.doesNotMatch(section, /lease\/heartbeat/u);
+  assert.doesNotMatch(section, /mandatory.*lease|mandatory.*heartbeat/u);
 });
