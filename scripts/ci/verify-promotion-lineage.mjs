@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 
 const CANONICAL_REPOSITORY = 'm1m2m3m4m5m6m700-afk/FLIXO_Hub';
 const SHA = /^[a-f0-9]{40}$/u;
@@ -91,4 +92,4 @@ async function verifyLiveLineage() {
   console.log('PROMOTION_LINEAGE=PASS');
 }
 
-if (import.meta.url === 'file://' + process.argv[1]) await verifyLiveLineage();
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) await verifyLiveLineage();
