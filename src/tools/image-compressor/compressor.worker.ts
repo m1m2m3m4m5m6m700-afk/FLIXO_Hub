@@ -1,4 +1,4 @@
-import { assertSafeImageInput, IMAGE_COMPRESSOR_MAX_PIXELS } from './file-safety';
+import { assertSafeImageInput, IMAGE_COMPRESSOR_MAX_PIXELS, validateCompressionOptions } from './file-safety';
 
 type WorkerCompressionFormat = 'image/jpeg' | 'image/webp' | 'image/png';
 
@@ -53,7 +53,9 @@ async function encodeToTarget(canvas: OffscreenCanvas, format: WorkerCompression
 self.onmessage = async (event: MessageEvent<{ file: File; options: WorkerCompressionOptions }>) => {
   try {
     const { file, options } = event.data;
-    assertSafeImageInput(file);
+    validateCompressionOptions(options);
+    const header = new Uint8Array(await file.slice(0, 16).arrayBuffer());
+    assertSafeImageInput({ ...file, content: header });
     if (file.type === 'image/svg+xml') throw new Error('SVG worker path unavailable');
 
     const bitmap = await createImageBitmap(file);
