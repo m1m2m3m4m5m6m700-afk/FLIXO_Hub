@@ -1,4 +1,4 @@
-import { validateFileSafety } from '../../lib/contracts/file-safety.ts';
+import { validateFileSafety, verifyMagicBytesMatch } from '../../lib/contracts/file-safety.ts';
 
 export const IMAGE_COMPRESSOR_MAX_INPUT_SIZE = 10 * 1024 * 1024;
 export const IMAGE_COMPRESSOR_MAX_PIXELS = 16_000_000;
@@ -16,7 +16,7 @@ export interface ImageSafetyInput {
   name: string;
   type: string;
   size: number;
-  content?: Uint8Array;
+  header?: Uint8Array;
 }
 
 function safetyError(failures: string[]): Error {
@@ -56,7 +56,6 @@ export function assertSafeImageInput(
       name: file.name,
       mime: file.type,
       bytes: file.size,
-      content: file.content,
       width: dimensions?.width,
       height: dimensions?.height,
     },
@@ -65,14 +64,14 @@ export function assertSafeImageInput(
       maxBytes: IMAGE_COMPRESSOR_MAX_INPUT_SIZE,
       allowedExtensions: IMAGE_COMPRESSOR_EXTENSIONS,
       ...(dimensions ? { maxPixels: IMAGE_COMPRESSOR_MAX_PIXELS } : {}),
-      ...(file.content ? { magicBytes: [
-        'png', 'jpeg', 'webp',
-      ].map((name) => (name === 'png' ? ( { name: 'PNG', bytes: [0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a] } ) : name === 'jpeg' ? ( { name: 'JPEG', bytes: [0xff,0xd8,0xff] } ) : ( { name: 'WEBP', bytes: [0x52,0x49,0x46,0x46], segments: [{ bytes: [0x57,0x45,0x42,0x50], offset: 8 }] } )) ) } : {}),
     },
   );
 
   if (!result.safe) {
     throw safetyError(result.failures);
+  }
+  if (file.header && !verifyMagicBytesMatch(file.header, ['png', 'jpeg', 'webp'])) {
+    throw new Error('Image file signature does not match its declared format');
   }
 }
 
@@ -82,7 +81,7 @@ export function validateCompressionOptions(options: CompressionOptionsLike): voi
   if (options.targetSizeKB !== undefined && (!Number.isInteger(options.targetSizeKB) || options.targetSizeKB < 1 || options.targetSizeKB > 64 * 1024)) {
     throw new Error('Invalid compression target size');
   }
-  for (const [label, value] of [['maxWidth', options.maxWidth], ['maxHeight', options.maxHeight] as const]) {
+  for (const [label, value] of [['maxWidth', options.maxWidth], ['maxHeight', options.maxHeight]] as const) {
     if (value !== undefined && (!Number.isInteger(value) || value < 1 || value > 4_000)) throw new Error(`Invalid compression ${label}`);
   }
 }
