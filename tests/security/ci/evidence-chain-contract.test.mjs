@@ -5,7 +5,7 @@ import { validateEvidenceChain } from '../../../scripts/ci/verify-evidence-chain
 const valid = {
   sourceSha: '61625ef1808af1761e0aeecb9731a5ae080816ae',
   testedSha: '61625ef1808af1761e0aeecb9731a5ae080816ae',
-  builtSha: '61625ef1808af1761e0aeecb9731a5ae080816ae',
+  buildSha: '61625ef1808af1761e0aeecb9731a5ae080816ae',
   artifactDigest: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
   attestationRef: 'attestation://example',
   deploymentId: 'deploy-001',
