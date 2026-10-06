@@ -117,7 +117,8 @@ async function executeManualImage(page: Page, toolId: (typeof IMAGE_TOOL_IDS)[nu
   const runButton = page.getByRole('button', { name: toolId === 'image-compressor' ? /Compress image/i : /Run tool/i });
   await expect(runButton).toBeEnabled({ timeout: 10_000 });
   await runButton.click();
-  await expect(page.locator('a[download]').first()).toBeVisible({ timeout: 20_000 });
+  const runtimeError = await page.locator('[role="alert"]').allTextContents();
+  await expect(page.locator('a[download]').first(), `manual/${toolId} output missing; visible runtime errors: ${runtimeError.join(' | ')}`).toBeVisible({ timeout: 20_000 });
 }
 
 async function executeManualVideo(page: Page, toolId: (typeof VIDEO_TOOL_IDS)[number]) {
@@ -127,7 +128,8 @@ async function executeManualVideo(page: Page, toolId: (typeof VIDEO_TOOL_IDS)[nu
   await fileInput.setInputFiles(await videoFixture(page));
   await expect(page.getByRole('button', { name: /Process video/i })).toBeEnabled({ timeout: 10_000 });
   await page.getByRole('button', { name: /Process video/i }).click();
-  await expect(page.locator('a[download]').first()).toBeVisible({ timeout: 30_000 });
+  const runtimeError = await page.locator('[role="alert"]').allTextContents();
+  await expect(page.locator('a[download]').first(), `manual/${toolId} output missing; visible runtime errors: ${runtimeError.join(' | ')}`).toBeVisible({ timeout: 30_000 });
 }
 
 async function planAndExecuteAgent(page: Page, prompt: string, expectedToolId: string, language: 'ar' | 'en', fixture: unknown) {
