@@ -30,6 +30,8 @@ test('current release documents do not pin the retired PR #1002 as the active ca
     'docs/FLIXO-PUBLIC-RELEASE-MANIFEST.md',
     'docs/TOOL-EXPANSION-AUDIT.md',
     'docs/FLIXO-EXECUTION-LEDGER.md',
+    'docs/FLIXO-EXACT-SHA-CERTIFICATION.md',
+    'docs/FLIXO-PROMPT-01-STATE.md',
   ].map((path) => readFileSync(resolve(root, path), 'utf8'));
 
   for (const document of documents) {
