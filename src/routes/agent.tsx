@@ -87,7 +87,7 @@ export function AgentPage() {
 
   const buildPlan = () => {
     if (!file) {
-      setError(language === 'ar' ? 'اختر صورة أولًا.' : 'Choose an image first.');
+      setError(language === 'ar' ? 'اختر صورة أو فيديو أولًا.' : 'Choose an image or video first.');
       return;
     }
     try {
