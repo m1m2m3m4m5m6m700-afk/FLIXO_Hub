@@ -1,0 +1,54 @@
+{
+  "format": "flixo-scout-manifest-v1",
+  "role": "ARCHITECTURE",
+  "ttl_days": 14,
+  "default_repo_refs": [
+    "src/config/registry.ts",
+    "src/lib/execution/canonical-executor.ts"
+  ],
+  "topics": [
+    "Clean Architecture",
+    "Hexagonal Architecture",
+    "Modular Monolith",
+    "Event-driven Architecture",
+    "Ports & Adapters",
+    "CQRS",
+    "DDD",
+    "Worker/Queue",
+    "Agent orchestration",
+    "Browser-local execution"
+  ],
+  "sources": [
+    {
+      "url": "https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/hexagonal-architecture.html",
+      "source_type": "official_docs",
+      "stability": "stable",
+      "evidence_kind": "documentation",
+      "vendor_affiliated": true,
+      "title": "Hexagonal architecture / ports and adapters",
+      "entity_key": "hexagonal-architecture::architecture",
+      "repo_refs": [
+        "src/config/registry.ts",
+        "src/lib/execution/canonical-executor.ts"
+      ],
+      "proposal": "Evaluate a narrow ports/adapters seam around replaceable integration surfaces without creating a second runtime authority.",
+      "rollback": "Revert the adapter seam and restore the proven dependency path behind the canonical executor."
+    },
+    {
+      "url": "https://docs.aws.amazon.com/prescriptive-guidance/latest/hexagonal-architectures/overview.html",
+      "source_type": "official_docs",
+      "stability": "stable",
+      "evidence_kind": "documentation",
+      "vendor_affiliated": true,
+      "title": "Domain-driven boundaries and bounded contexts",
+      "entity_key": "bounded-contexts::architecture",
+      "repo_refs": [
+        "src/config/registry.ts",
+        "src/config/tool-definitions",
+        "src/lib/contracts/tool-output-contracts.ts"
+      ],
+      "proposal": "Assess bounded-context seams around capability registration and execution contracts before global expansion.",
+      "rollback": "Remove the boundary extraction and retain the existing registry and contract topology."
+    }
+  ]
+}
