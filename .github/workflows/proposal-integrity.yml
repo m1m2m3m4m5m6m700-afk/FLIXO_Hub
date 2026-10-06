@@ -36,6 +36,18 @@ jobs:
       - name: Schema V4 contract
         run: python3 .agent-intelligence/schemas/test_schema.py
       - name: Validator security suite
-        run: python3 .agent-intelligence/scripts/test_validate.py
+        id: validator-tests
+        run: |
+          set -o pipefail
+          python3 .agent-intelligence/scripts/test_validate.py 2>&1 | tee agent2-test-output.txt
+
+      - name: Upload validator failure evidence
+        if: failure() && steps.validator-tests.outcome == 'failure'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: agent2-validator-failure
+          path: agent2-test-output.txt
+          if-no-files-found: error
+          retention-days: 7
       - name: Validate all inbox proposals
         run: python3 .agent-intelligence/scripts/validate.py --all --json
