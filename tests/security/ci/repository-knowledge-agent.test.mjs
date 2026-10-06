@@ -112,7 +112,7 @@ test('AST analysis exposes declarations, calls, and control-flow without regex-o
     '  return fallback();',
     '}',
     'const helperValue = new Date();',
-  ].join('\\n'));
+  ].join('\n'));
 
   assert.equal(facts?.parser, 'typescript-compiler-api');
   assert.equal(facts?.parseDiagnostics, 0);
