@@ -9,7 +9,7 @@ function branchRef(branch) {
   return `refs/heads/${branch}`;
 }
 
-export function evaluateMainGovernance(rulesets, branch = DEFAULT_BRANCH) {
+export function evaluateMainGovernance(rulesets, branch = DEFAULT_BRANCH, mode = 'strict') {
   const target = branchRef(branch);
   const applicable = (rulesets ?? []).filter(
     (ruleset) =>
@@ -47,6 +47,13 @@ export function evaluateMainGovernance(rulesets, branch = DEFAULT_BRANCH) {
   const failures = [];
   assert.ok(pullRequestRules.length > 0, 'main governance requires a pull-request rule');
   assert.ok(statusRules.length > 0, 'main governance requires required status checks');
+
+  if (mode === 'fast') {
+    for (const context of ['trust-gate', 'Exact-SHA promotion proof']) {
+      if (!requiredContexts.has(context)) failures.push('Required status check missing: ' + context);
+    }
+    return { pass: failures.length === 0, applicableRulesetIds: applicable.map((ruleset) => ruleset.id), failures, mode };
+  }
 
   const requiredApprovals = Math.max(
     0,
@@ -106,6 +113,7 @@ export async function verifyLiveMainGovernance({
   token,
   repo,
   branch = DEFAULT_BRANCH,
+  mode = 'strict',
   fetchJson = githubJson,
 }) {
   if (!token || !repo) {
@@ -130,18 +138,18 @@ export async function verifyLiveMainGovernance({
     }
   }
 
-  const evaluated = evaluateMainGovernance(details, branch);
+  const evaluated = evaluateMainGovernance(details, branch, mode);
   if (!evaluated.pass) {
     throw new Error(
       [
-        `MAIN_GOVERNANCE=FAIL branch=${branch}`,
+        `MAIN_GOVERNANCE=FAIL mode=${mode} branch=${branch}`,
         `APPLICABLE_RULESET_IDS=${evaluated.applicableRulesetIds.join(',') || 'NONE'}`,
         ...evaluated.failures,
       ].join('\n'),
     );
   }
 
-  console.log(`MAIN_GOVERNANCE=PASS branch=${branch}`);
+  console.log(`MAIN_GOVERNANCE=PASS mode=${mode} branch=${branch}`);
   console.log(`APPLICABLE_RULESET_IDS=${evaluated.applicableRulesetIds.join(',')}`);
   return evaluated;
 }
@@ -154,5 +162,6 @@ if (executedDirectly) {
     token: process.env.GH_TOKEN || process.env.GITHUB_TOKEN,
     repo: process.env.GITHUB_REPOSITORY,
     branch: process.env.GOVERNANCE_BRANCH || DEFAULT_BRANCH,
+    mode: process.env.GOVERNANCE_MODE || 'strict',
   });
 }
