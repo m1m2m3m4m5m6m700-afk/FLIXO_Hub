@@ -13,19 +13,19 @@ export function VideoLocalTool() {
   const id = String(location.pathname).split('/').pop() ?? 'video-trimmer';
 
   useEffect(() => {
-    if (!result) {
-      setResultUrl(null);
-      return;
-    }
-    const url = URL.createObjectURL(result);
-    setResultUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [result]);
+    return () => {
+      if (resultUrl) URL.revokeObjectURL(resultUrl);
+    };
+  }, [resultUrl]);
 
   const run = async () => {
     if (!file) return;
     setBusy(true);
     setError('');
+    if (resultUrl) {
+      URL.revokeObjectURL(resultUrl);
+      setResultUrl(null);
+    }
     setResult(null);
     try {
       const parameters: CanonicalCapabilityParameters = id === 'video-trimmer'
@@ -36,7 +36,9 @@ export function VideoLocalTool() {
             ? { width: 1280, height: 720 }
             : { x: 0, y: 0, width: 1280, height: 720 };
       const output = await executeCanonicalTool(id, { blob: file, fileName: file.name }, parameters);
+      const url = URL.createObjectURL(output.blob);
       setResult(output.blob);
+      setResultUrl(url);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Video processing failed.');
     } finally {
