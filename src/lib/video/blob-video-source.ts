@@ -105,6 +105,7 @@ export async function attachVideoBlobSource(
 
     try {
       video.src = url;
+      video.load();
       return cleanup;
     } catch (error) {
       cleanup();
