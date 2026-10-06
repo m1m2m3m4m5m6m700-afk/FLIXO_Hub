@@ -1,9 +1,10 @@
 #!/usr/bin/env node
-import { spawnSync } from 'node:child_process';
+import { runArchitectureCheck } from './checks/architecture.mjs';
+import { runLaunchReadinessCheck } from './checks/launch-readiness.mjs';
 
 const checks = new Map([
-  ['architecture', ['scripts/verify-architecture.mjs']],
-  ['launch', ['scripts/verify-public-launch-readiness.mjs']],
+  ['architecture', runArchitectureCheck],
+  ['launch', runLaunchReadinessCheck],
 ]);
 
 function usage() {
@@ -29,24 +30,21 @@ const selected = args.size
   : [...checks.keys()];
 
 for (const name of selected) {
-  const [script] = checks.get(name);
   console.log(`\n[verify-all] ===== ${name} =====`);
-  const result = spawnSync(process.execPath, [script], {
-    cwd: process.cwd(),
-    stdio: 'inherit',
-    env: process.env,
-    windowsHide: false,
-  });
-
-  if (result.error) {
-    console.error(`[verify-all] ${name} failed to start: ${result.error.message}`);
+  try {
+    checks.get(name)();
+    console.log(`[verify-all] ${name}=PASS`);
+  } catch (error) {
+    console.error(`[verify-all] ${name}=FAIL`);
+    if (error instanceof Error) {
+      console.error(error.message);
+      if (Array.isArray(error.violations)) error.violations.forEach((entry) => console.error(entry));
+      if (Array.isArray(error.missing)) error.missing.forEach((entry) => console.error(` - ${entry}`));
+    } else {
+      console.error(error);
+    }
     process.exit(1);
   }
-  if (result.status !== 0) {
-    console.error(`[verify-all] ${name} failed with exit code ${result.status ?? 1}`);
-    process.exit(result.status ?? 1);
-  }
-  console.log(`[verify-all] ${name}=PASS`);
 }
 
 console.log(`\nVERIFY_ALL=PASS checks=${selected.join(',')}`);
