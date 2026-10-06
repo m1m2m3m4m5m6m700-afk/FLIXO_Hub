@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { readFileSync, existsSync } from 'node:fs';
-import { fileURLToPath, pathToFileURL } from 'node:url';
-import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
 
 const REPO_OWNER = 'm1m2m3m4m5m6m700-afk';
 export const REQUIRED_CODEOWNERS = Object.freeze({
@@ -126,6 +126,6 @@ export function main({ repoRoot = process.cwd(), file = resolve(repoRoot, '.gith
   return result;
 }
 
-const invoked = process.argv[1] && resolve(fileURLToPath(pathToFileURL(process.argv[1])));
+const invoked = process.argv[1] && resolve(process.argv[1]);
 const modulePath = resolve(fileURLToPath(import.meta.url));
 if (invoked === modulePath) main();
