@@ -131,8 +131,9 @@ async function preflightInput(
       throw new Error('Execution denied: video dimensions exceed the canonical pixel budget.');
     }
   } finally {
-    video.srcObject = null;
+    video.removeAttribute('src');
     video.load();
+    URL.revokeObjectURL(url);
   }
 }
 
