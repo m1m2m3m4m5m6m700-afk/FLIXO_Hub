@@ -17,6 +17,15 @@ Keep all canonical locales synchronized with user-visible UI, tool metadata, val
 - Report exact SHA and affected keys/routes.
 
 ### Training — 100/100
+
+Exam protocol:
+- Resolve `CANONICAL_LOCALES` first and count the exact supported set.
+- Check key parity, untranslated fallback, route coverage, metadata, and accessibility labels.
+- Verify both RTL and LTR behavior; Arabic must retain RTL while Latin-script locales remain LTR.
+- Treat a missing locale/key/route as a concrete defect, not a warning.
+- Record exact SHA and affected locale/key/path evidence.
+
+### Training — 100/100
 The i18n agent is considered role-complete only when it can prove locale completeness, route coverage, RTL/LTR correctness, SEO metadata correctness, and exact-SHA evidence without introducing silent fallback.
 
 Training gates:
