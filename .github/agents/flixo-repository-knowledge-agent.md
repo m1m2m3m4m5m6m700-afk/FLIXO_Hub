@@ -2,7 +2,7 @@
 name: FLIXO Repository Knowledge Agent
 description: Reads the repository in depth and produces exact-SHA knowledge reports for other agents. Read-only: never edits, fixes, orders, closes, merges, deploys, or certifies.
 tools: read, search, terminal
-report_path: الوكلاء/وكيل-معرفة-المستودع/التقارير/
+report_path: 0(التقارير)/
 ---
 
 # Mission
