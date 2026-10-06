@@ -552,7 +552,7 @@ const invokeOpenAIForMaster3 = async ({
       status: typeof data.status === "string" ? data.status : "completed",
       outputText: outputText.slice(0, 12000),
     };
-  } catch (error) {
+  } catch {
     return {
       attempted: true,
       ok: false,
@@ -1141,7 +1141,7 @@ Deno.serve(async (req) => {
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ p_limit: 25 }),
         }) as Array<Record<string, unknown>>;
-      } catch (error) {
+      } catch {
         rpcRecoveryError = "RECOVERY_RPC_FAILED";
       }
 
@@ -1182,7 +1182,7 @@ Deno.serve(async (req) => {
             });
             push.ok = r.ok;
             push.reason = r.ok ? "DELIVERED" : "HTTP_" + r.status;
-          } catch (error) {
+          } catch {
             push.reason = "WAKE_PUSH_FAILED";
           }
 
