@@ -11,6 +11,8 @@ import {
   isGeneratedKnowledgeArtifact,
   resolveLocalImport,
   collectGitRefSnapshot,
+  extractAstFacts,
+  collectSemanticDiff,
 } from '../../../scripts/repository-knowledge-scan.mjs';
 
 const repoRoot = process.cwd();
@@ -103,6 +105,36 @@ test('scanner exposes a read-only main branch snapshot', () => {
   assert.ok(snapshot.textFiles > 0);
 });
 
+test('AST analysis exposes declarations, calls, and control-flow without regex-only parsing', () => {
+  const facts = extractAstFacts('src/sample.ts', [
+    'export function run(input: string) {',
+    '  if (input.length > 0) return helper(input);',
+    '  return fallback();',
+    '}',
+    'const helperValue = new Date();',
+  ].join('\\n'));
+
+  assert.equal(facts?.parser, 'typescript-compiler-api');
+  assert.equal(facts?.parseDiagnostics, 0);
+  assert.ok(facts?.declarations.some(item => item.name === 'run'));
+  assert.ok(facts?.declarations.some(item => item.name === 'helperValue'));
+  assert.ok(facts?.callTargets.includes('helper'));
+  assert.ok(facts?.callTargets.includes('fallback'));
+  assert.equal(facts?.controlFlow.if, 1);
+  assert.ok((facts?.callExpressions ?? 0) >= 3);
+});
+
+test('main/execution semantic diff detects source-shape changes', () => {
+  const diff = collectSemanticDiff();
+  assert.equal(typeof diff.readable, 'boolean');
+  if (diff.readable) {
+    assert.match(diff.mainSha ?? '', /^[0-9a-f]{40}$/);
+    assert.match(diff.executionSha ?? '', /^[0-9a-f]{40}$/);
+    assert.ok(diff.summary.modified >= 0);
+    assert.ok(diff.summary.semanticSourceChanges >= 0);
+  }
+});
+
 test('scanner passes syntax validation', () => {
   execFileSync(process.execPath, ['--check', scannerPath], { cwd: repoRoot, stdio: 'pipe' });
 });
@@ -131,7 +163,7 @@ test('scanner produces an exact-SHA report with zero uncovered authored lines', 
   assert.match(report, new RegExp('Exact SHA: ' + result.sha));
   assert.match(report, /## Main branch read snapshot/);
   assert.match(report, /Main SHA:/);
-  assert.match(report, /## Dependency graph/);
+  assert.match(report, /## Semantic comparison: main vs execution/);\n  assert.match(report, /Source files with AST semantic comparison:/);\n  assert.match(report, /## Dependency graph/);
   assert.match(report, /## Symbol index/);
   assert.match(report, /## Change delta/);
   assert.match(report, /## Capability boundary/);
