@@ -76,7 +76,7 @@ The official repository explorer package is centralized under `الوكلاء/ا
 The official comparison agent package is centralized under `الوكلاء/المطور AI/`.
 
 - Official agent name: `المطور AI`
-- Canonical agent contract: `الوكلاء/المطور AI/المقارن.md`
+- Canonical agent contract: `الوكلاء/المطور AI/المطور.md`
 - Development reports: `الوكلاء/المطور AI/تقارير التطوير/`
 - GitHub agent registration: `.github/agents/المطور-ai.md`
 - Write authority is limited to development reports. It never edits implementation, tasks, governance, or release state.
@@ -89,3 +89,5 @@ The official agent training program is centralized under `الوكلاء/تدر�
 - 100/100 rubric: `الوكلاء/تدريب الوكلاء/المعيار-100.md`
 - Contract test: `tests/security/ci/agent-training-contract.test.mjs`
 - No agent is considered 100/100 without passing role-specific contract gates.
+- Self-learning workflow: `.github/workflows/agent-self-learning.yml`.
+- Published training evidence is a SHA-bound GitHub Actions artifact; the workflow has `contents: read` only.
