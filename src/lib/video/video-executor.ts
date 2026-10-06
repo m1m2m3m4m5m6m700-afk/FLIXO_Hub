@@ -1,4 +1,5 @@
 import { attachVideoBlobSource, getBoundedVideoDuration } from './blob-video-source.ts';
+import { assertSafeVideoInput, validateVideoRenderOptions, VIDEO_LIMITS } from './video-safety.ts';
 export type VideoRenderOptions = Readonly<{
   startSec?: number;
   endSec?: number;
@@ -13,6 +14,15 @@ export type VideoRenderOptions = Readonly<{
 
 type MediaRecorderConstructor = typeof MediaRecorder;
 type CaptureStreamVideoElement = HTMLVideoElement & { captureStream?: () => MediaStream };
+
+async function assertWebmArtifact(blob: Blob): Promise<void> {
+  if (blob.type !== 'video/webm') throw new Error(`Unexpected video output MIME type: ${blob.type || '(missing MIME)'}`);
+  if (blob.size < 4 || blob.size > VIDEO_LIMITS.maxOutputBytes) throw new Error('VIDEO_OUTPUT_SIZE_INVALID');
+  const header = new Uint8Array(await blob.slice(0, 4).arrayBuffer());
+  if (header[0] !== 0x1a || header[1] !== 0x45 || header[2] !== 0xdf || header[3] !== 0xa3) {
+    throw new Error('VIDEO_OUTPUT_SIGNATURE_INVALID');
+  }
+}
 
 function supportedMimeType(): string {
   const ctor = globalThis.MediaRecorder as MediaRecorderConstructor | undefined;
@@ -88,7 +98,12 @@ function buildCanvas(video: HTMLVideoElement, options: VideoRenderOptions): { ca
 export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOptions = {}): Promise<Blob> {
   if (typeof document === 'undefined') throw new Error('VIDEO_BROWSER_RUNTIME_REQUIRED');
   if (typeof HTMLVideoElement === 'undefined' || typeof MediaRecorder === 'undefined') throw new Error('VIDEO_BROWSER_APIS_UNAVAILABLE');
-  if (inputBlob.size <= 0) throw new Error('VIDEO_INPUT_EMPTY');
+  await assertSafeVideoInput(inputBlob);
+
+  const operationController = new AbortController();
+  const abortFromCaller = () => operationController.abort();
+  options.signal?.addEventListener('abort', abortFromCaller, { once: true });
+  const timeoutId = setTimeout(() => operationController.abort(), VIDEO_LIMITS.timeoutMs);
 
   const video = document.createElement('video');
   let canvasStream: MediaStream | undefined;
@@ -114,15 +129,28 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
   document.body?.appendChild(video);
 
   try {
-    const metadataReady = waitForEvent(video, 'loadedmetadata');
+    const metadataReady = waitForEvent(video, 'loadedmetadata', operationController.signal);
     // Attach the Blob through the shared safe media-source adapter; no DOM object URL is created here.
     releaseSource = await attachVideoBlobSource(video, inputBlob, options.signal);
     await metadataReady;
-    const duration = await getBoundedVideoDuration(video, 10 * 60, options.signal);
+    const duration = await getBoundedVideoDuration(video, VIDEO_LIMITS.maxDurationSec, operationController.signal);
 
-    const startSec = Math.max(0, Math.min(options.startSec ?? 0, Math.max(0, duration - 0.001)));
-    const endSec = Math.max(startSec + 0.001, Math.min(options.endSec ?? duration, duration));
-    if (endSec <= startSec) throw new Error('VIDEO_TRIM_RANGE_INVALID');
+    validateVideoRenderOptions({
+      durationSec: duration,
+      startSec: options.startSec,
+      endSec: options.endSec,
+      crop: options.crop,
+      width: options.width,
+      height: options.height,
+      fps: options.fps,
+      videoBitsPerSecond: options.videoBitsPerSecond,
+      audioBitsPerSecond: options.audioBitsPerSecond,
+      sourceWidth: video.videoWidth,
+      sourceHeight: video.videoHeight,
+    });
+
+    const startSec = options.startSec ?? 0;
+    const endSec = options.endSec ?? duration;
 
     // Compression requests are bounded relative to the source bitrate so the result
     // is not merely re-encoded at a larger or identical bitrate for tiny inputs.
@@ -141,7 +169,7 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
     const context = canvas.getContext('2d');
     if (!context) throw new Error('VIDEO_CANVAS_CONTEXT_UNAVAILABLE');
 
-    const fps = Math.max(1, Math.min(120, Number(options.fps ?? 30)));
+    const fps = options.fps ?? 30;
     canvasStream = canvas.captureStream(fps);
     const captureVideo = video as CaptureStreamVideoElement;
     sourceStream = typeof captureVideo.captureStream === 'function' ? captureVideo.captureStream() : null;
@@ -159,20 +187,37 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
 
     const activeRecorder = recorder;
     const chunks: Blob[] = [];
-    const stopped = new Promise<void>((resolve, reject) => {
+    let recorderFailure: Error | undefined;
+    let totalOutputBytes = 0;
+    let outputLimitTriggered = false;
+    const stopped = new Promise<void>((resolve) => {
       activeRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) chunks.push(event.data);
+        if (event.data.size <= 0) return;
+        totalOutputBytes += event.data.size;
+        if (totalOutputBytes > VIDEO_LIMITS.maxOutputBytes) {
+          recorderFailure = new Error('VIDEO_OUTPUT_TOO_LARGE');
+          outputLimitTriggered = true;
+          operationController.abort();
+          if (activeRecorder.state !== 'inactive') {
+            try { activeRecorder.stop(); } catch { /* cleanup below */ }
+          }
+          return;
+        }
+        chunks.push(event.data);
       };
-      activeRecorder.onerror = () => reject(new Error('VIDEO_RECORDING_FAILED'));
+      activeRecorder.onerror = () => {
+        recorderFailure = recorderFailure ?? new Error('VIDEO_RECORDING_FAILED');
+        operationController.abort();
+      };
       activeRecorder.onstop = () => resolve();
     });
 
     if (options.signal?.aborted) throw new DOMException('Video operation aborted.', 'AbortError');
-    await seek(video, startSec, options.signal);
+    await seek(video, startSec, operationController.signal);
 
     drawing = true;
     const draw = () => {
-      if (!drawing || options.signal?.aborted) return;
+      if (!drawing || operationController.signal.aborted) return;
       context.drawImage(video, source.x, source.y, source.width, source.height, 0, 0, canvas.width, canvas.height);
     };
 
@@ -197,28 +242,27 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
 
     const recordDurationMs = Math.max(1, Math.ceil((endSec - startSec) * 1000));
     await new Promise<void>((resolve, reject) => {
+      let settled = false;
       const cleanup = () => {
         clearTimeout(timer);
-        options.signal?.removeEventListener('abort', onAbort);
+        operationController.signal.removeEventListener('abort', onAbort);
         video.removeEventListener('error', onError);
       };
-      const onAbort = () => {
+      const finish = (fn: () => void) => {
+        if (settled) return;
+        settled = true;
         cleanup();
-        reject(new DOMException('Video operation aborted.', 'AbortError'));
+        fn();
       };
-      const onError = () => {
-        cleanup();
-        reject(new Error('VIDEO_PLAYBACK_FAILED'));
-      };
-      options.signal?.addEventListener('abort', onAbort, { once: true });
+      const onAbort = () => finish(() => reject(
+        outputLimitTriggered
+          ? new Error('VIDEO_OUTPUT_TOO_LARGE')
+          : new DOMException('Video operation aborted.', 'AbortError'),
+      ));
+      const onError = () => finish(() => reject(new Error('VIDEO_PLAYBACK_FAILED')));
+      operationController.signal.addEventListener('abort', onAbort, { once: true });
       video.addEventListener('error', onError, { once: true });
-      // Do not depend on media-element currentTime advancing in headless Chromium.
-      // The recorder duration is bounded by the requested trim window and frame
-      // sampling continues independently until that wall-clock deadline.
-      const timer = setTimeout(() => {
-        cleanup();
-        resolve();
-      }, recordDurationMs);
+      const timer = setTimeout(() => finish(resolve), Math.min(recordDurationMs, VIDEO_LIMITS.timeoutMs));
     });
 
     drawing = false;
@@ -233,9 +277,17 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
     canvasStream.getTracks().forEach((track) => track.stop());
     sourceStream?.getTracks().forEach((track) => track.stop());
 
+    if (recorderFailure) throw recorderFailure;
     if (!chunks.length) throw new Error('VIDEO_RECORDING_EMPTY');
-    return new Blob(chunks, { type: 'video/webm' });
+    const output = new Blob(chunks, { type: 'video/webm' });
+    await assertWebmArtifact(output);
+    if (options.videoBitsPerSecond !== undefined && output.size >= inputBlob.size) {
+      throw new Error('VIDEO_COMPRESSION_NOT_REDUCED');
+    }
+    return output;
   } finally {
+    clearTimeout(timeoutId);
+    options.signal?.removeEventListener('abort', abortFromCaller);
     drawing = false;
     if (frameInterval) clearInterval(frameInterval);
     video.pause();
