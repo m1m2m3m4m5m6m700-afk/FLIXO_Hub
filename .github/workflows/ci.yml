@@ -2,7 +2,7 @@ name: FLIXO CI
 
 on:
   pull_request:
-    branches: [main, execution]
+    branches: [main]
   push:
     branches: [main, execution]
   workflow_dispatch:
