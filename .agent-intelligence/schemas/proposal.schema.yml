@@ -47,9 +47,6 @@ properties:
       last_viewed_by_human:
         type: string
         format: iso8601-z
-      last_viewed_by_human:
-        type: string
-        format: iso8601-z
   source:
     type: object
     additionalProperties: false
