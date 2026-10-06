@@ -74,8 +74,11 @@ jobs:
           git config user.name "FLIXO Agent Training"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           REPORT="الوكلاء/تدريب الوكلاء/تقارير التدريب/${GITHUB_SHA}.md"
+          ROLE_REPORT="الوكلاء/تدريب الوكلاء/تقارير التدريب/${GITHUB_SHA}-role-drills.md"
           REPORT_COPY="${RUNNER_TEMP}/flixo-training-${GITHUB_SHA}.md"
+          ROLE_REPORT_COPY="${RUNNER_TEMP}/flixo-training-${GITHUB_SHA}-role-drills.md"
           cp "$REPORT" "$REPORT_COPY"
+          cp "$ROLE_REPORT" "$ROLE_REPORT_COPY"
 
           if git ls-remote --exit-code --heads origin agent-learning >/dev/null 2>&1; then
             git fetch origin agent-learning
@@ -88,6 +91,7 @@ jobs:
           rm -rf 'الوكلاء/تدريب الوكلاء/تقارير التدريب'
           mkdir -p 'الوكلاء/تدريب الوكلاء/تقارير التدريب'
           cp "$REPORT_COPY" "$REPORT"
+          cp "$ROLE_REPORT_COPY" "$ROLE_REPORT"
           git add 'الوكلاء/تدريب الوكلاء/تقارير التدريب/'
           git diff --cached --name-only
           test -n "$(git diff --cached --name-only)"
