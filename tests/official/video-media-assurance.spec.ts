@@ -50,7 +50,6 @@ async function installMediaHooks(page: Page): Promise<void> {
       };
     }
 
-    const originalSetTimeout = window.setTimeout;
     window.setTimeout = function guardedSetTimeout(handler, delay, ...args) {
       const accelerated = Boolean((window as Window & { __flixoAccelerateVideoTimeout?: boolean }).__flixoAccelerateVideoTimeout);
       const nextDelay = accelerated && Number(delay) >= 500_000 ? 50 : delay;
