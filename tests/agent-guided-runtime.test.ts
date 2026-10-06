@@ -66,3 +66,21 @@ test('guided runtime cannot confirm a plan issued for another file', () => {
     /not issued by the current FLIXO Agent planner/i,
   );
 });
+
+test('guided runtime expires confirmation receipts and does not retain them indefinitely', async () => {
+  const originalNow = Date.now;
+  try {
+    let now = 1_000_000;
+    Date.now = () => now;
+    const file = image();
+    const plan = planAgentRequest('compress this image', file);
+    const receipt = confirmAgentPlan(plan, file);
+    now += 10 * 60 * 1000 + 1;
+    await assert.rejects(
+      () => executeAgentPlan(plan, file, receipt),
+      /expired/i,
+    );
+  } finally {
+    Date.now = originalNow;
+  }
+});
