@@ -70,7 +70,7 @@ test.describe('MVP local image engine acceptance', () => {
     await page.goto('/en/image-upscaler');
     const fixture = await buildImageFixture(page);
     await page.locator('input[type=file]').setInputFiles({ name: 'upscale-fixture.png', mimeType: 'image/png', buffer: fixture });
-    await page.getByLabel('Scale').fill('2');
+    await page.locator('input[aria-label="Scale"]:visible').first().fill('2');
     await page.getByRole('button', { name: 'Run tool', exact: true }).click();
     const output = await readOutput(page);
     expect(output.type).toBe('image/png');
@@ -85,12 +85,12 @@ test.describe('MVP local image engine acceptance', () => {
     await page.goto('/en/image-cropper');
     const fixture = await buildImageFixture(page);
     await page.locator('input[type=file]').setInputFiles({ name: 'crop-fixture.png', mimeType: 'image/png', buffer: fixture });
-    await page.getByLabel('X').fill('32');
-    await page.getByLabel('Y').fill('16');
-    await page.getByLabel('Crop width').fill('160');
-    await page.getByLabel('Crop height').fill('80');
-    await page.getByLabel('Output width').fill('80');
-    await page.getByLabel('Output height').fill('40');
+    await page.locator('input[aria-label="X"]:visible').first().fill('32');
+    await page.locator('input[aria-label="Y"]:visible').first().fill('16');
+    await page.locator('input[aria-label="Crop width"]:visible').first().fill('160');
+    await page.locator('input[aria-label="Crop height"]:visible').first().fill('80');
+    await page.locator('input[aria-label="Output width"]:visible').first().fill('80');
+    await page.locator('input[aria-label="Output height"]:visible').first().fill('40');
     await page.getByRole('button', { name: 'Run tool', exact: true }).click();
     const output = await readOutput(page);
     expect(output.type).toBe('image/png');
