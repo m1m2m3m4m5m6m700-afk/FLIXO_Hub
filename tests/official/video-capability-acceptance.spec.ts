@@ -90,8 +90,6 @@ test.describe('MVP video capability individual acceptance', () => {
         buffer: fixture,
       });
 
-      await page.getByRole('button', { name: 'Process video' }).click();
-
       if (videoCase.id === 'video-trimmer') {
         await page.getByLabel('Start (seconds)').fill('0');
         await page.getByLabel('End (seconds)').fill('0.5');
@@ -108,6 +106,8 @@ test.describe('MVP video capability individual acceptance', () => {
         await page.getByLabel('Video bitrate').fill('200000');
         await page.getByLabel('Audio bitrate').fill('64000');
       }
+
+      await page.getByRole('button', { name: 'Process video' }).click();
 
       const downloadLink = page.getByRole('link', { name: 'Download result' });
       await expect(downloadLink).toBeVisible({ timeout: 30_000 });
