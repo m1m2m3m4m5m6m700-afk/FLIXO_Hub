@@ -307,9 +307,21 @@ const targetSizeVerifier: CanonicalCapabilityVerifier = async (input, output, pa
   return output.size < input.size;
 };
 
-const formatVerifier: CanonicalCapabilityVerifier = async (_input, output, parameters, signal) => {
+const formatVerifier: CanonicalCapabilityVerifier = async (input, output, parameters, signal) => {
   const format = parameters.format;
-  return !signal?.aborted && output.size > 0 && typeof format === "string" && output.type === format;
+  if (signal?.aborted || output.size <= 0 || typeof format !== "string" || output.type !== format) return false;
+  const [inputDimensions, outputDimensions] = await Promise.all([
+    readImageDimensions(input, signal),
+    readImageDimensions(output, signal),
+  ]);
+  return Boolean(
+    inputDimensions &&
+    outputDimensions &&
+    outputDimensions.width > 0 &&
+    outputDimensions.height > 0 &&
+    outputDimensions.width === inputDimensions.width &&
+    outputDimensions.height === inputDimensions.height,
+  );
 };
 
 const effectsVerifier: CanonicalCapabilityVerifier = async (input, output, parameters, signal) => {

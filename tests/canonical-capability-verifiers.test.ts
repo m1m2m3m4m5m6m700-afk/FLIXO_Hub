@@ -181,7 +181,12 @@ test('canonical MVP capability verifiers accept measurable valid artifacts and r
     );
 
     const converted = new Blob(['converted'], { type: 'image/webp' });
+    imageDimensions.set(converted, { width: 100, height: 50 });
     assert.equal(await definition('image-converter').verifier(input, converted, { format: 'image/webp' }), true);
+
+    const wrongDimensions = new Blob(['converted'], { type: 'image/webp' });
+    imageDimensions.set(wrongDimensions, { width: 99, height: 50 });
+    assert.equal(await definition('image-converter').verifier(input, wrongDimensions, { format: 'image/webp' }), false);
 
     const videoIds = ['video-trimmer', 'video-cropper', 'video-resizer', 'video-compressor'];
     for (const id of videoIds) {
