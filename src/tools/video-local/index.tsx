@@ -147,9 +147,14 @@ export function VideoLocalTool() {
     return () => {
       if (resultUrl) URL.revokeObjectURL(resultUrl);
       if (resultUrlRef.current && resultUrlRef.current !== resultUrl) URL.revokeObjectURL(resultUrlRef.current);
-      if (fileUrlRef.current) URL.revokeObjectURL(fileUrlRef.current);
     };
   }, [resultUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (fileUrlRef.current) URL.revokeObjectURL(fileUrlRef.current);
+    };
+  }, []);
 
   const acceptFile = (next: File | null) => {
     if (!next) return;
