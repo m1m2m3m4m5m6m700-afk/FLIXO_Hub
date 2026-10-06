@@ -470,7 +470,13 @@ def validate_proposal(proposal_path: Path, repo_root: Path | None = None, now: d
     proposal_path = proposal_path.resolve(strict=True)
     if not proposal_path.is_file():
         return _result({}, "rejected", {"V-01": "FAIL"}, ["proposal must be an existing regular file"])
-    inbox_root = (root / ".agent-intelligence" / "inbox").resolve(strict=True)
+    inbox_dir = root / ".agent-intelligence" / "inbox"
+    if inbox_dir.is_symlink() or not inbox_dir.is_dir():
+        return _result({}, "rejected", {"V-01": "FAIL"}, ["proposal inbox boundary is missing or unsafe"])
+    try:
+        inbox_root = inbox_dir.resolve(strict=True)
+    except (FileNotFoundError, OSError):
+        return _result({}, "rejected", {"V-01": "FAIL"}, ["proposal inbox boundary is missing or unsafe"])
     try:
         proposal_path.relative_to(inbox_root)
     except ValueError:
