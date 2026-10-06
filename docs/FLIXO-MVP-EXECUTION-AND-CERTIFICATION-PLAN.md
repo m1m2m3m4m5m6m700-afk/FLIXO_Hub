@@ -2,7 +2,7 @@
 ## Exact-SHA / Gap-Driven / Fail-Closed / Red-Team Verifiable
 
 STATUS: ACTIVE / EXECUTABLE
-REPOSITORY: m1m2m3m4m5m6m700-afk/FLIXO-AI-TOOLS
+REPOSITORY: m1m2m3m4m5m6m700-afk/FLIXO_Hub
 PRIMARY EXECUTION BRANCH: execution
 INTEGRATION PATH: execution -> main
 
@@ -157,7 +157,7 @@ EXIT: output and visual verification proven or BLOCKER.
 # PROMPT 09 — COVERAGE CLOSURE
 ROLE: Coverage Agent.
 Start from the exact current SHA.
-Verify meaningful coverage of Agent Editor, provider router, adapters, agent runtime, local executor, media worker, security parsing, failover, output verification, browser-critical paths, and coverage generation.
+Verify meaningful coverage of the current Agent Guided runtime, provider/trust-boundary adapters where present, local executor, media worker, security parsing, failover, output verification, browser-critical paths, and coverage generation. The historical `apps/agent-editor` runtime was retired during recovery and is not a current coverage authority.
 Do not add superficial tests merely to increase a percentage.
 For Codecov inspect policy/workflow. If tokenless upload is intentionally supported, document it. Otherwise configure the authorized secret.
 FORBIDDEN: missing token treated as success, ignored upload failure, removed protection, || true, skipped coverage.
