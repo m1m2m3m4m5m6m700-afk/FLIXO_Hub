@@ -48,6 +48,8 @@ jobs:
           python3 tests/three_critic_review.test.py
       - name: Exact-SHA workflow contract tests
         run: node --test scripts/ci/test-workflow-exact-sha-contract.mjs
+      - name: Fetch main governance snapshot for read-only contract tests
+        run: git fetch origin main --depth=1
       - name: Agent 2 CI security contract tests
         run: node --test tests/security/ci/*.test.mjs
       - name: Model license and admission gate
