@@ -64,12 +64,18 @@ async function seek(video: HTMLVideoElement, time: number, signal?: AbortSignal)
 
 function buildCanvas(video: HTMLVideoElement, options: VideoRenderOptions): { canvas: HTMLCanvasElement; source: { x: number; y: number; width: number; height: number } } {
   const source = options.crop
-    ? {
-      x: Math.min(Math.max(0, options.crop.x), Math.max(0, video.videoWidth - 1)),
-      y: Math.min(Math.max(0, options.crop.y), Math.max(0, video.videoHeight - 1)),
-      width: Math.min(Math.max(1, options.crop.width), video.videoWidth),
-      height: Math.min(Math.max(1, options.crop.height), video.videoHeight),
-    }
+    ? (() => {
+      const x = Math.min(Math.max(0, options.crop!.x), Math.max(0, video.videoWidth - 1));
+      const y = Math.min(Math.max(0, options.crop!.y), Math.max(0, video.videoHeight - 1));
+      const maxWidth = Math.max(1, video.videoWidth - x);
+      const maxHeight = Math.max(1, video.videoHeight - y);
+      return {
+        x,
+        y,
+        width: Math.min(Math.max(1, options.crop!.width), maxWidth),
+        height: Math.min(Math.max(1, options.crop!.height), maxHeight),
+      };
+    })()
     : { x: 0, y: 0, width: video.videoWidth, height: video.videoHeight };
   const width = Math.max(1, Math.round(options.width ?? source.width));
   const height = Math.max(1, Math.round(options.height ?? source.height));
