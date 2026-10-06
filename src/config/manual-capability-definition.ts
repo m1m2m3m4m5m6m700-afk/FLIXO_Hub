@@ -206,6 +206,8 @@ async function readVideoDimensions(blob: Blob, signal?: AbortSignal): Promise<Me
       video.onerror = () => { cleanup(); reject(new Error("Video output could not be decoded.")); };
       signal?.addEventListener("abort", onAbort, { once: true });
     });
+    releaseSource = await attachVideoBlobSource(video, blob, signal);
+    await metadataReady;
     if (!Number.isFinite(video.duration) || video.duration <= 0 || video.videoWidth <= 0 || video.videoHeight <= 0) return undefined;
     return { width: video.videoWidth, height: video.videoHeight, duration: video.duration };
   } finally {
