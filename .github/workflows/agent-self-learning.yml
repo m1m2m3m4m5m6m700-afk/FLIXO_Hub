@@ -39,6 +39,13 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
 
+      - name: Refresh main reference for cross-branch drills
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main --no-tags
+          test -n "$(git rev-parse refs/remotes/origin/main)"
+
       - name: Run self-learning contract tests
         run: node --test tests/security/ci/agent-self-learning-control-plane.test.mjs tests/security/ci/agent-role-drills.test.mjs tests/security/ci/agent-readiness-evaluator.test.mjs
 
