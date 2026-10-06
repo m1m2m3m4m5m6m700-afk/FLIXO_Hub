@@ -247,7 +247,7 @@ export function planAgentRequest(prompt: string, file: File): AgentPlan {
   const result = Object.freeze({
     ...plan,
     requiresUserConfirmation: true as const,
-    matchedIntent: intent,
+    matchedIntent: matches.map(({ intent: matchedIntent }) => matchedIntent).join(' -> '),
   });
   issuedPlans.set(result, { file, identity: identityOf(plan) });
   return result;
