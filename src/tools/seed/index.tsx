@@ -12,7 +12,7 @@ import { CurveMiniPreview, NumericField, SectionReset, StudioSlider, ToolSection
 import { FloatingCanvasOverlay, type FloatingCanvasOverlayLabels } from '../../components/floating-canvas-overlay';
 import { useFullscreenSync } from '../../components/useFullscreenSync';
 import { getTranslationBundle, type Locale } from '../../lib/i18n';
-import { validateBrowserFile } from '../../lib/contracts/browser-file-safety';
+import { validateBrowserFile, IMAGE_BROWSER_FILE_POLICY } from '../../lib/contracts/browser-file-safety';
 import { EN_SEED_UI } from '../../lib/i18n/locales/en';
 import type { SeedUiTranslations } from '../../lib/i18n/types';
 
@@ -27,11 +27,9 @@ const SEED_IMAGE_MAX_BYTES = 25 * 1024 * 1024;
 const SEED_IMAGE_MAX_PIXELS = 40_000_000;
 
 const SEED_IMAGE_POLICY = Object.freeze({
+  ...IMAGE_BROWSER_FILE_POLICY,
   maxBytes: SEED_IMAGE_MAX_BYTES,
   maxPixels: SEED_IMAGE_MAX_PIXELS,
-  allowedMime: ['image/avif', 'image/bmp', 'image/gif', 'image/jpeg', 'image/png', 'image/webp'] as const,
-  allowedExtensions: ['avif', 'bmp', 'gif', 'jpeg', 'jpg', 'png', 'webp'] as const,
-  magicBytes: [] as const,
   decoder: async (file: File) => {
     if (typeof createImageBitmap !== 'function') throw new Error('Seed image decoding is unavailable.');
     const bitmap = await createImageBitmap(file);
