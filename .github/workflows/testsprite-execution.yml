@@ -1,13 +1,16 @@
 name: TestSprite Live E2E (execution)
 
 on:
+  pull_request:
+    branches: [main, execution]
   push:
     branches:
       - execution
+      - main
   workflow_dispatch:
 
 concurrency:
-  group: testsprite-execution-${{ github.ref }}
+  group: testsprite-execution-${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
   cancel-in-progress: false
 
 permissions:
@@ -15,12 +18,16 @@ permissions:
 
 jobs:
   testsprite:
+    if: ${{ github.repository == 'm1m2m3m4m5m6m700-afk/FLIXO_Hub' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
     steps:
-      - name: Checkout exact execution SHA
+      - name: Checkout exact trusted release SHA
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
 
       - name: Setup Node 22
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
@@ -212,3 +219,63 @@ jobs:
             test-results
             playwright-report/results.json
           if-no-files-found: ignore
+
+  native-exact-sha-fallback:
+    if: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/execution' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact unprivileged candidate SHA
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Verify exact candidate identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+
+      - name: Setup Node 22
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install project dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Native exact-SHA canonical ten-tool E2E fallback
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build:runtime
+          nohup npm run preview -- --host 127.0.0.1 --port 3000 >/tmp/flixo-vite.log 2>&1 &
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:3000/ >/dev/null; then
+              break
+            fi
+            sleep 2
+          done
+          curl -fsS http://127.0.0.1:3000/ >/dev/null
+          npx playwright install --with-deps chromium
+          mkdir -p testsprite-fallback
+          PLAYWRIGHT_REUSE_SERVER=true npm run test:e2e -- --project=chromium tests/official/mvp-10-release-verification.spec.ts
+          printf '{"testsprite":"not-configured","fallback":"native-playwright","sha":"%s","status":"PASS"}\n' "$EXPECTED_SHA" > testsprite-fallback/summary.json
+
+      - name: Upload native fallback evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: testsprite-native-fallback-${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          path: |
+            testsprite-fallback/summary.json
+            /tmp/flixo-vite.log
+            test-results
+            playwright-report/results.json
+          if-no-files-found: warn
