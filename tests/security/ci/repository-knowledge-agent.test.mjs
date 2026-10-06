@@ -125,6 +125,7 @@ test('workflow wakes on execution changes and ignores only its own report direct
   assert.match(workflow, /paths-ignore:/);
   assert.match(workflow, /0\(التقارير\)\/\*\*/);
   assert.match(workflow, /ref: \$\{\{ github\.sha \}\}/);
+  assert.match(workflow, /persist-credentials: true/);
   assert.match(workflow, /test "\$\(git rev-parse HEAD\)" = "\$\{GITHUB_SHA\}"/);
   assert.match(workflow, /Uncovered repository-authored text lines: 0/);
   assert.match(workflow, /git fetch origin execution/);
