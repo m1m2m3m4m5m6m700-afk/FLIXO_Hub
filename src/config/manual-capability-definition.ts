@@ -374,8 +374,6 @@ function createCapability(id:(typeof MVP_EXECUTABLE_TOOL_IDS)[number]):Canonical
     id === "image-compressor" ? targetSizeVerifier :
     id === "image-converter" ? formatVerifier :
     id === "image-effects" ? effectsVerifier :
-    id === "image-rotate" ? rotatedImageVerifier :
-    id === "image-resizer" ? resizedImageVerifier :
     isVideo ? videoVerifier :
     changedImageVerifier;
   return Object.freeze({
