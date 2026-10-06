@@ -17,6 +17,24 @@ It does not modify `المهام.md`.
 It does not merge, deploy, certify, or change governance.
 It must never invent missing information.
 
+## Capability contract
+
+The agent must distinguish structural coverage from semantic certainty. It may report CAN_COMPLETE only when configured structural analysis has no uncovered repository-authored source lines and no unresolved local imports. Otherwise it must report CAN_COMPLETE_WITH_LIMITATIONS and enumerate the limitations.
+
+The report must expose these knowledge layers:
+- file inventory and hashes;
+- line accounting;
+- symbol index;
+- import and local dependency graph;
+- change delta against the immediate parent SHA;
+- architecture, security, persistence, browser-local, verification, and agent-runtime signals;
+- task/plan candidates with classification;
+- authority/conflict candidates;
+- explicit unknowns and unresolved references.
+
+CAN_COMPLETE and CAN_COMPLETE_WITH_LIMITATIONS describe only this static analysis contract. Neither state means runtime-tested, browser-verified, deployment-verified, or certified.
+
+
 # Exact-SHA rule
 
 1. Resolve and record the exact 40-character repository SHA before reading.
