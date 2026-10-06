@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { test } from 'node:test';
+import { assertWorkflowAuthority, classifyBranchRef, enumerateWorkflowAuthority } from '../scripts/ci/branch-authority-contract.mjs';
 
 const repoRoot = process.cwd();
 const OWNER = '@m1m2m3m4m5m6m700-afk';
@@ -98,4 +99,39 @@ test('certification lineage guard fails closed on stale current claims', () => {
   assert.match(lineage, /LINEAGE_RETIRED_PR_ACTIVE/u);
   assert.match(lineage, /Candidate SHA: \`REQUIRED\`/u);
   assert.match(lineage, /CURRENT_WORKFLOW_RUN: \`REQUIRED\`/u);
+});
+
+
+test('branch authority classifies approved Agent 3 compatibility lanes as controlled and never operational', () => {
+  for (const ref of [
+    'refs/heads/agent-3a/redteam-rt17-20261006',
+    'refs/heads/agent-3b/redteam-rt19-20261006',
+    'refs/heads/agent-3c/redteam-rt20-20261006',
+    'refs/heads/agent3/verification-20261006',
+    'refs/heads/agent-3/ux-browser-20261006',
+    'refs/heads/agent-residual/redteam-closure-20261006',
+  ]) {
+    assert.equal(classifyBranchRef(ref), 'controlled agent');
+  }
+  assert.equal(classifyBranchRef('refs/heads/main'), 'operational');
+  assert.equal(classifyBranchRef('refs/heads/execution'), 'operational');
+  assert.equal(classifyBranchRef('refs/heads/unknown-branch'), 'unknown');
+  assert.notEqual(classifyBranchRef('refs/heads/agent-3c/redteam-rt20-20261006'), 'operational');
+});
+
+test('branch authority enumerates every workflow and validates all authority-sensitive workflows', () => {
+  const { readdirSync } = await import('node:fs');
+  const { join } = await import('node:path');
+  const files = readdirSync(join(repoRoot, '.github/workflows'))
+    .filter((name) => /.(?:ya?ml)$/u.test(name))
+    .sort()
+    .map((name) => ({ path: join('.github/workflows', name), source: readFileSync(join(repoRoot, '.github/workflows', name), 'utf8') }));
+  const inventory = enumerateWorkflowAuthority(files);
+  assert.equal(inventory.length, files.length);
+  assertWorkflowAuthority(inventory);
+  const ciEntry = inventory.find((entry) => entry.path === join('.github/workflows', 'ci.yml'));
+  assert.ok(ciEntry);
+  assert.equal(ciEntry.productionDeploy, true);
+  assert.equal(ciEntry.promotion, true);
+  assert.equal(ciEntry.authoritySensitive, true);
 });
