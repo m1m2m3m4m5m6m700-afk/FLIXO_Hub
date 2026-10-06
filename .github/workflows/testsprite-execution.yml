@@ -208,4 +208,6 @@ jobs:
             .testsprite/runtime-plans
             /tmp/flixo-vite.log
             testsprite-fallback
+            test-results
+            playwright-report/results.json
           if-no-files-found: ignore
