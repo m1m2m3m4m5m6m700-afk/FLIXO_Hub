@@ -190,9 +190,12 @@ export function ToolWorkbench<P>({
   const [preset, setPreset] = useState<'default' | 'clean' | 'warm'>('default');
   const mountedRef = useRef(true);
 
-  useEffect(() => () => {
-    mountedRef.current = false;
-    assetStore.clear();
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      assetStore.clear();
+    };
   }, [assetStore]);
 
   const loadInputFile = async (file: File): Promise<void> => {
