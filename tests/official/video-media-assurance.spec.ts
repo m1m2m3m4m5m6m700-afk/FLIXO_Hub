@@ -240,7 +240,7 @@ test.describe('FLIXO Agent 2 video/media assurance', () => {
   test('recorder failure fails closed without exposing an artifact', async ({ page }) => {
     await installMediaHooks(page);
     const fixture = await buildFixture(page);
-    await page.evaluate(() => { window.__flixoRecorderMode = 'failure'; });
+    await page.addInitScript(() => { (window as Window).__flixoRecorderMode = 'failure'; });
     await page.goto('/en/video-resizer');
     await page.getByLabel('Choose video').setInputFiles({ name: 'failure.webm', mimeType: 'video/webm', buffer: fixture });
     await page.getByRole('button', { name: 'Process video' }).click();
@@ -251,7 +251,7 @@ test.describe('FLIXO Agent 2 video/media assurance', () => {
   test('empty recorder output fails closed without exposing an artifact', async ({ page }) => {
     await installMediaHooks(page);
     const fixture = await buildFixture(page);
-    await page.evaluate(() => { window.__flixoRecorderMode = 'empty'; });
+    await page.addInitScript(() => { (window as Window).__flixoRecorderMode = 'empty'; });
     await page.goto('/en/video-resizer');
     await page.getByLabel('Choose video').setInputFiles({ name: 'empty.webm', mimeType: 'video/webm', buffer: fixture });
     await page.getByRole('button', { name: 'Process video' }).click();
