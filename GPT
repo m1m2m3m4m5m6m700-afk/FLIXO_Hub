@@ -1,14 +1,10 @@
-# FLIXO Release Product Directive
+﻿# FLIXO Manual-Only Product Directive
 
-FLIXO exposes two supported workflows for the certified browser-local image capabilities:
+FLIXO production exposes direct manual browser tools only.
 
-1. Agent Guided Workflow — the user supplies an image and a natural-language instruction. A deterministic local planner resolves the request against the canonical executable registry, produces a bounded execution plan, and requires explicit user confirmation before execution.
-2. Manual Standalone Workflow — the user opens a tool route and executes the operation directly.
-
-Release boundaries:
-- Image processing remains browser-local.
-- Raw File/Blob bytes never enter the agent request contract and are never sent to an LLM/provider/backend.
-- Agent execution is limited to the canonical executable capability set, one local step at a time, with fail-closed output verification.
-- The canonical registry remains authoritative for capability state, schemas, execution mode, safety requirements, recovery policy, executor binding, and output contract.
-- Non-executable or ambiguous requests fail closed and remain available through the manual tool surface when appropriate.
-- Production deployment remains the Cloudflare Workers exact-SHA pipeline defined in CI.
+- No public or internal AI agent runtime.
+- No agent gateway, specialist router, autonomous planner, agent memory, or agent execution loop.
+- User actions are initiated explicitly from tool pages.
+- Supported local tool chains execute only through direct browser-local adapters.
+- Raw files remain browser-local unless a specific standalone tool explicitly documents a remote dependency.
+- `src/config/registry.ts` remains the canonical tool registry.

@@ -8,7 +8,6 @@ process.env.VITE_SITE_URL ??= process.env.SITE_URL;
 
 export default defineConfig({
   testDir: './tests/official',
-  testIgnore: ['**/mvp-agent-workflow-certification.spec.ts'],
   fullyParallel: true,
   forbidOnly: isCi,
   workers: isCi ? 3 : undefined,

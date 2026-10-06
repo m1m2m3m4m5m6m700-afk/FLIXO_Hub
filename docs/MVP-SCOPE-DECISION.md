@@ -33,9 +33,9 @@ This document records product scope. Runtime authority remains the canonical too
 
 ## Workflow contract
 
-Every executable MVP capability supports:
-1. Agent Guided Workflow.
-2. Manual Standalone Workflow.
+Every executable MVP capability is exposed through the Manual Standalone Workflow.
+
+Agent Guided Workflow is not a production workflow. No Agent runtime, gateway, planner, memory, or execution loop is required or shipped.
 
 ## Post-MVP boundary
 

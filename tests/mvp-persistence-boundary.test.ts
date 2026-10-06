@@ -1,12 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+test('manual-only production has no public or internal Agent execution surface', () => {
+  assert.equal(existsSync(resolve(root, 'src/routes/agent.tsx')), false);
+  assert.equal(existsSync(resolve(root, 'src/lib/agent-guided-runtime.ts')), false);
+});
+
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const activeMvpPaths = [
-  'src/routes/agent.tsx',
   'src/tools/background-remover/index.tsx',
   'src/tools/image-upscaler/index.tsx',
   'src/tools/image-cropper/index.tsx',
@@ -14,7 +18,6 @@ const activeMvpPaths = [
   'src/tools/image-converter/index.tsx',
   'src/tools/image-effects/index.tsx',
   'src/tools/video-local/index.tsx',
-  'src/lib/agent-guided-runtime.ts',
   'src/lib/execution/canonical-executor.ts',
   'src/config/registry.ts',
   'src/config/manual-capability-definition.ts',
