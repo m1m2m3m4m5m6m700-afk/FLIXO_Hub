@@ -27,7 +27,7 @@ Advisory/helper profiles are role overlays. They do not constitute additional ce
 - No Agent merges or promotes to main.
 - No Agent changes MVP scope without explicit Human Authority approval.
 - No Agent bypasses the canonical execution gate.
-- Autonomous execution is bounded by attempts, time, mutations, and task scope.
+- Routine autonomous execution is governed by risk-based limits rather than a fixed pre-execution operation count.
 - Evidence is valid only when bound to the exact SHA under verification.
 - Infrastructure Green, Product Green, and MVP Certified are separate states.
 - Manual execution remains functional without the Agent Router.
@@ -49,7 +49,7 @@ Human Authority may explicitly expand or contract implementation permissions wit
 
 ## Approved execution publication lane
 
-The canonical execution mutation mechanism remains the **Durable Patch Capsule + CAS** lane.
+The canonical execution mutation mechanism remains non-force, race-safe publication through `execution` or an isolated worker branch, followed by CAS reconciliation where integration is required.
 
 ## Policy synchronization
 Agent execution policy, repository governance, and certification are separate layers:
@@ -65,3 +65,7 @@ Under Open Agent Execution Mode:
 - `main` remains PR-only and unchanged by the execution lane;
 - live repository settings such as rulesets and branch protection remain governed externally and cannot be rewritten by source changes;
 - Patch Capsules are work products, never certification evidence.
+
+
+## Flexible Agent Governance
+Worker branches are permitted for parallel execution and experiments without a mandatory PR-to-`execution` step. Routine implementation does not require conversational approval, handoff, lease acquisition, or fixed operation-count preflight. Production promotion and certification remain strict.
