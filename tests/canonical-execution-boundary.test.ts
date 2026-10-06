@@ -159,11 +159,11 @@ test('tool-chain panel UI matches the canonical chain/media boundary', () => {
 test('canonical executor enforces container signatures for supported video MIME types', () => {
   const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
   const executor = readFileSync(resolve(root, 'src/lib/execution/canonical-executor.ts'), 'utf8');
-  assert.match(executor, /input\.blob\.type === 'video\\/webm' \|\| input\.blob\.type === 'video\\/x-matroska'/u);
+  assert.match(executor, /input\.blob\.type === 'video\/webm' \|\| input\.blob\.type === 'video\/x-matroska'/u);
   assert.match(executor, /bytes: \[0x1a, 0x45, 0xdf, 0xa3\]/u);
-  assert.match(executor, /input\.blob\.type === 'video\\/mp4' \|\| input\.blob\.type === 'video\\/quicktime'/u);
+  assert.match(executor, /input\.blob\.type === 'video\/mp4' \|\| input\.blob\.type === 'video\/quicktime'/u);
   assert.match(executor, /offset: 4/u);
-  assert.match(executor, /input\.blob\.type === 'video\\/ogg'/u);
+  assert.match(executor, /input\.blob\.type === 'video\/ogg'/u);
   assert.match(executor, /bytes: \[0x4f, 0x67, 0x67, 0x53\]/u);
   assert.match(executor, /magicBytes: isVideo/u);
 });
