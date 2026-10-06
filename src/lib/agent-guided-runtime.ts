@@ -45,7 +45,7 @@ function matchedTools(prompt: string, file: File): Array<{ toolId: string; inten
         { toolId: 'image-compressor', intent: 'compress' },
       ];
     }
-    if ((normalized.includes('product') || normalized.includes('shop')) && (normalized.includes('square') || normalized.includes('shop'))) {
+    if (normalized.includes('square') && (normalized.includes('product') || normalized.includes('shop'))) {
       return [
         { toolId: 'background-remover', intent: 'remove background' },
         { toolId: 'image-cropper', intent: 'crop' },
