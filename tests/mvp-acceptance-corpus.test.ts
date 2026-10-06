@@ -30,10 +30,11 @@ test('versioned MVP acceptance corpus resolves every positive case through canon
 });
 
 test('versioned MVP negative corpus never guesses ambiguous or unsupported requests', () => {
-  assert.equal(MVP_NEGATIVE_INTENT_SUITE_VERSION, 1);
+  assert.equal(MVP_NEGATIVE_INTENT_SUITE_VERSION, 2);
   for (const item of MVP_NEGATIVE_INTENT_SUITE) {
+    const file = item.id.includes('video') ? video() : image();
     assert.throws(
-      () => planAgentRequest(item.request, image()),
+      () => planAgentRequest(item.request, file),
       /No admitted FLIXO MVP capability|Request is ambiguous/i,
       item.id,
     );
