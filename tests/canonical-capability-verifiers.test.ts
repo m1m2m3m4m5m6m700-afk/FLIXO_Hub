@@ -194,7 +194,11 @@ test('canonical MVP capability verifiers accept measurable valid artifacts and r
         duration: id === 'video-trimmer' ? 1.9 : 2,
       });
       currentVerificationInput = null;
-      const parameters = id === 'video-trimmer' ? { startSec: 0, endSec: 1.9 } : {};
+      const parameters = id === 'video-trimmer'
+        ? { startSec: 0, endSec: 1.9 }
+        : id === 'video-cropper'
+          ? { x: 0, y: 0, width: 9999, height: 9999 }
+          : {};
       assert.equal(await definition(id).verifier(candidateInput, candidateOutput, parameters), true, id);
     }
   } finally {
