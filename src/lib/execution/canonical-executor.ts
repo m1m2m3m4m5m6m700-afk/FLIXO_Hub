@@ -190,7 +190,8 @@ async function executeImageEffectsInWorker(
     };
     const timer = setTimeout(
       () => finish(() => reject(new Error('Image effects worker timed out.'))),
-      Math.max(1, Math.min(timeoutMs, 30_000)),
+      // Keep worker failure bounded well below the UI acceptance timeout, then use the local fallback.
+      Math.max(1, Math.min(timeoutMs, 8_000)),
     );
     const onAbort = () => finish(() => reject(cancelledError()));
     signal?.addEventListener('abort', onAbort, { once: true });
