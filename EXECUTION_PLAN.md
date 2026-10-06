@@ -27,6 +27,8 @@ Achieve 100% verified completion of the browser-first tool expansion program: ar
 
 - `main` is production truth.
 - Integration lane is `execution → main`; no direct main writes.
+- Agent implementation is intentionally open and broad on the canonical `execution` lane; per-agent branches and PRs into `execution` are not part of the current architecture.
+- Live GitHub rulesets/branch protection are external governance and cannot be simulated by repository text or verifier changes.
 - No merge, deployment, destructive repository change, critical execution, or task closure without explicit human approval for that decision.
 - No stale SHA evidence. Every certification claim is bound to the exact verified commit SHA.
 - Skipped, cancelled, neutral, or unavailable checks are not PASS.
@@ -382,7 +384,7 @@ For every tool:
 
 ## Phase 5 — Sub-Agent Delegation & Governance
 
-Sub-agents may be used for analysis/review tasks, but they do not receive authority to bypass repository governance.
+Sub-agents and execution workers may be used for broad implementation, testing, hardening, documentation, and integration work directly on the canonical `execution` lane under the Open Agent Execution Mode. They do not receive merge, promotion, certification, self-approval, scope, or governance-bypass authority.
 
 ### QA Agent
 
@@ -405,14 +407,15 @@ Sub-agents may be used for analysis/review tasks, but they do not receive author
 - [ ] Check documentation consistency.
 - [ ] Validate branch/PR workflow.
 - [ ] Detect stale references and duplicate registries.
-- [ ] Report only; no autonomous merge/deploy/certification authority.
+- [ ] May implement scoped repository repairs on `execution` under Open Agent Execution Mode.
+- [ ] No autonomous merge/deploy/certification/self-approval or governance-bypass authority.
 
 ### Governance
 
 - [ ] Human remains final authority.
 - [ ] Agents cannot merge.
 - [ ] Agents cannot deploy.
-- [ ] Agents cannot alter branch protection.
+- [ ] Agents cannot simulate or weaken branch protection through repository source; live branch protection remains a GitHub Administration concern.
 - [ ] Agents cannot redefine MVP scope.
 - [ ] Agents cannot certify their own work.
 - [ ] All agent outputs require verification by an independent gate.
@@ -485,4 +488,4 @@ Sub-agents may be used for analysis/review tasks, but they do not receive author
 
 ## Completion Rule
 
-Do not mark this mission complete, issue a final certificate, or report 100% completion until every unchecked item is verified, evidence is recorded against the exact SHA, required repository/production checks are PASS, and the corresponding human approvals are explicitly recorded.
+Do not mark this mission complete, issue a final certificate, or report 100% completion until every required item is verified, all required evidence belongs to one exact SHA, live repository governance satisfies the required policy, production checks are PASS where applicable, and the corresponding human approvals are explicitly recorded. Open Agent Execution Mode expands implementation freedom; it does not relax release gates.

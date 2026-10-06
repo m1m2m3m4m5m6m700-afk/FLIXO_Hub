@@ -51,6 +51,13 @@ Human Authority may explicitly expand or contract implementation permissions wit
 
 The canonical execution mutation mechanism remains the **Durable Patch Capsule + CAS** lane.
 
+## Policy synchronization
+Agent execution policy, repository governance, and certification are separate layers:
+- Agent execution policy controls implementation freedom on `execution`.
+- GitHub rulesets/branch protection are external enforcement and are authoritative for merge-time protection.
+- Certification consumes live governance state plus exact-SHA evidence; repository text cannot substitute for either.
+- When the layers disagree, the result is `BLOCKED` until reconciled. No source change may convert an external governance mismatch into `PASS`.
+
 Under Open Agent Execution Mode:
 - authorized agents/workers may produce and publish implementation changes broadly on `execution`;
 - publication must remain non-force and race-safe;

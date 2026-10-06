@@ -25,6 +25,14 @@ Open execution means broad implementation authority on `execution`; it does not 
 
 Multiple agents may collaborate on the same `execution` lane, but this does not create a third integration lane or a second production source of truth.
 
+## Governance synchronization
+The repository has three distinct control planes and they must never be conflated:
+- Agent contract: defines what authorized agents may implement on `execution`.
+- Live repository governance: GitHub rulesets and branch protection define what GitHub will actually enforce.
+- Certification: requires fresh exact-SHA evidence plus all required live governance and promotion conditions.
+
+Open Agent Execution Mode does not simulate, satisfy, or override missing GitHub rules. A mismatch between documented policy and live GitHub enforcement is a release blocker, not a reason to weaken a verifier or downgrade the required assurance level.
+
 ## Execution lane
 - Working branch: `execution`
 - Production truth: `main`

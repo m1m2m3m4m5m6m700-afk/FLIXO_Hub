@@ -48,6 +48,8 @@ All recorded SHAs must be identical before release promotion.
 
 ## Governance
 
+- [ ] Agent implementation policy is `Open Agent Execution Mode` on canonical `execution`.
+- [ ] No agent branch or PR-to-`execution` workflow is required.
 - [ ] PR targets `main` from `execution`
 - [ ] Independent human review is present
 - [ ] Code Owner policy is enforced where required
@@ -55,6 +57,7 @@ All recorded SHAs must be identical before release promotion.
 - [ ] `main` is protected
 - [ ] No direct write to `main`
 - [ ] No stale/cancelled/skipped evidence is accepted
+- [ ] Documented governance must match live GitHub governance; text cannot substitute for ruleset enforcement
 
 ## Deployment
 

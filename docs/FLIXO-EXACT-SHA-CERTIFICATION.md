@@ -1,86 +1,54 @@
 # FLIXO Exact-SHA Certification Record
 
-STATUS: LAST-VERIFIED-CANDIDATE / BLOCKED_ON_GOVERNANCE
-UPDATED: 2026-10-06
-REPOSITORY: m1m2m3m4m5m6m700-afk/FLIXO_Hub
-EXECUTION_BRANCH: execution
-INTEGRATION_PR: #1002
-MAIN_SHA: 263827228cbe5f4851470297fde5f2858ff844de
-LAST_VERIFIED_CANDIDATE_SHA: a44958a97126b2e050746010947aef2cfa286729
+STATUS: POLICY-ALIGNED / LIVE-GOVERNANCE-BLOCKED
 
-## Prompt 17 exact-candidate evidence
+This file is an evidence-policy index, not a substitute for live GitHub state and not a self-certifying record.
 
-The clean-clone Prompt 17 gate completed successfully on candidate `a44958a97126b2e050746010947aef2cfa286729`.
+## Authority chain
 
-Run evidence:
-- FLIXO Final Clean-Clone Red Team (push) run 239: SUCCESS (workflow run 37437187406).
-- Prompt 17 job: SUCCESS.
-- Typecheck: PASS.
-- Lint: PASS.
-- Core and contract regression: PASS.
-- Adversarial control-plane regression: PASS.
-- Production dependency audit: PASS.
-- Production build: PASS.
-- Exact-SHA build artifact identity: PASS.
-- Exact-SHA coverage: PASS.
-- Browser E2E: PASS.
-- Exact-SHA CodeQL dependency gate: PASS.
-- Secret Scan: PASS.
-- Structural scope/artifact evidence: PASS.
+1. Current `execution` ref is the candidate source.
+2. PR #1002 is the integration path to `main`.
+3. Required CI/security/browser/Red-Team evidence must be generated on the exact current candidate SHA.
+4. GitHub rulesets and branch protection are external enforcement and must be queried live.
+5. Human Authority remains the final promotion authority.
 
-Additional exact-candidate execution evidence:
-- TestSprite Live E2E evidence is not required by the canonical certification gate and is retained as supplemental evidence.
-- FLIXO CI build/typecheck/core job on the candidate lineage: PASS.
-- Internal Red Team adversarial regression: PASS.
+This document intentionally does not embed a historical candidate SHA as current certification evidence. Any SHA mentioned by an older release record is historical and cannot certify a newer candidate.
 
-## Current release identities
+## Canonical governance target
 
-CURRENT_SHA=NEW_HEAD_CREATED_BY_THIS_DOCUMENTATION_ROLLOVER
-TESTED_SHA=a44958a97126b2e050746010947aef2cfa286729
-BUILT_SHA=a44958a97126b2e050746010947aef2cfa286729
-BROWSER_VERIFIED_SHA=a44958a97126b2e050746010947aef2cfa286729
-SECURITY_VERIFIED_SHA=a44958a97126b2e050746010947aef2cfa286729
-COVERAGE_VERIFIED_SHA=a44958a97126b2e050746010947aef2cfa286729
-RED_TEAM_VERIFIED_SHA=a44958a97126b2e050746010947aef2cfa286729
-CERTIFIED_SHA=NOT_YET_CERTIFIED
-DEPLOYED_SHA=NOT_YET_VERIFIED
+The release governance target for `main` is:
+- at least 1 approving review;
+- dismiss stale approvals on push;
+- require Code Owner review;
+- require independent latest-push approval;
+- resolve review threads before merge;
+- enforce strict required status checks;
+- require `trust-gate`;
+- require `Exact-SHA promotion proof`.
 
-## Scope
+## Current live governance observation
 
-The canonical executable MVP remains exactly ten browser-local capabilities:
-background-remover, image-upscaler, image-cropper, image-compressor, image-converter, image-effects, video-trimmer, video-cropper, video-resizer, video-compressor.
+The active GitHub ruleset is `FLIXO-MAIN-PROTECTION` (ID `23854302`) targeting `refs/heads/main`.
 
-## Governance blocker
+At the last live reconciliation, the ruleset did not satisfy the target controls. The verifier therefore correctly fails closed. Repository documents must not describe the live ruleset as hardened until GitHub Administration reflects the target state.
 
-GitHub ruleset `FLIXO-MAIN-PROTECTION` (ID 23854302) is active but does not satisfy the repository's Prompt 12 policy contract:
-- required approving reviews: 0 (required 1)
-- dismiss stale reviews on push: false (required true)
-- require code owner review: false (required true)
-- require last push approval: false (required true)
-- required review thread resolution: false (required true)
-- strict required status checks: false (required true)
+The `execution` branch must likewise be verified through GitHub's live protection/ruleset APIs before being treated as protected. Absence of a repository-side assertion is not proof of protection.
 
-PR #1002 currently has no legitimate independent human APPROVE review.
+## Open Agent Execution Mode
 
-The connected execution environment exposes ruleset state read-only; no ruleset mutation action is available. No governance bypass, self-approval, or weakened verifier is permitted.
+Authorized agents may implement, test, harden, document, and coordinate broadly on the canonical `execution` lane. This does not grant merge, promotion, certification, self-approval, or governance-bypass authority.
+
+## Evidence rule
+
+Any mutation to `execution` creates a new candidate SHA and invalidates prior SHA-specific evidence. Pending, skipped, cancelled, neutral, stale, or mismatched evidence is not PASS.
 
 ## Certification state
 
-Prompt 17 = PASS on `a44958a97126b2e050746010947aef2cfa286729`; any documentation mutation after this point creates a new SHA and invalidates that evidence.
-Prompt 18 = BLOCKED by live main-governance policy; exact-SHA evidence is required again on the post-rollover head.
-Prompt 19 = NOT READY — governance blocker remains.
-Prompt 20 = NOT READY — requires legitimate owner approval and protected promotion.
+Final certification remains `NOT READY` until:
+- exact-SHA technical/security/browser/Red-Team evidence is current;
+- Prompt 18 freeze and Prompt 19 evidence are satisfied;
+- live GitHub governance satisfies the target policy;
+- legitimate approval/promotion conditions are satisfied;
+- post-merge identity and production verification pass where applicable.
 
-Therefore:
-PLAN = NOT COMPLETE
-IMPLEMENTATION = COMPLETE FOR CURRENT MVP SCOPE
-TESTING = REQUIRES REGENERATION ON CURRENT SHA
-SECURITY = REQUIRES REGENERATION ON CURRENT SHA
-RED TEAM = REQUIRES REGENERATION ON CURRENT SHA
-INTEGRATION = BLOCKED BY GOVERNANCE
-CERTIFICATION = BLOCKED
-SCORE = NOT 100/100
-
-## Rule
-
-Any subsequent mutation creates another candidate SHA and requires complete exact-SHA evidence regeneration before certification.
+No documentation mutation may be used to convert a live governance blocker into a certification PASS.
