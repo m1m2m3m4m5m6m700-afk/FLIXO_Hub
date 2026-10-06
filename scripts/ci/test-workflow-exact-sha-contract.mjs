@@ -83,8 +83,6 @@ test('promotion and production gates remain fail-closed and exact-SHA bound', as
     workflow.includes('          test "$(git rev-parse HEAD)" = "$DEPLOYMENT_SHA"'),
     'production checkout must verify repository HEAD against DEPLOYMENT_SHA',
   );
-  assert.ok(
-    workflow.includes('test$(git rev-parse HEAD)') || workflow.includes('test "$(git rev-parse HEAD)" = "$DEPLOYMENT_SHA"'),
-    'production deployment must verify repository HEAD against DEPLOYMENT_SHA',
-  );
+  assert.ok(workflow.includes('git rev-parse HEAD'), 'production deployment must inspect the checked-out commit SHA');
+  assert.ok(workflow.includes('$DEPLOYMENT_SHA'), 'production deployment must retain immutable SHA binding');
 });
