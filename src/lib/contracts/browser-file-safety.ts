@@ -47,11 +47,15 @@ const MIME_MAGIC_MAP: Readonly<Record<string, FileSafetyPolicy['magicBytes']>> =
 
 async function decodeImage(file: File): Promise<BrowserFileDimensions> {
   if ('createImageBitmap' in window && typeof window.createImageBitmap === 'function') {
-    const bitmap = await window.createImageBitmap(file);
     try {
-      return { width: bitmap.width, height: bitmap.height };
-    } finally {
-      bitmap.close();
+      const bitmap = await window.createImageBitmap(file);
+      try {
+        return { width: bitmap.width, height: bitmap.height };
+      } finally {
+        bitmap.close();
+      }
+    } catch {
+      // Fall through to the HTML image decoder for formats/browsers without bitmap support.
     }
   }
 
@@ -74,7 +78,9 @@ async function decodeImage(file: File): Promise<BrowserFileDimensions> {
 const withCanonicalRasterChecks = (file: File, policy: BrowserFileValidationPolicy): BrowserFileValidationPolicy => {
   const inferredExtensions = MIME_EXTENSION_MAP[file.type];
   const inferredMagic = MIME_MAGIC_MAP[file.type];
-  if (!inferredExtensions || !inferredMagic) return policy;
+  if (!inferredExtensions || !inferredMagic) {
+    return { ...policy, decoder: policy.decoder ?? decodeImage };
+  }
   return {
     ...policy,
     allowedExtensions: policy.allowedExtensions ?? inferredExtensions,
