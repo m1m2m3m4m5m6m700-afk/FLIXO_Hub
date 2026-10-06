@@ -13,7 +13,7 @@ test("Scout profiles are read/search/edit only and write to inbox",()=>{
     const c=readFileSync(file,"utf8");
     assert.match(c,/tools: \["read", "search", "edit"\]/);
     assert.match(c,/Your only writable repository path is \.agent-intelligence\/inbox\//);
-    assert.doesNotMatch(c,/review-queue|التطوير\.md/u);
+    assert.match(c,/Never edit .*review-queue, .*التطوير\.md/u);
   }
 });
 
