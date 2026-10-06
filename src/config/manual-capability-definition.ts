@@ -330,7 +330,7 @@ const videoVerifier: CanonicalCapabilityVerifier = async (input, output, paramet
     if (Math.abs((outputMeta.duration ?? 0) - expected) > 0.35) return false;
   }
   if (parameters.width === undefined && parameters.height === undefined && parameters.startSec === undefined && parameters.endSec === undefined) {
-    return outputMeta.duration > 0 && output.size < input.size;
+    return typeof outputMeta.duration === 'number' && outputMeta.duration > 0 && output.size < input.size;
   }
   return outputMeta.duration !== undefined && outputMeta.duration > 0;
 };
