@@ -80,29 +80,27 @@ jobs:
           npx playwright install --with-deps chromium
           npm run test:e2e -- --project=chromium tests/official/mvp-10-release-verification.spec.ts
 
-      - name: Verify exact-SHA security workflows
+      - name: Wait for exact-SHA security workflows
         shell: bash
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          import json, os, subprocess, sys
-          sha = os.environ["EXPECTED_SHA"]
-          repo = os.environ["GITHUB_REPOSITORY"]
-          out = subprocess.check_output([
-              "gh", "api", f"repos/{repo}/actions/runs?head_sha={sha}&event=push&per_page=100"
-          ], text=True)
-          data = json.loads(out)
-          required = ["FLIXO CodeQL", "FLIXO Secret Scan"]
-          for name in required:
-              matches = [r for r in data.get("workflow_runs", []) if r.get("head_sha") == sha and r.get("name") == name]
-              if not matches:
-                  raise SystemExit(f"FAIL_CLOSED: missing exact-SHA security workflow: {name}")
-              result = matches[0]
-              if result.get("status") != "completed" or result.get("conclusion") != "success":
-                  raise SystemExit(f"FAIL_CLOSED: security workflow {name} => {result.get('status')}:{result.get('conclusion')}")
-          print("EXACT_SHA_SECURITY=PASS")
-          PY
-
+          for attempt in $(seq 1 30); do
+            runs="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$EXPECTED_SHA&event=push&per_page=100")"
+            all_ok=true
+            for workflow in "FLIXO CodeQL" "FLIXO Secret Scan"; do
+              state="$(printf '%s' "$runs" | WORKFLOW="$workflow" EXPECTED_SHA="$EXPECTED_SHA" node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const x=(JSON.parse(s).workflow_runs||[]).filter(r=>r.head_sha===process.env.EXPECTED_SHA&&r.name===process.env.WORKFLOW);const r=x[0];console.log(r?`${r.status}:${r.conclusion||"null"}`:"MISSING")})')"
+              echo "$workflow => $state"
+              case "$state" in
+                completed:success) ;;
+                completed:*) echo "FAIL_CLOSED: security workflow $workflow => $state"; exit 1 ;;
+                *) all_ok=false ;;
+              esac
+            done
+            if [ "$all_ok" = true ]; then echo "EXACT_SHA_SECURITY=PASS"; exit 0; fi
+            sleep 10
+          done
+          echo "FAIL_CLOSED: timed out waiting for exact-SHA security workflows"
+          exit 1
       - name: Structural scope and artifact evidence
         shell: bash
         run: |
