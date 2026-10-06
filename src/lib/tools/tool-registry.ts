@@ -390,19 +390,12 @@ export type ToolDefinition = Readonly<{
   seo: Readonly<{ title: string; description: string; robots: 'index,follow,max-image-preview:large' }>;
 }>;
 
-// ToolConfig is the canonical source shape consumed by the definition builder.
-type ToolConfig = ToolSource;
-
 const createImageToolkitComponent = (toolId: Exclude<LocalToolId, 'ai-image-generator' | 'image-compressor'>) =>
   lazy(() =>
     import('@/tools/image-toolkit').then((m) => ({
       default: ((props: Record<string, unknown>) => createElement(m.ImageToolPage, { ...props, toolId })) as ComponentType,
     })),
   );
-
-// Consolidated capability types remain exported here for backward compatibility.
-export type CapabilityState = CanonicalCapabilityState;
-export type ExecutionMode = CanonicalExecutionMode;
 
 const IMAGE_TOOL_CONFIGS: readonly ToolSource[] = Object.freeze([
   { id: 'filter-mask', title: 'Filter Mask', path: '/en/filter-mask', description: 'Live camera filters with instant local preview.', category: 'Images', isReady: true, aliases: ['/en/filters'], component: lazy(() => import('@/tools/filter-mask').then((m) => ({ default: m.FilterMaskTool }))) },
