@@ -6,6 +6,7 @@ import {
   ChevronDown,
   Moon,
   ShieldCheck,
+  Search,
   Sparkles,
   Sun,
   X,
@@ -127,6 +128,8 @@ function assistantMessage(result: AssistantResult): string {
 
 export function OfficialHome() {
   const [query, setQuery] = useState('');
+  const [toolQuery, setToolQuery] = useState('');
+  const [toolFamily, setToolFamily] = useState<'all' | 'image' | 'video' | 'audio' | 'ai' | 'editor'>('all');
   const [requestOpen, setRequestOpen] = useState(false);
   const [requestText, setRequestText] = useState('');
   const [assistantResult, setAssistantResult] = useState<AssistantResult | null>(null);
@@ -148,6 +151,28 @@ export function OfficialHome() {
       // Browser storage is optional.
     }
   }, [dark]);
+
+  const toolFamilies = useMemo(() => [
+    { id: 'all' as const, label: 'الكل' },
+    { id: 'image' as const, label: 'الصور' },
+    { id: 'video' as const, label: 'الفيديو' },
+    { id: 'audio' as const, label: 'الصوت' },
+    { id: 'ai' as const, label: 'الذكاء الاصطناعي' },
+    { id: 'editor' as const, label: 'التحرير' },
+  ], []);
+
+  const filteredReadyTools = useMemo(() => {
+    const normalized = toolQuery.trim().toLocaleLowerCase();
+    return TOOL_CATALOG.ready.filter((tool) => {
+      const familyMatch = toolFamily === 'all' || tool.family === toolFamily;
+      if (!familyMatch) return false;
+      if (!normalized) return true;
+      const haystack = [tool.id, tool.title, tool.description, tool.category, tool.family].join(' ').toLocaleLowerCase();
+      return haystack.includes(normalized);
+    });
+  }, [toolFamily, toolQuery]);
+
+  const quickToolQueries = ['إزالة الخلفية', 'ضغط الصور', 'تكبير الصور', 'قص الصور'];
 
   const featuredTools = useMemo(
     () =>
@@ -311,6 +336,31 @@ export function OfficialHome() {
           </div>
         </section>
 
+        <section className="official-discovery" aria-label="اكتشاف الأدوات">
+          <div className="official-container">
+            <div className="official-discovery-shell">
+              <div className="official-discovery-heading">
+                <div>
+                  <small>اكتشف أسرع</small>
+                  <h2>ابحث عن الأداة قبل أن تتصفح الكتالوج.</h2>
+                </div>
+                <span>{TOOL_CATALOG.ready.length} أداة جاهزة</span>
+              </div>
+              <div className="official-discovery-input">
+                <Search size={19} aria-hidden="true" />
+                <input value={toolQuery} onChange={(event) => setToolQuery(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') document.getElementById('official-tools')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} placeholder="ابحث باسم الأداة أو نوع المهمة…" aria-label="ابحث عن أداة" />
+                {toolQuery && <button type="button" onClick={() => setToolQuery('')} aria-label="مسح البحث"><X size={16} /></button>}
+              </div>
+              <div className="official-quick-tags" aria-label="عمليات بحث سريعة">
+                {quickToolQueries.map((item) => <button key={item} type="button" onClick={() => setToolQuery(item)}>{item}</button>)}
+              </div>
+              <div className="official-tool-filters" role="tablist" aria-label="تصفية الأدوات">
+                {toolFamilies.map((family) => <button key={family.id} type="button" role="tab" aria-selected={toolFamily === family.id} className={toolFamily === family.id ? 'is-active' : ''} onClick={() => setToolFamily(family.id)}>{family.label}</button>)}
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section className="official-section" id="official-categories">
           <div className="official-container">
             <div className="official-heading">
@@ -359,23 +409,18 @@ export function OfficialHome() {
                 <p>لا توجد إضافة لأدوات جديدة هنا؛ هذه البطاقات مرتبطة بالأدوات المسجلة والجاهزة حاليًا.</p>
               </div>
               <div className="official-tool-count">
-                <strong>{TOOL_CATALOG.ready.length}</strong>
-                <span>أداة جاهزة في السجل</span>
+                <strong>{filteredReadyTools.length}</strong>
+                <span>{toolQuery || toolFamily !== 'all' ? 'أداة مطابقة' : 'أداة جاهزة في السجل'}</span>
               </div>
             </div>
 
             <div className="official-featured-grid">
-              {featuredTools.map((tool) => {
-                const copy = FEATURED_COPY[tool.id] ?? {
-                  name: tool.title,
-                  description: tool.description,
-                };
+              {filteredReadyTools.slice(0, 12).map((tool) => {
+                const copy = FEATURED_COPY[tool.id] ?? { name: tool.title, description: tool.description };
+                const familyLabel = tool.family === 'image' ? 'صور' : tool.family === 'video' ? 'فيديو' : tool.family === 'audio' ? 'صوت' : tool.family === 'ai' ? 'AI' : 'تحرير';
                 return (
                   <a key={tool.id} className="official-featured-card" href={routeForTool(tool)}>
-                    <div className="official-card-top">
-                      <span>متاح الآن</span>
-                      <ArrowUpRight size={16} />
-                    </div>
+                    <div className="official-card-top"><span>{familyLabel}</span><ArrowUpRight size={16} /></div>
                     <h3>{copy.name}</h3>
                     <p>{copy.description}</p>
                     <small>{tool.title}</small>
@@ -383,6 +428,11 @@ export function OfficialHome() {
                 );
               })}
             </div>
+            {filteredReadyTools.length === 0 ? (
+              <div className="official-tools-empty"><strong>لا توجد أداة مطابقة لهذا البحث.</strong><button type="button" onClick={openRequestWithQuery}>طلب أداة جديدة <ArrowUpLeft size={15} /></button></div>
+            ) : (
+              <p className="official-tools-result-count">عرض {Math.min(filteredReadyTools.length, 12)} من {filteredReadyTools.length} أداة مطابقة.</p>
+            )}
           </div>
         </section>
 
