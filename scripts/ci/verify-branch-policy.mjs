@@ -1,32 +1,40 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process';
 
-const allowed = new Set(['refs/heads/main', 'refs/heads/execution']);
-const coordinationPrefix = /^refs\/heads\/(?:agent-(?:1|2|3|4)|agent3)\//u;
+const operational = new Set(['refs/heads/main', 'refs/heads/execution']);
+const controlledAgent = /^refs\/heads\/(?:agent-(?:1|2|3|4)|agent3)\//u;
+const legacyStale = new Set(['refs/heads/agent-2-media-engines-20261006']);
 
-// Quarantine only known legacy refs that are already part of this repository's historical Agent 2 lane.
-// This does not admit new legacy branch names; new refs still fail closed.
-const legacyStaleRefs = new Set([
-  'refs/heads/agent-2-media-engines-20261006',
-]);
 const output = execFileSync('git', ['ls-remote', '--heads', 'origin'], { encoding: 'utf8' });
-const unexpected = output
+const refs = output
   .split('\n')
   .map((line) => line.trim())
   .filter(Boolean)
   .map((line) => line.split(/\s+/u)[1])
-  .filter((ref) => ref && !allowed.has(ref) && !coordinationPrefix.test(ref) && !legacyStaleRefs.has(ref))
+  .filter(Boolean);
+
+const unknown = refs
+  .filter((ref) => !operational.has(ref) && !controlledAgent.test(ref) && !legacyStale.has(ref))
   .sort();
 
-if (unexpected.length > 0) {
+if (!refs.includes('refs/heads/main') || !refs.includes('refs/heads/execution')) {
   console.error('BRANCH_POLICY=FAIL');
-  console.error('Permitted refs are refs/heads/main, refs/heads/execution, and controlled agent-1/agent-2/agent-3/agent-4 coordination branches.');
-  console.error(unexpected.join('\n'));
+  console.error('Operational authority refs/heads/main and refs/heads/execution must exist.');
   process.exit(1);
 }
 
-for (const ref of legacyStaleRefs) {
-  if (output.includes(ref)) console.warn(`BRANCH_POLICY=STALE_EXCEPTION ${ref}`);
+if (unknown.length > 0) {
+  console.error('BRANCH_POLICY=FAIL');
+  console.error('Unknown branch refs are untrusted and must fail closed:');
+  console.error(unknown.join('\n'));
+  process.exit(1);
 }
 
-console.log('BRANCH_POLICY=PASS');
+for (const ref of refs.filter((candidate) => controlledAgent.test(candidate)).sort()) {
+  console.warn(`BRANCH_POLICY=CONTROLLED_AGENT_UNTRUSTED_PRODUCTION ${ref}`);
+}
+for (const ref of refs.filter((candidate) => legacyStale.has(candidate))) {
+  console.warn(`BRANCH_POLICY=STALE_UNTRUSTED ${ref}`);
+}
+
+console.log('BRANCH_POLICY=PASS operational=main|execution production-authority=main integration-authority=execution');
