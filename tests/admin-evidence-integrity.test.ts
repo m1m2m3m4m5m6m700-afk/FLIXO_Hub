@@ -88,8 +88,9 @@ test('createEvidence binds generated id/timestamps into integrity payload', asyn
 
 test('createEvidence tolerates equivalent database timestamp serialization', async () => {
   configure();
+  let sent: Record<string, unknown> | null = null;
   globalThis.fetch = async (_input, init) => {
-    const sent = JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>;
+    sent = JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>;
     const roundTrip = {
       ...sent,
       recorded_at: String(sent.recorded_at).replace('Z', '+00:00'),
@@ -99,8 +100,10 @@ test('createEvidence tolerates equivalent database timestamp serialization', asy
   };
 
   const evidence = await createEvidence(evidenceInput);
+  assert.ok(sent);
   assert.equal(evidence.evidence_id.length, 36);
-  assert.equal(new Date(evidence.recorded_at).toISOString(), evidenceInput.freshness_at.replace('14:00', '16:00'));
+  assert.equal(new Date(evidence.recorded_at).toISOString(), new Date(String(sent.recorded_at)).toISOString());
+  assert.equal(new Date(evidence.created_at).toISOString(), new Date(String(sent.created_at)).toISOString();
 });
 
 test('createAuditEvent binds generated id/timestamps into integrity payload', async () => {
