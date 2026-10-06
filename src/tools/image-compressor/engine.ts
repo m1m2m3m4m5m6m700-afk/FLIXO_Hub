@@ -1,4 +1,5 @@
 import { assertSafeImageInput, IMAGE_COMPRESSOR_MAX_INPUT_SIZE, IMAGE_COMPRESSOR_MAX_PIXELS } from './file-safety';
+import { assertImageOutputBudget, assertRasterOutput, MEDIA_LIMITS } from '../../lib/media/media-safety.ts';
 
 export type CompressionFormat = 'image/jpeg' | 'image/webp' | 'image/png';
 
@@ -9,6 +10,17 @@ export type CompressionOptions = {
   maxHeight?: number;
   targetSizeKB?: number;
 };
+
+export function validateCompressionOptions(options: CompressionOptions): void {
+  if (!Number.isFinite(options.quality) || options.quality < 0.01 || options.quality > 1) throw new Error('Compression quality must be between 0.01 and 1.');
+  if (!['image/jpeg', 'image/webp', 'image/png'].includes(options.format)) throw new Error('Unsupported compression output format.');
+  for (const [name, value] of [['maxWidth', options.maxWidth], ['maxHeight', options.maxHeight]] as const) {
+    if (value !== undefined && (!Number.isInteger(value) || value < 1 || value > 4000)) throw new Error(`${name} must be an integer between 1 and 4000.`);
+  }
+  if (options.targetSizeKB !== undefined && (!Number.isInteger(options.targetSizeKB) || options.targetSizeKB < 1 || options.targetSizeKB > 64 * 1024)) {
+    throw new Error('Target size must be an integer between 1 KB and 64 MB.');
+  }
+}
 
 export type CompressionResult = {
   blob: Blob;
@@ -119,6 +131,7 @@ async function loadSourceImage(file: File): Promise<SourceImage> {
 }
 
 async function compressImageOnMainThread(file: File, options: CompressionOptions): Promise<CompressionResult> {
+  validateCompressionOptions(options);
   assertSafeImageInput(file);
 
   const image = await loadSourceImage(file);
@@ -147,6 +160,11 @@ async function compressImageOnMainThread(file: File, options: CompressionOptions
 
     const targetBytes = options.targetSizeKB && options.targetSizeKB > 0 ? options.targetSizeKB * 1024 : undefined;
     const encoded = await encodeToTarget(canvas, options.format, options.quality, targetBytes);
+    if (targetBytes !== undefined && encoded.blob.size > targetBytes) {
+      throw new Error('The requested target size cannot be reached with the selected format and dimensions.');
+    }
+    await assertRasterOutput(encoded.blob, options.format);
+    assertImageOutputBudget(size.width, size.height);
 
     return {
       blob: encoded.blob,
@@ -176,17 +194,28 @@ function canUseCompressionWorker(file: File) {
 function compressImageInWorker(file: File, options: CompressionOptions): Promise<CompressionResult> {
   return new Promise((resolve, reject) => {
     const worker = new Worker(new URL('./compressor.worker.ts', import.meta.url), { type: 'module' });
+    let settled = false;
     const cleanup = () => worker.terminate();
+    const settle = (callback: () => void) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeoutId);
+      cleanup();
+      callback();
+    };
+    const timeoutId = window.setTimeout(() => {
+      settle(() => reject(new Error('IMAGE_COMPRESSION_WORKER_TIMEOUT')));
+    }, MEDIA_LIMITS.workerTimeoutMs);
 
     worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
-      cleanup();
-      if (event.data.ok) resolve(event.data.result);
-      else reject(new Error(event.data.error));
+      settle(() => {
+        if (event.data.ok) resolve(event.data.result);
+        else reject(new Error(event.data.error));
+      });
     };
 
     worker.onerror = () => {
-      cleanup();
-      reject(new Error('The compression worker failed.'));
+      settle(() => reject(new Error('The compression worker failed.')));
     };
 
     worker.postMessage({ file, options });
@@ -194,12 +223,14 @@ function compressImageInWorker(file: File, options: CompressionOptions): Promise
 }
 
 export async function compressImage(file: File, options: CompressionOptions): Promise<CompressionResult> {
+  validateCompressionOptions(options);
   assertSafeImageInput(file);
 
   if (canUseCompressionWorker(file)) {
     try {
       return await compressImageInWorker(file, options);
-    } catch {
+    } catch (error) {
+      if (error instanceof Error && error.message === 'IMAGE_COMPRESSION_WORKER_TIMEOUT') throw error;
       // Keep a safe main-thread fallback for browsers with partial worker/canvas support.
     }
   }

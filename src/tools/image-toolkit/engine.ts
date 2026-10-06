@@ -1,4 +1,15 @@
 import type { ChangeEvent } from 'react';
+import {
+  assertCropRectangle,
+  assertEffectParameters,
+  assertImageDimensions,
+  assertImageOutputBudget,
+  assertImageScale,
+  assertRasterMime,
+  assertRasterOutput,
+  assertSafeRasterInput,
+  MEDIA_LIMITS,
+} from '../../lib/media/media-safety.ts';
 
 export type LocalToolId =
   | 'background-remover'
@@ -111,18 +122,30 @@ function progressiveResize(image: HTMLImageElement, width: number, height: numbe
 }
 
 export async function resizeImage(blob: Blob, scale: number): Promise<Blob> {
+  assertRasterMime(blob.type);
+  await assertSafeRasterInput(blob);
+  assertImageScale(scale);
   const image = await loadImage(blob);
+  assertImageDimensions(image.naturalWidth, image.naturalHeight, MEDIA_LIMITS.rasterInputPixels);
   const width = Math.max(1, Math.round(image.naturalWidth * scale));
   const height = Math.max(1, Math.round(image.naturalHeight * scale));
+  assertImageOutputBudget(width, height);
   const canvas = progressiveResize(image, width, height);
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Canvas is unavailable.');
   sharpenCanvas(ctx, scale > 1 ? 0.10 : 0.06);
-  return canvasBlob(canvas, 'image/png');
+  const output = await canvasBlob(canvas, 'image/png');
+  await assertRasterOutput(output, 'image/png');
+  return output;
 }
 
 export async function convertImage(blob: Blob, type: 'image/png' | 'image/jpeg' | 'image/webp'): Promise<Blob> {
+  assertRasterMime(blob.type);
+  await assertSafeRasterInput(blob);
+  assertRasterMime(type);
   const image = await loadImage(blob);
+  assertImageDimensions(image.naturalWidth, image.naturalHeight, MEDIA_LIMITS.rasterInputPixels);
+  assertImageOutputBudget(image.naturalWidth, image.naturalHeight);
   const canvas = document.createElement('canvas');
   canvas.width = image.naturalWidth;
   canvas.height = image.naturalHeight;
@@ -136,28 +159,38 @@ export async function convertImage(blob: Blob, type: 'image/png' | 'image/jpeg' 
   }
   ctx.drawImage(image, 0, 0);
   const quality = type === 'image/png' ? 1 : 0.96;
-  return canvasBlob(canvas, type, quality);
+  const output = await canvasBlob(canvas, type, quality);
+  await assertRasterOutput(output, type);
+  return output;
 }
 
 export async function cropResizeImage(blob: Blob, crop: { x: number; y: number; width: number; height: number }, out: { width: number; height: number }): Promise<Blob> {
+  await assertSafeRasterInput(blob);
   const image = await loadImage(blob);
-  const sourceX = clamp(Math.round(crop.x), 0, Math.max(0, image.naturalWidth - 1));
-  const sourceY = clamp(Math.round(crop.y), 0, Math.max(0, image.naturalHeight - 1));
-  const sourceWidth = clamp(Math.round(crop.width), 1, image.naturalWidth - sourceX);
-  const sourceHeight = clamp(Math.round(crop.height), 1, image.naturalHeight - sourceY);
+  assertImageDimensions(image.naturalWidth, image.naturalHeight, MEDIA_LIMITS.rasterInputPixels);
+  assertCropRectangle(crop, image.naturalWidth, image.naturalHeight);
+  if (!Number.isInteger(out.width) || !Number.isInteger(out.height) || out.width < 1 || out.height < 1) {
+    throw new Error('Output dimensions must be positive integers.');
+  }
+  assertImageOutputBudget(out.width, out.height);
   const canvas = document.createElement('canvas');
-  canvas.width = Math.max(1, Math.round(out.width));
-  canvas.height = Math.max(1, Math.round(out.height));
+  canvas.width = out.width;
+  canvas.height = out.height;
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Canvas is unavailable.');
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, canvas.width, canvas.height);
-  return canvasBlob(canvas, 'image/png');
+  ctx.drawImage(image, crop.x, crop.y, crop.width, crop.height, 0, 0, canvas.width, canvas.height);
+  const output = await canvasBlob(canvas, 'image/png');
+  await assertRasterOutput(output, 'image/png');
+  return output;
 }
 
 export async function removeBackground(blob: Blob, tolerance = 42): Promise<Blob> {
+  await assertSafeRasterInput(blob, MEDIA_LIMITS.backgroundRemovalPixels);
+  if (!Number.isInteger(tolerance) || tolerance < 0 || tolerance > 255) throw new Error('Background tolerance must be an integer between 0 and 255.');
   const image = await loadImage(blob);
+  assertImageDimensions(image.naturalWidth, image.naturalHeight, MEDIA_LIMITS.backgroundRemovalPixels);
   const canvas = document.createElement('canvas');
   canvas.width = image.naturalWidth;
   canvas.height = image.naturalHeight;
@@ -206,7 +239,9 @@ export async function removeBackground(blob: Blob, tolerance = 42): Promise<Blob
     if (visited[index]) data[index * 4 + 3] = 0;
   }
   ctx.putImageData(imageData, 0, 0);
-  return canvasBlob(canvas, 'image/png');
+  const output = await canvasBlob(canvas, 'image/png');
+  await assertRasterOutput(output, 'image/png');
+  return output;
 }
 
 function reconstructRegion(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, region: { x: number; y: number; width: number; height: number }): void {
@@ -367,13 +402,17 @@ export type BasicImageEffect =
   | 'brightness' | 'contrast' | 'saturation' | 'grayscale' | 'invert' | 'sepia' | 'blur' | 'sharpen';
 
 export async function applyBasicImageEffect(blob: Blob, effect: BasicImageEffect, value = 100): Promise<Blob> {
+  await assertSafeRasterInput(blob);
+  assertEffectParameters(effect, value);
   const image = await loadImage(blob);
+  assertImageDimensions(image.naturalWidth, image.naturalHeight, MEDIA_LIMITS.rasterInputPixels);
+  assertImageOutputBudget(image.naturalWidth, image.naturalHeight);
   const canvas = document.createElement('canvas');
   canvas.width = image.naturalWidth;
   canvas.height = image.naturalHeight;
   const ctx = canvas.getContext('2d', { willReadFrequently: effect !== 'blur' });
   if (!ctx) throw new Error('Canvas is unavailable.');
-  const normalized = Math.max(0, Math.min(200, value));
+  const normalized = value;
   if (effect === 'blur') {
     ctx.filter = `blur(${Math.max(0, normalized / 20)}px)`;
   } else if (effect === 'brightness') {
@@ -393,7 +432,9 @@ export async function applyBasicImageEffect(blob: Blob, effect: BasicImageEffect
   if (effect === 'sharpen') {
     sharpenCanvas(ctx, Math.max(0.02, Math.min(0.35, normalized / 1000)));
   }
-  return canvasBlob(canvas, 'image/png');
+  const output = await canvasBlob(canvas, 'image/png');
+  await assertRasterOutput(output, 'image/png');
+  return output;
 }
 
 export async function rotateImage(blob: Blob, degrees = 90): Promise<Blob> {

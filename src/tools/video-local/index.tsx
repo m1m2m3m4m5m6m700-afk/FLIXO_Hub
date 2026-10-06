@@ -1,7 +1,29 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from '@tanstack/react-router';
 import { executeCanonicalTool } from '@/lib/execution/canonical-executor';
+import { attachVideoBlobSource } from '@/lib/video/blob-video-source.ts';
 import type { CanonicalCapabilityParameters } from '@/config/manual-capability-definition';
+
+async function readVideoDimensions(file: File): Promise<{ width: number; height: number }> {
+  const video = document.createElement('video');
+  video.preload = 'metadata';
+  video.muted = true;
+  video.playsInline = true;
+  const metadata = new Promise<void>((resolve, reject) => {
+    video.addEventListener('loadedmetadata', () => resolve(), { once: true });
+    video.addEventListener('error', () => reject(new Error('Could not read video metadata.')), { once: true });
+  });
+  const cleanup = await attachVideoBlobSource(video, file);
+  try {
+    await metadata;
+    if (!Number.isInteger(video.videoWidth) || !Number.isInteger(video.videoHeight) || video.videoWidth < 1 || video.videoHeight < 1) {
+      throw new Error('Video dimensions are invalid.');
+    }
+    return { width: video.videoWidth, height: video.videoHeight };
+  } finally {
+    cleanup();
+  }
+}
 
 export function VideoLocalTool() {
   const [file, setFile] = useState<File | null>(null);
@@ -28,13 +50,18 @@ export function VideoLocalTool() {
     }
     setResult(null);
     try {
+      const sourceDimensions = id === 'video-cropper' || id === 'video-resizer'
+        ? await readVideoDimensions(file)
+        : undefined;
+      const width = sourceDimensions ? Math.min(1280, sourceDimensions.width) : undefined;
+      const height = sourceDimensions ? Math.min(720, sourceDimensions.height) : undefined;
       const parameters: CanonicalCapabilityParameters = id === 'video-trimmer'
         ? {}
         : id === 'video-compressor'
           ? { videoBitsPerSecond: 2_500_000, audioBitsPerSecond: 128_000 }
           : id === 'video-resizer'
-            ? { width: 1280, height: 720 }
-            : { x: 0, y: 0, width: 1280, height: 720 };
+            ? { width: width!, height: height! }
+            : { x: 0, y: 0, width: width!, height: height! };
       const output = await executeCanonicalTool(id, { blob: file, fileName: file.name }, parameters);
       const url = URL.createObjectURL(output.blob);
       setResult(output.blob);

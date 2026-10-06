@@ -82,23 +82,23 @@ const PARAMETER_SCHEMAS = {
   "image-hue": z.object({ degrees: z.number().finite().min(-360).max(360).optional() }).strict(),
   "image-pixelate": z.object({ blockSize: z.number().int().min(2).max(64).optional() }).strict(),
   "video-trimmer": z.object({
-    startSec: z.number().finite().min(0).max(86_400).optional(),
-    endSec: z.number().finite().min(0).max(86_400).optional(),
+    startSec: z.number().finite().min(0).max(600).optional(),
+    endSec: z.number().finite().min(0).max(600).optional(),
   }).strict(),
   "video-cropper": z.object({
-    x: z.number().finite().min(0).max(20_000).optional(),
-    y: z.number().finite().min(0).max(20_000).optional(),
-    width: z.number().int().positive().max(20_000),
-    height: z.number().int().positive().max(20_000),
+    x: z.number().int().nonnegative().max(7999).optional(),
+    y: z.number().int().nonnegative().max(7999).optional(),
+    width: z.number().int().positive().max(8000),
+    height: z.number().int().positive().max(8000),
   }).strict(),
   "video-resizer": z.object({
     width: z.number().int().positive().max(8000),
     height: z.number().int().positive().max(8000),
-    fps: z.number().finite().positive().max(120).optional(),
+    fps: z.number().finite().min(1).max(60).optional(),
   }).strict(),
   "video-compressor": z.object({
-    videoBitsPerSecond: z.number().int().positive().max(50_000_000).optional(),
-    audioBitsPerSecond: z.number().int().positive().max(512_000).optional(),
+    videoBitsPerSecond: z.number().int().min(100_000).max(50_000_000).optional(),
+    audioBitsPerSecond: z.number().int().min(8_000).max(512_000).optional(),
   }).strict(),
 } as const;
 

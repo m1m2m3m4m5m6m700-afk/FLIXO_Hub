@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { assertSafeRasterInput } from '../../lib/media/media-safety.ts';
 import { validateFileSafety } from '../../lib/contracts/file-safety';
 import { assertExifCleanerOutputIntegrity } from '../exif-cleaner/output-integrity';
 import { validateSvgOutput } from '../image-to-svg/output-integrity';
@@ -58,6 +59,7 @@ export function BrowserImageTool({ mode, title, accept = 'image/*', multi = fals
       if (mode === 'image-effects') {
         const image = await loadImage(files[0]);
         assertDecodedImageSafe(files[0], image.width, image.height);
+        await assertSafeRasterInput(files[0]);
         const output = await executeCanonicalTool('image-effects', { blob: files[0], fileName: files[0].name }, effect);
         setResult({ blob: output.blob, url: URL.createObjectURL(output.blob), name: output.fileName, width: image.width, height: image.height });
         return;
