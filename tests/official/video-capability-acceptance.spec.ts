@@ -79,7 +79,7 @@ test.describe('MVP video capability individual acceptance', () => {
   for (const videoCase of VIDEO_CASES) {
     test(videoCase.id + ' executes locally and produces a verified WebM artifact', async ({ page }) => {
       await page.goto('/en/' + videoCase.id);
-      await expect(page.getByRole('heading', { name: 'Local video processing' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: videoCase.title })).toBeVisible();
 
       const fixture = await buildVideoFixture(page);
       expect(fixture.length).toBeGreaterThan(100);
