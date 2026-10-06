@@ -40,10 +40,13 @@ jobs:
           test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
 
       - name: Run self-learning contract tests
-        run: node --test tests/security/ci/agent-self-learning-control-plane.test.mjs tests/security/ci/agent-role-drills.test.mjs
+        run: node --test tests/security/ci/agent-self-learning-control-plane.test.mjs tests/security/ci/agent-role-drills.test.mjs tests/security/ci/agent-readiness-evaluator.test.mjs
 
       - name: Generate contract-readiness report
         run: node scripts/agent-learning/self-learning-control-plane.mjs "${GITHUB_SHA}"
+
+      - name: Enforce 100/100 agent readiness
+        run: node scripts/agent-learning/evaluate-agent-readiness.mjs "${GITHUB_SHA}"
 
       - name: Execute all role capability drills
         run: node scripts/agent-learning/run-role-drills.mjs "${GITHUB_SHA}"
@@ -77,8 +80,11 @@ jobs:
           ROLE_REPORT="الوكلاء/تدريب الوكلاء/تقارير التدريب/${GITHUB_SHA}-role-drills.md"
           REPORT_COPY="${RUNNER_TEMP}/flixo-training-${GITHUB_SHA}.md"
           ROLE_REPORT_COPY="${RUNNER_TEMP}/flixo-training-${GITHUB_SHA}-role-drills.md"
+          READINESS_REPORT="الوكلاء/تدريب الوكلاء/تقارير التدريب/${GITHUB_SHA}-readiness.md"
+          READINESS_COPY="${RUNNER_TEMP}/flixo-training-${GITHUB_SHA}-readiness.md"
           cp "$REPORT" "$REPORT_COPY"
           cp "$ROLE_REPORT" "$ROLE_REPORT_COPY"
+          cp "$READINESS_REPORT" "$READINESS_COPY"
 
           if git ls-remote --exit-code --heads origin agent-learning >/dev/null 2>&1; then
             git fetch origin agent-learning
@@ -92,6 +98,7 @@ jobs:
           mkdir -p 'الوكلاء/تدريب الوكلاء/تقارير التدريب'
           cp "$REPORT_COPY" "$REPORT"
           cp "$ROLE_REPORT_COPY" "$ROLE_REPORT"
+          cp "$READINESS_COPY" "$READINESS_REPORT"
           git add 'الوكلاء/تدريب الوكلاء/تقارير التدريب/'
           git diff --cached --name-only
           test -n "$(git diff --cached --name-only)"
