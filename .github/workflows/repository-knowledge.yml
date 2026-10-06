@@ -1,0 +1,79 @@
+name: FLIXO Repository Knowledge Wake
+
+on:
+  push:
+    branches: [execution]
+    paths-ignore:
+      - 'reports/repository-knowledge/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: flixo-repository-knowledge
+  cancel-in-progress: false
+
+jobs:
+  knowledge:
+    name: Read complete repository and publish SHA-bound knowledge report
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact triggering SHA
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Verify trigger identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+
+      - name: Run complete repository knowledge scan
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node scripts/repository-knowledge-scan.mjs
+
+      - name: Validate exact-trigger report
+        shell: bash
+        run: |
+          set -euo pipefail
+          REPORT="reports/repository-knowledge/${GITHUB_SHA}.md"
+          test -s "$REPORT"
+          grep -Fq -- "- SHA: ${GITHUB_SHA}" "$REPORT"
+          grep -Fq -- "- Uncovered text lines: 0" "$REPORT"
+
+      - name: Reconcile current execution HEAD before publication
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin execution
+          REMOTE_SHA="$(git rev-parse origin/execution)"
+          test "$REMOTE_SHA" = "${GITHUB_SHA}" || {
+            echo "FAIL_CLOSED: execution moved during knowledge scan."
+            echo "TRIGGER_SHA=${GITHUB_SHA}"
+            echo "CURRENT_EXECUTION_SHA=$REMOTE_SHA"
+            exit 1
+          }
+
+      - name: Publish report only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "FLIXO Repository Knowledge Agent"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add reports/repository-knowledge/
+          git diff --cached --name-only
+          test -n "$(git diff --cached --name-only)" || exit 0
+          git commit -m "docs(knowledge): update repository map for ${GITHUB_SHA}"
+          git push origin "HEAD:execution"
