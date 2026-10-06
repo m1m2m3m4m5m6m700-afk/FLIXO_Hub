@@ -258,7 +258,7 @@ def write_view(root):
     if a>=0 and b>=a:original=original[:a].rstrip()+"\n\n"+original[b+len(END):].lstrip()
     p.write_text(original.rstrip()+"\n\n"+generated,encoding="utf-8")
 def run(root):
-    ensure_dirs(root);n=now_utc();proposals,refs=load_validated(root);backlog=(root/"المهام.md").read_text(encoding="utf-8") if (root/"المهام.md").exists() else ""
+    ensure_dirs(root);n=now_utc();queue=root/".agent-intelligence"/"review-queue";grave=root/".agent-intelligence"/"graveyard"proposals,refs=load_validated(root);backlog=(root/"المهام.md").read_text(encoding="utf-8") if (root/"المهام.md").exists() else ""
     backlog+="\n"+((root/"التطوير.md").read_text(encoding="utf-8") if (root/"التطوير.md").exists() else "")
     old={c["review_card_id"]:c for _,_,c in load_cards(root,{"triaged","queued"})}
     if not proposals:
@@ -266,17 +266,17 @@ def run(root):
         return {"status":"PASS","validated_input_count":0,"admitted_count":0,"suppressed_count":0,"triaged_card_count":len(old),"human_view_count":min(HUMAN_LIMIT,len(old)),"dynamic_threshold":threshold(1)}
     terminal={pid for _,_,c in load_cards(root,{"approved","rejected","deferred"}) for pid in c.get("merged_proposal_ids",[])};sup=load_suppression(root);admitted=[];suppressed=0
     for p in proposals:
-        pid=p["proposal_id"];put(QUEUE/"inbox"/f"{pid}.json",p);ok,reason=allowed_by_suppression(p,sup,n)
+        pid=p["proposal_id"];put(queue/"inbox"/f"{pid}.json",p);ok,reason=allowed_by_suppression(p,sup,n)
         if pid in terminal:continue
-        if not ok:append_jsonl(GRAVE/"dropped.jsonl",{"entity_key":entity_key(p),"proposal_id":pid,"expired_at":None,"reason":reason,"timestamp":iso(n)});suppressed+=1
-        else:put(QUEUE/"validated"/f"{pid}.json",p);admitted.append(p)
+        if not ok:append_jsonl(grave/"dropped.jsonl",{"entity_key":entity_key(p),"proposal_id":pid,"expired_at":None,"reason":reason,"timestamp":iso(n)});suppressed+=1
+        else:put(queue/"validated"/f"{pid}.json",p);admitted.append(p)
     for s in ("triaged","queued"):
-        for p in (QUEUE/s).glob("*.json"):p.unlink()
+        for p in (queue/s).glob("*.json"):p.unlink()
     cards=[]
     for g in dedup(admitted):
         rid="RQ-"+sha(entity_key(g[0])+"|"+"|".join(p["proposal_id"] for p in g))[:12].upper();created=ts(old[rid]["lifecycle"]["created_at"]) if rid in old else n
-        c=make_card(g,root,backlog,refs,created,len(admitted));put(QUEUE/"triaged"/f"{c['review_card_id']}.json",c)
-        (QUEUE/"triaged"/f"{c['review_card_id']}.json").replace(QUEUE/"queued"/f"{c['review_card_id']}.json");cards.append(c)
+        c=make_card(g,root,backlog,refs,created,len(admitted));put(queue/"triaged"/f"{c['review_card_id']}.json",c)
+        (queue/"triaged"/f"{c['review_card_id']}.json").replace(queue/"queued"/f"{c['review_card_id']}.json");cards.append(c)
     write_view(root)
     return {"status":"PASS","validated_input_count":len(proposals),"admitted_count":len(admitted),"suppressed_count":suppressed,"triaged_card_count":len(cards),"human_view_count":min(HUMAN_LIMIT,len(cards)),"dynamic_threshold":threshold(len(admitted) or 1)}
 def verify(root):
@@ -305,6 +305,7 @@ def verify(root):
                 if k not in e:raise ValueError(f"{dropped}:{i}: missing audit field {k}")
     return {"status":"PASS","counts":counts,"freeze_active":freeze["active"],"human_view_count":min(HUMAN_LIMIT,counts["queued"])}
 def gate(root,ref,decision,actor,note):
+    queue=root/".agent-intelligence"/"review-queue";handoff=root/".agent-intelligence"/"handoffs"
     if not actor or actor.lower().endswith("[bot]") or actor.lower() in {"github-actions","dependabot"}:raise ValueError("human gate requires non-bot actor")
     if decision not in {"approved","rejected","deferred"}:raise ValueError("invalid decision")
     found=[(p,c) for _,p,c in load_cards(root,{"queued"}) if c.get("review_card_id")==ref or ref in c.get("merged_proposal_ids",[])]
@@ -313,8 +314,8 @@ def gate(root,ref,decision,actor,note):
     if decision=="approved":
         dev="DEV-"+sha(c["review_card_id"]+"|"+actor)[:8].upper()
         h={"schema":"flixo.execution-handoff/v1","dev_id":dev,"proposal_id":c["merged_proposal_ids"][0],"review_card_id":c["review_card_id"],"entity_key":c["entity_key"],"evidence":c["source_evidence"],"repo_refs":c["repo_refs"],"proposed_change":c["proposed_change"],"rollback":c["rollback"],"priority":c["priority"],"triage_rationale":c["priority"]["rationale"],"approval_metadata":c["approval"],"certificate_linkage":{"mechanism":"docs/FLIXO-FINAL-CERTIFICATION-ATTESTATION.md","record":"PENDING exact-SHA evidence; hand-off is not certification."}}
-        c["handoff"]=h;put(HANDOFF/f"{dev}.json",h)
-    target=QUEUE/decision/path.name;put(target,c);path.unlink();return {"status":"PASS","decision":decision.upper(),"review_card_id":c["review_card_id"],"dev_id":c.get("handoff",{}).get("dev_id")}
+        c["handoff"]=h;put(handoff/f"{dev}.json",h)
+    target=queue/decision/path.name;put(target,c);path.unlink();return {"status":"PASS","decision":decision.upper(),"review_card_id":c["review_card_id"],"dev_id":c.get("handoff",{}).get("dev_id")}
 run_triage=run;verify_state=verify;human_gate=gate;dynamic_threshold=threshold;semantic_dedup=dedup
 def main():
     ap=argparse.ArgumentParser();ap.add_argument("command",choices=["validate","run","verify","gate"]);ap.add_argument("--repo-root");ap.add_argument("--proposal");ap.add_argument("--decision");ap.add_argument("--actor");ap.add_argument("--note",default="")
