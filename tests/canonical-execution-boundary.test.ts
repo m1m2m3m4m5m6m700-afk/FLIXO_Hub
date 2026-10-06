@@ -179,7 +179,7 @@ test('canonical video media boundaries use the local blob URL adapter with deter
 
   assert.match(canonical, /attachVideoBlobSource\(video, input\.blob, signal\)/u);
   assert.match(canonical, /attachVideoBlobSource\(video, output\.blob, signal\)/u);
-  assert.match(renderer, /attachVideoBlobSource\(video, inputBlob, options\.signal\)/u);
+  assert.match(renderer, /attachVideoBlobSource\(video, inputBlob, operationController\.signal\)/u);
   assert.match(verifier, /attachVideoBlobSource\(video, output\.blob, signal\)/u);
   assert.match(adapter, /URL\.createObjectURL\(blob\)/u);
   assert.match(adapter, /video\.src = url/u);
