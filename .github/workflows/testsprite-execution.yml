@@ -13,188 +13,75 @@ concurrency:
 permissions:
   contents: read
 
+# execution is intentionally unprotected. This workflow MUST remain secretless.
+# External TestSprite credentials are prohibited on this branch. Use the native
+# exact-SHA Playwright suite instead so a branch write cannot expose provider
+# secrets or turn the test runner into a credential-bearing trust boundary.
 jobs:
-  testsprite:
+  native-e2e:
+    if: ${{ github.repository == 'm1m2m3m4m5m6m700-afk/FLIXO_Hub' && github.ref == 'refs/heads/execution' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
 
     steps:
+      - name: Fail-closed trusted execution boundary
+        env:
+          TRUSTED_REPOSITORY: m1m2m3m4m5m6m700-afk/FLIXO_Hub
+          TRUSTED_REF: refs/heads/execution
+          EVENT_NAME: ${{ github.event_name }}
+          REPOSITORY: ${{ github.repository }}
+          REF: ${{ github.ref }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$REPOSITORY" = "$TRUSTED_REPOSITORY"
+          test "$REF" = "$TRUSTED_REF"
+          case "$EVENT_NAME" in
+            push|workflow_dispatch) ;;
+            *) echo "FAIL_CLOSED: unexpected event=$EVENT_NAME" >&2; exit 1 ;;
+          esac
+
       - name: Checkout exact execution SHA
-        uses: actions/checkout@v4
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
 
       - name: Setup Node 22
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: 22
           cache: npm
 
       - name: Install project dependencies
-        run: npm ci
+        run: npm ci --no-audit --no-fund
 
-      - name: Start FLIXO
-        shell: bash
-        run: |
-          set -euo pipefail
-          nohup npm run dev -- --host 127.0.0.1 --port 3000 >/tmp/flixo-vite.log 2>&1 &
-          echo $! >/tmp/flixo-vite.pid
-          for i in {1..60}; do
-            if curl -fsS http://127.0.0.1:3000/ >/dev/null; then
-              echo "FLIXO is live on http://127.0.0.1:3000"
-              exit 0
-            fi
-            sleep 2
-          done
-          echo "::error::FLIXO did not become reachable on port 3000."
-          cat /tmp/flixo-vite.log
-          exit 1
-
-      - name: Install pinned TestSprite CLI
-        run: npm install --global @testsprite/testsprite-cli@0.4.0
-
-      - name: Validate committed manual TestSprite plans offline
-        run: testsprite test lint --plan-from-dir .testsprite/plans
-
-      - name: Verify TestSprite configuration
+      - name: Verify exact execution SHA
         env:
-          TESTSPRITE_API_KEY: ${{ secrets.TESTSPRITE_API_KEY }}
-          TESTSPRITE_PROJECT_ID: ${{ vars.TESTSPRITE_PROJECT_ID }}
+          EXPECTED_SHA: ${{ github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+
+      - name: Run exact-SHA native Chromium E2E
         shell: bash
         run: |
           set -euo pipefail
-          test -n "${TESTSPRITE_API_KEY}" || {
-            echo "::error::TESTSPRITE_API_KEY repository secret is missing."
-            exit 3
-          }
-          test -n "${TESTSPRITE_PROJECT_ID}" || {
-            echo "::error::TESTSPRITE_PROJECT_ID repository variable is missing."
-            exit 4
-          }
-          testsprite --version
-          testsprite doctor
+          npx playwright install --with-deps chromium
+          PLAYWRIGHT_REUSE_SERVER=true npm run test:e2e -- --project=chromium
 
-      - name: Reconcile committed manual TestSprite cases
-        env:
-          TESTSPRITE_API_KEY: ${{ secrets.TESTSPRITE_API_KEY }}
-          TESTSPRITE_PROJECT_ID: ${{ vars.TESTSPRITE_PROJECT_ID }}
+      - name: Write secretless evidence
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf .testsprite/runtime-plans .testsprite/missing-plans
-          mkdir -p .testsprite/runtime-plans .testsprite/missing-plans
+          printf '{"workflow":"execution-native-e2e","sha":"%s","externalSecrets":"prohibited","status":"PASS"}\n' "$(git rev-parse HEAD)" > execution-e2e-evidence.json
 
-          for template in .testsprite/plans/*.json; do
-            target=".testsprite/runtime-plans/$(basename "${template}")"
-            sed "s/__TESTSPRITE_PROJECT_ID__/${TESTSPRITE_PROJECT_ID}/g" "${template}" > "${target}"
-          done
-
-          testsprite test lint --plan-from-dir .testsprite/runtime-plans
-          testsprite test list --project "${TESTSPRITE_PROJECT_ID}" --type frontend --max-items 200 --output json > .testsprite/existing-tests.json
-
-          missing=0
-          for plan in .testsprite/runtime-plans/*.json; do
-            name="$(node -e 'const fs=require("fs"); process.stdout.write(JSON.parse(fs.readFileSync(process.argv[1],"utf8")).name)' "${plan}")"
-            exists="$(node -e '
-              const fs=require("fs");
-              const data=JSON.parse(fs.readFileSync(".testsprite/existing-tests.json","utf8"));
-              const wanted=process.argv[1];
-              const tests=data.tests ?? data.result?.tests ?? data.items ?? [];
-              process.stdout.write(tests.some((t) => t.name === wanted) ? "yes" : "no");
-            ' "${name}")"
-            if [ "${exists}" != "yes" ]; then
-              cp "${plan}" ".testsprite/missing-plans/$(basename "${plan}")"
-              missing=$((missing + 1))
-            fi
-          done
-
-          if [ "${missing}" -gt 0 ]; then
-            testsprite test create-batch --plan-from-dir .testsprite/missing-plans --output json
-            testsprite test list --project "${TESTSPRITE_PROJECT_ID}" --type frontend --max-items 200 --output json > .testsprite/existing-tests.json
-          fi
-
-          node <<'NODE'
-          const fs = require('fs');
-          const path = require('path');
-          const data = JSON.parse(fs.readFileSync('.testsprite/existing-tests.json', 'utf8'));
-          const tests = data.tests ?? data.result?.tests ?? data.items ?? [];
-          const plans = fs.readdirSync('.testsprite/runtime-plans')
-            .filter((name) => name.endsWith('.json'))
-            .sort()
-            .map((name) => JSON.parse(fs.readFileSync(path.join('.testsprite/runtime-plans', name), 'utf8')));
-
-          const ids = [];
-          for (const plan of plans) {
-            const matches = tests.filter((test) => test.name === plan.name);
-            if (matches.length !== 1) {
-              throw new Error(`FAIL-CLOSED: expected exactly one TestSprite case named "${plan.name}", found ${matches.length}.`);
-            }
-            const id = matches[0].id ?? matches[0].testId ?? matches[0].test_id;
-            if (!id) throw new Error(`FAIL-CLOSED: TestSprite case "${plan.name}" has no test id.`);
-            ids.push(String(id));
-          }
-          if (ids.length < 2) throw new Error('FAIL-CLOSED: manual TestSprite suite is incomplete.');
-          fs.writeFileSync('.testsprite/manual-test-ids.txt', ids.join('\n') + '\n');
-          NODE
-
-      - name: Run committed manual TestSprite suite against exact execution build
-        env:
-          TESTSPRITE_API_KEY: ${{ secrets.TESTSPRITE_API_KEY }}
-          TESTSPRITE_PROJECT_ID: ${{ vars.TESTSPRITE_PROJECT_ID }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          SHA="$(git rev-parse HEAD)"
-          mapfile -t TEST_IDS < .testsprite/manual-test-ids.txt
-          test "${#TEST_IDS[@]}" -ge 2 || {
-            echo "::error::FAIL-CLOSED: fewer than two committed manual TestSprite cases were resolved."
-            exit 1
-          }
-
-          echo "## TestSprite exact-SHA verification" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Tested SHA: \`${SHA}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Manual committed cases: ${#TEST_IDS[@]}" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Target: local FLIXO on port 3000" >> "$GITHUB_STEP_SUMMARY"
-
-          set +e
-          testsprite test run "${TEST_IDS[@]}" --local 3000 --wait --timeout 1200 --report junit --report-file testsprite-junit.xml --summary-file testsprite-summary.json --output json
-          RUN_RC=$?
-          set -e
-
-          test -f testsprite-summary.json || {
-            echo "::error::TestSprite produced no summary file."
-            exit 1
-          }
-
-          TESTSPRITE_RUN_RC="${RUN_RC}" node <<'NODE'
-          const fs = require('fs');
-          const summary = JSON.parse(fs.readFileSync('testsprite-summary.json', 'utf8'));
-          const total = Number(summary.total ?? 0);
-          const passed = Number(summary.passed ?? 0);
-          const failed = Number(summary.failed ?? 0);
-          const skipped = Number(summary.skipped ?? 0);
-          const timedOut = Number(summary.timedOut ?? summary.timed_out ?? 0);
-          const runRc = Number(process.env.TESTSPRITE_RUN_RC ?? 1);
-
-          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
-            `- TestSprite verdict: total=${total}, passed=${passed}, failed=${failed}, skipped=${skipped}, timedOut=${timedOut}\\n`);
-
-          if (total < 2) throw new Error('FAIL-CLOSED: TestSprite dispatched fewer than two committed manual tests.');
-          if (passed !== total || failed !== 0 || skipped !== 0 || timedOut !== 0) {
-            throw new Error(
-              `FAIL-CLOSED: incomplete TestSprite verdict. total=${total} passed=${passed} failed=${failed} skipped=${skipped} timedOut=${timedOut}`,
-            );
-          }
-          if (runRc !== 0) throw new Error(`FAIL-CLOSED: TestSprite exited with code ${runRc}.`);
-          NODE
-
-      - name: Upload TestSprite evidence
+      - name: Upload execution E2E evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: testsprite-results-${{ github.sha }}
-          path: |
-            testsprite-junit.xml
-            testsprite-summary.json
-            .testsprite/manual-test-ids.txt
-            .testsprite/runtime-plans
-            /tmp/flixo-vite.log
-          if-no-files-found: ignore
+          name: execution-e2e-evidence-${{ github.sha }}
+          path: execution-e2e-evidence.json
+          if-no-files-found: error
+          retention-days: 14
