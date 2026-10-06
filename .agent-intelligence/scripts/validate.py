@@ -497,6 +497,8 @@ def validate_proposal(proposal_path: Path, repo_root: Path | None = None, now: d
         checks["V-01"] = "PASS"
     except ValidationError as exc:
         checks["V-01"] = "FAIL"
+        for name in ("V-02", "V-03", "V-04", "V-05", "V-06", "V-07"):
+            checks[name] = "NOT_RUN"
         reasons.append(str(exc))
         return _result(proposal, "rejected", checks, reasons)
 
