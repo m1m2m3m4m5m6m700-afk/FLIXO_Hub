@@ -200,7 +200,9 @@ function compressImageInWorker(file: File, options: CompressionOptions): Promise
 
     signal?.addEventListener('abort', onAbort, { once: true });
     if (signal?.aborted) return onAbort();
-    worker.postMessage({ file, options });
+    const { signal: _signal, ...workerOptions } = options;
+    void _signal;
+    worker.postMessage({ file, options: workerOptions });
   });
 }
 
