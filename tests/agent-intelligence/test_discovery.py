@@ -23,14 +23,14 @@ class DiscoveryTests(unittest.TestCase):
         return {"format":"flixo-scout-manifest-v1","role":"ARCHITECTURE","ttl_days":14,"default_repo_refs":["src/config/registry.ts"],"sources":[{"url":"https://example.invalid","source_type":"official_docs","stability":"stable","evidence_kind":"documentation","vendor_affiliated":False,"title":"Test Pattern","entity_key":"test-pattern::architecture","repo_refs":["src/config/registry.ts"],"proposal":"Evaluate test pattern.","rollback":"Revert the candidate adapter."}]}
     def test_snapshot_hash_and_immutability(self):
         body=b"<html><body><p>Evidence.</p><script>touch HACKED</script></body></html>"
-        s=SnapshotStore(self.snaps,opener=lambda *a,**k:resp(body,"text/html")).fetch_and_store("https://example.invalid")
-        self.assertTrue(Path(s.json_path).exists()); self.assertEqual(Path(s.raw_path).read_bytes(),body); self.assertTrue(s.snapshot_id.endswith(__import__("hashlib").sha256(body).hexdigest()[:16]))
-        self.assertFalse((self.root/"HACKED").exists())
         class FixedDateTime(datetime):
             @classmethod
             def now(cls, tz=None):
                 return cls(2026, 10, 7, 0, 0, 0, 123456, tzinfo=tz)
         with patch("fetch_snapshot.datetime", FixedDateTime):
+            s=SnapshotStore(self.snaps,opener=lambda *a,**k:resp(body,"text/html")).fetch_and_store("https://example.invalid")
+            self.assertTrue(Path(s.json_path).exists()); self.assertEqual(Path(s.raw_path).read_bytes(),body); self.assertTrue(s.snapshot_id.endswith(__import__("hashlib").sha256(body).hexdigest()[:16]))
+            self.assertFalse((self.root/"HACKED").exists())
             with self.assertRaises(SnapshotError):
                 SnapshotStore(self.snaps,opener=lambda *a,**k:resp(body,"text/html")).fetch_and_store("https://example.invalid")
     def test_prompt_injection_is_data(self):
@@ -52,8 +52,8 @@ class DiscoveryTests(unittest.TestCase):
         p=build_proposal(self.root,m,src,s); p["inference"]["rollback"]=""
         with self.assertRaises(ValueError): validate_proposal(p,self.root,s)
     def test_missing_repo_ref_rejected(self):
-        m=self.m(); m["default_repo_refs"]=["missing.ts"]
-        with self.assertRaises(ValueError): build_proposal(self.root,m,m["sources"][0],Mock(snapshot_id="snap-test",text_path="x"))
+        m=self.m(); m["sources"][0]["repo_refs"]=["missing.ts"]
+        with self.assertRaises(ValueError): build_proposal(self.root,m,m["sources"][0],Mock(snapshot_id="snap-test",text_path="x") )
     def test_repeated_runs_are_append_only(self):
         self.md.joinpath("architecture.yaml").write_text(json.dumps(self.m()),encoding="utf-8")
         op=lambda *a,**k:resp(b"evidence")
