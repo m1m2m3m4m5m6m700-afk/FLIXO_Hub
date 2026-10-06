@@ -18,44 +18,43 @@ Governance is deterministic CI/repository policy, not an autonomous authority.
 | VERIFIER | verify output/evidence only |
 | GOVERNANCE | deterministic gates/policy only |
 
-Advisory/helper profiles are role overlays. They do not constitute additional authority classes and cannot mutate, merge, promote, certify, or change scope outside the canonical Control Plane.
+Advisory/helper profiles are role overlays. They do not constitute additional certification or promotion authority. Under the Human-authorized Open Agent Execution Mode, they may perform broad repository implementation work on the canonical `execution` lane through the established mutation mechanism, while remaining prohibited from certification, promotion, scope authority, or bypass of deterministic gates.
 
 ## Non-negotiable invariants
 
-- No Agent directly changes Control Plane state.
+- No Agent directly changes Control Plane state outside the canonical mutation/execution interfaces.
 - No Agent certifies.
 - No Agent merges or promotes to main.
-- No Agent changes MVP scope.
+- No Agent changes MVP scope without explicit Human Authority approval.
 - No Agent bypasses the canonical execution gate.
-- Autonomous execution is bounded by attempts, time, mutations, and scope.
+- Autonomous execution is bounded by attempts, time, mutations, and task scope.
 - Evidence is valid only when bound to the exact SHA under verification.
 - Infrastructure Green, Product Green, and MVP Certified are separate states.
 - Manual execution remains functional without the Agent Router.
+- Expanded implementation authority must not weaken required verification, security, or repository protection.
 
 ## Baseline agent seats
 
-The runtime may contain many advisory profiles, but only these authority seats exist:
+The runtime may contain many advisory profiles and execution workers, but authority remains concentrated in:
 - Planner
 - Executor
 - Verifier
 - Governance
 
-External workers such as repair/review adapters are disposable role overlays and have no independent authority.
+External workers such as repair/review adapters may implement or persist work on the canonical `execution` lane when explicitly authorized, but they remain disposable role overlays and have no independent merge, promotion, certification, scope, or bypass authority.
 
 ## Change control
 
-Adding a new authority seat, new mutation path, second registry, second certification path, or autonomous promotion path is prohibited without explicit Human Authority approval.
+Human Authority may explicitly expand or contract implementation permissions without creating a new runtime authority seat. Adding a new certification authority, autonomous promotion path, competing registry/executor, or governance bypass remains prohibited.
 
 ## Approved execution publication lane
 
-Human Authority explicitly approved the narrow **Durable Patch Capsule + CAS** mutation mechanism for the sole `execution` line.
+The canonical execution mutation mechanism remains the **Durable Patch Capsule + CAS** lane.
 
-This does not create a new runtime authority, registry, branch, or certification path.
-
-- External agents/workers remain proposal-only and may persist portable Patch Capsules.
-- `assistantController` is the deterministic controller identity for reconciling a capsule onto the live `execution` SHA.
-- The controller must run fresh verification on the reconciled tree.
-- Publication is limited to `execution` and uses a non-force fast-forward push only.
-- A moving head causes reconciliation/CAS retry, never overwrite.
-- `main` remains PR-only and unchanged by this lane.
+Under Open Agent Execution Mode:
+- authorized agents/workers may produce and publish implementation changes broadly on `execution`;
+- publication must remain non-force and race-safe;
+- a moving head causes reconciliation/CAS retry, never overwrite;
+- `main` remains PR-only and unchanged by the execution lane;
+- live repository settings such as rulesets and branch protection remain governed externally and cannot be rewritten by source changes;
 - Patch Capsules are work products, never certification evidence.
