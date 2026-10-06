@@ -31,6 +31,11 @@ const DEFINITIONS: Record<Exclude<LocalToolId, 'ai-image-generator' | 'image-com
   'image-sepia': { title: 'Sepia', description: 'Apply a sepia effect locally.', accept: 'image/png,image/jpeg,image/webp' },
   'image-blur': { title: 'Blur', description: 'Apply a local blur effect.', accept: 'image/png,image/jpeg,image/webp' },
   'image-sharpen': { title: 'Sharpen', description: 'Sharpen an image locally.', accept: 'image/png,image/jpeg,image/webp' },
+  'image-resizer': { title: 'Resize Image', description: 'Resize an image locally with deterministic browser resampling.', accept: 'image/png,image/jpeg,image/webp' },
+  'image-hue': { title: 'Hue', description: 'Shift image hue locally in the browser.', accept: 'image/png,image/jpeg,image/webp' },
+  'image-pixelate': { title: 'Pixelate Image', description: 'Pixelate an image locally without uploading it.', accept: 'image/png,image/jpeg,image/webp' },
+  'image-padding': { title: 'Image Padding', description: 'Add transparent padding around an image locally.', accept: 'image/png,image/jpeg,image/webp' },
+  'image-rounded-corners': { title: 'Rounded Corners', description: 'Add rounded transparent corners to an image locally.', accept: 'image/png,image/jpeg,image/webp' },
 };
 
 type Props = { toolId: Exclude<LocalToolId, 'image-compressor'> };
