@@ -34,7 +34,8 @@
     "test:registry-gates": "node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/release-registry-boundary.test.ts tests/canonical-execution-boundary.test.ts",
     "test:coverage": "npx --yes c8@10.1.3 --all --include=src/config/** --include=src/lib/** --include=src/tools/** --reporter=lcov --reporter=text npm run test:core",
     "test:red-team": "node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/red-team-control-plane.test.ts",
-    "test:security": "node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/security-governance.test.ts tests/worker-production-boundary.test.ts"
+    "test:security": "node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/security-governance.test.ts tests/worker-production-boundary.test.ts",
+    "test:video-assurance": "node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/video-media-safety.test.ts tests/canonical-execution-boundary.test.ts tests/canonical-capability-verifiers.test.ts"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",

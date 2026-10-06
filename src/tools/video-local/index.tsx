@@ -29,12 +29,12 @@ export function VideoLocalTool() {
     setResult(null);
     try {
       const parameters: CanonicalCapabilityParameters = id === 'video-trimmer'
-        ? {}
+        ? { startSec: 0, endSec: 1 }
         : id === 'video-compressor'
           ? { videoBitsPerSecond: 2_500_000, audioBitsPerSecond: 128_000 }
           : id === 'video-resizer'
             ? { width: 1280, height: 720 }
-            : { x: 0, y: 0, width: 1280, height: 720 };
+            : { x: 40, y: 20, width: 160, height: 90 };
       const output = await executeCanonicalTool(id, { blob: file, fileName: file.name }, parameters);
       const url = URL.createObjectURL(output.blob);
       setResult(output.blob);

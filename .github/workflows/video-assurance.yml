@@ -1,0 +1,56 @@
+name: FLIXO Video Execution Assurance
+
+on:
+  push:
+    branches: [execution]
+  pull_request:
+    branches: [execution]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flixo-video-assurance-${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  video-assurance:
+    name: Chromium video/media assurance
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      VITE_SITE_URL: https://flixoai.m1m2m3m4m5m6m700.workers.dev
+      VITE_RUNTIME_ORIGIN: http://127.0.0.1:3000
+      VITE_TEST_ORIGIN: http://127.0.0.1:3000
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Verify exact SHA
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Targeted video/media adversarial tests
+        run: npm run test:video-assurance
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Real Chromium video capability acceptance
+        run: npm run test:e2e -- --project=chromium tests/official/video-capability-acceptance.spec.ts
+      - name: Upload exact video assurance evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: flixo-video-assurance-${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: warn
+          retention-days: 30

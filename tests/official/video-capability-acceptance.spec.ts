@@ -42,7 +42,7 @@ async function buildVideoFixture(page: Parameters<Parameters<typeof test>[2]>[0]
         context.fillStyle = '#ffffff';
         context.font = '24px sans-serif';
         context.fillText('FLIXO VIDEO FIXTURE', 25, 165);
-        if (elapsed >= 800) {
+        if (elapsed >= 2400) {
           recorder.stop();
           resolve();
           return;
@@ -76,13 +76,14 @@ const VIDEO_CASES = [
 ] as const;
 
 test.describe('MVP video capability individual acceptance', () => {
+  test.describe.configure({ mode: 'serial', timeout: 120_000 });
   for (const videoCase of VIDEO_CASES) {
     test(videoCase.id + ' executes locally and produces a verified WebM artifact', async ({ page }) => {
       await page.goto('/en/' + videoCase.id);
       await expect(page.getByRole('heading', { name: 'Local video processing' })).toBeVisible();
 
       const fixture = await buildVideoFixture(page);
-      expect(fixture.length).toBeGreaterThan(100);
+      expect(fixture.length).toBeGreaterThan(10_000);
 
       await page.getByLabel('Choose video').setInputFiles({
         name: videoCase.id + '-fixture.webm',
@@ -127,6 +128,19 @@ test.describe('MVP video capability individual acceptance', () => {
       expect(metadata.duration).toBeGreaterThan(0);
       expect(metadata.width).toBeGreaterThan(0);
       expect(metadata.height).toBeGreaterThan(0);
+
+      if (videoCase.id === 'video-trimmer') {
+        expect(metadata.duration).toBeGreaterThan(0.6);
+        expect(metadata.duration).toBeLessThan(1.5);
+      } else if (videoCase.id === 'video-cropper') {
+        expect(metadata.width).toBe(160);
+        expect(metadata.height).toBe(90);
+      } else if (videoCase.id === 'video-resizer') {
+        expect(metadata.width).toBe(1280);
+        expect(metadata.height).toBe(720);
+      } else {
+        expect(metadata.size).toBeLessThan(fixture.length);
+      }
 
       const downloadPromise = page.waitForEvent('download');
       await downloadLink.click();
