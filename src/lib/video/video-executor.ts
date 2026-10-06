@@ -12,6 +12,7 @@ export type VideoRenderOptions = Readonly<{
 }>;
 
 type MediaRecorderConstructor = typeof MediaRecorder;
+type CaptureStreamVideoElement = HTMLVideoElement & { captureStream?: () => MediaStream };
 
 function supportedMimeType(): string {
   const ctor = globalThis.MediaRecorder as MediaRecorderConstructor | undefined;
@@ -85,6 +86,7 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
 
   const video = document.createElement('video');
   let canvasStream: MediaStream | undefined;
+  let sourceStream: MediaStream | null = null;
   let recorder: MediaRecorder | undefined;
   let frameHandle = 0;
   let drawing = false;
@@ -125,6 +127,13 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
 
     const fps = Math.max(1, Math.min(120, Number(options.fps ?? 30)));
     canvasStream = canvas.captureStream(fps);
+    const captureVideo = video as CaptureStreamVideoElement;
+    sourceStream = typeof captureVideo.captureStream === 'function' ? captureVideo.captureStream() : null;
+    if (sourceStream) {
+      for (const track of sourceStream.getAudioTracks()) {
+        try { canvasStream.addTrack(track); } catch { /* track is already attached */ }
+      }
+    }
     const mimeType = supportedMimeType();
     recorder = new MediaRecorder(canvasStream, {
       mimeType,
@@ -196,6 +205,7 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
     await stopped;
 
     canvasStream.getTracks().forEach((track) => track.stop());
+    sourceStream?.getTracks().forEach((track) => track.stop());
 
     if (!chunks.length) throw new Error('VIDEO_RECORDING_EMPTY');
     return new Blob(chunks, { type: 'video/webm' });
@@ -207,6 +217,7 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
       try { recorder.stop(); } catch { /* recorder may already be stopping */ }
     }
     canvasStream?.getTracks().forEach((track) => track.stop());
+    sourceStream?.getTracks().forEach((track) => track.stop());
     // The source is detached by attachVideoBlobSource's cleanup closure.
     releaseSource?.();
     video.removeAttribute('src');
