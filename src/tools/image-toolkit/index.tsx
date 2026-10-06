@@ -129,12 +129,20 @@ export function ImageToolPage({ toolId }: Props) {
   const locale = isLocale(localeCode) ? localeCode : 'en';
   const localeMetadata = LOCALE_METADATA[locale];
   const ui = UI_COPY[locale] ?? UI_COPY.en;
+  const isGenerator = toolId === 'ai-image-generator';
   const canonicalToolId = toolId === 'image-to-text' ? 'image-ocr' : toolId;
   const canonicalTool = getToolSeo(locale, canonicalToolId)?.tool;
   const localizedTitle = canonicalTool ? getAuthoritativeToolSeoName(canonicalTool, locale) : undefined;
   const localizedSeo = getToolSeo(locale, canonicalToolId);
-  const definition = { ...DEFINITIONS[toolId], title: localizedTitle ?? DEFINITIONS[toolId].title, description: localizedSeo?.description ?? DEFINITIONS[toolId].description };
+  const definition = isGenerator
+    ? { title: localizedTitle ?? 'AI Image Generator', description: localizedSeo?.description ?? 'Generate an image through the configured FLIXO image model endpoint.', accept: '' }
+    : (() => {
+        const sharedToolId = toolId as SharedImageToolId;
+        const sharedDefinition = DEFINITIONS[sharedToolId];
+        return { ...sharedDefinition, title: localizedTitle ?? sharedDefinition.title, description: localizedSeo?.description ?? sharedDefinition.description };
+      })();
   const [file, setFile] = useState<File | null>(null);
+  const [prompt, setPrompt] = useState('');
   const [outputFormat, setOutputFormat] = useState<'image/png' | 'image/jpeg' | 'image/webp'>('image/webp');
   const [scale, setScale] = useState('2'); const [tolerance, setTolerance] = useState('42'); const [columns, setColumns] = useState('48');
   const [cropX, setCropX] = useState('0'); const [cropY, setCropY] = useState('0'); const [cropW, setCropW] = useState('500'); const [cropH, setCropH] = useState('500'); const [outW, setOutW] = useState('500'); const [outH, setOutH] = useState('500');
@@ -147,6 +155,19 @@ export function ImageToolPage({ toolId }: Props) {
   const run = async () => {
     setBusy(true); setError(''); replaceResult(null);
     try {
+      if (isGenerator) {
+        if (!prompt.trim()) throw new Error(ui.promptRequired);
+        const body = new FormData();
+        body.append('capability', 'generate-image');
+        body.append('prompt', prompt.trim());
+        const response = await fetch(import.meta.env.VITE_FLIXO_AI_IMAGE_ENDPOINT || '/api/ai/image', { method: 'POST', body });
+        if (!response.ok) throw new Error('AI image endpoint is not configured or returned an error.');
+        const blob = await response.blob();
+        if (!blob.type.startsWith('image/')) throw new Error('AI endpoint did not return an image.');
+        const info = await imageInfo(blob);
+        replaceResult(await createResult(blob, `flixo-ai-${info.width}x${info.height}.png`, info));
+        return;
+      }
       if (toolId === 'image-upscaler') { const factor = Number(scale); if (!Number.isFinite(factor) || factor < 1 || factor > 8) throw new Error('Scale must be between 1 and 8.'); }
       if (!file) throw new Error(ui.chooseImageFirst);
       if (toolId !== 'ai-image-generator') await validateSharedImageInput(file, toolId);
@@ -187,13 +208,13 @@ export function ImageToolPage({ toolId }: Props) {
         <header className="image-tool-header"><div><p className="image-tool-eyebrow">{ui.imageTools}</p><h2>{definition.title}</h2><p className="image-tool-lead">{definition.description}</p></div></header>
         <section className="compressor-grid" aria-label={definition.title}>
           <div className="compressor-card">
-            <label className="upload-zone" htmlFor="image-tool-file"><span className="upload-title">{file ? file.name : ui.chooseImage}</span><span className="upload-subtitle">{definition.accept.replaceAll('image/', '').toUpperCase() || ui.imageInput}</span></label><input id="image-tool-file" className="sr-only" type="file" accept={definition.accept} onChange={(event) => setFile(event.target.files?.[0] ?? null)} />
+            {isGenerator ? <label><span>{ui.prompt}</span><textarea aria-label={ui.prompt} value={prompt} onChange={(event) => setPrompt(event.target.value)} rows={5} /> </label> : <><label className="upload-zone" htmlFor="image-tool-file"><span className="upload-title">{file ? file.name : ui.chooseImage}</span><span className="upload-subtitle">{definition.accept.replaceAll('image/', '').toUpperCase() || ui.imageInput}</span></label><input id="image-tool-file" className="sr-only" type="file" accept={definition.accept} onChange={(event) => setFile(event.target.files?.[0] ?? null)} /></> 
             {toolId === 'image-converter' && <label><span>{ui.outputFormat}</span><select aria-label={ui.outputFormat} value={outputFormat} onChange={(event) => setOutputFormat(event.target.value as typeof outputFormat)}><option value="image/webp">WebP</option><option value="image/jpeg">JPG</option><option value="image/png">PNG</option></select></label>}
             {toolId === 'image-upscaler' && <label><span>{ui.scale}</span><input aria-label={ui.scale} inputMode="decimal" value={scale} onChange={(event) => setScale(event.target.value)} /></label>}
             {toolId === 'background-remover' && <label><span>{ui.backgroundTolerance}</span><input aria-label={ui.backgroundTolerance} inputMode="numeric" value={tolerance} onChange={(event) => setTolerance(event.target.value)} /></label>}
             {toolId === 'raster-to-svg' && <label><span>{ui.svgColumns}</span><input aria-label={ui.svgColumns} inputMode="numeric" value={columns} onChange={(event) => setColumns(event.target.value)} /></label>}
             {['object-remover', 'watermark-remover', 'crop-resize'].includes(toolId) && <div className="control-grid">{([ [ui.x, cropX, setCropX, 'object-x'], [ui.y, cropY, setCropY, 'object-y'], [ui.width, cropW, setCropW, 'object-width'], [ui.height, cropH, setCropH, 'object-height'] ] as const).map(([labelText, value, setter, testId]) => <label key={testId}><span>{labelText}</span><input data-testid={testId} aria-label={labelText} inputMode="numeric" value={value} onChange={(event) => setter(event.target.value)} /></label>)}{toolId === 'crop-resize' && <><label><span>{ui.outputWidth}</span><input aria-label={ui.outputWidth} inputMode="numeric" value={outW} onChange={(event) => setOutW(event.target.value)} /></label><label><span>{ui.outputHeight}</span><input aria-label={ui.outputHeight} inputMode="numeric" value={outH} onChange={(event) => setOutH(event.target.value)} /></label></>}</div>}
-            <div className="button-row"><button className="primary-button" disabled={busy || !file} onClick={() => void run()}>{busy ? ui.processing : ui.run}</button></div>
+            <div className="button-row"><button className="primary-button" disabled={busy || (!file && !isGenerator)} onClick={() => void run()}>{busy ? ui.processing : isGenerator ? ui.generate : ui.run}</button></div>
             {error && <p role="alert" className="error-box">{error}</p>}
             {toolId === 'image-to-text' && <p className="privacy-note">{ui.privacyOcr}</p>}
           </div>
