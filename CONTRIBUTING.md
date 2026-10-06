@@ -2,16 +2,25 @@
 
 ## Branch policy
 
-The repository uses two operational branches only:
+The production authority is `main`. The integration authority is `execution`.
 
-- `main` — production/reference branch. Changes reach it through a pull request after the required certification gates pass.
-- `execution` — the sole development, repair, testing, and integration line.
-- No other development, repair, test, diagnostic, agent, or temporary branch may be created or used.
-- `main` is the production/reference destination and is never mutated directly.
+Operational branches:
+- `main` — production/reference authority. Changes reach it only through the approved pull request path.
+- `execution` — sole integration line for implementation, repair, testing, and agent work before promotion.
 
-Promotion is exclusively `execution → main`. Historical refs are not execution paths.
+Controlled agent branches:
+- Branches matching `agent-1/**`, `agent-2/**`, `agent-3/**`, `agent-4/**`, and the historical `agent3/**` compatibility prefix are coordination branches only.
+- Controlled agent branches are untrusted for production and MUST NOT become deployment or certification authority.
+- Unknown branch refs fail closed and are never treated as trusted production refs.
+- Historical/stale coordination branches remain untrusted; physical deletion is an owner-side housekeeping action unless explicitly authorized.
 
-### Moving execution HEAD and agent work
+Promotion remains exclusively:
+
+`execution -> pull request -> required checks/review -> main`
+
+No direct writes to `main`.
+
+## Moving execution HEAD and agent work
 
 The live `execution` HEAD may move while an agent is preparing a repair.
 
@@ -20,30 +29,12 @@ The live `execution` HEAD may move while an agent is preparing a repair.
 - Patch Capsules are reconciled onto the current `execution` HEAD before publication.
 - Publication is serialized through the deterministic `assistantController` lane.
 - Publication is non-force and fast-forward only; a moved head causes retry/reconciliation, never overwrite.
-- No temporary or third development branch is permitted.
-- The Patch Capsule workflow is documented in `docs/AGENT-PATCH-CAPSULE-AND-CAS.md`.
+- Do not silently delete or repoint agent branches.
+- Any candidate evidence is invalidated by repository mutation and must be regenerated on the new exact SHA.
 
 ## Delivery lifecycle
 
-`Implement → Verify → Certify → Freeze → Promote`
-
-```text
-execution
-    ↓
-Implement
-    ↓
-Fast → Medium → Functional → Browser Critical → Stability → Full
-    ↓
-Evidence Integrity
-    ↓
-Release Decision
-    ↓
-CERTIFIED
-    ↓
-Pull Request
-    ↓
-main
-```
+`Implement -> Verify -> Certify -> Freeze -> Promote`
 
 ## Pull request rules
 
@@ -87,12 +78,10 @@ The current release gate does not rely on a Socket workflow. The blocking securi
 
 ## Tool lifecycle
 
-```text
-placeholder → planned → ready → certified → frozen baseline → public
-```
+`placeholder -> planned -> ready -> certified -> frozen baseline -> public`
 
 A public tool must have a real runtime and the applicable automated regression/certification coverage.
 
 ## Definition of done
 
-A change is complete when its implementation, tests, build/contracts, Evidence, certification decision, documentation, and release scope are all consistent with the repository policy.
+A change is complete when its implementation, tests, build/contracts, Evidence, certification decision, documentation, and release scope are all consistent with repository policy.
