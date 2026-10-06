@@ -76,7 +76,10 @@ async function preflightInput(
   const isVideo = tool.family === 'video';
   const allowedMime = isVideo ? VIDEO_MIME : IMAGE_MIME;
   const allowedExtensions = isVideo ? VIDEO_EXTENSIONS : IMAGE_EXTENSIONS;
+  // The safety boundary validates the full Blob size separately above. The content passed here is only a
+  // bounded signature probe, so its declared byte count must describe the probe rather than the whole Blob.
   const contentPrefix = new Uint8Array(await input.blob.slice(0, 64).arrayBuffer());
+  const contentProbeBytes = contentPrefix.byteLength;
   const videoMagicBytes = input.blob.type === 'video/webm' || input.blob.type === 'video/x-matroska'
     ? [{ name: 'EBML', bytes: [0x1a, 0x45, 0xdf, 0xa3] }]
     : input.blob.type === 'video/mp4' || input.blob.type === 'video/quicktime'
@@ -88,7 +91,7 @@ async function preflightInput(
     {
       name: input.fileName,
       mime: input.blob.type,
-      bytes: input.blob.size,
+      bytes: contentProbeBytes,
       content: contentPrefix,
     },
     {
