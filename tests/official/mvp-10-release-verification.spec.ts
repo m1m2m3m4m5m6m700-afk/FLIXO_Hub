@@ -202,7 +202,7 @@ test.describe('FLIXO ten-tool release verification', () => {
   }
 
   const videoAgentCases: ReadonlyArray<readonly [string, string]> = [
-    ['video-trimmer', 'trim video'],
+    ['video-trimmer', 'trim the first 1 seconds of this video'],
     ['video-cropper', 'crop video to 320x180'],
     ['video-resizer', 'resize video to 320x180'],
     ['video-compressor', 'compress video'],
