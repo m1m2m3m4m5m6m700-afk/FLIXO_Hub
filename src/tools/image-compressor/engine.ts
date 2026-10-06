@@ -186,9 +186,10 @@ function compressImageInWorker(file: File, options: CompressionOptions): Promise
   return new Promise((resolve, reject) => {
     const worker = new Worker(new URL('./compressor.worker.ts', import.meta.url), { type: 'module' });
     let settled = false;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
     const cleanup = () => {
       worker.terminate();
-      clearTimeout(timeout);
+      if (timeout) clearTimeout(timeout);
     };
     const fail = (error: Error) => {
       if (settled) return;
@@ -196,7 +197,7 @@ function compressImageInWorker(file: File, options: CompressionOptions): Promise
       cleanup();
       reject(error);
     };
-    const timeout = setTimeout(() => fail(new Error('The compression worker timed out.')), WORKER_TIMEOUT_MS);
+    timeout = setTimeout(() => fail(new Error('The compression worker timed out.')), WORKER_TIMEOUT_MS);
 
     worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
       if (settled) return;
