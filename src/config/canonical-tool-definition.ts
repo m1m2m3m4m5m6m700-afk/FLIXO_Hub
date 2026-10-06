@@ -1,6 +1,7 @@
 import { createElement, lazy } from 'react';
 import { z, type ZodType } from 'zod';
 import { LOCALES, type Locale } from '../lib/i18n/config.ts';
+import { attachVideoBlobSource } from '../lib/video/blob-video-source.ts';
 import { getCanonicalCapabilityDefinition, MVP_EXECUTABLE_TOOL_IDS as CANONICAL_MVP_IDS, type CanonicalCapabilityDefinition, type CanonicalCapabilityState, type CanonicalExecutionMode, type CanonicalCapabilityParameters, type CanonicalCapabilityVerifier, type CanonicalCapabilityLimits } from './manual-capability-definition';
 import type { ComponentType, LazyExoticComponent } from 'react';
 import type { LocalToolId } from '../tools/image-toolkit/engine.ts';
@@ -202,20 +203,24 @@ const verifierFor = (toolId: string): CapabilityVerifier => {
   if (toolId === 'image-converter') return formatVerifier;
   if (toolId.startsWith('video-')) return async (_inputBlob, outputBlob, _parameters, signal) => {
     if (signal?.aborted || outputBlob.size <= 0 || outputBlob.type !== 'video/webm' || typeof document === 'undefined') return false;
-    const url = URL.createObjectURL(outputBlob);
     const video = document.createElement('video');
     video.preload = 'metadata';
-    video.src = url;
+    let releaseSource: (() => void) | null = null;
     try {
-      await new Promise<void>((resolve, reject) => {
-        video.onloadedmetadata = () => resolve();
-        video.onerror = () => reject(new Error('Video output metadata could not be decoded.'));
+      const metadataReady = new Promise<void>((resolve, reject) => {
+        const onAbort = () => reject(new DOMException('Video output verification aborted.', 'AbortError'));
+        const cleanup = () => signal?.removeEventListener('abort', onAbort);
+        video.onloadedmetadata = () => { cleanup(); resolve(); };
+        video.onerror = () => { cleanup(); reject(new Error('Video output metadata could not be decoded.')); };
+        signal?.addEventListener('abort', onAbort, { once: true });
       });
+      releaseSource = await attachVideoBlobSource(video, outputBlob, signal);
+      await metadataReady;
       return Number.isFinite(video.duration) && video.duration > 0 && video.videoWidth > 0 && video.videoHeight > 0;
     } catch {
       return false;
     } finally {
-      URL.revokeObjectURL(url);
+      releaseSource?.();
       video.removeAttribute('src');
       video.load();
     }
