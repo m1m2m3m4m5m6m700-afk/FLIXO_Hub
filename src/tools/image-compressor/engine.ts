@@ -52,6 +52,7 @@ async function encodeToTarget(
   format: CompressionFormat,
   quality: number,
   targetBytes?: number,
+  signal?: AbortSignal,
 ) {
   if (!targetBytes || format === 'image/png') {
     return { blob: await encode(canvas, format, quality), qualityUsed: quality };
@@ -63,7 +64,7 @@ async function encodeToTarget(
   let bestQuality = low;
 
   for (let attempt = 0; attempt < 7; attempt += 1) {
-    throwIfAborted();
+    throwIfAborted(signal);
     const candidateQuality = (low + high) / 2;
     const candidate = await encode(canvas, format, candidateQuality);
     if (candidate.size <= targetBytes) {
@@ -155,7 +156,7 @@ async function compressImageOnMainThread(file: File, options: CompressionOptions
     context.drawImage(image.source, 0, 0, size.width, size.height);
 
     const targetBytes = options.targetSizeKB && options.targetSizeKB > 0 ? options.targetSizeKB * 1024 : undefined;
-    const encoded = await encodeToTarget(canvas, options.format, options.quality, targetBytes);
+    const encoded = await encodeToTarget(canvas, options.format, options.quality, targetBytes, options.signal);
     throwIfAborted(options.signal);
 
     return {
