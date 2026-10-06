@@ -103,9 +103,7 @@ const PARAMETER_SCHEMAS = {
 
 export const MVP_EXECUTABLE_TOOL_IDS = Object.freeze([
   "background-remover","image-upscaler","image-cropper","image-compressor","image-converter",
-  "image-effects","image-rotate","image-flip-horizontal","image-flip-vertical","image-brightness",
-  "image-contrast","image-saturation","image-grayscale","image-invert","image-sepia",
-  "image-blur","image-sharpen","image-resizer","image-hue","image-pixelate",
+  "image-effects","video-trimmer","video-cropper","video-resizer","video-compressor",
 ] as const);
 
 const INTENTS: Record<string, readonly string[]> = {
