@@ -63,3 +63,13 @@ A task is complete only when implementation, verification, evidence, and documen
 Routine work does not require a fixed pre-execution operation count, mandatory handoff, lease/heartbeat, successor session, or conversational approval. Use a risk-based preflight covering current target SHA, scope, affected surface, intended regression, and safe publication. Add deeper controls only when risk requires them.
 
 Worker branches may be created, rebased, abandoned, and replaced freely. Their existence must not block unrelated agent work. Exact-SHA, security/privacy, and production-boundary controls remain mandatory.
+
+
+## Official Repository Knowledge Agent Package
+The official repository-knowledge agent package is centralized under `الوكلاء/وكيل-معرفة-المستودع/`.
+
+- Canonical agent contract: `الوكلاء/وكيل-معرفة-المستودع/الوكيل.md`
+- Review/readme: `الوكلاء/وكيل-معرفة-المستودع/README.md`
+- Authority contract: `الوكلاء/وكيل-معرفة-المستودع/العقد.md`
+- SHA-bound reports: `الوكلاء/وكيل-معرفة-المستودع/التقارير/`
+- GitHub agent registration remains at `.github/agents/flixo-repository-knowledge-agent.md` and must remain byte-identical to the canonical contract.
