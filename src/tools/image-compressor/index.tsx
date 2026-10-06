@@ -128,6 +128,11 @@ export function ImageCompressor({ locale }: { locale?: string }) {
       inputId="image-file"
       accept="image/jpeg,image/png,image/webp,image/gif,image/bmp,image/svg+xml"
       multiple
+      inputPolicy={{
+        allowedMime: ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/bmp', 'image/svg+xml'],
+        maxBytes: MAX_INPUT_SIZE,
+        allowedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'svg'],
+      }}
       parameters={parameters}
       setParameters={setParameters}
       parameterSchema={parameterSchema}
