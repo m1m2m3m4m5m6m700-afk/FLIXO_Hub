@@ -73,6 +73,11 @@ const untranslatedAllowlist = new Set([
   "Bokeh",
 ]);
 
+const localeSpecificUntranslatedAllowlist = new Map([
+  ["fr", new Set(["Saturation"])],
+  ["nl", new Set(["Contrast"])],
+]);
+
 const gaps = [];
 const untranslated = [];
 
@@ -86,6 +91,7 @@ for (const locale of canonical) {
       .filter(([key, englishValue]) => {
         if (typeof englishValue !== "string" || englishValue.length < 4) return false;
         if (untranslatedAllowlist.has(englishValue)) return false;
+        if (localeSpecificUntranslatedAllowlist.get(locale)?.has(englishValue)) return false;
         return actual.get(key) === englishValue;
       })
       .map(([key, englishValue]) => ({ key, value: englishValue }));
