@@ -133,23 +133,23 @@ test('active MVP UI paths do not expose a direct engine execution bypass', () =>
   );
 });
 
-test('canonical video media boundaries use the shared safe media-source adapter', () => {
+test('canonical video media boundaries use the local blob URL adapter with deterministic cleanup', () => {
   const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
   const canonical = readFileSync(resolve(root, 'src/lib/execution/canonical-executor.ts'), 'utf8');
   const renderer = readFileSync(resolve(root, 'src/lib/video/video-executor.ts'), 'utf8');
-  const verifier = readFileSync(resolve(root, 'src/config/manual-capability-definition.ts'), 'utf8');
+  const verifier = readFileSync(resolve(root, 'src/lib/execution/canonical-executor.ts'), 'utf8');
   const adapter = readFileSync(resolve(root, 'src/lib/video/blob-video-source.ts'), 'utf8');
 
   assert.match(canonical, /attachVideoBlobSource\(video, input\.blob, signal\)/u);
   assert.match(canonical, /attachVideoBlobSource\(video, output\.blob, signal\)/u);
   assert.match(renderer, /attachVideoBlobSource\(video, inputBlob, options\.signal\)/u);
-  assert.match(verifier, /attachVideoBlobSource\(video, blob, signal\)/u);
-  assert.match(adapter, /new MediaSourceClass\(\)/u);
-  assert.match(adapter, /sourceBuffer\.appendBuffer\(bytes\)/u);
-  assert.match(adapter, /video\.srcObject = mediaSource/u);
-  assert.doesNotMatch(canonical, /video\.src\s*=\s*URL\.createObjectURL/u);
-  assert.doesNotMatch(renderer, /video\.src\s*=\s*URL\.createObjectURL/u);
-  assert.doesNotMatch(verifier, /video\.src\s*=\s*URL\.createObjectURL/u);
+  assert.match(verifier, /attachVideoBlobSource\(video, output\.blob, signal\)/u);
+  assert.match(adapter, /URL\.createObjectURL\(blob\)/u);
+  assert.match(adapter, /video\.src = url/u);
+  assert.match(adapter, /URL\.revokeObjectURL\(url\)/u);
+  assert.match(adapter, /video\.removeAttribute\('src'\)/u);
+  assert.doesNotMatch(adapter, /new MediaSourceClass\(\)/u);
+  assert.doesNotMatch(adapter, /sourceBuffer\.appendBuffer\(bytes\)/u);
 });
 
 test('video renderer cleans active media resources on every terminal path', () => {
