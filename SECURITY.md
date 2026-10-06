@@ -1,5 +1,7 @@
 # Security Policy
 
+Repository identity: `m1m2m3m4m5m6m700-afk/FLIXO_Hub`. Historical references to the former repository name are not current production truth.
+
 ## Scope
 
 This policy covers the FLIXO-AI-TOOLS repository, its source code, CI workflows, and production-facing configuration.
@@ -24,7 +26,7 @@ If a secret may have been exposed:
 4. Re-run the relevant security and release checks.
 5. Record the incident and corrective action without publishing the secret value.
 
-Removing a secret from the latest commit does not make a previously exposed credential safe; treat any credential present in repository history as compromised until rotated.
+Removing a secret from the latest commit does not make a previously exposed credential safe; treat any credential present in repository history as compromised until revoked or rotated. Historical findings must be classified and recorded without reproducing secret values.
 
 ## Reporting a vulnerability
 
@@ -34,7 +36,7 @@ Please include the affected component, reproduction steps, impact assessment, an
 
 ## CI security requirements
 
-Security checks must remain enabled. A failing security gate must not be bypassed solely to obtain a green build. External service failures must be classified separately from application-code failures.
+Security checks must remain enabled. Secret scanning must check the exact candidate SHA and full repository history available to the checkout. A failing security gate must not be bypassed solely to obtain a green build. External service failures must be classified separately from application-code failures.
 
 The normal CI Socket check may be skipped when `SOCKET_SECURITY_API_KEY` is not configured. The `Release Certification` workflow is stricter: `SOCKET_SECURITY_API_KEY` is mandatory there, and the Socket scan is a blocking release gate.
 
