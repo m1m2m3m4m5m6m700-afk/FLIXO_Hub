@@ -35,7 +35,7 @@
     {
       "url": "https://github.com/ffmpegwasm/ffmpeg.wasm/releases",
       "source_type": "release_notes",
-      "stability": "volatile",
+      "stability": "stable",
       "evidence_kind": "release",
       "vendor_affiliated": true,
       "title": "FFmpeg.wasm ecosystem release signals",
