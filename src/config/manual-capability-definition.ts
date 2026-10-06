@@ -1,3 +1,4 @@
+import { attachVideoBlobSource } from '../lib/video/blob-video-source.ts';
 import { z, type ZodType } from "zod";
 
 export type CanonicalCapabilityState = "RECOGNIZED" | "PLANNABLE" | "EXECUTABLE" | "UNAVAILABLE";
@@ -184,6 +185,8 @@ async function readImageDimensions(blob: Blob, signal?: AbortSignal): Promise<Me
       image.onerror = () => { cleanup(); reject(new Error("Image output could not be decoded.")); };
       signal?.addEventListener("abort", onAbort, { once: true });
     });
+    releaseSource = await attachVideoBlobSource(video, blob, signal);
+    await metadataReady;
     return { width: image.naturalWidth, height: image.naturalHeight };
   } finally {
     URL.revokeObjectURL(url);
@@ -194,9 +197,9 @@ async function readVideoDimensions(blob: Blob, signal?: AbortSignal): Promise<Me
   if (signal?.aborted || blob.type !== "video/webm" || typeof document === "undefined") return undefined;
   const video = document.createElement("video");
   video.preload = "metadata";
-  video.srcObject = blob;
+  let releaseSource: (() => void) | null = null;
   try {
-    await new Promise<void>((resolve, reject) => {
+    const metadataReady = new Promise<void>((resolve, reject) => {
       const onAbort = () => reject(new DOMException("Video verification aborted.", "AbortError"));
       const cleanup = () => signal?.removeEventListener("abort", onAbort);
       video.onloadedmetadata = () => { cleanup(); resolve(); };
@@ -206,7 +209,8 @@ async function readVideoDimensions(blob: Blob, signal?: AbortSignal): Promise<Me
     if (!Number.isFinite(video.duration) || video.duration <= 0 || video.videoWidth <= 0 || video.videoHeight <= 0) return undefined;
     return { width: video.videoWidth, height: video.videoHeight, duration: video.duration };
   } finally {
-    video.srcObject = null;
+    releaseSource?.();
+    releaseSource = null;
     video.removeAttribute("src");
     video.load();
   }
