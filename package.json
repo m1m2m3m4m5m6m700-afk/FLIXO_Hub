@@ -58,8 +58,7 @@
     "eslint-plugin-react-refresh": "^0.5.3",
     "globals": "^15.15.0",
     "typescript-eslint": "^8.56.1",
-    "typescript": "^5.8.3",
-    "vite": "^8.2.1"
+    "typescript": "^5.8.3"
   },
   "workspaces": [
     "packages/contracts"
