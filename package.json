@@ -19,7 +19,7 @@
     "generate:static-routes": "node --import=./scripts/register-node-resolver.mjs --experimental-strip-types scripts/generate-static-route-entries.mjs",
     "test:core": "node scripts/assert-test-files.mjs tests/canonical-capability-verifiers.test.ts tests/editor-color-scene.test.ts tests/editor-document-model.test.ts tests/editor-history.test.ts tests/editor-masks.test.ts tests/editor-performance.test.ts tests/editor-render-graph.test.ts tests/worker-production-boundary.test.ts && node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/canonical-capability-verifiers.test.ts tests/editor-color-scene.test.ts tests/editor-document-model.test.ts tests/editor-history.test.ts tests/editor-masks.test.ts tests/editor-performance.test.ts tests/editor-render-graph.test.ts tests/worker-production-boundary.test.ts",
     "test:e2e": "playwright test",
-    "test": "npm run test:model-license && npm run verify:agents && npm run verify:i18n && npm run verify:public-surfaces && npm run verify:codeowners && npm run verify:branch-authority && npm run verify:lineage && npm run typecheck && npm run lint && npm run test:core",
+    "test": "npm run test:model-license && npm run verify:agents && npm run verify:i18n && npm run verify:public-surfaces && npm run verify:codeowners && npm run verify:branch-authority && npm run verify:lineage && npm run verify:ocr && npm run typecheck && npm run lint && npm run test:core",
     "ci": "npm run test && npm run build",
     "test:model-license": "node scripts/model-license-gate.mjs",
     "test:model-license:release": "node scripts/model-license-gate.mjs --require-entry",
@@ -32,7 +32,8 @@
     "verify:public-surfaces": "node scripts/verify-public-execution-surfaces.mjs",
     "verify:codeowners": "node scripts/verify-codeowners-coverage.mjs",
     "verify:branch-authority": "node scripts/verify-branch-authority.mjs",
-    "verify:lineage": "node scripts/verify-certification-lineage.mjs"
+    "verify:lineage": "node scripts/verify-certification-lineage.mjs",
+    "verify:ocr": "node scripts/verify-ocr-runtime-pinning.mjs"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",
