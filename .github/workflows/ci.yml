@@ -286,6 +286,12 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
+      - name: Verify deployment checkout identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$DEPLOYMENT_SHA"
+
       - name: Wait for all required security workflows at exact SHA
         env:
           GH_TOKEN: ${{ github.token }}
