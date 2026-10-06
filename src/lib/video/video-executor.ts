@@ -1,3 +1,5 @@
+import { assertSafeVideoInput, validateVideoRenderOptions, VIDEO_LIMITS } from './video-safety';
+
 export type VideoRenderOptions = Readonly<{
   startSec?: number;
   endSec?: number;
@@ -14,7 +16,6 @@ type MediaRecorderConstructor = typeof MediaRecorder;
 type CaptureStreamVideoElement = HTMLVideoElement & {
   captureStream?: () => MediaStream;
 };
-
 
 function supportedMimeType(): string {
   const ctor = globalThis.MediaRecorder as MediaRecorderConstructor | undefined;
@@ -50,91 +51,159 @@ function waitForEvent(target: EventTarget, type: string, signal?: AbortSignal): 
     };
     target.addEventListener(type, onEvent, { once: true });
     target.addEventListener('error', onError, { once: true });
-    signal?.addEventListener('abort', onAbort, { once: true });
+    if (signal?.aborted) onAbort();
+    else signal?.addEventListener('abort', onAbort, { once: true });
   });
 }
 
 async function seek(video: HTMLVideoElement, time: number, signal?: AbortSignal): Promise<void> {
   if (signal?.aborted) throw new DOMException('Video operation aborted.', 'AbortError');
-  video.currentTime = Math.max(0, time);
+  video.currentTime = time;
   await waitForEvent(video, 'seeked', signal);
 }
 
-function buildCanvas(video: HTMLVideoElement, options: VideoRenderOptions): { canvas: HTMLCanvasElement; source: { x: number; y: number; width: number; height: number } } {
+function buildCanvas(
+  video: HTMLVideoElement,
+  options: VideoRenderOptions,
+): { canvas: HTMLCanvasElement; source: { x: number; y: number; width: number; height: number } } {
   const source = options.crop
-    ? {
-      x: Math.min(Math.max(0, options.crop.x), Math.max(0, video.videoWidth - 1)),
-      y: Math.min(Math.max(0, options.crop.y), Math.max(0, video.videoHeight - 1)),
-      width: Math.min(Math.max(1, options.crop.width), video.videoWidth),
-      height: Math.min(Math.max(1, options.crop.height), video.videoHeight),
-    }
+    ? { ...options.crop }
     : { x: 0, y: 0, width: video.videoWidth, height: video.videoHeight };
-  const width = Math.max(1, Math.round(options.width ?? source.width));
-  const height = Math.max(1, Math.round(options.height ?? source.height));
+  const width = Math.round(options.width ?? source.width);
+  const height = Math.round(options.height ?? source.height);
   const canvas = document.createElement('canvas');
   canvas.width = width;
   canvas.height = height;
   return { canvas, source };
 }
 
-export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOptions = {}): Promise<Blob> {
+function stopTracks(stream: MediaStream | null | undefined): void {
+  stream?.getTracks().forEach((track) => {
+    try { track.stop(); } catch { /* cleanup is best effort */ }
+  });
+}
+
+async function stopRecorder(recorder: MediaRecorder | null): Promise<void> {
+  if (!recorder || recorder.state === 'inactive') return;
+  await new Promise<void>((resolve) => {
+    const previous = recorder.onstop;
+    recorder.addEventListener('stop', () => resolve(), { once: true });
+    try {
+      recorder.stop();
+    } catch {
+      previous?.call(recorder, new Event('stop'));
+      resolve();
+    }
+  });
+}
+
+function assertWebmArtifact(blob: Blob): void {
+  if (blob.type !== 'video/webm') throw new Error(`Unexpected video output MIME type: ${blob.type || '(missing MIME)'}`);
+  if (blob.size < 4) throw new Error('VIDEO_OUTPUT_EMPTY');
+}
+
+export async function renderVideoToWebm(
+  inputBlob: Blob,
+  options: VideoRenderOptions = {},
+): Promise<Blob> {
   if (typeof document === 'undefined') throw new Error('VIDEO_BROWSER_RUNTIME_REQUIRED');
-  if (typeof HTMLVideoElement === 'undefined' || typeof MediaRecorder === 'undefined') throw new Error('VIDEO_BROWSER_APIS_UNAVAILABLE');
-  if (inputBlob.size <= 0) throw new Error('VIDEO_INPUT_EMPTY');
+  if (typeof HTMLVideoElement === 'undefined' || typeof MediaRecorder === 'undefined') {
+    throw new Error('VIDEO_BROWSER_APIS_UNAVAILABLE');
+  }
+
+  await assertSafeVideoInput(inputBlob);
+  if (options.signal?.aborted) throw new DOMException('Video operation aborted.', 'AbortError');
+
+  const operationController = new AbortController();
+  const abortFromCaller = () => operationController.abort();
+  options.signal?.addEventListener('abort', abortFromCaller, { once: true });
+  const timeoutId = globalThis.setTimeout(() => operationController.abort(), VIDEO_LIMITS.timeoutMs);
 
   const url = URL.createObjectURL(inputBlob);
   const video = document.createElement('video');
   video.preload = 'auto';
-  video.muted = false;
   video.playsInline = true;
   video.src = url;
 
-  try {
-    await waitForEvent(video, 'loadedmetadata');
-    const duration = video.duration;
-    if (!Number.isFinite(duration) || duration <= 0) throw new Error('VIDEO_METADATA_INVALID');
+  let canvasStream: MediaStream | null = null;
+  let sourceStream: MediaStream | null = null;
+  let recorder: MediaRecorder | null = null;
+  let frameHandle = 0;
+  let drawing = false;
+  const chunks: Blob[] = [];
+  let totalBytes = 0;
+  let recorderStopRequested = false;
 
-    const startSec = Math.max(0, Math.min(options.startSec ?? 0, Math.max(0, duration - 0.001)));
-    const endSec = Math.max(startSec + 0.001, Math.min(options.endSec ?? duration, duration));
-    if (endSec <= startSec) throw new Error('VIDEO_TRIM_RANGE_INVALID');
+  try {
+    await waitForEvent(video, 'loadedmetadata', operationController.signal);
+    const duration = video.duration;
+    validateVideoRenderOptions({
+      durationSec: duration,
+      startSec: options.startSec,
+      endSec: options.endSec,
+      crop: options.crop,
+      width: options.width,
+      height: options.height,
+      fps: options.fps,
+      videoBitsPerSecond: options.videoBitsPerSecond,
+      audioBitsPerSecond: options.audioBitsPerSecond,
+      sourceWidth: video.videoWidth,
+      sourceHeight: video.videoHeight,
+    });
 
     const { canvas, source } = buildCanvas(video, options);
     const context = canvas.getContext('2d');
     if (!context) throw new Error('VIDEO_CANVAS_CONTEXT_UNAVAILABLE');
 
-    const fps = Math.max(1, Math.min(120, Number(options.fps ?? 30)));
-    const canvasStream = canvas.captureStream(fps);
+    const fps = options.fps ?? 30;
+    if (typeof canvas.captureStream !== 'function') throw new Error('VIDEO_CANVAS_CAPTURE_UNAVAILABLE');
+    canvasStream = canvas.captureStream(fps);
     const captureVideo = video as CaptureStreamVideoElement;
-    const sourceStream = typeof captureVideo.captureStream === 'function' ? captureVideo.captureStream() : null;
-    if (sourceStream) {
+    if (typeof captureVideo.captureStream === 'function') {
+      sourceStream = captureVideo.captureStream();
       for (const track of sourceStream.getAudioTracks()) {
-        try { canvasStream.addTrack(track); } catch { /* track is already attached */ }
+        try { canvasStream.addTrack(track); } catch { /* duplicate/unsupported track */ }
       }
     }
 
     const mimeType = supportedMimeType();
-    const recorder = new MediaRecorder(canvasStream, {
+    recorder = new MediaRecorder(canvasStream, {
       mimeType,
-      ...(options.videoBitsPerSecond ? { videoBitsPerSecond: options.videoBitsPerSecond } : {}),
-      ...(options.audioBitsPerSecond ? { audioBitsPerSecond: options.audioBitsPerSecond } : {}),
+      ...(options.videoBitsPerSecond !== undefined ? { videoBitsPerSecond: options.videoBitsPerSecond } : {}),
+      ...(options.audioBitsPerSecond !== undefined ? { audioBitsPerSecond: options.audioBitsPerSecond } : {}),
     });
 
-    const chunks: Blob[] = [];
+    let recorderFailure: Error | undefined;
     const stopped = new Promise<void>((resolve, reject) => {
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) chunks.push(event.data);
+      recorder!.ondataavailable = (event) => {
+        if (event.data.size <= 0) return;
+        totalBytes += event.data.size;
+        if (totalBytes > VIDEO_LIMITS.maxOutputBytes) {
+          recorderFailure = new Error('VIDEO_OUTPUT_TOO_LARGE');
+          if (!recorderStopRequested && recorder!.state !== 'inactive') {
+            recorderStopRequested = true;
+            recorder!.stop();
+          }
+          return;
+        }
+        chunks.push(event.data);
       };
-      recorder.onerror = () => reject(new Error('VIDEO_RECORDING_FAILED'));
-      recorder.onstop = () => resolve();
+      recorder!.onerror = () => {
+        recorderFailure = recorderFailure ?? new Error('VIDEO_RECORDING_FAILED');
+        reject(recorderFailure);
+      };
+      recorder!.onstop = () => {
+        if (recorderFailure) reject(recorderFailure);
+        else resolve();
+      };
     });
 
-    if (options.signal?.aborted) throw new DOMException('Video operation aborted.', 'AbortError');
-    await seek(video, startSec, options.signal);
+    await seek(video, options.startSec ?? 0, operationController.signal);
 
-    let drawing = true;
-    let frameHandle = 0;
+    const endSec = options.endSec ?? duration;
+    drawing = true;
     const draw = () => {
-      if (!drawing || options.signal?.aborted) return;
+      if (!drawing || operationController.signal.aborted) return;
       context.drawImage(video, source.x, source.y, source.width, source.height, 0, 0, canvas.width, canvas.height);
       frameHandle = requestAnimationFrame(draw);
     };
@@ -144,37 +213,45 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
     await video.play();
 
     await new Promise<void>((resolve, reject) => {
-      const onAbort = () => reject(new DOMException('Video operation aborted.', 'AbortError'));
-      options.signal?.addEventListener('abort', onAbort, { once: true });
+      const onAbort = () => {
+        operationController.signal.removeEventListener('abort', onAbort);
+        reject(new DOMException('Video operation aborted.', 'AbortError'));
+      };
       const tick = () => {
-        if (options.signal?.aborted) {
-          reject(new DOMException('Video operation aborted.', 'AbortError'));
+        if (operationController.signal.aborted) {
+          onAbort();
           return;
         }
         if (video.currentTime >= endSec || video.ended) {
-          options.signal?.removeEventListener('abort', onAbort);
+          operationController.signal.removeEventListener('abort', onAbort);
           resolve();
           return;
         }
         frameHandle = requestAnimationFrame(tick);
       };
+      operationController.signal.addEventListener('abort', onAbort, { once: true });
       tick();
-      video.onerror = () => reject(new Error('VIDEO_PLAYBACK_FAILED'));
     });
 
     drawing = false;
     cancelAnimationFrame(frameHandle);
     video.pause();
-    if (recorder.state !== 'inactive') recorder.stop();
+    await stopRecorder(recorder);
     await stopped;
-
-    canvasStream.getTracks().forEach((track) => track.stop());
-    sourceStream?.getTracks().forEach((track) => track.stop());
-
     if (!chunks.length) throw new Error('VIDEO_RECORDING_EMPTY');
-    return new Blob(chunks, { type: 'video/webm' });
+
+    const output = new Blob(chunks, { type: 'video/webm' });
+    assertWebmArtifact(output);
+    return output;
   } finally {
-    video.pause();
+    clearTimeout(timeoutId);
+    options.signal?.removeEventListener('abort', abortFromCaller);
+    drawing = false;
+    if (frameHandle) cancelAnimationFrame(frameHandle);
+    try { video.pause(); } catch { /* noop */ }
+    await stopRecorder(recorder);
+    stopTracks(canvasStream);
+    stopTracks(sourceStream);
     video.removeAttribute('src');
     video.load();
     URL.revokeObjectURL(url);
