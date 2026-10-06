@@ -172,7 +172,7 @@ async function readOutput(page: Page): Promise<{
         duration: video.duration,
       };
     } finally {
-      URL.revokeObjectURL(url);
+      URL.revokeObjectURL(outputUrl);
       video.removeAttribute('src');
       video.load();
     }
