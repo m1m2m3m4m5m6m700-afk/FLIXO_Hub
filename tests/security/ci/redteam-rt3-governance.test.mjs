@@ -32,3 +32,13 @@ test('RT3: the CI trust path remains fail-closed on governance and Red Team gate
   assert.match(workflow, /name: Red Team adversarial regression/u);
   assert.match(workflow, /test "\$TRUST_RESULT" = success/u);
 });
+
+test('RT3: production dependency graph excludes the audited vulnerable seroval release', () => {
+  const lock = JSON.parse(readFileSync('package-lock.json', 'utf8'));
+  const resolved = lock.packages?.['node_modules/seroval'];
+  assert.ok(resolved, 'seroval must remain represented in the lockfile');
+  assert.notEqual(resolved.version, '1.6.2', 'Vulnerable seroval 1.6.2 must not be installed');
+  assert.match(resolved.version, /^1\.6\.[3-9][0-9]*$/u, 'seroval must be on a patched 1.6.x release');
+  assert.equal(resolved.integrity, 'sha512-HlSgSAkTk4EqHcje1ptJjfZi1YDv5KbhVJ/d3P7T/nAXua2VmDu+AKDX5VTdFfZf48nDkWB2TKYt0DrCSa+3wg==');
+  assert.equal(lock.packages?.['']?.overrides?.seroval, '1.6.8');
+});
