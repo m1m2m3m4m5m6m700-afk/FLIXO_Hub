@@ -4,7 +4,8 @@ STATUS: EVIDENCE_ONLY
 PRODUCTION_CERTIFICATION: NOT_ISSUED
 LANE: agent-2/redteam-closure-final-20261006
 INTEGRATION_TARGET: execution
-BASE_EXECUTION_SHA: 4fbf06941a66e8b383f841899a5c52e1637fd3e7
+CURRENT_CANDIDATE_SHA: 088f0c834ceb13b808962cc4e73582e84d45eda4
+BASE_EXECUTION_SHA: a39c8638dcd3fd0a5f27761584ce12bd3233d158
 
 ## Finding state
 
@@ -53,3 +54,7 @@ Every mutation creates a new candidate. No prior CI, browser, security, coverage
 ## Candidate synchronization
 
 This commit intentionally changes only this evidence record to force a fresh pull-request synchronization event. All previous candidate evidence is invalidated by the new head SHA.
+
+## Latest exact-SHA evidence boundary
+
+At candidate `088f0c834ceb13b808962cc4e73582e84d45eda4`: Red Team adversarial regression PASS; Branch policy PASS; Gitleaks PASS; Chromium video/media assurance PASS. The general Typecheck/Lint/Core Contracts/Build gate fails on an existing Arabic-intent regression in `tests/agent-guided-runtime.test.ts`, and the Native exact-SHA TestSprite fallback fails on `video-trimmer` (17 passed, 2 failed). Those source paths are owned by concurrent agent lanes and were intentionally not modified here. Therefore trust-gate and promotion-proof remain fail-closed.
