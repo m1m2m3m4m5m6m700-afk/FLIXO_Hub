@@ -4,7 +4,7 @@ This ledger records live execution tasks on the `execution` integration line. A 
 
 ## Current candidate
 - Branch: `execution`
-- Current candidate SHA at this ledger reconciliation: `e8e35d17dd763d2dcd087f7f25d264369e2c8320`
+- Current candidate SHA at this ledger reconciliation: `d7d0c2e6b7a07a044c3772f8382c3b5a1e4ac440`
 - Integration PR: #1002
 - Production truth branch: `main`
 - Current main SHA: `263827228cbe5f4851470297fde5f2858ff844de`
@@ -12,7 +12,7 @@ This ledger records live execution tasks on the `execution` integration line. A 
 
 | TASK_ID | OWNER | STATUS | FILES_CHANGED | DEPENDENCIES | VALIDATION | EVIDENCE | NEXT_ACTION |
 |---|---|---|---|---|---|---|---|
-| EXEC-PROMPT-10-SECURITY-001 | AGENT-3/Security | IN PROGRESS | `.github/CODEOWNERS`, `src/worker.ts`, `vercel.json`, `tests/worker-production-boundary.test.ts`, `tests/security-governance.test.ts`, `package.json` | Prompt 10 security closure | Fixed stale CODEOWNER security path; deny unused camera permission; added exact policy regression gate; CI revalidation pending on current SHA | Current exact execution SHA and new CI runs | Finish exact-SHA security/CI verification and record PASS/GAP |
+| EXEC-PROMPT-10-SECURITY-001 | AGENT-3/Security | IN PROGRESS | `.github/CODEOWNERS`, `src/worker.ts`, `vercel.json`, `tests/worker-production-boundary.test.ts`, `tests/security-governance.test.ts`, `package.json`, `docs/FLIXO-PROMPT-10-STATE.md` | Prompt 10 security closure | Fixed stale CODEOWNER target; denied unused camera permission; added exact policy regression coverage; syntax-checked new security test; exact-SHA CI/security revalidation pending on final SHA | d7d0c2e6b7a07a044c3772f8382c3b5a1e4ac440 | Close only after current-SHA security gates pass |
 | EXEC-VIDEO-RACE-001 | AGENT-1/Runtime | VERIFIED-STATIC | `src/lib/video/video-executor.ts`, `src/lib/execution/canonical-executor.ts` | Browser media events | Static contract checks added; current candidate browser/Red Team evidence is PASS | Exact current-candidate CI/Red Team runs | Retain serial video E2E isolation and monitor current candidate |
 | EXEC-SCOPE-001 | AGENT-3/QA | IMPLEMENTED | `tests/official/image-toolkit-wave1.spec.ts` | MVP scope registry | Scope regression test exists | Current candidate CI child jobs PASS | Keep exact-SHA scope regression in final gate |
 | EXEC-FILE-SAFETY-001 | AGENT-1/Runtime | VERIFIED-STATIC | `src/lib/execution/canonical-executor.ts`, contract tests | File Safety contract semantics | Bounded signature probe and full Blob size checks implemented | Current candidate Red Team/CI PASS | No mutation unless a new gap appears |
