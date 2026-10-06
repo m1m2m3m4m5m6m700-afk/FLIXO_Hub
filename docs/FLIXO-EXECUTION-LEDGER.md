@@ -4,8 +4,9 @@ This ledger records live execution tasks on the `execution` integration line. A 
 
 ## Current candidate
 - Branch: `execution`
-- Current candidate SHA at this ledger reconciliation: `d7d0c2e6b7a07a044c3772f8382c3b5a1e4ac440`
-- Integration PR: #1002
+- Current candidate SHA at this ledger reconciliation: `PENDING — resolve live execution HEAD at verification time`
+- Integration PR: `RESOLVE LIVE ACTIVE PR AT VERIFICATION TIME`
+- PR #1002 is historical release-line context only and must not be reused as current exact-SHA evidence.
 - Production truth branch: `main`
 - Current main SHA: `263827228cbe5f4851470297fde5f2858ff844de`
 - Exact-SHA evidence must be regenerated after any further execution mutation.
@@ -22,8 +23,8 @@ This ledger records live execution tasks on the `execution` integration line. A 
 | EXEC-SCOPE-CLAIMS-001 | AGENT-3/QA | VERIFIED-STATIC | `docs/FLIXO-PUBLIC-CLAIMS-ALLOWLIST.md` | Current ten-tool MVP scope | Public claims aligned to ten canonical executable capabilities | Current candidate scope test/build PASS | Keep locked |
 | EXEC-PROMPT-02-001 | AGENT-3/QA | IN_PROGRESS | `docs/FLIXO-PROMPT-02-STATE.md`, scope test, public claims | Prompt 02 exact-SHA verification | Runtime contract alignment is implemented; final certification evidence remains governance-blocked | Current candidate CI/coverage/browser/Red Team/security PASS except branch-policy governance | Close after governance blocker is legitimately removed and final certification rerun |
 | EXEC-MVP-NEG-ASSERT-001 | AGENT-3/QA | VERIFIED | `tests/mvp-acceptance-corpus.test.ts` | Node assert.throws behavior | Negative corpus assertion explicitly validates the thrown Error and required message classes | bfa98f6da5bdc28b21c4f22a926d4c219a7230a2; CI + Prompt 17 PASS | Re-run exact-SHA gates after any later mutation |
-| EXEC-CERT-BLOCKER-001 | AGENT-3/Certification | BLOCKED | GitHub ruleset / PR review state | External repository governance | Live main ruleset has 0 required approvals and non-strict required checks; PR #1002 has no human approving review | Live ruleset inspection + PR review list | Harden Ruleset 23854302 and obtain legitimate independent approval |
-| EXEC-DOCS-AUDIT-001 | AGENT-2/Product | IMPLEMENTED | `docs/TOOL-EXPANSION-AUDIT.md` | Exact execution candidate | Audit reconciled to active PR #1002 | Latest exact candidate requires state refresh after every mutation | Refresh only as candidate advances |
+| EXEC-CERT-BLOCKER-001 | AGENT-3/Certification | BLOCKED | GitHub ruleset / PR review state | External repository governance | Live main ruleset has 0 required approvals and non-strict required checks; the historically referenced PR #1002 has no human approving review | Live ruleset inspection + current PR review list | Harden Ruleset 23854302 and obtain legitimate independent approval |
+| EXEC-DOCS-AUDIT-001 | AGENT-3/Documentation | IMPLEMENTED | `docs/TOOL-EXPANSION-AUDIT.md`, `docs/REPOSITORY-STRUCTURE.md`, release docs | Exact execution candidate | Audit and structure docs reconciled; fixed PR #1002 references removed from active-candidate language | Latest exact candidate requires state refresh after every mutation | Refresh only as candidate advances |
 
 ## Last fully verified exact-SHA CI evidence — candidate `a44958a97126b2e050746010947aef2cfa286729`
 
@@ -40,7 +41,7 @@ Exact candidate evidence before this documentation rollover:
 - Chromium browser smoke: PASS.
 - Trust-gate / promotion proof: governance remains blocked by live main ruleset and missing independent human review.
 - Production exact-SHA deployment: not applicable on execution by design; production truth begins on main after protected promotion.
-All evidence above is tied to `bfa98f6da5bdc28b21c4f22a926d4c219a7230a2`. This This documentation rollover creates a new SHA, so candidate-specific PASS evidence remains bound to `a44958a97126b2e050746010947aef2cfa286729` until regenerated on the new head.
+All evidence above is tied to `bfa98f6da5bdc28b21c4f22a926d4c219a7230a2`. This documentation rollover creates a new SHA, so candidate-specific PASS evidence remains bound to `a44958a97126b2e050746010947aef2cfa286729` until regenerated on the new head.
 
 ## Prompt-state reconciliation — current candidate
 - Prompt 01: BLOCKED_BY_EXTERNAL_GOVERNANCE — live execution/main state reconciled at `a44958a97126b2e050746010947aef2cfa286729`.
