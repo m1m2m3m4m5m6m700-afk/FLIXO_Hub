@@ -20,7 +20,7 @@ const EXPECTED_MVP = Object.freeze([
   'video-compressor',
 ]);
 
-const sorted = (ids: readonly string[]) => [...ids].sort();
+const sorted = (ids: readonly string[]) => [...ids].sort((a, b) => a.localeCompare(b, 'en', { sensitivity: 'variant' }));
 
 test('one canonical ten-tool MVP scope is mechanically enforced across authority layers', () => {
   assert.deepEqual(sorted(MVP_EXECUTABLE_TOOL_IDS), sorted(EXPECTED_MVP));
