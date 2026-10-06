@@ -156,7 +156,8 @@ jobs:
           else
             cat /tmp/flixo-browser-failure.md
           fi
-      - name: Wait for exact-SHA security workflows
+      - name: Wait for exact-SHA security workflows on promotion PRs
+        if: github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main'
         shell: bash
         run: |
           set -euo pipefail
