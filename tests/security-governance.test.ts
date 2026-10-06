@@ -54,6 +54,11 @@ test('required RT-17 paths are real repository paths; absent media path is not i
   assert.equal(codeowners.includes('/src/lib/media/'), false);
 });
 
+test('RT-17 coordination branch is narrowly allowed without opening a generic extra-agent namespace', () => {
+  const branchPolicy = readFileSync('scripts/ci/verify-branch-policy.mjs', 'utf8');
+  assert.match(branchPolicy, /agent-3a\\/redteam-rt17-/u);
+  assert.doesNotMatch(branchPolicy, /agent-3a\\\\\//u);
+});
 test('main ruleset verifier is dynamic and does not pin a historical ruleset id', () => {
   const verifier = readFileSync('scripts/ci/verify-main-ruleset.mjs', 'utf8');
   assert.doesNotMatch(verifier, /rulesets\/23854302/u);
