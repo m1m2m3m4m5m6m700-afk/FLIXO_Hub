@@ -4,6 +4,9 @@ import { expect, type Page } from '@playwright/test';
 // can be verified without relying on a near-white/low-information fixture.
 export const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAPUlEQVR42mP4z8DwHwwZ/oMBAwOYxQBD/xkaHBT+Kzg0/HdoUPh/IsXoP4OIhs1/Gw2R/ynTTvz/sCXgPwDaSiSJ4dCj1wAAAABJRU5ErkJggg==', 'base64');
 
+// White connected background with a contrasting 2x2 foreground center.
+export const BACKGROUND_PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAI0lEQVR4nGP8////fwYkwMTAwMBwV16e4a68PEIAGTCiawEAoKAKNTrGrEEAAAAASUVORK5CYII=', 'base64');
+
 export async function uploadFixture(page: Page, name = 'fixture.png') {
   await page.locator('#image-tool-file, input[type="file"]').first().setInputFiles({ name, mimeType: 'image/png', buffer: PNG });
 }
