@@ -25,9 +25,10 @@ test('candidate diagnostics stay bound to the exact PR head SHA', async () => {
     !workflow.includes('    EXPECTED_SHA: ${{ github.sha }}'),
     'bare github.sha must not label PR-head diagnostics',
   );
-  assert.ok(
-    workflow.includes('  group: flixo-final-red-team-' + EXACT_HEAD_EXPRESSION),
-    'final Red Team concurrency identity must use the exact PR head SHA selector',
+  assert.match(
+    workflow,
+    /  group: flixo-final-red-team-\$\{\{ github\.event_name == 'pull_request' && github\.event\.pull_request\.number \|\| github\.ref \}\}/u,
+    'final Red Team concurrency must deduplicate promotion PR runs by PR identity',
   );
   assert.ok(
     !workflow.includes('          name: flixo-final-red-team-${{ github.sha }}'),
