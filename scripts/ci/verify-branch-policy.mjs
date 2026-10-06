@@ -88,42 +88,6 @@ function hasMainPushGate(jobText) {
   );
 }
 
-function hasMainPushTrigger(workflow) {
-  const lines = workflow.split('\n');
-  let inOn = false;
-  let inPush = false;
-
-  for (const line of lines) {
-    if (/^on:\s*$/u.test(line)) {
-      inOn = true;
-      inPush = false;
-      continue;
-    }
-    if (inOn && /^\S/u.test(line)) {
-      inOn = false;
-      inPush = false;
-      continue;
-    }
-    if (!inOn) continue;
-
-    if (/^  push:\s*$/u.test(line)) {
-      inPush = true;
-      continue;
-    }
-    if (inPush && /^  \S/u.test(line)) {
-      inPush = false;
-      if (/^  pull_request:/u.test(line)) continue;
-    }
-    if (inPush && /^    branches:\s*\[\s*main\s*\]\s*$/u.test(line)) return true;
-  }
-
-  return false;
-}
-
-function hasWorkflowDispatch(workflow) {
-  return /(^|\n)\s{2}workflow_dispatch:\s*$/u.test(workflow);
-}
-
 export function analyzeWorkflowAuthority(path, workflow) {
   const findings = [];
   const jobs = jobBlocks(workflow);
@@ -140,9 +104,12 @@ export function analyzeWorkflowAuthority(path, workflow) {
       /FLIXO_TARGET_BRANCH:\s*execution\b/u.test(jobText) &&
       /\bref:\s*execution\b/u.test(jobText);
 
-    if (PRODUCTION_DEPLOYMENT_COMMAND.test(jobText) && !mainPushGate) {
+    if (
+      (PRODUCTION_DEPLOYMENT_COMMAND.test(jobText) || PRODUCTION_DEPLOYMENT_ACTION.test(jobText)) &&
+      !mainPushGate
+    ) {
       findings.push(
-        `${path}#${job.id}: production/deployment command is not gated to a push of refs/heads/main.`,
+        `${path}#${job.id}: production/deployment authority is not gated to a push of refs/heads/main.`,
       );
     }
 
@@ -152,8 +119,9 @@ export function analyzeWorkflowAuthority(path, workflow) {
       );
     }
 
-    if (/contents:\s*write\b/u.test(jobText)) {
-      const safeMainWrite = mainPushGate || (mainPushTrigger && !workflowDispatch);
+    const jobContentsWrite = /contents:\s*write\b/iu.test(jobText);
+    if (jobContentsWrite || workflowContentsWrite) {
+      const safeMainWrite = mainPushGate;
       const safeExecutionWrite = executionTarget;
       if (!safeMainWrite && !safeExecutionWrite) {
         findings.push(
