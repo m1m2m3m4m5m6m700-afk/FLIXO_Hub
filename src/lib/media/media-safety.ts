@@ -104,7 +104,7 @@ export function assertVideoBitrate(videoBitsPerSecond: number, audioBitsPerSecon
 }
 
 function readUint32BE(bytes: Uint8Array, offset: number): number {
-  return (((bytes[offset] ?? 0) << 24) >>> 0) | ((bytes[offset + 1] ?? 0) << 16) | ((bytes[offset + 2] ?? 0) << 8) | (bytes[offset + 3] ?? 0);
+  return (bytes[offset] ?? 0) * 0x1000000 + (bytes[offset + 1] ?? 0) * 0x10000 + (bytes[offset + 2] ?? 0) * 0x100 + (bytes[offset + 3] ?? 0);
 }
 
 function readUint24LE(bytes: Uint8Array, offset: number): number {
@@ -163,4 +163,14 @@ export function readRasterDimensions(
   }
 
   return undefined;
+}
+
+export async function assertRasterOutput(blob: Blob, expectedMime: RasterImageMime): Promise<void> {
+  if (blob.type !== expectedMime) throw new Error(`Unexpected image output MIME type: ${blob.type || '(missing MIME)'}`);
+  if (!Number.isInteger(blob.size) || blob.size < 1) throw new Error('Image output is empty.');
+  if (blob.size > MEDIA_LIMITS.rasterOutputBytes) throw new Error('Image output exceeds the safe browser size limit.');
+  const header = new Uint8Array(await blob.slice(0, 64).arrayBuffer());
+  if (!verifyMagicBytesMatch(header, RASTER_SIGNATURES[expectedMime])) {
+    throw new Error('Image output signature does not match its declared MIME type.');
+  }
 }
