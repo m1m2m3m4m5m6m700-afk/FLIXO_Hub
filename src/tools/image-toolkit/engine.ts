@@ -36,6 +36,12 @@ function validateOutputDimensions(width: number, height: number): void {
   validateImageDimensions(width, height);
 }
 
+function validateOutputBlob(blob: Blob, type: string): Blob {
+  if (blob.size <= 0 || blob.size > IMAGE_ENGINE_MAX_INPUT_BYTES) throw new Error('IMAGE_OUTPUT_SIZE_INVALID');
+  if (blob.type !== type) throw new Error('IMAGE_OUTPUT_MIME_INVALID');
+  return blob;
+}
+
 export function imageInfo(blob: Blob): Promise<ImageInfo> {
   validateImageEngineInput(blob);
   return new Promise((resolve, reject) => {
@@ -43,7 +49,12 @@ export function imageInfo(blob: Blob): Promise<ImageInfo> {
     const image = new Image();
     image.onload = () => {
       URL.revokeObjectURL(url);
-      resolve({ width: image.naturalWidth, height: image.naturalHeight });
+      try {
+        validateImageDimensions(image.naturalWidth, image.naturalHeight);
+        resolve({ width: image.naturalWidth, height: image.naturalHeight });
+      } catch (error) {
+        reject(error);
+      }
     };
     image.onerror = () => {
       URL.revokeObjectURL(url);
@@ -76,7 +87,12 @@ export function loadImage(blob: Blob): Promise<HTMLImageElement> {
 }
 
 function canvasBlob(canvas: HTMLCanvasElement, type = 'image/png', quality = 0.96): Promise<Blob> {
-  return new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Could not create output image.')), type, quality));
+  validateOutputDimensions(canvas.width, canvas.height);
+  return new Promise((resolve, reject) => canvas.toBlob(
+    (blob) => blob ? resolve(validateOutputBlob(blob, type)) : reject(new Error('Could not create output image.')),
+    type,
+    quality,
+  ));
 }
 
 function clamp(n: number, min: number, max: number) {
@@ -153,6 +169,7 @@ export async function resizeImage(blob: Blob, scale: number): Promise<Blob> {
 }
 
 export async function convertImage(blob: Blob, type: 'image/png' | 'image/jpeg' | 'image/webp'): Promise<Blob> {
+  if (!SUPPORTED_IMAGE_MIME.has(type)) throw new Error('IMAGE_OUTPUT_MIME_INVALID');
   const image = await loadImage(blob);
   validateOutputDimensions(image.naturalWidth, image.naturalHeight);
   const canvas = document.createElement('canvas');
@@ -213,6 +230,7 @@ export async function removeBackground(blob: Blob, tolerance = 42): Promise<Blob
     return Math.hypot(pixel[0] - background[0], pixel[1] - background[1], pixel[2] - background[2]) <= tolerance;
   };
   const total = canvas.width * canvas.height;
+  if (total > IMAGE_ENGINE_MAX_PIXELS) throw new Error('IMAGE_PIXELS_EXCEEDED');
   const visited = new Uint8Array(total);
   const queue = new Int32Array(total);
   let head = 0;
