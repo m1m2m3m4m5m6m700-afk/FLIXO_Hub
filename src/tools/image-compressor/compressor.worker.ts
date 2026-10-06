@@ -51,35 +51,41 @@ async function encodeToTarget(canvas: OffscreenCanvas, format: WorkerCompression
 }
 
 self.onmessage = async (event: MessageEvent<{ file: File; options: WorkerCompressionOptions }>) => {
+  let bitmap: ImageBitmap | null = null;
+  let canvas: OffscreenCanvas | null = null;
   try {
     const { file, options } = event.data;
     assertSafeImageInput(file);
     if (file.type === 'image/svg+xml') throw new Error('SVG worker path unavailable');
 
-    const bitmap = await createImageBitmap(file);
-    try {
-      assertSafeImageInput(file, { width: bitmap.width, height: bitmap.height });
-      const size = getTargetSize(bitmap.width, bitmap.height, options.maxWidth, options.maxHeight);
-      if (size.width * size.height > MAX_OUTPUT_PIXELS) throw new Error('The requested output is too large for safe browser processing. Reduce the dimensions and try again.');
+    bitmap = await createImageBitmap(file);
+    assertSafeImageInput(file, { width: bitmap.width, height: bitmap.height });
+    const size = getTargetSize(bitmap.width, bitmap.height, options.maxWidth, options.maxHeight);
+    if (size.width * size.height > MAX_OUTPUT_PIXELS) throw new Error('The requested output is too large for safe browser processing. Reduce the dimensions and try again.');
 
-      const canvas = new OffscreenCanvas(size.width, size.height);
-      const context = canvas.getContext('2d', { alpha: true });
-      if (!context) throw new Error('OffscreenCanvas is unavailable');
-      context.imageSmoothingEnabled = true;
-      context.imageSmoothingQuality = 'high';
-      if (options.format === 'image/jpeg') {
-        context.fillStyle = '#ffffff';
-        context.fillRect(0, 0, size.width, size.height);
-      }
-      context.drawImage(bitmap, 0, 0, size.width, size.height);
-
-      const targetBytes = options.targetSizeKB && options.targetSizeKB > 0 ? options.targetSizeKB * 1024 : undefined;
-      const encoded = await encodeToTarget(canvas, options.format, options.quality, targetBytes);
-      self.postMessage({ ok: true, result: { blob: encoded.blob, width: size.width, height: size.height, mimeType: options.format, qualityUsed: encoded.qualityUsed } });
-    } finally {
-      bitmap.close();
+    canvas = new OffscreenCanvas(size.width, size.height);
+    const context = canvas.getContext('2d', { alpha: true });
+    if (!context) throw new Error('OffscreenCanvas is unavailable');
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = 'high';
+    if (options.format === 'image/jpeg') {
+      context.fillStyle = '#ffffff';
+      context.fillRect(0, 0, size.width, size.height);
     }
+    context.drawImage(bitmap, 0, 0, size.width, size.height);
+
+    const targetBytes = options.targetSizeKB && options.targetSizeKB > 0 ? options.targetSizeKB * 1024 : undefined;
+    const encoded = await encodeToTarget(canvas, options.format, options.quality, targetBytes);
+    self.postMessage({ ok: true, result: { blob: encoded.blob, width: size.width, height: size.height, mimeType: options.format, qualityUsed: encoded.qualityUsed } });
   } catch (error) {
     self.postMessage({ ok: false, error: error instanceof Error ? error.message : 'Compression failed' });
+  } finally {
+    bitmap?.close();
+    if (canvas) {
+      canvas.width = 1;
+      canvas.height = 1;
+      canvas.width = 0;
+      canvas.height = 0;
+    }
   }
 };
