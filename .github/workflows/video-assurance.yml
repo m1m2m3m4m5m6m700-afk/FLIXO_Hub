@@ -3,8 +3,6 @@ name: FLIXO Video Execution Assurance
 on:
   push:
     branches: [execution]
-  pull_request:
-    branches: [execution]
   workflow_dispatch:
 
 permissions:
