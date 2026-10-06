@@ -8,31 +8,8 @@ import type { LocalToolId } from '../tools/image-toolkit/engine.ts';
 export type ToolDefinition = UnifiedToolDefinition;
 export type { ToolFamily, ToolCategory, ToolLifecycle, ToolExecution, ToolContractLevel, ToolRecoveryPolicy, ToolRequirements, ToolOperationalProfile };
 
-export type ToolFamily = 'image' | 'video' | 'audio' | 'ai' | 'editor';
-export type ToolCategory = 'Images' | 'Video' | 'Audio' | 'AI' | 'Editor';
-export type ToolLifecycle = 'experimental' | 'beta' | 'ready' | 'deprecated';
-export type ToolExecution = 'browser-local' | 'browser-worker' | 'remote';
-export type ToolContractLevel = 'structural' | 'runtime' | 'artifact';
-export type ToolRecoveryPolicy = Readonly<{ maxAttempts: number; replanOnFailure: boolean }>;
-export type ToolRequirements = Readonly<{ browser: true; network: boolean }>
-export type ToolOperationalProfile = Readonly<{
-  lifecycle: ToolLifecycle;
-  execution: ToolExecution;
-  contracts: readonly ToolContractLevel[];
-  executorId: string | null;
-  outputContractId: string | null;
-}>;
-export type ToolSource = Readonly<{
-  id: string;
-  title: string;
-  path: string;
-  description: string;
-  family?: ToolFamily;
-  category: ToolCategory;
-  isReady: boolean;
-  aliases?: readonly string[];
-  component: LazyExoticComponent<ComponentType>;
-}>;
+export type ToolDefinition = UnifiedToolDefinition;
+export type { ToolFamily, ToolCategory, ToolLifecycle, ToolExecution, ToolContractLevel, ToolRecoveryPolicy, ToolRequirements, ToolOperationalProfile };
 
 // ToolConfig is the canonical source shape consumed by the definition builder.
 type ToolConfig = ToolSource;
