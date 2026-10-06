@@ -121,7 +121,19 @@ async function planAndExecuteAgent(page: Page, prompt: string, expectedToolId: s
   await expect(page.locator('[aria-label="agent-result"]')).toHaveCount(0);
 
   await page.getByTestId('agent-confirmation').check();
-  await page.getByRole('button', { name: language === 'ar' ? /تنفيذ/i : /Execute/i }).click();
+  const executeButton = page.getByTestId('agent-execute');
+  console.log('AGENT_POST_CONFIRM_STATE', JSON.stringify({
+    mainLang: await main.getAttribute('lang'),
+    mainDir: await main.getAttribute('dir'),
+    planCount: await page.locator('[aria-label="agent-plan"]').count(),
+    executeCount: await executeButton.count(),
+    executeText: await executeButton.textContent().catch(() => null),
+    executeDisabled: await executeButton.isDisabled().catch(() => null),
+    confirmationChecked: await page.getByTestId('agent-confirmation').isChecked().catch(() => null),
+  }));
+  await expect(executeButton).toBeVisible({ timeout: 5_000 });
+  await expect(executeButton).toBeEnabled({ timeout: 5_000 });
+  await executeButton.click();
   await expect(page.locator('[aria-label="agent-result"]')).toBeVisible({ timeout: 30_000 });
 }
 
