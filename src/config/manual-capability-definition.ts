@@ -210,7 +210,6 @@ async function readVideoDimensions(blob: Blob, signal?: AbortSignal): Promise<Me
     return { width: video.videoWidth, height: video.videoHeight, duration: video.duration };
   } finally {
     releaseSource?.();
-    releaseSource = null;
     video.removeAttribute("src");
     video.load();
   }
