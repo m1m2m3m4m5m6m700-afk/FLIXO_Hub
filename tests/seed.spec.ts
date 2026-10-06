@@ -210,3 +210,48 @@ test.describe('SeedTool Real WebGL Engine & Overlay Integration', () => {
     await expect(fullscreenBtn).toHaveAttribute('aria-label', 'Enter Fullscreen');
   });
 });
+
+
+test.describe('Seed media safety regression', () => {
+  const setSeedFile = async (page: Page, file: { name: string; mimeType: string; buffer: Buffer }) => {
+    await page.goto('/en/seed');
+    await expect(page.getByRole('heading', { level: 1, name: 'Seed' })).toBeVisible();
+    await page.locator('#seed-main-image-input').setInputFiles(file);
+    return page.getByRole('alert');
+  };
+
+  test('rejects fake MIME metadata for a PNG payload', async ({ page }) => {
+    const alert = await setSeedFile(page, { name: 'payload.png', mimeType: 'image/jpeg', buffer: PNG });
+    await expect(alert).toContainText('Input rejected by Seed File Safety');
+    await expect(canvasLocator(page)).not.toHaveAttribute('data-render-revision', '1');
+  });
+
+  test('rejects files above the Seed byte ceiling before decoding', async ({ page }) => {
+    const alert = await setSeedFile(page, {
+      name: 'oversized.png',
+      mimeType: 'image/png',
+      buffer: Buffer.alloc(25 * 1024 * 1024 + 1),
+    });
+    await expect(alert).toContainText('file exceeds the maximum size');
+  });
+
+  test('rejects excessive declared PNG dimensions before decode', async ({ page }) => {
+    const hugeHeader = Buffer.alloc(33);
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(hugeHeader, 0);
+    hugeHeader.writeUInt32BE(100000, 16);
+    hugeHeader.writeUInt32BE(100000, 20);
+    const alert = await setSeedFile(page, { name: 'huge.png', mimeType: 'image/png', buffer: hugeHeader });
+    await expect(alert).toContainText('pixel count exceeds policy limit');
+  });
+
+  test('rejects a malformed image that spoofs the PNG magic bytes', async ({ page }) => {
+    const malformed = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    const alert = await setSeedFile(page, { name: 'malformed.png', mimeType: 'image/png', buffer: malformed });
+    await expect(alert).toContainText('Unable to decode the image after security validation.');
+  });
+
+  test('rejects extension mismatch even when MIME and payload are valid', async ({ page }) => {
+    const alert = await setSeedFile(page, { name: 'payload.jpg', mimeType: 'image/png', buffer: PNG });
+    await expect(alert).toContainText('file extension does not match MIME type');
+  });
+});
