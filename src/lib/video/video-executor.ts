@@ -83,7 +83,6 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
   if (typeof HTMLVideoElement === 'undefined' || typeof MediaRecorder === 'undefined') throw new Error('VIDEO_BROWSER_APIS_UNAVAILABLE');
   if (inputBlob.size <= 0) throw new Error('VIDEO_INPUT_EMPTY');
 
-  const url = URL.createObjectURL(inputBlob);
   const video = document.createElement('video');
   let canvasStream: MediaStream | undefined;
   let sourceStream: MediaStream | null = null;
@@ -96,7 +95,8 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
 
   try {
     const metadataReady = waitForEvent(video, 'loadedmetadata');
-    video.src = url;
+    // Feed the Blob directly to the media element; avoid a DOM URL sink for untrusted media data.
+    video.srcObject = inputBlob;
     await metadataReady;
     const duration = video.duration;
     if (!Number.isFinite(duration) || duration <= 0) throw new Error('VIDEO_METADATA_INVALID');
@@ -189,8 +189,8 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
     }
     canvasStream?.getTracks().forEach((track) => track.stop());
     sourceStream?.getTracks().forEach((track) => track.stop());
+    video.srcObject = null;
     video.removeAttribute('src');
     video.load();
-    URL.revokeObjectURL(url);
   }
 }
