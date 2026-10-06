@@ -36,7 +36,7 @@ test('RT-02: flixo-council-runtime authentication and session binding remain sou
 test('RT-10: Admin login has no process-local limiter and uses the shared RPC boundary', () => {
   const session = read('api/admin/session.ts'); assert.doesNotMatch(session, /loginBuckets|new Map<string, \{ attempts:/u);
   assert.match(session, /consumeAdminLoginRateLimit/u); assert.match(session, /resetAdminLoginRateLimit/u);
-  assert.match(migration, /on conflict \(bucket_key\) do update/u); assert.match(migration, /flix_admin_login_rate_limit_consume/u);
+  assert.match(migration, /on conflict \(bucket_key\) do update/u); assert.match(migration, /flixo_admin_login_rate_limit_consume/u);
   assert.match(migration, /revoke all on table public\.flix_admin_login_rate_limits from public, anon, authenticated, service_role;/u);
 });
 
