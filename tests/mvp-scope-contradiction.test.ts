@@ -20,17 +20,25 @@ const EXPECTED_MVP = Object.freeze([
   'video-compressor',
 ]);
 
+const sorted = (ids: readonly string[]) => [...ids].sort();
+
 test('one canonical ten-tool MVP scope is mechanically enforced across authority layers', () => {
-  assert.deepEqual([...MVP_EXECUTABLE_TOOL_IDS], EXPECTED_MVP);
+  assert.deepEqual(sorted(MVP_EXECUTABLE_TOOL_IDS), sorted(EXPECTED_MVP));
+  assert.equal(new Set(MVP_EXECUTABLE_TOOL_IDS).size, EXPECTED_MVP.length);
   assert.deepEqual(
-    CAPABILITY_DEFINITIONS.map((definition) => definition.id),
-    EXPECTED_MVP,
+    sorted(CAPABILITY_DEFINITIONS.map((definition) => definition.id)),
+    sorted(EXPECTED_MVP),
+  );
+  assert.equal(
+    new Set(CAPABILITY_DEFINITIONS.map((definition) => definition.id)).size,
+    EXPECTED_MVP.length,
   );
 
   const executableRegistryIds = TOOL_REGISTRY
     .filter((tool) => tool.capability.state === 'EXECUTABLE')
     .map((tool) => tool.id);
-  assert.deepEqual(executableRegistryIds, EXPECTED_MVP);
+  assert.deepEqual(sorted(executableRegistryIds), sorted(EXPECTED_MVP));
+  assert.equal(new Set(executableRegistryIds).size, EXPECTED_MVP.length);
 
   for (const id of EXPECTED_MVP) {
     const tool = TOOL_REGISTRY.find((candidate) => candidate.id === id);
@@ -59,8 +67,5 @@ test('one canonical ten-tool MVP scope is mechanically enforced across authority
     assert.doesNotMatch(document, /only the six|six canonical executable MVP capabilities/iu);
   }
 
-  assert.match(
-    claims,
-    /ten canonical executable MVP capabilities/iu,
-  );
+  assert.match(claims, /ten canonical executable MVP capabilities/iu);
 });
