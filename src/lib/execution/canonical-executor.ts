@@ -143,7 +143,6 @@ async function preflightInput(
     }
   } finally {
     releaseSource?.();
-    releaseSource = null;
     video.removeAttribute('src');
     video.load();
   }
@@ -385,7 +384,6 @@ async function verifyOutputContract(
         dimensions = { width: video.videoWidth, height: video.videoHeight };
       } finally {
         releaseSource?.();
-        releaseSource = null;
         video.removeAttribute('src');
         video.load();
       }
