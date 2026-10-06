@@ -14,6 +14,8 @@ import { useFullscreenSync } from '../../components/useFullscreenSync';
 import { getTranslationBundle, type Locale } from '../../lib/i18n';
 import { EN_SEED_UI } from '../../lib/i18n/locales/en';
 import type { SeedUiTranslations } from '../../lib/i18n/types';
+import { MAGIC_BYTE_SIGNATURES, validateFileSafety } from '../../lib/contracts/file-safety';
+import { validateUploadBoundary } from '../../lib/contracts/upload-boundary';
 
 export interface SeedState extends SeedRenderSettings {
   blurRadius: number;
@@ -21,6 +23,94 @@ export interface SeedState extends SeedRenderSettings {
 }
 
 type Snapshot = { basic: SeedState; advanced: AdvancedSeedSettings };
+
+const SEED_IMAGE_POLICY = Object.freeze({
+  allowedMime: ['image/png', 'image/jpeg', 'image/webp'],
+  maxBytes: 25 * 1024 * 1024,
+  maxPixels: 40_000_000,
+  allowedExtensions: ['png', 'jpg', 'jpeg', 'webp'],
+});
+const SEED_SIGNATURES = Object.freeze({
+  'image/png': Object.freeze({ extensions: ['png'], signatures: ['89504e470d0a1a0a'], magicBytes: [MAGIC_BYTE_SIGNATURES.png] }),
+  'image/jpeg': Object.freeze({ extensions: ['jpg', 'jpeg'], signatures: ['ffd8ff'], magicBytes: [MAGIC_BYTE_SIGNATURES.jpeg] }),
+  'image/webp': Object.freeze({ extensions: ['webp'], signatures: ['52494646'], magicBytes: [MAGIC_BYTE_SIGNATURES.webp] }),
+});
+
+function pngDimensions(bytes: Uint8Array): { width: number; height: number } | undefined {
+  if (bytes.length < 24) return undefined;
+  const png = MAGIC_BYTE_SIGNATURES.png.bytes;
+  if (!png.every((value, index) => bytes[index] === value)) return undefined;
+  const width = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(16, false);
+  const height = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(20, false);
+  return width > 0 && height > 0 ? { width, height } : undefined;
+}
+
+async function loadValidatedSeedImage(file: File): Promise<{ image: HTMLImageElement; url: string; width: number; height: number }> {
+  if (file.size > SEED_IMAGE_POLICY.maxBytes) {
+    throw new Error('Input rejected by Seed File Safety: file exceeds the maximum size');
+  }
+  const config = SEED_SIGNATURES[file.type as keyof typeof SEED_SIGNATURES];
+  if (!config) {
+    throw new Error('Input rejected by Seed File Safety: unsupported input MIME type: ' + file.type);
+  }
+  let bytes: Uint8Array;
+  try {
+    bytes = new Uint8Array(await file.arrayBuffer());
+  } catch {
+    throw new Error('Input rejected by Seed File Safety: failed to read file bytes');
+  }
+  const boundary = validateUploadBoundary(
+    { name: file.name, mime: file.type, bytes },
+    {
+      ...SEED_IMAGE_POLICY,
+      allowedExtensions: config.extensions,
+      signatures: config.signatures,
+      magicBytes: config.magicBytes,
+    },
+  );
+  if (!boundary.safe) {
+    throw new Error('Input rejected by Seed File Safety: ' + boundary.failures.join('; '));
+  }
+
+  const declared = file.type === 'image/png' ? pngDimensions(bytes) : undefined;
+  if (declared) {
+    const declaredSafety = validateFileSafety(
+      { name: file.name, mime: file.type, bytes: file.size, width: declared.width, height: declared.height },
+      SEED_IMAGE_POLICY,
+    );
+    if (!declaredSafety.safe) {
+      throw new Error('Input rejected by Seed File Safety: ' + declaredSafety.failures.join('; '));
+    }
+  }
+
+  const url = URL.createObjectURL(file);
+  const image = new Image();
+  try {
+    image.src = url;
+    if (typeof image.decode === 'function') {
+      await image.decode();
+    } else {
+      await new Promise<void>((resolve, reject) => {
+        image.onload = () => resolve();
+        image.onerror = () => reject(new Error('decode failed'));
+      });
+    }
+    const width = image.naturalWidth;
+    const height = image.naturalHeight;
+    const decodedSafety = validateFileSafety(
+      { name: file.name, mime: file.type, bytes: file.size, width, height },
+      SEED_IMAGE_POLICY,
+    );
+    if (!decodedSafety.safe) {
+      throw new Error('Input rejected by Seed File Safety: ' + decodedSafety.failures.join('; '));
+    }
+    return { image, url, width, height };
+  } catch (cause) {
+    URL.revokeObjectURL(url);
+    if (cause instanceof Error && cause.message.startsWith('Input rejected by Seed File Safety:')) throw cause;
+    throw new Error('Unable to decode the image after security validation.');
+  }
+}
 
 const DEFAULT_STATE: SeedState = {
   brightness: 0, contrast: 0, saturation: 0, warmth: 0,
@@ -186,29 +276,27 @@ export default function SeedTool({ locale = 'en' as Locale }: { locale?: Locale 
     applyHistorySnapshot(next, historyIndex + 1);
   };
 
-  const openImage = (file: File) => {
-    if (!file.type.startsWith('image/')) { setError('Drop a supported image file.'); return; }
-    const url = URL.createObjectURL(file);
-    if (imageUrlRef.current) URL.revokeObjectURL(imageUrlRef.current);
-    imageUrlRef.current = url;
-    const img = new Image();
-    img.onload = () => {
+  const openImage = async (file: File) => {
+    try {
+      const validated = await loadValidatedSeedImage(file);
+      if (imageUrlRef.current) URL.revokeObjectURL(imageUrlRef.current);
+      imageUrlRef.current = validated.url;
       renderSettingsRef.current = DEFAULT_STATE;
-      setImage(img); setImageName(file.name); setSettings(DEFAULT_STATE); setAdvanced(cloneAdvanced(DEFAULT_ADVANCED));
+      setImage(validated.image); setImageName(file.name); setSettings(DEFAULT_STATE); setAdvanced(cloneAdvanced(DEFAULT_ADVANCED));
       setHistory([{ basic: DEFAULT_STATE, advanced: cloneAdvanced(DEFAULT_ADVANCED) }]); setHistoryIndex(0); setZoomLevel(1); setError('');
-    };
-    img.onerror = () => setError('Unable to decode this image.');
-    img.src = url;
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Unable to load the image safely.');
+    }
   };
-  const openDoubleExposure = (file: File) => {
-    if (!file.type.startsWith('image/')) { setError('Choose an image for the exposure layer.'); return; }
-    const url = URL.createObjectURL(file);
-    if (doubleExposureUrlRef.current) URL.revokeObjectURL(doubleExposureUrlRef.current);
-    doubleExposureUrlRef.current = url;
-    const layer = new Image();
-    layer.onload = () => updateAdvanced('doubleExposure', layer);
-    layer.onerror = () => setError('Unable to decode the exposure layer.');
-    layer.src = url;
+  const openDoubleExposure = async (file: File) => {
+    try {
+      const validated = await loadValidatedSeedImage(file);
+      if (doubleExposureUrlRef.current) URL.revokeObjectURL(doubleExposureUrlRef.current);
+      doubleExposureUrlRef.current = validated.url;
+      updateAdvanced('doubleExposure', validated.image);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Unable to load the exposure layer safely.');
+    }
   };
   const addBrushPoint = (event: React.PointerEvent<HTMLCanvasElement>) => {
     if (!image || advanced.brushStrength === 0) return;
@@ -260,7 +348,7 @@ export default function SeedTool({ locale = 'en' as Locale }: { locale?: Locale 
 
   return (
     <div className="mx-auto flex min-h-[760px] w-full max-w-[1500px] flex-col gap-3 p-2 sm:p-3 lg:p-4">
-      <input ref={imageInputRef} id="seed-main-image-input" type="file" accept="image/*" aria-label={seedUi.browseFiles} className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) openImage(file); event.currentTarget.value = ''; }} />
+      <input ref={imageInputRef} id="seed-main-image-input" type="file" accept="image/png,image/jpeg,image/webp" aria-label={seedUi.browseFiles} className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) openImage(file); event.currentTarget.value = ''; }} />
       <header className="flex flex-col gap-3 rounded-2xl border border-white/[0.07] bg-zinc-950/85 px-3 py-3 shadow-[0_18px_50px_rgba(0,0,0,0.28)] backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between sm:px-4">
         <div className="flex min-w-0 items-center gap-3"><div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-indigo-300/10 bg-gradient-to-br from-indigo-500/20 via-violet-500/10 to-cyan-400/10 text-indigo-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"><WandSparkles className="size-5" /></div><div className="min-w-0"><div className="flex items-center gap-2"><h2 className="text-sm font-semibold tracking-tight text-white">Seed</h2><span className="hidden rounded border border-white/[0.06] bg-white/[0.025] px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.16em] text-zinc-500 sm:inline">GPU COLOR ENGINE</span></div><div className="mt-1 flex min-w-0 items-center gap-2 text-[10px] text-zinc-500"><Activity className={`size-3 ${gpuReady ? 'text-emerald-400' : 'text-zinc-600'}`} /><span>{image ? imageName : 'No asset loaded'}</span>{image ? <span className="font-mono text-zinc-700">{image.naturalWidth}×{image.naturalHeight}</span> : null}</div></div></div>
         <div className="flex flex-wrap items-center gap-1.5 sm:justify-end"><div className="mr-1 flex items-center gap-2 rounded-lg border border-white/[0.06] bg-zinc-900/80 px-2.5 py-2 text-[9px] font-medium uppercase tracking-[0.12em] text-zinc-500"><span className={`size-1.5 rounded-full ${gpuReady ? 'bg-emerald-400 shadow-[0_0_9px_rgba(52,211,153,0.8)]' : 'bg-zinc-700'}`} /><span>{isRendering ? 'Rendering' : gpuReady ? 'WebGL Ready' : 'Waiting'}</span></div><button type="button" onClick={() => undo()} disabled={historyIndex === 0} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-white/[0.06] bg-zinc-900/80 px-2.5 text-xs text-zinc-400 transition hover:border-white/[0.1] hover:text-white disabled:opacity-30" aria-label={seedUi.undo}><Undo2 className="size-3.5" /><span className="hidden md:inline">{seedUi.undo}</span></button><button type="button" onClick={() => redo()} disabled={historyIndex >= history.length - 1} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-white/[0.06] bg-zinc-900/80 px-2.5 text-xs text-zinc-400 transition hover:border-white/[0.1] hover:text-white disabled:opacity-30" aria-label={seedUi.redo}><Redo2 className="size-3.5" /><span className="hidden md:inline">{seedUi.redo}</span></button><button type="button" onClick={resetAll} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-white/[0.06] bg-zinc-900/80 px-2.5 text-xs text-zinc-400 transition hover:border-white/[0.1] hover:text-white" aria-label={seedUi.resetAll}><RotateCcw className="size-3.5" /><span className="hidden md:inline">Reset</span></button><button type="button" onClick={exportImage} disabled={!image} className="inline-flex h-9 items-center gap-2 rounded-lg border border-indigo-300/20 bg-indigo-500 px-3 text-xs font-semibold text-white shadow-[0_8px_24px_rgba(99,102,241,0.28)] transition hover:bg-indigo-400 disabled:opacity-40" aria-label={seedUi.exportPng}><Download className="size-3.5" />{seedUi.exportPng}</button></div>
@@ -277,7 +365,7 @@ export default function SeedTool({ locale = 'en' as Locale }: { locale?: Locale 
           <div className="min-h-0 flex-1 overflow-y-auto p-2.5" style={{ scrollbarColor: '#3f3f46 transparent', scrollbarWidth: 'thin' }}><Accordion.Root type="multiple" value={openSections} onValueChange={setOpenSections} className="space-y-2">
               <ToolSection value="basic" title={seedUi.lightColor} subtitle={seedUi.lightColorSubtitle} icon={Sun} activeCount={basicActive}><StudioSlider label={seedUi.brightness} code="LUMA" icon={Sun} value={settings.brightness} defaultValue={0} min={-100} max={100} description="Global luminance offset" onChange={(value) => updateSetting('brightness', value)} /><StudioSlider label={seedUi.contrast} code="CTR" icon={Contrast} value={settings.contrast} defaultValue={0} min={-100} max={100} description="Expand or compress tonal separation" onChange={(value) => updateSetting('contrast', value)} /><StudioSlider label={seedUi.saturation} code="SAT" icon={Droplets} value={settings.saturation} defaultValue={0} min={-100} max={100} description="Global chroma density" onChange={(value) => updateSetting('saturation', value)} /><StudioSlider label={seedUi.warmth} code="WB" icon={Thermometer} value={settings.warmth} defaultValue={0} min={-100} max={100} description="Shift white balance toward warm or cool" onChange={(value) => updateSetting('warmth', value)} /><StudioSlider label={seedUi.ambiance} code="AMB" icon={Sparkles} value={settings.ambiance} defaultValue={0} min={-100} max={100} description="Atmospheric lift for the global image" onChange={(value) => updateSetting('ambiance', value)} /><StudioSlider label={seedUi.highlights} code="HI" icon={Highlighter} value={settings.highlights} defaultValue={0} min={-100} max={100} description="Recover or accent bright regions" onChange={(value) => updateSetting('highlights', value)} /><StudioSlider label={seedUi.shadows} code="SH" icon={Layers2} value={settings.shadows} defaultValue={0} min={-100} max={100} description="Open or deepen dark regions" onChange={(value) => updateSetting('shadows', value)} /><div className="flex justify-end pt-1"><SectionReset onClick={resetBasic} label={seedUi.resetSection} /></div></ToolSection>
               <ToolSection value="fx" title={seedUi.fxFocus} subtitle={seedUi.fxFocusSubtitle} icon={Aperture} activeCount={fxActive}><StudioSlider label={seedUi.globalBlur} code="BLR" icon={Aperture} value={settings.blurRadius} defaultValue={0} min={0} max={40} description="Fast preview blur before advanced pass" unit="px" onChange={(value) => updateSetting('blurRadius', value)} /><StudioSlider label={seedUi.lensBlur} code="LENS" icon={Focus} value={advanced.lensBlur} defaultValue={0} min={0} max={40} description="Depth-inspired blur radius" unit="px" onChange={(value) => updateAdvanced('lensBlur', value)} /><StudioSlider label={seedUi.bokehFocusShift} code="FOCUS" icon={Focus} value={advanced.bokeh} defaultValue={0} min={-100} max={100} description="Move the sharp focal band vertically" onChange={(value) => updateAdvanced('bokeh', value)} /><div className="space-y-2 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3"><div className="flex items-start justify-between gap-2"><div><div className="text-[13px] font-medium text-zinc-100">{seedUi.curves}</div><div className="mt-1 font-mono text-[9px] uppercase tracking-[0.1em] text-zinc-600">LUT • RGB master</div></div><span className="rounded-md border border-indigo-400/20 bg-indigo-500/10 px-2 py-1 font-mono text-[11px] text-indigo-200">{curveStrength > 0 ? '+' : ''}{curveStrength}</span></div><CurveMiniPreview y={curveStrength / 200} ariaLabel={seedUi.curvesPreview} /><StudioSlider label={seedUi.curvesStrength} code="LUT" icon={Sparkles} value={curveStrength} defaultValue={0} min={-100} max={100} description="Lift or compress the master midtone curve" onChange={(value) => { const v = value / 200; updateAdvanced('curves', [{ x: 0, y: 0 }, { x: 0.25, y: Math.max(0, 0.25 + v) }, { x: 0.5, y: Math.max(0, Math.min(1, 0.5 + v)) }, { x: 0.75, y: Math.max(0, Math.min(1, 0.75 + v)) }, { x: 1, y: 1 }]); }} /></div>
-              <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3"><div className="flex items-start justify-between gap-3"><div className="flex items-center gap-2"><span className="flex size-8 items-center justify-center rounded-lg border border-white/[0.07] bg-zinc-950 text-zinc-400"><Layers2 className="size-4" /></span><div><div className="text-[12px] font-medium text-zinc-100">{seedUi.doubleExposure}</div><div className="text-[10px] text-zinc-500">Secondary layer / blend pipeline</div></div></div></div><input type="file" accept="image/*" aria-label={seedUi.doubleExposureFile} onChange={(event) => { const file = event.target.files?.[0]; if (file) openDoubleExposure(file); event.currentTarget.value = ''; }} className="mt-3 block w-full cursor-pointer rounded-lg border border-white/[0.08] bg-zinc-950/80 px-3 py-2 text-[10px] text-zinc-500 file:mr-2 file:rounded file:border-0 file:bg-zinc-800 file:px-2 file:py-1 file:text-[10px] file:text-zinc-300" /><StudioSlider label={seedUi.exposureOpacity} code="EXP" icon={Blend} value={advanced.doubleExposureOpacity} defaultValue={0} min={0} max={100} description="Secondary layer strength" onChange={(value) => updateAdvanced('doubleExposureOpacity', value)} /><div className="mt-2"><select value={advanced.doubleExposureBlend} onChange={(event) => updateAdvanced('doubleExposureBlend', event.target.value as GlobalCompositeOperation)} aria-label={seedUi.exposureBlendMode} className="w-full rounded-lg border border-white/[0.07] bg-zinc-950 px-3 py-2 text-xs text-zinc-300">{blendModes.map((mode) => <option key={mode} value={mode}>{mode}</option>)}</select></div></div><div className="flex justify-end pt-1"><SectionReset onClick={resetFx} label={seedUi.resetSection} /></div></ToolSection>
+              <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3"><div className="flex items-start justify-between gap-3"><div className="flex items-center gap-2"><span className="flex size-8 items-center justify-center rounded-lg border border-white/[0.07] bg-zinc-950 text-zinc-400"><Layers2 className="size-4" /></span><div><div className="text-[12px] font-medium text-zinc-100">{seedUi.doubleExposure}</div><div className="text-[10px] text-zinc-500">Secondary layer / blend pipeline</div></div></div></div><input type="file" accept="image/png,image/jpeg,image/webp" aria-label={seedUi.doubleExposureFile} onChange={(event) => { const file = event.target.files?.[0]; if (file) openDoubleExposure(file); event.currentTarget.value = ''; }} className="mt-3 block w-full cursor-pointer rounded-lg border border-white/[0.08] bg-zinc-950/80 px-3 py-2 text-[10px] text-zinc-500 file:mr-2 file:rounded file:border-0 file:bg-zinc-800 file:px-2 file:py-1 file:text-[10px] file:text-zinc-300" /><StudioSlider label={seedUi.exposureOpacity} code="EXP" icon={Blend} value={advanced.doubleExposureOpacity} defaultValue={0} min={0} max={100} description="Secondary layer strength" onChange={(value) => updateAdvanced('doubleExposureOpacity', value)} /><div className="mt-2"><select value={advanced.doubleExposureBlend} onChange={(event) => updateAdvanced('doubleExposureBlend', event.target.value as GlobalCompositeOperation)} aria-label={seedUi.exposureBlendMode} className="w-full rounded-lg border border-white/[0.07] bg-zinc-950 px-3 py-2 text-xs text-zinc-300">{blendModes.map((mode) => <option key={mode} value={mode}>{mode}</option>)}</select></div></div><div className="flex justify-end pt-1"><SectionReset onClick={resetFx} label={seedUi.resetSection} /></div></ToolSection>
               <ToolSection value="geometry" title={seedUi.geometry} subtitle={seedUi.geometrySubtitle} icon={MoveHorizontal} activeCount={geometryActive}><StudioSlider label={seedUi.perspectiveX} code="PX" icon={MoveHorizontal} value={advanced.perspectiveX} defaultValue={0} min={-50} max={50} description="Horizontal perspective correction" onChange={(value) => updateAdvanced('perspectiveX', value)} /><StudioSlider label={seedUi.perspectiveY} code="PY" icon={MoveVertical} value={advanced.perspectiveY} defaultValue={0} min={-50} max={50} description="Vertical perspective correction" onChange={(value) => updateAdvanced('perspectiveY', value)} /><NumericField label={seedUi.cropX} value={settings.crop?.x ?? 0} defaultValue={0} onChange={(value) => updateSetting('crop', settings.crop ? { ...settings.crop, x: value } : { x: value, y: 0, width: image?.naturalWidth ?? 1, height: image?.naturalHeight ?? 1 })} /><NumericField label={seedUi.cropY} value={settings.crop?.y ?? 0} defaultValue={0} onChange={(value) => updateSetting('crop', settings.crop ? { ...settings.crop, y: value } : { x: 0, y: value, width: image?.naturalWidth ?? 1, height: image?.naturalHeight ?? 1 })} /><div className="flex justify-end pt-1"><SectionReset onClick={resetGeometry} label={seedUi.resetSection} /></div></ToolSection>
               <ToolSection value="retouch" title={seedUi.retouch} subtitle={seedUi.retouchSubtitle} icon={Eraser} activeCount={retouchActive}><StudioSlider label={seedUi.brushStrength} code="BRUSH" icon={Eraser} value={advanced.brushStrength} defaultValue={0} min={0} max={100} description="Paint to target localized regions" onChange={(value) => updateAdvanced('brushStrength', value)} /><NumericField label={seedUi.healingX} value={heal.x} defaultValue={0} min={0} max={image?.naturalWidth ?? 1} onChange={(value) => updateAdvanced('heal', { ...heal, x: value })} /><NumericField label={seedUi.healingY} value={heal.y} defaultValue={0} min={0} max={image?.naturalHeight ?? 1} onChange={(value) => updateAdvanced('heal', { ...heal, y: value })} /><div className="flex justify-end pt-1"><SectionReset onClick={resetRetouch} label={seedUi.resetSection} /></div></ToolSection>
             </Accordion.Root></div>
