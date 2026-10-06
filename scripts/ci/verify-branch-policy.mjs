@@ -88,10 +88,39 @@ function hasMainPushGate(jobText) {
   );
 }
 
+function hasMainOnlyPushTrigger(workflow) {
+  const lines = workflow.split('\n');
+  let inOn = false;
+  let inPush = false;
+  let triggerCount = 0;
+  let mainPush = false;
+
+  for (const line of lines) {
+    if (/^on:\s*$/u.test(line)) {
+      inOn = true;
+      continue;
+    }
+    if (inOn && /^\S/u.test(line)) break;
+    if (!inOn) continue;
+
+    const triggerMatch = /^  ([A-Za-z0-9_-]+):\s*$/u.exec(line);
+    if (triggerMatch) {
+      inPush = triggerMatch[1] === 'push';
+      triggerCount += 1;
+      continue;
+    }
+    if (inPush && /^    branches:\s*\[\s*main\s*\]\s*$/u.test(line)) {
+      mainPush = true;
+    }
+  }
+
+  return triggerCount === 1 && mainPush;
+}
 export function analyzeWorkflowAuthority(path, workflow) {
   const findings = [];
   const jobs = jobBlocks(workflow);
   const workflowContentsWrite = hasTopLevelContentsWrite(workflow);
+  const workflowMainOnlyPush = hasMainOnlyPushTrigger(workflow);
 
   if (workflowContentsWrite && jobs.length === 0) {
     findings.push(`${path}: top-level contents:write has no job boundary to constrain mutation authority.`);
@@ -121,7 +150,7 @@ export function analyzeWorkflowAuthority(path, workflow) {
 
     const jobContentsWrite = /contents:\s*write\b/iu.test(jobText);
     if (jobContentsWrite || workflowContentsWrite) {
-      const safeMainWrite = mainPushGate;
+      const safeMainWrite = mainPushGate || workflowMainOnlyPush;
       const safeExecutionWrite = executionTarget;
       if (!safeMainWrite && !safeExecutionWrite) {
         findings.push(
