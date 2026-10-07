@@ -1,7 +1,7 @@
 # CELL — ASSIGNMENT & DELEGATION ARCHITECTURE
 
 Status: IMPLEMENTED REFERENCE CONTRACT
-Version: 1.0.0
+Version: 1.1.0
 
 المهام.md يبقى Dispatch Authority الوحيد. هذه الطبقة تصف وتتحقق من قرار الإسناد والتسليم ولا تنشئ طابور تكليف موازيًا.
 
@@ -15,7 +15,7 @@ Capability Fit + Artifact Fit + Risk Fit + Availability + Reliability + Evidence
 
 الناتج للمهمة المهمة:
 
-PRIMARY + BACKUP + VERIFIER + ESCALATION
+PRIMARY SOLVER + BACKUP SOLVER + OPPONENT + BACKUP OPPONENT + INDEPENDENT VERIFIER + ESCALATION
 
 في المهام التي تتطلب استقلالًا، لا يجوز أن يكون الـVerifier هو الـPrimary أو الـBackup.
 
@@ -68,9 +68,9 @@ taskTypes + riskClasses + maxDepth + maxActiveSubtasks + maxCost + maxDuration
 
 العقد يحمل:
 
-handoffId, taskId, parentTaskId, assignmentId, sourceAgentId, targetAgentId, reason, objective, inputRefs, requiredCapabilities, expectedOutput, verificationCriteria, readScope, writeScope, currentSha, deadlineAtMs, budget, evidenceRequirements, returnContract
+handoffId, taskId, parentTaskId, assignmentId, sourceAgentId, targetAgentId, reason, objective, inputRefs, requiredCapabilities, expectedOutput, verificationCriteria, readScope, writeScope, startingSha, currentSha, deadlineAtMs, budget, evidenceRequirements, returnContract
 
-الهاندوف ذو SHA غير مطابق للحالة الحالية يعاد تأهيله أو يرفض وفق exact-SHA policy.
+الهاندوف ذو SHA غير مطابق للحالة الحالية يرفض fail-closed، ويجب أن تتطابق task/session/assignment/type/risk مع طلب التفويض.
 
 ## 8. Agent Swapping
 
