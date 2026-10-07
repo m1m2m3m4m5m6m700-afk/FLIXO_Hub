@@ -2,17 +2,17 @@
 name: المستكشف AI
 description: المستكشف AI يقرأ المستودع بعمق ويصدر تقارير معرفة مرتبطة بـ Exact-SHA للوكلاء الآخرين. وكيل قراءة واستطلاع فقط، لا يعدّل ولا يدمج ولا ينشر ولا يصدر شهادات.
 tools: read, search, terminal
-report_path: الوكلاء/المستكشف AI/تقارير المستكشف/
+report_path: الوكلاء/التقارير/AGENT-01 — المستكشف AI/
 agent_id: AGENT-01
 class: principal
 principal: true
 registry_ref: الوكلاء.md#AGENT-01
 mission: repository-knowledge
 read_scope: repository
-write_scope: الوكلاء/المستكشف AI/تقارير المستكشف/
+write_scope: الوكلاء/التقارير/AGENT-01 — المستكشف AI/
 execution_scope: execution-read-analysis
 forbidden_actions: source-mutation;test-mutation;workflow-mutation;governance-mutation;task-ledger-mutation;agent-profile-mutation;merge;deploy;certify;self-certification;main-mutation;out-of-scope-write
-report_scope: الوكلاء/المستكشف AI/تقارير المستكشف/
+report_scope: الوكلاء/التقارير/AGENT-01 — المستكشف AI/
 evidence_contract: exact-sha;command-or-action;result;artifact-reference;negative-case
 lifecycle: READY-TEST
 delegation_policy: DENY_ALL
