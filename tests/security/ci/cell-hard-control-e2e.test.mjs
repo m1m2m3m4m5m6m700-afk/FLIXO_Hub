@@ -26,6 +26,24 @@ const scope = Object.freeze({
   resources: ["cpu"],
 });
 
+function recordEvidenceThrough(rt, through = "promotion") {
+  const kinds = ["sourceSha","build","session","action","candidate","test","opponent","redTeam","verifier","certification","promotion"];
+  let parent = null;
+  for (const kind of kinds) {
+    const node = buildHardControlEvidenceNode({
+      id: "E2-" + kind,
+      kind,
+      identity: "CELL",
+      version: HARD_CONTROL_RUNTIME_VERSION,
+      timestamp: 1000 + rt.evidence.size,
+      parent,
+    });
+    rt.recordEvidenceNode(node);
+    parent = node.id;
+    if (kind === through) break;
+  }
+}
+
 function seed(options = {}) {
   let now = 1000;
   const rt = new HardControlRuntime({ liveSha: SHA, clock: () => now });
@@ -164,10 +182,13 @@ test("task state machine rejects illegal closure paths and requires READY_TO_CLO
   assert.equal(redTeam.pass, true);
   s.rt.reconcile("TASK-1", { solverOutcome: "SUCCESS", opponentOutcome: "PASS" });
   s.rt.prepareVerification("TASK-1");
+  s.rt.recordVerification("TASK-1", { verifierId: "verifier", pass: true, certificationPass: true, reviewId: "REVIEW-1" });
+  recordEvidenceThrough(s.rt, "certification");
   const ready = s.rt.markReadyToClose("TASK-1", { opponentResolved: true, redTeamPass: true, verifierPass: true, evidencePass: true });
   assert.equal(ready.state, "READY_TO_CLOSE");
   assert.equal(s.rt.attemptPromotion("TASK-1", { actorId: "solver", actorRole: "SOLVER", redTeamPass: true, opponentResolved: true, verifierPass: true, certificationPass: true, evidencePass: true }).code, "SOLVER_CANNOT_CLOSE");
   assert.equal(s.rt.getTask("TASK-1").state, "READY_TO_CLOSE");
+  recordEvidenceThrough(s.rt, "promotion");
   assert.equal(s.rt.attemptPromotion("TASK-1", { actorId: "verifier", actorRole: "VERIFIER", redTeamPass: true, opponentResolved: true, verifierPass: true, certificationPass: true, evidencePass: true }).promoted, true);
   assert.equal(s.rt.getTask("TASK-1").state, "CLOSED");
 });
@@ -418,6 +439,8 @@ test("self-evolution can propose only through a canonical task/review/verificati
   s.session();
   s.rt.reconcile("TASK-1", { solverOutcome: "SUCCESS", opponentOutcome: "PASS" });
   s.rt.prepareVerification("TASK-1");
+  s.rt.recordVerification("TASK-1", { verifierId: "verifier", pass: true, certificationPass: true, reviewId: "REVIEW-1" });
+  recordEvidenceThrough(s.rt, "certification");
   s.rt.markReadyToClose("TASK-1", { opponentResolved: true, redTeamPass: true, verifierPass: true, evidencePass: true });
   const adopted = s.rt.adoptSelfEvolution("EVOLVE-1", {
     canonicalTaskId: "TASK-1",
