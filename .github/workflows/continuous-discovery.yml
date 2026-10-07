@@ -110,7 +110,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          CHANGED="$(git diff --name-only "$EXECUTION_SHA" --)"
+          CHANGED="$(git -c core.quotePath=false diff --name-only "$EXECUTION_SHA" --)"
           while IFS= read -r path; do
             [ -z "$path" ] && continue
             case "$path" in
@@ -131,7 +131,7 @@ jobs:
         run: |
           set -euo pipefail
           git add "الوكلاء/التقارير/AGENT-08 — Architecture Scout" "الوكلاء/التقارير/AGENT-09 — Technology Scout" "الوكلاء/التقارير/AGENT-10 — Ecosystem Scout" .agent-intelligence/snapshots
-          git diff --cached --name-only | while IFS= read -r path; do
+          git -c core.quotePath=false diff --cached --name-only | while IFS= read -r path; do
             case "$path" in
               "الوكلاء/التقارير/AGENT-08 — Architecture Scout/"*.yaml|"الوكلاء/التقارير/AGENT-09 — Technology Scout/"*.yaml|"الوكلاء/التقارير/AGENT-10 — Ecosystem Scout/"*.yaml|.agent-intelligence/snapshots/*.json|.agent-intelligence/snapshots/*.raw|.agent-intelligence/snapshots/*.txt) ;;
               *) echo "FAIL_CLOSED: staged path outside discovery outputs: $path"; exit 1 ;;
