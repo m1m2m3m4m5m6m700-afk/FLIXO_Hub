@@ -7,7 +7,7 @@ import { convertImage, cropResizeImage, removeBackground, resizeImage } from '@/
 import { compressImage } from '@/tools/image-compressor/engine.ts';
 import { renderVideoToWebm } from '@/lib/video/video-executor.ts';
 import { attachVideoBlobSource, getBoundedVideoDuration } from '@/lib/video/blob-video-source.ts';
-import { admitExecution, getCellPolicyFingerprint, bindExecutionEvidence, assertExecutionEvidence, recordCellEvent } from '@/lib/cell/index.ts';
+import { admitExecution, getCellPolicyFingerprint, bindExecutionEvidence, assertExecutionEvidence, recordCellEvent, startCellWatchdog } from '@/lib/cell/index.ts';
 
 const IMAGE_MIME = ['image/png', 'image/jpeg', 'image/webp'] as const;
 const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp'] as const;
@@ -455,7 +455,7 @@ export async function executeCanonicalTool(
 ): Promise<CanonicalExecutionOutput> {
   const { capability } = resolveCanonicalTool(toolId);
   assertNotAborted(signal);
-  const requestId = `canonical:${toolId}:${Date.now()}:${Math.random().toString(36).slice(2, 10)}`;
+  const requestId = `canonical:${toolId}:${typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `${Date.now()}`}`;
   const admission = admitExecution({
     requestId,
     taskId: requestId,
@@ -465,6 +465,7 @@ export async function executeCanonicalTool(
     signal,
   });
   if (admission.decision !== 'ALLOW') {
+    recordCellEvent({ type: 'ADMISSION_DENIED', requestId, taskId: requestId, capabilityId: toolId, at: new Date().toISOString(), detail: `${admission.code}:${admission.reason}` });
     throw new Error(`CELL execution denied [${admission.code}]: ${admission.reason}`);
   }
   const admittedPolicyFingerprint = admission.policyFingerprint;
@@ -493,10 +494,8 @@ export async function executeCanonicalTool(
   return runBoundedExecutionAttempts(
     capability.recovery.maxAttempts,
     async () => {
-      const executionController = new AbortController();
-      const relayAbort = () => executionController.abort();
-      signal?.addEventListener('abort', relayAbort, { once: true });
-      const executionSignal = executionController.signal;
+      const watchdog = startCellWatchdog(capability.safetyLimits.timeoutMs, signal);
+      const executionSignal = watchdog.signal;
 
       try {
         recordCellEvent({ type: 'EXECUTION_STARTED', requestId, taskId: requestId, capabilityId: toolId, at: new Date().toISOString() });
@@ -532,9 +531,23 @@ export async function executeCanonicalTool(
         assertExecutionEvidence(evidence);
         recordCellEvent({ type: 'EXECUTION_VERIFIED', requestId, taskId: requestId, capabilityId: toolId, at: new Date().toISOString(), detail: evidence.outputSha256 });
         return output;
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : String(error);
+        if (signal?.aborted || executionSignal.aborted) {
+          recordCellEvent({
+            type: 'EXECUTION_ABORTED',
+            requestId,
+            taskId: requestId,
+            capabilityId: toolId,
+            at: new Date().toISOString(),
+            detail: watchdog.timedOut() ? 'watchdog-timeout:' + detail : detail,
+          });
+        } else {
+          recordCellEvent({ type: 'EXECUTION_FAILED', requestId, taskId: requestId, capabilityId: toolId, at: new Date().toISOString(), detail });
+        }
+        throw error;
       } finally {
-        signal?.removeEventListener('abort', relayAbort);
-        executionController.abort();
+        watchdog.stop();
       }
     },
     signal,
