@@ -4,6 +4,7 @@ import type {
   AgentStateRecord,
   CheckpointRecord,
   DispatchRecord,
+  DispatchReservation,
   DurableObjectStateLike,
   FailureState,
   HeartbeatRecord,
@@ -43,7 +44,8 @@ export class AgentState {
   private async readState(): Promise<AgentStateRecord | null> {
     const raw = await this.storage.get<unknown>('state:v1');
     if (raw === undefined) return null;
-    if (!isRecord(raw)
+    if (!isRecord(raw)) fail('CORRUPT_DO_STATE');
+    if (
       || raw.agentId !== this.agentId
       || !Number.isSafeInteger(raw.checkpointSeq) || Number(raw.checkpointSeq) < 0
       || !Number.isSafeInteger(raw.consecutiveFails) || Number(raw.consecutiveFails) < 0
@@ -194,8 +196,8 @@ export class AgentState {
     });
   }
 
-  async reserveDispatch(record: DispatchRecord, at: number, maxPerHour: number, windowMs: number, minGapMinutes: number): Promise<ReserveResult> {
-    this.assertDispatch(record);
+  async reserveDispatch(record: DispatchReservation, at: number, maxPerHour: number, windowMs: number, minGapMinutes: number): Promise<ReserveResult> {
+    if (!isRecord(record) || typeof record.agentId !== 'string' || typeof record.workflow !== 'string' || !isReason(record.reason) || (record.runIdentity !== undefined && typeof record.runIdentity !== 'string')) fail('INVALID_DISPATCH_RECORD');
     if (!Number.isSafeInteger(at) || at <= 0 || !Number.isSafeInteger(maxPerHour) || maxPerHour < 1 || !Number.isSafeInteger(windowMs) || windowMs < 1 || !Number.isSafeInteger(minGapMinutes) || minGapMinutes < 0) fail('INVALID_DISPATCH_LIMIT');
     return this.tx(async () => {
       const current = (await this.readState()) ?? this.defaultState(at);
@@ -204,7 +206,7 @@ export class AgentState {
       if (active.length >= maxPerHour) return { accepted: false, reason: 'hourly-limit' };
       const latest = active.at(-1);
       if (latest && at - latest.timestamp < minGapMinutes * 60_000) return { accepted: false, reason: 'min-gap' };
-      const reserved: DispatchRecord = { ...record, result: 'reserved' };
+      const reserved: DispatchRecord = { ...record, timestamp: at, result: 'reserved' };
       current.dispatches = [...current.dispatches, reserved];
       current.updatedAt = at;
       await this.writeState(current);
