@@ -21,7 +21,12 @@ test('controller publication contract is execution-only, non-force, and controll
   assert.ok(script.includes("flix_controller_push_queue_controller_decide"));
   assert.ok(script.includes("ALREADY_PUBLISHED_RECOVERY"));
   assert.ok(workflow.includes('contents: write'));
-  assert.ok(workflow.includes('ref: execution'));
+  assert.ok(script.includes('CONTROLLER_TRUSTED_SOURCE_REF_REQUIRED'));
+  assert.ok(script.includes('sanitizedWorktreeEnv'));
+  assert.ok(script.includes("npm', ['ci', '--ignore-scripts'"));
+  assert.ok(workflow.includes('ref: main'));
+  assert.ok(workflow.includes('FLIXO_TRUSTED_SOURCE_REF: main'));
+  assert.ok(workflow.includes('persist-credentials: false'));
   assert.ok(!workflow.includes('create_branch'));
   assert.ok(!workflow.includes('git switch -c'));
   assert.ok(!workflow.includes('git checkout -b'));
