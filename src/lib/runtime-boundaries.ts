@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import { TOOL_REGISTRY } from '../config/registry.ts';
+import { MVP_EXECUTABLE_TOOL_IDS } from '../config/manual-capability-definition.ts';
 
-const toolIds = new Set(TOOL_REGISTRY.map((tool) => tool.id));
+const executableToolIds = new Set(MVP_EXECUTABLE_TOOL_IDS);
 
 export const ToolChainStepSchema = z.object({
   id: z.string().min(1).max(200),
@@ -86,7 +86,7 @@ export function parseToolChain(value: unknown): Array<{ id: string; order: numbe
   const parsed = ToolChainSchema.parse(value);
   const ids = new Set<string>();
   for (const step of parsed) {
-    if (!toolIds.has(step.id)) throw new Error(`Unknown persisted tool id: ${step.id}`);
+    if (!executableToolIds.has(step.id)) throw new Error(`Non-executable persisted tool id: ${step.id}`);
     if (ids.has(step.id)) throw new Error(`Duplicate persisted tool id: ${step.id}`);
     ids.add(step.id);
   }
@@ -97,7 +97,7 @@ export function parsePersistedToolIds(value: unknown, maxEntries: number): strin
   const parsed = ToolIdArraySchema.max(maxEntries).parse(value);
   const seen = new Set<string>();
   for (const toolId of parsed) {
-    if (!toolIds.has(toolId)) throw new Error(`Unknown persisted tool id: ${toolId}`);
+    if (!executableToolIds.has(toolId)) throw new Error(`Non-executable persisted tool id: ${toolId}`);
     if (seen.has(toolId)) throw new Error(`Duplicate persisted tool id: ${toolId}`);
     seen.add(toolId);
   }
