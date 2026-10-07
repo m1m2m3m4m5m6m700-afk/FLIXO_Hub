@@ -69,6 +69,27 @@ test("scope firewall allows in-scope writes and denies out-of-scope writes", () 
   assert.equal(denied.drift?.type, "D1_SCOPE_DRIFT");
 });
 
+test("read scope and current SHA are mandatory before authorization", () => {
+  const read = action({ operation: "READ", path: "tests/security/ci/example.test.ts" });
+  assert.equal(authorizeExecutionAction(envelope, read, { spentCost: 0, spentDurationMs: 0 }).allowed, true);
+
+  const outOfScope = authorizeExecutionAction(
+    envelope,
+    action({ operation: "READ", path: "src/lib/security/auth.ts" }),
+    { spentCost: 0, spentDurationMs: 0 },
+  );
+  assert.equal(outOfScope.allowed, false);
+  assert.equal(outOfScope.drift?.type, "D1_SCOPE_DRIFT");
+
+  const missingSha = authorizeExecutionAction(
+    envelope,
+    action({ operation: "READ", path: "tests/security/ci/example.test.ts", currentSha: "" }),
+    { spentCost: 0, spentDurationMs: 0 },
+  );
+  assert.equal(missingSha.allowed, false);
+  assert.equal(missingSha.drift?.type, "D6_EVIDENCE_DRIFT");
+});
+
 test("branch and capability firewalls reject authority expansion", () => {
   assert.equal(
     authorizeExecutionAction(envelope, action({ branch: "main" }), { spentCost: 0, spentDurationMs: 0 }).drift?.type,
@@ -118,6 +139,16 @@ test("resource, temporal and delegation limits deny before execution", () => {
     ).drift?.type,
     "D9_DELEGATION_DRIFT",
   );
+});
+
+test("reference runtime rejects every execution action outside RUNNING state", () => {
+  const rt = new CellRuntime(() => 1000);
+  rt.registerTask("TASK-1");
+  const denied = rt.authorizeAction(envelope, action(), "sha-live");
+  assert.equal(denied.allowed, false);
+  assert.equal(denied.drift?.type, "D7_AUTHORITY_DRIFT");
+  assert.equal(rt.listActionRecords().length, 1);
+  assert.equal(rt.getTaskBudget("TASK-1").spentCost, 0);
 });
 
 test("live SHA mismatch blocks mutation even when the envelope is otherwise valid", () => {
