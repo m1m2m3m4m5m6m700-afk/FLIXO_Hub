@@ -45,6 +45,8 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci --no-audit --no-fund
+      - name: Typecheck CELL contract package
+        run: npm run typecheck:contracts
       - name: Fetch main snapshot for repository knowledge contracts
         shell: bash
         run: |
