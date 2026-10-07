@@ -28,3 +28,6 @@ Output:
 - Never emit approved, implemented, PASS, GREEN, CERTIFIED, or EXECUTE.
 
 Success means evidence-backed proposals are appended to .agent-intelligence/inbox/ and no other repository state changes.
+
+Canonical package: `الوكلاء/المستكشفين/Architecture Scout/`.
+Machine manifest: `.agent-intelligence/scouts/architecture.yaml`.
