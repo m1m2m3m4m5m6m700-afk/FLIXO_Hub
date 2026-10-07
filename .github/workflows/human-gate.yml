@@ -52,7 +52,7 @@ jobs:
         with:
           ref: execution
           fetch-depth: 0
-          persist-credentials: true
+          persist-credentials: false
 
       - name: Assert dispatch ref is execution
         shell: bash
@@ -85,7 +85,7 @@ jobs:
           git commit -m "governance(agent3): record human gate decision"
           git fetch origin execution --no-tags
           test "$(git rev-parse origin/execution^)" = "$(git rev-parse HEAD^)"
-          git push origin "HEAD:execution"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: bearer ${{ github.token }}" push origin "HEAD:execution"
 
       - name: Upload human-gate evidence
         if: always()
