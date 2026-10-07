@@ -53,6 +53,7 @@ export function validateMemoryProposal(proposal, currentSha) {
   if (!proposal || typeof proposal !== 'object') return ['proposal must be an object'];
   if (!nonEmptyString(proposal.agent)) failures.push('agent is required');
   if (!nonEmptyString(proposal.role)) failures.push('role is required');
+  if (!/^(AGENT-[0-9]{2}|SUPPORT-EXPLORER-[0-9]{2})$/i.test(proposal.agentId ?? '')) failures.push('agentId must be a canonical agent id');
   if (proposal.exactSha !== currentSha) failures.push('exactSha must equal currentSha');
   if (!nonEmptyString(proposal.kind)) failures.push('kind is required');
   if (!nonEmptyString(proposal.claim)) failures.push('claim is required');
@@ -62,6 +63,8 @@ export function validateMemoryProposal(proposal, currentSha) {
   else {
     const normalized = proposal.reportPath.replaceAll('\\', '/');
     const canonicalReport = expectedReportScope(proposal.agent);
+    const segments = normalized.split('/');
+    if (segments.some(segment => segment === '..' || segment === '.')) failures.push('reportPath contains forbidden traversal segments');
     if (!normalized.startsWith('الوكلاء/التقارير/')) failures.push('reportPath must be inside the canonical agent report center');
     if (normalized.includes('.agent-intelligence/inbox/')) failures.push('inbox path is forbidden');
     if (!canonicalReport || !normalized.startsWith(canonicalReport)) failures.push('reportPath must match the registered report scope for this agent');
@@ -161,7 +164,7 @@ export async function submitMemoryProposal(payload, env = process.env) {
     p_scope: payload.scopeJson ?? {},
     p_evidence_refs: payload.evidenceRefs,
     p_provenance: payload.provenance ?? {},
-    p_metadata: payload.metadata ?? {},
+    p_metadata: { ...(payload.metadata ?? {}), agent_id: payload.agentId },
   });
 }
 
