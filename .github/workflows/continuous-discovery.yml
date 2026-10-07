@@ -139,7 +139,7 @@ jobs:
           while IFS= read -r path; do
             [ -z "$path" ] && continue
             case "$path" in
-              "الوكلاء/التقارير/AGENT-08 — Architecture Scout/"*.yaml|"الوكلاء/التقارير/AGENT-09 — Technology Scout/"*.yaml|"الوكلاء/التقارير/AGENT-10 — Ecosystem Scout/"*.yaml|.agent-intelligence/snapshots/*.json|.agent-intelligence/snapshots/*.raw|.agent-intelligence/snapshots/*.txt) ;;
+              "الوكلاء/التقارير/AGENT-08 — Architecture Scout/"*.yaml|"الوكلاء/التقارير/AGENT-09 — Technology Scout/"*.yaml|"الوكلاء/التقارير/AGENT-10 — Ecosystem Scout/"*.yaml|.agent-intelligence/snapshots/*.json|.agent-intelligence/snapshots/*.raw|.agent-intelligence/snapshots/*.txt|.agent-intelligence/public-repositories/*/*.json) ;;
               *) echo "FAIL_CLOSED: forbidden discovery mutation: $path"; exit 1 ;;
             esac
           done <<< "$CHANGED"
@@ -160,7 +160,7 @@ jobs:
           git add "الوكلاء/التقارير/AGENT-08 — Architecture Scout" "الوكلاء/التقارير/AGENT-09 — Technology Scout" "الوكلاء/التقارير/AGENT-10 — Ecosystem Scout" .agent-intelligence/snapshots .agent-intelligence/public-repositories
           git -c core.quotePath=false diff --cached --name-only | while IFS= read -r path; do
             case "$path" in
-              "الوكلاء/التقارير/AGENT-08 — Architecture Scout/"*.yaml|"الوكلاء/التقارير/AGENT-09 — Technology Scout/"*.yaml|"الوكلاء/التقارير/AGENT-10 — Ecosystem Scout/"*.yaml|.agent-intelligence/snapshots/*.json|.agent-intelligence/snapshots/*.raw|.agent-intelligence/snapshots/*.txt) ;;
+              "الوكلاء/التقارير/AGENT-08 — Architecture Scout/"*.yaml|"الوكلاء/التقارير/AGENT-09 — Technology Scout/"*.yaml|"الوكلاء/التقارير/AGENT-10 — Ecosystem Scout/"*.yaml|.agent-intelligence/snapshots/*.json|.agent-intelligence/snapshots/*.raw|.agent-intelligence/snapshots/*.txt|.agent-intelligence/public-repositories/*/*.json) ;;
               *) echo "FAIL_CLOSED: staged path outside discovery outputs: $path"; exit 1 ;;
             esac
           done
