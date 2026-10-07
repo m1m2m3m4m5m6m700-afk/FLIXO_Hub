@@ -88,6 +88,15 @@ jobs:
           cache: npm
       - run: npm ci --no-audit --no-fund
       - name: Core regression suite
-        run: npm run test:core
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run test:core 2>&1 | tee cell-runtime-output.txt
+      - name: Upload runtime evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: cell-runtime-evidence-${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          path: cell-runtime-output.txt
       - name: Exact SHA fence
         run: test "$(git rev-parse HEAD)" = "${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}"
