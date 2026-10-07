@@ -66,7 +66,7 @@ test('main promotion requires an independent approval on the exact head', async 
 
 test('tool discovery does not expose ready-but-non-executable capabilities', async () => {
   const page = await readRepo('src/routes/tools-page.tsx');
-  assert.match(page, /TOOL_CATALOG\.ready\.filter\(\(tool\) => tool\.capability\.state === 'EXECUTABLE'\)/u);
+  assert.match(page, /EXECUTABLE_TOOL_CATALOG\.map\(\(tool\) =>/u);
 });
 
 test('routes and persisted chains cannot resurrect non-executable tools', async () => {
