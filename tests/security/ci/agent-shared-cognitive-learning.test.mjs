@@ -194,3 +194,21 @@ test('integrated engine keeps one shared substrate with separate knowledge, clai
   assert.ok(engine.excellence instanceof AgentExcellenceRegistry);
   assert.ok(engine.routing instanceof RoutingLearningEngine);
 });
+
+
+test('consumer checkpoints are isolated per agent task stream',()=>{
+  const dir=mkdtempSync(join(tmpdir(),'flixo-cognitive-checkpoint-'));
+  try{
+    const checkpoints=new FileConsumerCheckpointStore(join(dir,'checkpoints.jsonl'));
+    const a1=new CognitiveConsumer('AGENT-A',{checkpointStore:checkpoints,checkpointKey:'AGENT-A|TASK-1'});
+    const a2=new CognitiveConsumer('AGENT-A',{checkpointStore:checkpoints,checkpointKey:'AGENT-A|TASK-2'});
+    const e1=event({eventId:'task1-e1',sequence:1,epoch:1,eventType:'OBSERVATION',payload:{stream:'one'}});
+    const e2=createCognitiveEvent({...event({eventId:'task2-e1',sequence:1,epoch:1,eventType:'OBSERVATION',payload:{stream:'two'}}),taskId:'t2'});
+    a1.ingest(e1);
+    a2.ingest(e2);
+    const restarted1=new CognitiveConsumer('AGENT-A',{checkpointStore:checkpoints,checkpointKey:'AGENT-A|TASK-1'});
+    const restarted2=new CognitiveConsumer('AGENT-A',{checkpointStore:checkpoints,checkpointKey:'AGENT-A|TASK-2'});
+    assert.equal(restarted1.snapshot().consumerOffset,1);
+    assert.equal(restarted2.snapshot().consumerOffset,1);
+  } finally { rmSync(dir,{recursive:true,force:true}); }
+});
