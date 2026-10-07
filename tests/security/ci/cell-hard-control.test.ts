@@ -91,6 +91,7 @@ test("identity and objective anchors fail closed", () => {
       currentSha: "sha-live",
       capability: "edit-source",
       objectiveId: "OBJ-VIDEO",
+      acceptanceDigest: "accept-1",
       expectedOutput: "VIDEO-FIXTURE",
     }),
     "TASK_ID_MISMATCH",
@@ -171,4 +172,14 @@ test("out-of-scope discovery becomes a new-task proposal instead of self-expansi
       action: "NEW_TASK_PROPOSAL",
     },
   );
+});
+
+test("acceptance digest drift is blocked", () => {
+  const result = authorizeExecutionAction(
+    envelope,
+    action({ acceptanceDigest: "changed-after-claim" }),
+    { spentCost: 0, spentDurationMs: 0 },
+  );
+  assert.equal(result.allowed, false);
+  assert.equal(result.drift?.type, "D2_OBJECTIVE_DRIFT");
 });
