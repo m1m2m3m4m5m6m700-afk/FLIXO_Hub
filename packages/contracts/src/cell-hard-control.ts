@@ -238,3 +238,146 @@ export function outOfScopeProposal(taskId: string, agentId: string, discoveredPa
 export function classifyScopeDrift(envelope: ExecutionEnvelope, action: ExecutionAction): DriftFinding | null {
   return authorizeExecutionAction(envelope, action, { spentCost: 0, spentDurationMs: 0 }).drift;
 }
+
+
+/**
+ * Canonical hard-control assignment and runtime state contract.
+ * Additive to the legacy primitives above; the hard-control lane uses these
+ * names as the authoritative contract surface.
+ */
+export const HARD_TASK_STATES = Object.freeze([
+  "QUEUED","ADMITTED","ASSIGNED","RUNNING","RECONCILING","VERIFYING",
+  "BLOCKED","FAILED","READY_TO_CLOSE","CLOSED",
+] as const);
+export type HardTaskState = (typeof HARD_TASK_STATES)[number];
+
+export const HARD_AGENT_STATES = Object.freeze([
+  "DEFINED","READY","WORKING","DEGRADED","LOST","RECOVERABLE","QUARANTINED","RESTORED",
+] as const);
+export type HardAgentState = (typeof HARD_AGENT_STATES)[number];
+
+export const HARD_TASK_TRANSITIONS: Readonly<Record<HardTaskState, readonly HardTaskState[]>> = Object.freeze({
+  QUEUED: ["ADMITTED"],
+  ADMITTED: ["ASSIGNED","BLOCKED","FAILED"],
+  ASSIGNED: ["RUNNING","BLOCKED","FAILED"],
+  RUNNING: ["RECONCILING","VERIFYING","BLOCKED","FAILED"],
+  RECONCILING: ["RUNNING","VERIFYING","BLOCKED","FAILED"],
+  VERIFYING: ["RECONCILING","READY_TO_CLOSE","BLOCKED","FAILED"],
+  BLOCKED: ["QUEUED","ADMITTED","FAILED"],
+  FAILED: ["QUEUED","BLOCKED"],
+  READY_TO_CLOSE: ["VERIFYING","CLOSED"],
+  CLOSED: [],
+});
+
+export const HARD_AGENT_TRANSITIONS: Readonly<Record<HardAgentState, readonly HardAgentState[]>> = Object.freeze({
+  DEFINED: ["READY"],
+  READY: ["WORKING"],
+  WORKING: ["READY","DEGRADED","LOST"],
+  DEGRADED: ["WORKING","LOST"],
+  LOST: ["RECOVERABLE"],
+  RECOVERABLE: ["QUARANTINED"],
+  QUARANTINED: ["RESTORED"],
+  RESTORED: ["READY"],
+});
+
+export type CanonicalScope = Readonly<{
+  read: readonly string[];
+  write: readonly string[];
+  branches: readonly string[];
+  tools: readonly string[];
+  resources: readonly string[];
+}>;
+
+export type CanonicalBudget = Readonly<{ cost: number; durationMs: number }>;
+
+export type CanonicalAssignmentRecord = Readonly<{
+  assignmentId: string;
+  taskId: string;
+  missionId: string;
+  solverId: string;
+  opponentId: string;
+  backupSolverId: string;
+  backupOpponentId: string;
+  riskClass: string;
+  oppositionPlan: string;
+  falsificationPolicy: string;
+  independencePolicy: string;
+  startingSha: string;
+  scope: CanonicalScope;
+  budget: CanonicalBudget;
+  delegationDepth: number;
+  handoffPolicy: string;
+}>;
+
+export const HARD_ASSIGNMENT_FIELDS = Object.freeze([
+  "assignmentId","taskId","missionId","solverId","opponentId","backupSolverId",
+  "backupOpponentId","riskClass","oppositionPlan","falsificationPolicy",
+  "independencePolicy","startingSha","scope","budget","delegationDepth","handoffPolicy",
+] as const);
+
+export type LeaseFenceRecord = Readonly<{
+  leaseId: string;
+  ownerId: string;
+  issuedAt: number;
+  expiresAt: number;
+  heartbeat: number;
+  fenceToken: number;
+  idempotencyKey: string;
+}>;
+
+export type EvidenceLineageNode = Readonly<{
+  id: string;
+  kind: "sourceSha"|"build"|"session"|"action"|"candidate"|"test"|"opponent"|"redTeam"|"verifier"|"certification"|"promotion";
+  hash: string;
+  identity: string;
+  version: string;
+  timestamp: number;
+  parent: string | null;
+}>;
+
+const HARD_SHA = /^[0-9a-f]{40}$/iu;
+const HARD_HASH = /^[0-9a-f]{64}$/iu;
+
+export function validateCanonicalAssignment(record: CanonicalAssignmentRecord): CanonicalAssignmentRecord {
+  const required = [
+    record.assignmentId,record.taskId,record.missionId,record.solverId,record.opponentId,
+    record.backupSolverId,record.backupOpponentId,record.riskClass,record.oppositionPlan,
+    record.falsificationPolicy,record.independencePolicy,record.startingSha,record.handoffPolicy,
+  ];
+  if (required.some((value) => typeof value !== "string" || !value.trim())) {
+    throw new Error("INVALID_CANONICAL_ASSIGNMENT");
+  }
+  if (!HARD_SHA.test(record.startingSha)) throw new Error("INVALID_ASSIGNMENT_STARTING_SHA");
+  const ids = [record.solverId,record.opponentId,record.backupSolverId,record.backupOpponentId];
+  if (new Set(ids).size !== ids.length) throw new Error("ASSIGNMENT_ROLE_INDEPENDENCE_VIOLATION");
+  if (record.scope.read.length === 0 && record.scope.write.length === 0) throw new Error("ASSIGNMENT_SCOPE_REQUIRED");
+  if (!Number.isFinite(record.budget.cost) || record.budget.cost < 0) throw new Error("ASSIGNMENT_COST_BUDGET_INVALID");
+  if (!Number.isFinite(record.budget.durationMs) || record.budget.durationMs <= 0) throw new Error("ASSIGNMENT_DURATION_BUDGET_INVALID");
+  if (!Number.isInteger(record.delegationDepth) || record.delegationDepth < 0) throw new Error("ASSIGNMENT_DELEGATION_DEPTH_INVALID");
+  return Object.freeze({
+    ...record,
+    scope: Object.freeze({
+      read:Object.freeze([...record.scope.read]),
+      write:Object.freeze([...record.scope.write]),
+      branches:Object.freeze([...record.scope.branches]),
+      tools:Object.freeze([...record.scope.tools]),
+      resources:Object.freeze([...record.scope.resources]),
+    }),
+    budget:Object.freeze({...record.budget}),
+  });
+}
+
+export function canonicalTaskStateCanTransition(from: HardTaskState, to: HardTaskState): boolean {
+  return HARD_TASK_TRANSITIONS[from].includes(to);
+}
+
+export function canonicalAgentStateCanTransition(from: HardAgentState, to: HardAgentState): boolean {
+  return HARD_AGENT_TRANSITIONS[from].includes(to);
+}
+
+export function validateEvidenceLineageNode(node: EvidenceLineageNode): EvidenceLineageNode {
+  if (!node.id || !node.identity || !node.version || !Number.isFinite(node.timestamp) || !HARD_HASH.test(node.hash)) {
+    throw new Error("UNVERIFIABLE");
+  }
+  return Object.freeze({...node});
+}
