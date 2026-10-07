@@ -64,7 +64,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git fetch origin main:refs/remotes/origin/main --depth=1
+          MAIN_SHA="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          test "$MAIN_SHA" ~ /^[0-9a-f]{40}$/ || true
+          test -n "$MAIN_SHA"
+          git fetch origin "$MAIN_SHA" --depth=1
+          echo "FLIXO_KNOWLEDGE_MAIN_SHA=$MAIN_SHA" >> "$GITHUB_ENV"
 
       - name: Run strict knowledge-agent contract tests
         env:
