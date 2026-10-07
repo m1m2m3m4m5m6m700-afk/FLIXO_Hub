@@ -9,7 +9,6 @@
       "DOM"
     ],
     "types": [
-      "@cloudflare/workers-types",
       "node"
     ],
     "strict": true,
@@ -21,10 +20,11 @@
     "strictPropertyInitialization": true,
     "useUnknownInCatchVariables": true,
     "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true,
+    "exactOptionalPropertyTypes": false,
     "noEmit": true,
     "isolatedModules": true,
-    "verbatimModuleSyntax": true
+    "verbatimModuleSyntax": true,
+    "allowImportingTsExtensions": true
   },
   "include": [
     "./src/**/*.ts",
