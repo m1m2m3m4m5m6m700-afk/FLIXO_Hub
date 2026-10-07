@@ -162,6 +162,20 @@ test("admission gate blocks missing task, agent, solver, capability, scope, SHA,
   assert.throws(() => invalidTask.admit(), /ADMISSION_BLOCK:TASK_INVALID/);
 });
 
+test("agent lifecycle state machine is enforced and recoverable", () => {
+  const s = seed();
+  const rt = s.rt;
+  rt.transitionAgent("solver", "WORKING");
+  rt.transitionAgent("solver", "DEGRADED");
+  rt.transitionAgent("solver", "LOST");
+  rt.transitionAgent("solver", "RECOVERABLE");
+  rt.transitionAgent("solver", "QUARANTINED");
+  rt.transitionAgent("solver", "RESTORED");
+  rt.transitionAgent("solver", "READY");
+  assert.equal(rt.getAgent("solver").state, "READY");
+  assert.throws(() => rt.transitionAgent("solver", "LOST"), /DENY_BEFORE_MUTATION/);
+});
+
 test("canonical assignment enforces independent solver/opponent/backups/verifier", () => {
   const s = seed();
   assert.throws(() => s.admit({ opponentId: "solver" }), /ADMISSION_BLOCK:ROLE_INDEPENDENCE_VIOLATION/);
@@ -204,6 +218,7 @@ test("hard mutation authorization denies every requested adversarial path before
     ["forbidden tool", { toolId: "secret-admin" }, "TOOL_DENIED"],
     ["resource drift", { resource: "network" }, "RESOURCE_DENIED"],
     ["delegation overflow", { delegationDepth: 2 }, "DELEGATION_OVERFLOW"],
+    ["budget exceeded", { estimatedCost: 2, estimatedDurationMs: 200 }, "BUDGET_EXCEEDED"],
   ];
 
   for (const [label, overrides, expected] of cases) {
@@ -278,11 +293,11 @@ test("solver success plus opponent counterexample is reconciled, never auto-clos
 });
 
 test("red-team handoff is a hard gate until findings are remediated and re-tested", () => {
-  const s = seed();
+  const s = seed({ riskClass: "HIGH" });
   s.admit();
   s.session();
   s.rt.reconcile("TASK-1", { solverOutcome: "SUCCESS", opponentOutcome: "PASS" });
-  const blocked = s.rt.redTeamGate("TASK-1", { required: true, findings: 1, remediated: false, retested: false });
+  const blocked = s.rt.redTeamGate("TASK-1", { required: false, findings: 1, remediated: false, retested: false });
   assert.equal(blocked.gate, "BLOCK");
   s.rt.prepareVerification("TASK-1");
   assert.equal(s.rt.markReadyToClose("TASK-1", { opponentResolved: true, redTeamPass: false, verifierPass: true, evidencePass: true }).code, "CLOSURE_BLOCKED");
@@ -306,6 +321,13 @@ test("evidence chain requires hash, identity, version, timestamp, parent and com
     parent = node.id;
   }
   assert.deepEqual(s.rt.verifyEvidenceChain(), { pass: true, code: "VERIFIED", count: 11 });
+
+  const tampered = { ...buildHardControlEvidenceNode({ id: "TAMPER", kind: "sourceSha", identity: "CELL", version: "1.0.0", timestamp: 1000, parent: null }), hash: HASH };
+  assert.throws(() => s.rt.recordEvidenceNode(tampered), /UNVERIFIABLE/);
+
+  const stored = s.rt.evidence.get("E-sourceSha");
+  s.rt.evidence.set("E-sourceSha", { ...stored, identity: "POISONED" });
+  assert.equal(s.rt.verifyEvidenceChain().reason, "NODE_HASH_MISMATCH");
 
   const missing = seed();
   missing.rt.recordEvidenceNode(buildHardControlEvidenceNode({
@@ -357,6 +379,16 @@ test("master, scheduler, reconciliation and promotion restart preserve task, ass
   assert.equal(restarted.getAssignment("ASSIGN-1").assignmentId, "ASSIGN-1");
   assert.equal(restarted.mutationEffectCount("KEY-1"), 1);
   assert.ok(restarted.evidence.has("E-source"));
+});
+
+test("duplicate scheduler wake is idempotent for the same session identity", () => {
+  const s = seed();
+  s.admit();
+  const first = s.session({ sessionId: "WAKE-1", ttlMs: 1000 });
+  const duplicate = s.rt.startSession("ASSIGN-1", { sessionId: "WAKE-1", ttlMs: 1000 });
+  assert.equal(duplicate.lease.leaseId, first.lease.leaseId);
+  assert.equal(duplicate.sessionId, first.sessionId);
+  assert.equal(s.rt.sessions.size, 1);
 });
 
 test("partial write recovery aborts an incomplete effect and leaves idempotency safe", () => {
