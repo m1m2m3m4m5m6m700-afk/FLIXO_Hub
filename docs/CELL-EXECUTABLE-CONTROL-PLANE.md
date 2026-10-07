@@ -39,7 +39,7 @@ Stuck/lost states require recovery; guardians emit only `WAKE/OBSERVE`.
 
 ## Crash/concurrency boundary
 
-Pure contracts cannot supply durable storage. Durable atomicity remains the runtime state-store responsibility.
+Pure invariants are now backed by a small in-memory reference runtime (`packages/contracts/src/cell-runtime.ts`) that enforces version checks, exclusive leases, checkpoints, idempotency, and promotion gates. Durable atomicity remains the responsibility of the production state store.
 
 Required runtime integration:
 1. atomic Task/Agent/Candidate transitions;
