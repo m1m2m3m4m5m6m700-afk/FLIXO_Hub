@@ -17,6 +17,9 @@ import {
   buildCallGraph,
   buildControlFlowGraph,
   buildTaskGraph,
+  detectAuthorityCollisions,
+  validateKnowledgeSnapshot,
+  writeImmutableFile,
 } from '../../../scripts/repository-knowledge-scan.mjs';
 
 const repoRoot = process.cwd();
@@ -167,6 +170,48 @@ test('world model exposes authority, call, control-flow, and task graph layers',
   assert.ok(calls.some(edge => edge.from === 'src/authority.ts' && edge.to === 'execute'));
   assert.equal(control.length, 2);
   assert.deepEqual(tasks, { nodes: [], edges: [] });
+});
+
+test('world model integrity is SHA-bound and rejects future timestamps', () => {
+  const sha = '0'.repeat(40);
+  const snapshot = {
+    model_version: 'flixo-world-model-v1',
+    snapshot_id: 'flixo-world-model-v1:' + sha,
+    exact_sha: sha,
+    generated_at: new Date(0).toISOString(),
+    repository_state: { execution_sha: sha },
+    file_index: [], symbol_index: [], dependency_graph: [], call_graph: [], control_flow_graph: [],
+    authority_graph: { nodes: [], edges: [], collisions: [] },
+    task_graph: { nodes: [], edges: [] }, semantic_diff: {}, unknowns: {},
+    evidence_catalog: { static_analysis: { available: true } },
+    integrity: { authority_collisions: [], required_layers: ['file_index','symbol_index','dependency_graph','call_graph','control_flow_graph','authority_graph','task_graph','semantic_diff'] },
+    constraints: { mutation_authority: false },
+  };
+  assert.equal(validateKnowledgeSnapshot(snapshot, { currentSha: sha, now: 1 }).valid, true);
+  assert.throws(() => validateKnowledgeSnapshot({ ...snapshot, exact_sha: '1'.repeat(40) }, { currentSha: sha, now: 1 }), /WORLD_MODEL_SHA_MISMATCH/);
+  assert.throws(() => validateKnowledgeSnapshot({ ...snapshot, generated_at: new Date(86400000).toISOString() }, { currentSha: sha, now: 1 }), /WORLD_MODEL_TIMESTAMP_IN_FUTURE/);
+});
+
+test('duplicate canonical authority symbols are detected', () => {
+  const entries = [
+    { path: 'src/one.ts', generated: false, binary: false, signals: { canonicalAuthority: true }, symbols: [{ name: 'TOOL_REGISTRY', exported: true }] },
+    { path: 'src/two.ts', generated: false, binary: false, signals: { canonicalAuthority: true }, symbols: [{ name: 'TOOL_REGISTRY', exported: true }] },
+  ];
+  assert.deepEqual(detectAuthorityCollisions(entries), [{ symbol: 'TOOL_REGISTRY', paths: ['src/one.ts', 'src/two.ts'] }]);
+});
+
+test('world model identity is immutable by snapshot path', async () => {
+  const { mkdtempSync, rmSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const dir = mkdtempSync(tmpdir() + '/flixo-world-model-');
+  try {
+    const path = dir + '/snapshot.json';
+    assert.equal(writeImmutableFile(path, '{"exact_sha":"same"}\n').created, true);
+    assert.equal(writeImmutableFile(path, '{"exact_sha":"same"}\n').identical, true);
+    assert.throws(() => writeImmutableFile(path, '{"exact_sha":"different"}\n'), /IMMUTABLE_KNOWLEDGE_SNAPSHOT_COLLISION/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test('scanner passes syntax validation', () => {

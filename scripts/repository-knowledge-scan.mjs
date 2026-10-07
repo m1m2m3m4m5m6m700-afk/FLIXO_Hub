@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process';
-import { readFileSync, statSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync, mkdirSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join, extname, posix } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,6 +9,62 @@ import ts from 'typescript';
 const root = process.cwd();
 const REPORT_DIR = 'الوكلاء AI/المستكشف AI/تقارير المستكشف';
 const MODEL_VERSION = 'flixo-world-model-v1';
+export const REQUIRED_SNAPSHOT_LAYERS = Object.freeze(['file_index','symbol_index','dependency_graph','call_graph','control_flow_graph','authority_graph','task_graph','semantic_diff']);
+
+export function detectAuthorityCollisions(entries) {
+  const bySymbol = new Map();
+  for (const entry of entries) {
+    if (entry.generated || entry.binary || !entry.signals?.canonicalAuthority) continue;
+    for (const symbol of entry.symbols || []) {
+      if (!symbol.exported || !/^(?:TOOL_)?(?:REGISTRY|CATALOG|EXECUTOR|MANIFEST|VERIFIER|AUTHORITY|SOURCE_OF_TRUTH)$/i.test(symbol.name)) continue;
+      const paths = bySymbol.get(symbol.name) || [];
+      if (!paths.includes(entry.path)) paths.push(entry.path);
+      bySymbol.set(symbol.name, paths);
+    }
+  }
+  return Array.from(bySymbol.entries()).filter(([, paths]) => paths.length > 1)
+    .map(([symbol, paths]) => ({ symbol, paths: paths.sort() }))
+    .sort((a, b) => a.symbol.localeCompare(b.symbol));
+}
+
+export function validateKnowledgeSnapshot(snapshot, { currentSha, now = Date.now() } = {}) {
+  if (!/^[0-9a-f]{40}$/i.test(String(currentSha ?? ''))) throw new Error('WORLD_MODEL_INVALID_CURRENT_SHA');
+  if (!snapshot || typeof snapshot !== 'object') throw new Error('WORLD_MODEL_INVALID_SNAPSHOT');
+  const sha = String(currentSha).toLowerCase();
+  if (snapshot.model_version !== MODEL_VERSION) throw new Error('WORLD_MODEL_VERSION_MISMATCH');
+  if (snapshot.exact_sha !== sha) throw new Error('WORLD_MODEL_SHA_MISMATCH');
+  if (snapshot.snapshot_id !== MODEL_VERSION + ':' + sha) throw new Error('WORLD_MODEL_IDENTITY_MISMATCH');
+  const generatedMs = Date.parse(String(snapshot.generated_at ?? ''));
+  if (!Number.isFinite(generatedMs)) throw new Error('WORLD_MODEL_TIMESTAMP_INVALID');
+  if (generatedMs > Number(now)) throw new Error('WORLD_MODEL_TIMESTAMP_IN_FUTURE');
+  if (snapshot.repository_state?.execution_sha !== sha) throw new Error('WORLD_MODEL_REPOSITORY_SHA_MISMATCH');
+  for (const layer of REQUIRED_SNAPSHOT_LAYERS) if (snapshot[layer] === undefined) throw new Error('WORLD_MODEL_LAYER_MISSING:' + layer);
+  if (!Array.isArray(snapshot.file_index) || !Array.isArray(snapshot.symbol_index) || !Array.isArray(snapshot.dependency_graph) ||
+      !Array.isArray(snapshot.call_graph) || !Array.isArray(snapshot.control_flow_graph) || !snapshot.authority_graph ||
+      !Array.isArray(snapshot.task_graph?.nodes) || !Array.isArray(snapshot.task_graph?.edges)) throw new Error('WORLD_MODEL_LAYER_SHAPE_INVALID');
+  if (snapshot.constraints?.mutation_authority !== false) throw new Error('WORLD_MODEL_MUTATION_AUTHORITY_INVALID');
+  if (!snapshot.evidence_catalog || typeof snapshot.evidence_catalog !== 'object') throw new Error('WORLD_MODEL_EVIDENCE_CATALOG_MISSING');
+  if (!Array.isArray(snapshot.integrity?.authority_collisions)) throw new Error('WORLD_MODEL_AUTHORITY_INTEGRITY_MISSING');
+  if (snapshot.integrity.authority_collisions.length > 0) throw new Error('WORLD_MODEL_DUPLICATE_AUTHORITY:' + snapshot.integrity.authority_collisions.map(item => item.symbol).join(','));
+  return { valid: true, exactSha: sha, snapshotId: snapshot.snapshot_id, generatedAt: snapshot.generated_at };
+}
+
+export function writeImmutableFile(path, content) {
+  if (existsSync(path)) {
+    const existing = readFileSync(path, 'utf8');
+    if (existing !== content) throw new Error('IMMUTABLE_KNOWLEDGE_SNAPSHOT_COLLISION:' + path);
+    return { created: false, identical: true };
+  }
+  writeFileSync(path, content, 'utf8');
+  return { created: true, identical: false };
+}
+
+function stableGeneratedAt(worldModelPath) {
+  if (!existsSync(worldModelPath)) return new Date().toISOString();
+  const existing = JSON.parse(readFileSync(worldModelPath, 'utf8'));
+  if (typeof existing.generated_at !== 'string' || !Number.isFinite(Date.parse(existing.generated_at))) throw new Error('existing world model has invalid generated_at');
+  return existing.generated_at;
+}
 
 export function sh(command, args = []) {
   return execFileSync(command, args, { cwd: root, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 }).trim();
@@ -412,7 +468,7 @@ export function buildAuthorityGraph(entries, dependencyEdges) {
       relationship: 'depends-on',
       line: edge.line,
     }));
-  return { nodes: authorityNodes, edges };
+  return { nodes: authorityNodes, edges, collisions: detectAuthorityCollisions(entries) };
 }
 
 export function buildCallGraph(entries) {
@@ -502,6 +558,7 @@ export function buildKnowledgeSnapshot({
   };
   return {
     model_version: MODEL_VERSION,
+    snapshot_id: MODEL_VERSION + ':' + sha,
     exact_sha: sha,
     generated_at: generatedAt,
     repository_state: repositoryState,
@@ -517,6 +574,19 @@ export function buildKnowledgeSnapshot({
     unknowns: {
       semantic_review_lines: entries.reduce((sum, entry) => sum + (entry.lineLedger || []).filter(line => line.includes('semantic review required')).length, 0),
       unresolved_local_imports: model.dependencyEdges.filter(edge => edge.resolution === 'UNRESOLVED_LOCAL').length,
+    },
+    evidence_catalog: {
+      static_analysis: { available: true, exact_sha: sha, class: 'STATIC_ANALYSIS' },
+      main_snapshot: { available: Boolean(mainSnapshot.readable), exact_sha: mainSnapshot.sha || null },
+      semantic_diff: { available: Boolean(semanticDiff.readable), main_sha: semanticDiff.mainSha || null, execution_sha: semanticDiff.executionSha || sha },
+      changed_files: { available: true, base: changed.base || null, count: changed.files.length },
+      stale_evidence: [],
+    },
+    integrity: {
+      immutable_by_identity: true,
+      identity: MODEL_VERSION + ':' + sha,
+      authority_collisions: authorityGraph.collisions || [],
+      required_layers: [...REQUIRED_SNAPSHOT_LAYERS],
     },
     constraints: {
       evidence_class: 'STATIC_ANALYSIS',
@@ -627,16 +697,16 @@ export function collect() {
   const callGraph = buildCallGraph(model.sourceEntries);
   const controlFlowGraph = buildControlFlowGraph(model.sourceEntries);
   const taskGraph = buildTaskGraph(model.sourceEntries);
-  const generatedAt = new Date().toISOString();
+  const reportDir = join(root, REPORT_DIR);
+  mkdirSync(reportDir, { recursive: true });
+  const worldModelPath = join(reportDir, sha + '.json');
+  const generatedAt = stableGeneratedAt(worldModelPath);
   const unresolved = model.dependencyEdges.filter(edge => edge.resolution === 'UNRESOLVED_LOCAL');
   const status = unknownSourceLines === 0 && unresolved.length === 0
     ? 'CAN_COMPLETE'
     : 'CAN_COMPLETE_WITH_LIMITATIONS';
 
-  const reportDir = join(root, REPORT_DIR);
-  mkdirSync(reportDir, { recursive: true });
   const reportPath = join(reportDir, sha + '.md');
-  const worldModelPath = join(reportDir, sha + '.json');
   const worldModel = buildKnowledgeSnapshot({
     sha,
     branch,
@@ -651,7 +721,8 @@ export function collect() {
     taskGraph,
     generatedAt,
   });
-  writeFileSync(worldModelPath, JSON.stringify(worldModel, null, 2) + '\n', 'utf8');
+  validateKnowledgeSnapshot(worldModel, { currentSha: sha, now: Date.now() });
+  writeImmutableFile(worldModelPath, JSON.stringify(worldModel, null, 2) + '\n');
 
   const taskFindings = [];
   for (const entry of model.sourceEntries) {
@@ -825,7 +896,7 @@ export function collect() {
     }
   }
 
-  writeFileSync(reportPath, sections.join('\n') + '\n', 'utf8');
+  writeImmutableFile(reportPath, sections.join('\n') + '\n');
   return {
     sha,
     branch,
