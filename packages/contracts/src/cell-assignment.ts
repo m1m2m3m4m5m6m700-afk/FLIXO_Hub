@@ -399,6 +399,7 @@ export type CellIndependencePolicy = Readonly<{
 }>;
 
 export type CanonicalCellAssignment = Readonly<{
+  assignmentId: string;
   taskId: string;
   missionId: string;
   solverId: string;
@@ -487,6 +488,7 @@ export function createCanonicalCellAssignment(input: Readonly<{
   }
 
   const assignment = Object.freeze({
+    assignmentId: input.team.assignmentId,
     taskId: input.taskId,
     missionId: input.missionId,
     solverId: input.team.solverAgentId,
