@@ -109,12 +109,12 @@ test('conflicting claims remain independently represented without forced consens
 test('XP economics rejects farming signals and duplicates, while authority stays separate',()=>{
   const registry=new AgentExcellenceRegistry(()=> '2026-10-07T00:00:00Z');
   registry.setAuthority('AGENT-A','NONE');
-  registry.awardXp('AGENT-A',{reason:'BUG_DISCOVERY',amount:10,taskId:'T1',evidenceId:'E1',verified:true,meaningfulImpact:0.9,novelty:1,difficulty:0.5});
+  registry.awardXp('AGENT-A',{reason:'BUG_DISCOVERY',amount:16,taskId:'T1',evidenceId:'E1',verified:true,meaningfulImpact:0.9,novelty:1,difficulty:0.5});
   assert.equal(registry.snapshot('AGENT-A').authority,'NONE');
-  assert.throws(()=>registry.awardXp('AGENT-A',{reason:'BUG_DISCOVERY',amount:10,taskId:'T1',evidenceId:'E1',verified:true,meaningfulImpact:0.9,novelty:1,difficulty:0.5}),/XP_DUPLICATE_TASK_REWARD/);
+  assert.throws(()=>registry.awardXp('AGENT-A',{reason:'BUG_DISCOVERY',amount:16,taskId:'T1',evidenceId:'E1',verified:true,meaningfulImpact:0.9,novelty:1,difficulty:0.5}),/XP_DUPLICATE_TASK_REWARD/);
   assert.throws(()=>registry.awardXp('AGENT-A',{reason:'VERIFIED_IMPROVEMENT',amount:10,taskId:'T2',evidenceId:'E2',verified:true,meaningfulImpact:0.1,novelty:1,difficulty:0.1}),/XP_IMPACT_TOO_LOW/);
   assert.throws(()=>registry.awardXp('AGENT-A',{reason:'COMMIT_COUNT',amount:10,taskId:'T3',evidenceId:'E3'}),/XP_REASON_NOT_REWARDABLE/);
-  assert.equal(registry.snapshot('AGENT-A').xp,10);
+  assert.equal(registry.snapshot('AGENT-A').xp,16);
 });
 
 test('reputation and mastery are multidimensional and mastery needs verified evidence quality',()=>{
