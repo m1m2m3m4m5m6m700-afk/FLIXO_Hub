@@ -87,8 +87,8 @@ export function createContractFailure(
 
 export {
   CELL_CONTRACT_VERSION,
-  TASK_STATES,
-  type TaskState,
+  TASK_STATES as CELL_TASK_STATES,
+  type TaskState as CellTaskState,
   AGENT_STATES,
   type AgentState,
   CANDIDATE_STATES,
