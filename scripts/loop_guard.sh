@@ -43,14 +43,14 @@ jq -e --arg t "$TASK_ID" '
   def nonneg_int: type=="number" and . >= 0 and floor == .;
   def valid_task:
     type=="object"
-    and (($.attempts // 0)|nonneg_int)
-    and (($.started_at // 0)|nonneg_int)
-    and (($.expires_at // 0)|nonneg_int)
-    and (($.last_attempt_at // 0)|nonneg_int)
-    and (($.same_error_streak // 0)|nonneg_int)
-    and ((($.patches // {})|type)=="object")
-    and all((($.patches // {})|to_entries[]?); ((.value)|nonneg_int))
-    and ((($.last_error_hash // "none")|type)=="string")
+    and ((.attempts // 0)|nonneg_int)
+    and ((.started_at // 0)|nonneg_int)
+    and ((.expires_at // 0)|nonneg_int)
+    and ((.last_attempt_at // 0)|nonneg_int)
+    and ((.same_error_streak // 0)|nonneg_int)
+    and (((.patches // {})|type)=="object")
+    and all(((.patches // {})|to_entries[]?); ((.value)|nonneg_int))
+    and (((.last_error_hash // "none")|type)=="string")
   ;
   (.[$t] // {}) | valid_task
 ' "$STATE_FILE" >/dev/null 2>&1 || die "invalid task state schema"
