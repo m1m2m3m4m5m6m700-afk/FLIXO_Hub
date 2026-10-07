@@ -127,7 +127,7 @@ def repo_candidate_score(item: dict[str, Any], words: set[str]) -> tuple[int, li
         except ValueError:
             freshness = 0
     evidence = []
-    if item.get("license", {}).get("spdx_id"):
+    if (item.get("license") or {}).get("spdx_id"):
         evidence.append("license")
     if item.get("has_wiki"):
         evidence.append("documentation")
@@ -271,7 +271,7 @@ def run(root: Path, manifest_path: Path, index_root: Path, snapshots_dir: Path, 
     token = os.environ.get("GITHUB_TOKEN")
     current_repo = os.environ.get("GITHUB_REPOSITORY", "m1m2m3m4m5m6m700-afk/FLIXO_Hub")
     api_opener = opener or urllib.request.urlopen
-    snapshot_store = SnapshotStore(snapshots_dir)
+    snapshot_store = SnapshotStore(snapshots_dir, opener=opener)
     seen = read_existing_keys(index_root)
     run_seen: set[tuple[str, str]] = set()
     discoveries = []
@@ -318,7 +318,7 @@ def run(root: Path, manifest_path: Path, index_root: Path, snapshots_dir: Path, 
             owner, name = full_name.split("/", 1)
             try:
                 branch_name = str(item["default_branch"])
-                branch_data = api_get(api_opener, f"/repos/{urllib.parse.quote(full_name, safe='')}/branches/{urllib.parse.quote(branch_name, safe='')}", token)
+                branch_data = api_get(api_opener, f"/repos/{urllib.parse.quote(full_name, safe='/')}/branches/{urllib.parse.quote(branch_name, safe='')}", token)
                 head_sha = str(branch_data.get("commit", {}).get("sha") or "")
                 if not re.fullmatch(r"[0-9a-f]{40}", head_sha, re.I):
                     raise DiscoveryError("repository head SHA unavailable")
