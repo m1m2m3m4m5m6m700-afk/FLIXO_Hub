@@ -25,7 +25,6 @@ import {
   type ProgressMetrics,
 } from "./cell-hard-control";
 import {
-  authorizeDelegation,
   decideProgressAction,
   delegateHandoff,
   evaluateProgress,
