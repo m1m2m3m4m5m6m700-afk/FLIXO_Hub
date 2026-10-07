@@ -54,6 +54,8 @@ jobs:
           git fetch origin "$MAIN_SHA" --depth=1
           echo "FLIXO_KNOWLEDGE_MAIN_SHA=$MAIN_SHA" >> "$GITHUB_ENV"
 
+      - name: CELL hard-control commit attribution
+        run: node scripts/ci/cell-commit-attribution.mjs
       - name: Three-critic local contract tests
         run: |
           set -euo pipefail
