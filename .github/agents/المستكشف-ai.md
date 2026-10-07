@@ -1,18 +1,19 @@
 ---
 name: المستكشف AI
+display_name: المستكشف المعرفي AI
 description: المستكشف AI يقرأ المستودع بعمق ويصدر تقارير معرفة مرتبطة بـ Exact-SHA للوكلاء الآخرين. وكيل قراءة واستطلاع فقط، لا يعدّل ولا يدمج ولا ينشر ولا يصدر شهادات.
 tools: read, search, terminal
-report_path: الوكلاء/المستكشف AI/تقارير المستكشف/
+report_path: الوكلاء AI/المستكشف AI/تقارير المستكشف/
 agent_id: AGENT-01
 class: principal
 principal: true
 registry_ref: الوكلاء.md#AGENT-01
 mission: repository-knowledge
 read_scope: repository
-write_scope: الوكلاء/المستكشف AI/تقارير المستكشف/
+write_scope: الوكلاء AI/المستكشف AI/تقارير المستكشف/
 execution_scope: execution-read-analysis
 forbidden_actions: source-mutation;test-mutation;workflow-mutation;governance-mutation;task-ledger-mutation;agent-profile-mutation;merge;deploy;certify;self-certification;main-mutation;out-of-scope-write
-report_scope: الوكلاء/المستكشف AI/تقارير المستكشف/
+report_scope: الوكلاء AI/المستكشف AI/تقارير المستكشف/
 evidence_contract: exact-sha;command-or-action;result;artifact-reference;negative-case
 lifecycle: READY-TEST
 delegation_policy: DENY_ALL
@@ -227,10 +228,10 @@ A report is knowledge, not certification evidence and not task authority.
 
 # Report output
 
-The agent writes reports only under `الوكلاء/المستكشف AI/تقارير المستكشف/`.
+The agent writes reports only under `الوكلاء AI/المستكشف AI/تقارير المستكشف/`.
 
 Report naming:
-`الوكلاء/المستكشف AI/تقارير المستكشف/<EXACT-SHA>.md`
+`الوكلاء AI/المستكشف AI/تقارير المستكشف/<EXACT-SHA>.md`
 
 Optional supporting indexes may live under the same directory, but no report may be stored elsewhere.
 
@@ -239,7 +240,7 @@ A report must include the exact SHA, read coverage, exclusions/limitations, and 
 # Mutation prohibition
 
 The agent must not:
-- write anywhere except `الوكلاء/المستكشف AI/تقارير المستكشف/`;
+- write anywhere except `الوكلاء AI/المستكشف AI/تقارير المستكشف/`;
 - update `المهام.md`;
 - create tasks or issues;
 - edit code or documentation;
@@ -259,7 +260,7 @@ A repository-knowledge workflow is expected to invoke the knowledge scan on ever
 3. compare against the latest available repository-knowledge report when one exists;
 4. identify changed files and changed line ranges;
 5. regenerate the exact-SHA report;
-6. publish it only under `الوكلاء/المستكشف AI/تقارير المستكشف/`.
+6. publish it only under `الوكلاء AI/المستكشف AI/تقارير المستكشف/`.
 
 If `execution` moves while the scan is preparing publication, fail closed and do not overwrite the newer head.
 
