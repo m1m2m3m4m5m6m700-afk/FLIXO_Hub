@@ -13,10 +13,10 @@ import {
   verifyExecutionIdentity,
   type ExecutionAction,
   type ExecutionEnvelope,
-} from "../../packages/contracts/src/cell-hard-control.ts";
-import { CellRuntime } from "../../packages/contracts/src/cell-runtime.ts";
-import { decideRetry } from "../../packages/contracts/src/cell-control-plane.ts";
-import { authorizeDelegation } from "../../packages/contracts/src/cell-assignment.ts";
+} from "../../../packages/contracts/src/cell-hard-control.ts";
+import { CellRuntime } from "../../../packages/contracts/src/cell-runtime.ts";
+import { decideRetry } from "../../../packages/contracts/src/cell-control-plane.ts";
+import { authorizeDelegation } from "../../../packages/contracts/src/cell-assignment.ts";
 // Load the behavioral CELL harness into the same hard-control test gate.
 import "./cell-hard-control-e2e.test.mjs";
 
