@@ -84,7 +84,7 @@ export class CellRuntime {
       acquiredAtMs: now,
       expiresAtMs: now + ttlMs,
     });
-    this.tasks.set(taskId, Object.freeze({ ...current, lease }));
+    this.tasks.set(taskId, Object.freeze({ ...current, lease, version: current.version + 1 }));
     return lease;
   }
 
@@ -122,11 +122,24 @@ export class CellRuntime {
     return true;
   }
 
-  registerCandidate(candidateId: string, state: CandidateState = "CREATED"): RuntimeCandidate {
+  registerCandidate(candidateId: string): RuntimeCandidate {
     if (!candidateId || this.candidates.has(candidateId)) throw new Error("CANDIDATE_ALREADY_REGISTERED");
-    const candidate = Object.freeze({ candidateId, state, version: 0 });
+    const candidate = Object.freeze({ candidateId, state: "CREATED" as const, version: 0 });
     this.candidates.set(candidateId, candidate);
     return candidate;
+  }
+
+
+  transitionCandidate(candidateId: string, to: CandidateState, expectedVersion?: number): RuntimeCandidate {
+    const current = this.candidates.get(candidateId);
+    if (!current) throw new Error("CANDIDATE_NOT_FOUND");
+    if (expectedVersion !== undefined && current.version !== expectedVersion) {
+      throw new Error("CANDIDATE_VERSION_CONFLICT");
+    }
+    assertTransition("CANDIDATE", current.state, to);
+    const next = Object.freeze({ ...current, state: to, version: current.version + 1 });
+    this.candidates.set(candidateId, next);
+    return next;
   }
 
   promoteCandidate(candidateId: string, gate: PromotionGate, currentRuntimeSha: string): RuntimeCandidate {
