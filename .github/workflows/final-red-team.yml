@@ -24,6 +24,7 @@ jobs:
     timeout-minutes: 45
     env:
       EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      GH_TOKEN: ${{ github.token }}
       VITE_SITE_URL: 'https://flixoai.m1m2m3m4m5m6m700.workers.dev'
       VITE_RUNTIME_ORIGIN: 'http://127.0.0.1:3000'
       VITE_TEST_ORIGIN: 'http://127.0.0.1:3000'
