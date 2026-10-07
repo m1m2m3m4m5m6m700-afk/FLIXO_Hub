@@ -36,6 +36,13 @@ class DiscoveryTests(unittest.TestCase):
             self.assertFalse((self.root/"HACKED").exists())
             with self.assertRaises(SnapshotError):
                 SnapshotStore(self.snaps,opener=lambda *a,**k:resp(body,"text/html")).fetch_and_store("https://example.invalid")
+    def test_quote_unique_caps_large_unique_snapshot(self):
+        from run_scouts import quote_unique
+        large=("UNIQUE_ENGINEERING_SIGNAL_8c1d " * 400)
+        quote=quote_unique(large)
+        self.assertLessEqual(len(quote),8192)
+        self.assertEqual(large.count(quote),1)
+
     def test_quote_unique_avoids_repeated_prefix_and_preserves_raw_text(self):
         from run_scouts import quote_unique
         repeated=("Navigation Navigation Navigation. " * 80) + " UNIQUE_SIGNAL_7f3a.\nLine two with\tmixed whitespace."
