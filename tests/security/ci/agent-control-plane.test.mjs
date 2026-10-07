@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { evaluateAgentDrill } from '../../../scripts/agent-learning/run-role-drills.mjs';
 import {
   AGENT_CAPABILITIES,
   auditAgentControlPlane,
@@ -84,4 +85,12 @@ test('execution envelope is derived from the canonical task ledger without becom
     assert.ok(envelope.HANDOFF_CONTRACT);
     assert.ok(['BOUND', 'PENDING_CLAIM'].includes(envelope.bindingStatus));
   }
+});
+
+test('supporting Explorer-2 has an independent falsification drill', () => {
+  const result = evaluateAgentDrill('المستكشف 2', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+  assert.equal(result.validScore, 100);
+  assert.equal(result.validPassed, true);
+  assert.equal(result.positiveRepeatPasses, 3);
+  assert.equal(result.negativeRejected, true);
 });
