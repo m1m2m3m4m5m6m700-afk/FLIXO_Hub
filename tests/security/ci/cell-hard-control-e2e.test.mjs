@@ -192,11 +192,11 @@ test("task state machine rejects illegal closure paths and requires READY_TO_CLO
   s.session();
   assert.equal(s.rt.getTask("TASK-1").state, "RUNNING");
   assert.throws(() => s.rt.transitionTask("TASK-1", "CLOSED"), /DENY_BEFORE_MUTATION/);
-  const redTeam = s.rt.redTeamGate("TASK-1", { required: true, findings: 0, remediated: true, retested: true });
+  const redTeam = s.rt.redTeamGate("TASK-1", { actorId: "opponent", actorRole: "OPPONENT", required: true, findings: 0, remediated: true, retested: true });
   assert.equal(redTeam.pass, true);
   s.rt.reconcile("TASK-1", { solverOutcome: "SUCCESS", opponentOutcome: "PASS" });
   s.rt.prepareVerification("TASK-1");
-  s.rt.recordVerification("TASK-1", { verifierId: "verifier", pass: true, certificationPass: true, reviewId: "REVIEW-1" });
+  s.rt.recordVerification("TASK-1", { verifierId: "verifier", actorRole: "VERIFIER", pass: true, certificationPass: true, reviewId: "REVIEW-1" });
   recordEvidenceThrough(s.rt, "certification");
   const ready = s.rt.markReadyToClose("TASK-1", { opponentResolved: true, redTeamPass: true, verifierPass: true, evidencePass: true });
   assert.equal(ready.state, "READY_TO_CLOSE");
@@ -292,16 +292,33 @@ test("solver success plus opponent counterexample is reconciled, never auto-clos
   assert.deepEqual(arbitration, { decision: "ESCALATE", closeAllowed: false });
 });
 
+test("red-team and verifier gates require the assigned independent actors", () => {
+  const s = seed({ riskClass: "HIGH" });
+  s.admit();
+  s.session();
+  assert.throws(() => s.rt.redTeamGate("TASK-1", {
+    required: true, findings: 0, remediated: true, retested: true,
+  }), /AUTHORITY_BYPASS/);
+  s.rt.reconcile("TASK-1", { solverOutcome: "SUCCESS", opponentOutcome: "PASS" });
+  s.rt.redTeamGate("TASK-1", {
+    actorId: "opponent", actorRole: "OPPONENT", required: true, findings: 0, remediated: true, retested: true,
+  });
+  s.rt.prepareVerification("TASK-1");
+  assert.throws(() => s.rt.recordVerification("TASK-1", {
+    verifierId: "solver", actorRole: "VERIFIER", pass: true, certificationPass: true, reviewId: "REVIEW-X",
+  }), /AUTHORITY_BYPASS/);
+});
+
 test("red-team handoff is a hard gate until findings are remediated and re-tested", () => {
   const s = seed({ riskClass: "HIGH" });
   s.admit();
   s.session();
   s.rt.reconcile("TASK-1", { solverOutcome: "SUCCESS", opponentOutcome: "PASS" });
-  const blocked = s.rt.redTeamGate("TASK-1", { required: false, findings: 1, remediated: false, retested: false });
+  const blocked = s.rt.redTeamGate("TASK-1", { actorId: "opponent", actorRole: "OPPONENT", required: false, findings: 1, remediated: false, retested: false });
   assert.equal(blocked.gate, "BLOCK");
   s.rt.prepareVerification("TASK-1");
   assert.equal(s.rt.markReadyToClose("TASK-1", { opponentResolved: true, redTeamPass: false, verifierPass: true, evidencePass: true }).code, "CLOSURE_BLOCKED");
-  const passed = s.rt.redTeamGate("TASK-1", { required: true, findings: 0, remediated: true, retested: true });
+  const passed = s.rt.redTeamGate("TASK-1", { actorId: "opponent", actorRole: "OPPONENT", required: true, findings: 0, remediated: true, retested: true });
   assert.equal(passed.gate, "PASS");
 });
 
@@ -470,9 +487,9 @@ test("self-evolution can propose only through a canonical task/review/verificati
 
   s.session();
   s.rt.reconcile("TASK-1", { solverOutcome: "SUCCESS", opponentOutcome: "PASS" });
-  s.rt.redTeamGate("TASK-1", { required: true, findings: 0, remediated: true, retested: true });
+  s.rt.redTeamGate("TASK-1", { actorId: "opponent", actorRole: "OPPONENT", required: true, findings: 0, remediated: true, retested: true });
   s.rt.prepareVerification("TASK-1");
-  s.rt.recordVerification("TASK-1", { verifierId: "verifier", pass: true, certificationPass: true, reviewId: "REVIEW-1" });
+  s.rt.recordVerification("TASK-1", { verifierId: "verifier", actorRole: "VERIFIER", pass: true, certificationPass: true, reviewId: "REVIEW-1" });
   recordEvidenceThrough(s.rt, "certification");
   s.rt.markReadyToClose("TASK-1", { opponentResolved: true, redTeamPass: true, verifierPass: true, evidencePass: true });
   const adopted = s.rt.adoptSelfEvolution("EVOLVE-1", {
