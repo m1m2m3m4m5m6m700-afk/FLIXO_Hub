@@ -889,8 +889,8 @@ export class HardControlRuntime {
     const assignment = this.assignments.get(assignmentId);
     if (!assignment) throw hardError("ADMISSION_BLOCK","ASSIGNMENT_NOT_FOUND");
     let next = assignment;
-    if (this.agents.get(next.solverId)?.state === "LOST") next = Object.freeze({ ...next, solverId:next.backupSolverId });
-    if (this.agents.get(next.opponentId)?.state === "LOST") next = Object.freeze({ ...next, opponentId:next.backupOpponentId });
+    if (this.agents.get(next.solverId)?.state === "LOST") next = Object.freeze({ ...next, solverId:next.backupSolverId, backupSolverId:next.solverId });
+    if (this.agents.get(next.opponentId)?.state === "LOST") next = Object.freeze({ ...next, opponentId:next.backupOpponentId, backupOpponentId:next.opponentId });
     if (next.solverId === assignment.solverId && next.opponentId === assignment.opponentId) return next;
     const roleIds = [next.solverId,next.opponentId,next.backupSolverId,next.backupOpponentId,next.verifierId];
     if (!independent(roleIds)) throw hardError("ADMISSION_BLOCK","REASSIGNMENT_INDEPENDENCE");
