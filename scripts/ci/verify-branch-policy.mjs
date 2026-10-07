@@ -164,6 +164,14 @@ function hasExecutionPushGate(jobText) {
   return /github\.event_name\s*==\s*['"]push['"]/u.test(compact) && /github\.ref\s*==\s*['"]refs\/heads\/execution['"]/u.test(compact);
 }
 
+function hasManualExecutionGate(jobText) {
+  const compact = jobText.replace(/\s+/gu, ' ');
+  return /github\.event_name\s*==\s*['"]workflow_dispatch['"]/u.test(compact) &&
+    /github\.ref\s*==\s*['"]refs\/heads\/execution['"]/u.test(compact) &&
+    /github\.repository\s*==\s*['"]m1m2m3m4m5m6m700-afk\/FLIXO_Hub['"]/u.test(compact) &&
+    /github\.actor\s*==\s*['"]m1m2m3m4m5m6m700-afk['"]/u.test(compact);
+}
+
 function hasExecutionOnlyMutationTarget(jobText) {
   const compact = jobText.replace(/\s+/gu, ' ');
   const executionPush = /git\s+push\s+origin\s+["']?HEAD:execution["']?/u.test(compact);
@@ -209,12 +217,14 @@ export function analyzeWorkflowAuthority(path, workflow) {
     const executionPreviewTarget =
       path.endsWith('/ui-preview.yml') &&
       /PREVIEW_WORKER_NAME:/u.test(jobText) &&
-      hasExecutionPushGate(jobText);
+      (hasExecutionPushGate(jobText) || hasManualExecutionGate(jobText));
+    const dryRunOnly = /--dry-run\b/iu.test(jobText) && !/\b(?:--prod|production|main)\b/iu.test(jobText);
 
     if (
       (PRODUCTION_DEPLOYMENT_COMMAND.test(jobText) || PRODUCTION_DEPLOYMENT_ACTION.test(jobText)) &&
       !mainPushGate &&
-      !executionPreviewTarget
+      !executionPreviewTarget &&
+      !dryRunOnly
     ) {
       findings.push(
         `${path}#${job.id}: production/deployment authority is not gated to a push of refs/heads/main.`,
