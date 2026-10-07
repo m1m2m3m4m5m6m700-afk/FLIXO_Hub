@@ -1,4 +1,9 @@
-# CELL — EXECUTION MAP + AGENT PROMPTS
+# CELL — DERIVED EXECUTION COMPANION
+
+> CANONICAL ARCHITECTURE AUTHORITY: docs/CELL-CANONICAL-ARCHITECTURE.md
+> STATUS OF THIS FILE: TARGET / DERIVED EXECUTION MAP. It is an execution-oriented companion and does not replace the canonical architecture contract or create a second authority.
+> Existing content is preserved below.
+
 
 STATUS: TARGET ORCHESTRATION CONTRACT / CURRENT-REPO ALIGNED
 SOURCE OF TRUTH: `AGENTS.md`, `المهام.md`, `الوكلاء.md`, canonical runtime contracts, exact-SHA evidence.
