@@ -79,7 +79,7 @@ async function main() {
       }),
       evidenceRefs: [rel],
       reportPath: rel,
-      scope: proposal.inference?.current_state?.repo_refs ?? 'repository',
+      scopeJson: { repo_refs: proposal.inference?.current_state?.repo_refs ?? [] },
       metadata: {
         agent_id: expectedAgentId,
         proposal_id: proposal.id,
