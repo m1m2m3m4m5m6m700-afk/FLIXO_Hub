@@ -39,11 +39,15 @@
 
 المجموع: 100.
 
-## أدوار التدريب الأساسية
+## مصفوفة التدريب الرسمية
 
-المستكشف AI، المستكشف 2، المطور AI، i18n Agent، Maintainer Agent، QA Agent، Red Team 1، Red Team 2.
+العدد الرسمي هو **10 وكلاء رئيسيين** كما يحدد `الوكلاء.md`، وكل واحد منها يملك الآن deterministic role drill مستقلًا.  
+`المستكشف 2` يبقى supporting sub-role ولا يدخل في العدد الرسمي.
 
-هذه الأدوار تملك deterministic role drills. أما العدد الرسمي للوكلاء الرئيسيين فهو **10** كما يحدده `الوكلاء.md`، ويشمل Scouts الثلاثة. Scouts تملك boundary/contract gates مستقلة.
+المصفوفة الرئيسية:
+المستكشف AI، المطور AI، i18n Agent، Maintainer Agent، QA Agent، Red Team 1، Red Team 2، Architecture Scout، Technology Scout، Ecosystem Scout.
+
+لكل وكيل رئيسي امتحان موجب، ثلاث إعادات موجبة لاختبار الحتمية، ومصفوفة سلبية/Adversarial تمنع SHA الخاطئ، تجاوز السلطة، أو ادعاء الشهادة.
 
 ## الأدوار
 
@@ -76,8 +80,11 @@
 | FLIXO QA Agent | أوامر التحقق ورفض الدليل القديم |
 | Red Team 1 | فرضية هجوم وإعادة إنتاج آمنة |
 | Red Team 2 | حالة مضادة وتفنيد نتيجة هجومية |
+| FLIXO Architecture Scout | Proposal Schema v4، fit، boundary risk، rollback |
+| FLIXO Technology Scout | lifecycle، security، licensing، compatibility، migration cost |
+| FLIXO Ecosystem Scout | provenance، maturity، source dating، independent signals، rollback |
 
-يُقبل امتحان الدور فقط عندما ينجح السيناريو الصحيح ويرفض السيناريو المضاد. ثم يبقى `Behavioral Evidence` منفصلًا حتى توجد تجربة تشغيل حقيقية للوكيل نفسه.
+يُقبل امتحان الدور فقط عندما ينجح السيناريو الصحيح، تتطابق النتائج عبر ثلاث إعادات، وترفض المصفوفة السلبية كل حالة تمثل SHA قديمًا أو تجاوزًا للسلطة أو كسرًا لعقد الدور. ثم يبقى `Behavioral Evidence` منفصلًا حتى توجد تجربة تشغيل حقيقية للوكيل نفسه.
 
 ## التدريب التصاعدي
 
