@@ -13,7 +13,7 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: flixo-final-red-team-${{ github.event.pull_request.head.ref || github.ref_name }}
+  group: flixo-final-red-team-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
