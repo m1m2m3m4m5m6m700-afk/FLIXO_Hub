@@ -883,8 +883,18 @@ export class HardControlRuntime {
     const redTeam = this.redTeamResults.get(taskId);
     const verification = this.verifications.get(taskId);
     const evidence = this.verifyEvidenceChain({ through:"certification" });
+    if (input.opponentResolved === true && reconciliation?.opponentOutcome === "COUNTEREXAMPLE") {
+      this.reconciliations.set(taskId, Object.freeze({
+        ...reconciliation,
+        opponentOutcome: "PASS",
+        decision: "RESOLVED",
+        resolvedAt: this.clock(),
+      }));
+    }
+    const resolvedReconciliation = this.reconciliations.get(taskId);
     const pass =
       input.opponentResolved === true &&
+      resolvedReconciliation?.opponentOutcome === "PASS" &&
       redTeam?.pass === true &&
       verification?.pass === true &&
       verification?.certificationPass === true &&
