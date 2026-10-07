@@ -286,7 +286,10 @@ export function collectGitRefSnapshot(
     try {
       resolvedRef = sh('git', ['rev-parse', ref]);
     } catch {
-      if (ref !== 'refs/heads/main') {
+      const configuredMainSha = process.env.FLIXO_KNOWLEDGE_MAIN_SHA;
+      if (configuredMainSha && /^[0-9a-f]{40}$/.test(configuredMainSha)) {
+        resolvedRef = configuredMainSha;
+      } else if (ref !== 'refs/heads/main') {
         try {
           resolvedRef = sh('git', ['rev-parse', 'FETCH_HEAD']);
         } catch {
