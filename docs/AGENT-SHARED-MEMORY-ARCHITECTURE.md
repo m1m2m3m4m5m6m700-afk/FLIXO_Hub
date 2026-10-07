@@ -44,7 +44,7 @@ FLIXO يعمل بنموذج **Collective Intelligence** مقيد:
 
 ## البحث
 
-يدعم المسار الحالي lexical/hybrid-ready عبر PostgreSQL FTS، مع `extensions.vector(384)` وHNSW مُجهزين لإضافة embeddings لاحقًا دون تغيير نموذج البيانات. Supabase توصي بـpgvector وHNSW للبحث الدلالي مع RLS على البيانات المحمية. citeturn797155search4turn797155search8
+يدعم المسار الحالي lexical/hybrid-ready عبر PostgreSQL FTS، مع `extensions.vector(384)` وHNSW مُجهزين لإضافة embeddings لاحقًا دون تغيير نموذج البيانات. Supabase توثق استخدام pgvector للبحث الدلالي، وHNSW للفهرسة المتجهية، وRLS لحماية البيانات المكشوفة. انظر: https://supabase.com/docs/guides/database/extensions/pgvector و https://supabase.com/docs/guides/ai/semantic-search و https://supabase.com/docs/guides/database/postgres/row-level-security.
 
 ## التقاط المعرفة من المستكشفين
 
@@ -80,4 +80,4 @@ Supabase يحكم **حالة الذاكرة المشتركة الحية**.
 
 ## الحوكمة
 
-كل عمليات الذاكرة عبر Supabase مخصصة لـ`service_role` فقط، مع RLS وسياسات صريحة وعدم منح `anon/authenticated` صلاحيات. طبقة RLS يجب أن تبقى مفعلة لأي جدول في schema مكشوف. citeturn797155search0turn797155search3
+كل عمليات الذاكرة عبر Supabase مخصصة لـ`service_role` فقط، مع RLS وسياسات صريحة وعدم منح `anon/authenticated` صلاحيات. طبقة RLS يجب أن تبقى مفعلة لأي جدول في schema مكشوف.
