@@ -327,3 +327,86 @@ test("CELL lifecycle stays exact-SHA and fail-closed across promotion and learni
     /CELL_STAGE_INVALID:SOLVING/,
   );
 });
+
+
+test("CELL replan recovery resets stale downstream state and preserves task/mission", () => {
+  const lifecycle = new CellLifecycleRuntime(() => 3000);
+  const first = makeEnvelope();
+  lifecycle.admit(first);
+  lifecycle.lockPair();
+  lifecycle.recordOpponentIndependentStart("opponent-100", SHA);
+  lifecycle.discloseSolverResult(SHA);
+  lifecycle.startFalsification();
+  lifecycle.recordClaim({
+    claimId: "claim-replan-old",
+    assignmentId: "team-100",
+    solverId: "solver-100",
+    statement: "old claim",
+    candidateSha: SHA,
+    evidenceIds: ["e-old"],
+  });
+  lifecycle.recordEvidence({
+    evidenceId: "e-old",
+    sourceSha: SHA,
+    candidateSha: SHA,
+    kind: "CLAIM_SUPPORT",
+    summary: "old evidence",
+    independent: false,
+  });
+  lifecycle.recordCounterclaim({
+    counterclaimId: "counter-replan-old",
+    assignmentId: "team-100",
+    opponentId: "opponent-100",
+    claimId: "claim-replan-old",
+    statement: "old counterclaim",
+    candidateSha: SHA,
+    evidenceIds: ["e-counter-old"],
+  });
+  lifecycle.recordEvidence({
+    evidenceId: "e-counter-old",
+    sourceSha: SHA,
+    candidateSha: SHA,
+    kind: "DISPROOF",
+    summary: "old counter evidence",
+    independent: true,
+  });
+  lifecycle.reconcile(["material conflict"], SHA);
+  lifecycle.arbitrate({
+    arbitrationId: "arb-replan",
+    arbiterId: "arbiter-100",
+    claimId: "claim-replan-old",
+    counterclaimId: "counter-replan-old",
+    evidenceIds: ["e-claim", "e-counter-old"],
+    disposition: "REPLAN",
+    rationale: "material conflict requires a fresh assignment",
+    candidateSha: SHA,
+  });
+  assert.equal(lifecycle.getStage(), "ADMITTED");
+
+  const replanned = makeEnvelope();
+  replanned.assignment = Object.freeze({
+    ...replanned.assignment,
+    assignmentId: "team-101",
+    solverId: "solver-101",
+    opponentId: "opponent-101",
+    backupSolverId: "solver-backup-101",
+    backupOpponentId: "opponent-backup-101",
+  });
+  replanned.assignmentId = "team-101";
+  const record = lifecycle.replan(replanned);
+  assert.equal(record.taskId, "task-100");
+  assert.equal(record.missionId, "mission-100");
+
+  const snapshot = lifecycle.snapshot();
+  assert.equal(snapshot.stage, "ADMITTED");
+  assert.equal(snapshot.assignmentId ?? null, null);
+  assert.equal(snapshot.claim, null);
+  assert.equal(snapshot.counterclaim, null);
+  assert.deepEqual(snapshot.evidence, []);
+  assert.equal(snapshot.reconciliation, null);
+  assert.equal(snapshot.arbitration, null);
+  assert.equal(snapshot.candidate, null);
+  assert.equal(snapshot.opponentStartSequence, null);
+  assert.equal(snapshot.solverDisclosureSequence, null);
+  assert.equal(snapshot.admission?.assignmentId, "team-101");
+});
