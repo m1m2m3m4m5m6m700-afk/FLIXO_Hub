@@ -11,6 +11,8 @@ import {
   spawnSubtask,
   delegateHandoff,
   validateAssignmentForTask,
+  createCanonicalCellAssignment,
+  validateCanonicalCellAssignment,
   validateTypedHandoff,
   type AssignmentAgentProfile,
   type AssignmentRequirements,
@@ -447,4 +449,112 @@ test("subtask identity and incomplete handoff are fail-closed", () => {
     deadlineAtMs: null, budget: { cost: 1, durationMs: 500 }, evidenceRequirements: ["exact SHA"], returnContract: "return evidence refs",
   };
   assert.throws(() => validateTypedHandoff({ ...base, verificationCriteria: [] }), /HANDOFF_VERIFICATION_REQUIRED/);
+});
+
+
+test("canonical CELL assignment requires a complete solver/opponent opposition envelope", () => {
+  const team = {
+    assignmentId: "cell-team-1",
+    solverAgentId: "solver",
+    backupSolverAgentId: "solver-backup",
+    opponentAgentId: "opponent",
+    backupOpponentAgentId: "opponent-backup",
+    verifierAgentId: "verifier",
+    escalationTargetAgentId: "escalation",
+    startingSha: task.startingSha,
+    currentSha: task.currentSha,
+  };
+
+  const assignment = createCanonicalCellAssignment({
+    missionId: "mission-1",
+    riskClass: "HIGH",
+    team,
+    oppositionPlan: {
+      attackSurface: ["acceptance boundary"],
+      falsificationQuestions: ["what evidence would disprove this result?"],
+      expectedCounterexamples: ["invalid input"],
+      evidenceThatWouldDisproveSuccess: ["reproducible failing case"],
+      independenceRequirement: "distinct solver/opponent context",
+      opponentRecoveryPlan: ["activate backup opponent and re-establish independent start"],
+      escalationPolicy: ["escalate on unresolved material dispute"],
+    },
+    falsificationPolicy: {
+      required: true,
+      minimumChallengeDepth: "at least one independent challenge cycle",
+      counterexampleRequirement: "record a counterexample or explicit no-counterexample result",
+    },
+    verificationPolicy: {
+      verifierRequirement: "independent verifier",
+      evidenceRequirement: "reproducible exact-SHA evidence",
+      exactShaBinding: true,
+    },
+    independencePolicy: {
+      minimumIndependence: "distinct role and context boundary",
+      privateSolverContextExclusion: true,
+      preResultOpponentStartRequired: true,
+    },
+  });
+
+  assert.equal(assignment.solverId, "solver");
+  assert.equal(assignment.opponentId, "opponent");
+  assert.equal(assignment.backupSolverId, "solver-backup");
+  assert.equal(assignment.backupOpponentId, "opponent-backup");
+  assert.doesNotThrow(() => validateCanonicalCellAssignment(assignment));
+});
+
+test("canonical CELL admission rejects solver/opponent identity collision and incomplete opposition", () => {
+  const base = {
+    taskId: "task-1",
+    missionId: "mission-1",
+    solverId: "solver",
+    opponentId: "opponent",
+    backupSolverId: "solver-backup",
+    backupOpponentId: "opponent-backup",
+    riskClass: "HIGH",
+    oppositionPlan: {
+      attackSurface: ["surface"],
+      falsificationQuestions: ["question"],
+      expectedCounterexamples: ["counterexample"],
+      evidenceThatWouldDisproveSuccess: ["evidence"],
+      independenceRequirement: "independent",
+      opponentRecoveryPlan: ["backup"],
+      escalationPolicy: ["escalate"],
+    },
+    falsificationPolicy: {
+      required: true,
+      minimumChallengeDepth: "depth",
+      counterexampleRequirement: "required",
+    },
+    verificationPolicy: {
+      verifierRequirement: "verifier",
+      evidenceRequirement: "evidence",
+      exactShaBinding: true,
+    },
+    independencePolicy: {
+      minimumIndependence: "independent",
+      privateSolverContextExclusion: true,
+      preResultOpponentStartRequired: true,
+    },
+  } as const;
+
+  assert.throws(
+    () => validateCanonicalCellAssignment({ ...base, opponentId: "solver" }),
+    /CELL_ASSIGNMENT_ROLE_COLLISION/,
+  );
+  assert.throws(
+    () =>
+      validateCanonicalCellAssignment({
+        ...base,
+        oppositionPlan: { ...base.oppositionPlan, attackSurface: [] },
+      }),
+    /OPPOSITION_ATTACK_SURFACE_REQUIRED/,
+  );
+  assert.throws(
+    () =>
+      validateCanonicalCellAssignment({
+        ...base,
+        independencePolicy: { ...base.independencePolicy, preResultOpponentStartRequired: false },
+      }),
+    /OPPONENT_INDEPENDENT_START_REQUIRED/,
+  );
 });
