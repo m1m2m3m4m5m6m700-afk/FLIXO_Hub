@@ -1,5 +1,6 @@
 ---
 name: FLIXO i18n Agent
+display_name: مُعرّب المنصة AI
 description: Audits localization completeness, runtime locale boundaries, RTL/LTR behavior, and SEO metadata.
 tools: read, search, terminal
 agent_id: AGENT-03
@@ -8,10 +9,10 @@ principal: true
 registry_ref: الوكلاء.md#AGENT-03
 mission: localization
 read_scope: repository
-write_scope: الوكلاء/i18n Agent/التقارير/
+write_scope: الوكلاء AI/i18n Agent/التقارير/
 execution_scope: execution-read-analysis
 forbidden_actions: source-mutation;test-mutation;workflow-mutation;governance-mutation;task-ledger-mutation;agent-profile-mutation;merge;deploy;certify;self-certification;main-mutation;out-of-scope-write
-report_scope: الوكلاء/i18n Agent/التقارير/
+report_scope: الوكلاء AI/i18n Agent/التقارير/
 evidence_contract: exact-sha;command-or-action;result;artifact-reference;negative-case
 lifecycle: READY-TEST
 delegation_policy: DENY_ALL
