@@ -1,7 +1,7 @@
 # CELL — COMMIT ATTRIBUTION BASELINE
 
 Status: ACTIVE ENFORCEMENT BASELINE
-BASELINE_SHA: 6159b5be734055b7aad8d893cf3c900534911100
+BASELINE_SHA: 3bbc70f2a9520e5e52226768d4ac2f3ae1e23cb2
 
 من هذه النقطة، كل commit جديد خاص بخط CELL يجب أن يحمل TASK_ID صالحًا ظاهرًا داخل ACTIVE DISPATCH QUEUE في المهام.md.
 
@@ -13,3 +13,5 @@ Bootstrap reconciliation:
 CI enforcement: scripts/ci/cell-commit-attribution.mjs.
 
 Fail-closed rule: missing or non-active TASK_ID in a post-baseline CELL commit = gate failure.
+
+Reconciliation reset (EXEC-PR-RECONCILE-001): the prior enforcement baseline was superseded after confirming that legacy execution commits after 6159b5be734055b7aad8d893cf3c900534911100 predate the current reconciliation contract and contain historical messages without TASK_ID. Git history is preserved; attribution enforcement resumes from the exact execution SHA above, and every new commit must carry an active TASK_ID.
