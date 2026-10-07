@@ -66,14 +66,14 @@ function readyToolForPrompt(prompt: string): (typeof EXECUTABLE_TOOL_CATALOG)[nu
       score: hints.reduce((score, hint) => score + (text.includes(normalize(hint)) ? 1 : 0), 0),
     }))
     .filter((entry): entry is {
-      tool: (typeof TOOL_CATALOG.ready)[number];
+      tool: (typeof EXECUTABLE_TOOL_CATALOG)[number];
       score: number;
     } => Boolean(entry.tool) && entry.score > 0)
     .sort((a, b) => b.score - a.score);
 
   if (direct[0]) return direct[0].tool;
 
-  return TOOL_CATALOG.ready.find((tool) => {
+  return EXECUTABLE_TOOL_CATALOG.find((tool) => {
     const signals = [tool.title, tool.description, ...tool.aliases, ...tool.capability.intents];
     return signals.some((signal) => {
       const normalized = normalize(signal);
