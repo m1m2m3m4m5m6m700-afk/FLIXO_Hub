@@ -13,10 +13,10 @@ import { classifyHomeIntent, type AssistantResult } from '../lib/home-intent-cla
 type Tool = (typeof TOOL_CATALOG.all)[number];
 
 const reasons = [
-  ['speed', Gauge, 'Fast by default', 'Browser-first workflows that keep the common path quick and direct.'],
-  ['consistency', Layers, 'One consistent surface', 'Every tool follows the same calm interaction model instead of feeling like a separate product.'],
-  ['privacy', ShieldCheck, 'Private by design', 'Direct browser processing keeps the user in control of their files and actions.'],
-  ['access', KeyRound, 'Open to everyone', 'No account wall for the core experience. Pick a tool and start working.'],
+  ['speed', Gauge, '{locale === 'ar' ? 'سريع افتراضيًا' : 'Fast by default'}', '{locale === 'ar' ? 'تدفقات عمل عبر المتصفح تحافظ على المسار الشائع سريعًا ومباشرًا.' : 'Browser-first workflows that keep the common path quick and direct.'}'],
+  ['consistency', Layers, '{locale === 'ar' ? 'واجهة موحدة' : 'One consistent surface'}', '{locale === 'ar' ? 'تتبع كل أداة نموذج تفاعل هادئًا وموحدًا بدل أن تبدو كمنتج منفصل.' : 'Every tool follows the same calm interaction model instead of feeling like a separate product.'}'],
+  ['privacy', ShieldCheck, '{locale === 'ar' ? 'الخصوصية بالتصميم' : 'Private by design'}', '{locale === 'ar' ? 'المعالجة المباشرة عبر المتصفح تبقي الملفات والإجراءات تحت سيطرة المستخدم.' : 'Direct browser processing keeps the user in control of their files and actions.'}'],
+  ['access', KeyRound, '{locale === 'ar' ? 'مفتوح للجميع' : 'Open to everyone'}', '{locale === 'ar' ? 'لا توجد بوابة حساب للتجربة الأساسية. اختر أداة وابدأ العمل.' : 'No account wall for the core experience. Pick a tool and start working.'}'],
 ] as const;
 
 const examples = ['Translate a PDF to Arabic', 'Remove image background', 'Format messy JSON'];
@@ -107,7 +107,7 @@ export function ArchiveLandingHome({ locale = 'en' }: { locale?: 'en' | 'ar' }) 
         <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-5">
           <Link to="/" className="flex min-w-0 items-center gap-2">
             <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground"><Sparkles className="size-4" /></span>
-            <span className="font-display text-lg font-bold tracking-tight">Flixo</span>
+            <span className="font-display text-lg font-bold tracking-tight" >{locale === 'ar' ? 'فليكسو' : 'Flixo'}</span>
           </Link>
           <nav className="ms-4 hidden items-center gap-1 md:flex">
             <button onClick={() => scrollTo('categories')} className="rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-surface hover:text-foreground">{locale === 'ar' ? 'الأدوات' : 'Tools'}</button>
@@ -281,10 +281,10 @@ export function ArchiveLandingHome({ locale = 'en' }: { locale?: 'en' | 'ar' }) 
         <section id="stats" className="mx-auto max-w-6xl scroll-mt-20 px-5 py-20 md:py-24">
           <div className="grid gap-px overflow-hidden rounded-3xl border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
             {[
-              ['Live tools', TOOL_CATALOG.ready.length],
-              ['Tool hubs', ROADMAP_CATEGORIES.length],
-              ['Mapped tools', TOOL_CATALOG.all.length],
-              ['Private', 'Browser-first'],
+              [locale === 'ar' ? 'أدوات متاحة' : 'Live tools', TOOL_CATALOG.ready.length],
+              [locale === 'ar' ? 'مراكز الأدوات' : 'Tool hubs', ROADMAP_CATEGORIES.length],
+              [locale === 'ar' ? 'أدوات مفهرسة' : 'Mapped tools', TOOL_CATALOG.all.length],
+              [locale === 'ar' ? 'خصوصية' : 'Private', locale === 'ar' ? 'المتصفح أولًا' : 'Browser-first'],
             ].map(([label, value]) => <div key={String(label)} className="bg-card px-6 py-10 text-center"><p className="font-display text-4xl font-bold text-gradient-brand">{value}</p><p className="mt-2 text-sm text-muted-foreground">{label}</p></div>)}
           </div>
         </section>
@@ -296,11 +296,11 @@ export function ArchiveLandingHome({ locale = 'en' }: { locale?: 'en' | 'ar' }) 
           </div>
           <div className="mx-auto max-w-2xl">
             {[
-              ['Are these real tools?','Ready entries are connected to the current FLIXO tool registry and open their real routes.'],
-              ['Did the architecture change?','No. This page uses the existing FLIXO registry, routes, execution contracts, and runtime.'],
-              ['Does the assistant execute work?','No. It classifies the request locally and points to an available tool.'],
-              ['What happens to unavailable tools?','They remain visible as planned or idea entries and can be requested without fabricating an execution route.'],
-              ['Can I use the page on mobile?','Yes. The same component hierarchy collapses responsively for narrow screens.'],
+              [locale === 'ar' ? 'هل هذه أدوات حقيقية؟' : 'Are these real tools?', locale === 'ar' ? 'الأدوات الجاهزة مرتبطة بسجل أدوات فليكسو الحالي وتفتح مساراتها الفعلية.' : 'Ready entries are connected to the current FLIXO tool registry and open their real routes.'],
+              [locale === 'ar' ? 'هل تغيرت المعمارية؟' : 'Did the architecture change?', locale === 'ar' ? 'لا. تستخدم هذه الصفحة سجل فليكسو ومساراته وعقود التنفيذ وبيئة التشغيل الحالية.' : 'No. This page uses the existing FLIXO registry, routes, execution contracts, and runtime.'],
+              [locale === 'ar' ? 'هل ينفذ المساعد العمل؟' : 'Does the assistant execute work?', locale === 'ar' ? 'لا. يصنف الطلب محليًا ويقودك إلى أداة متاحة.' : 'No. It classifies the request locally and points to an available tool.'],
+              [locale === 'ar' ? 'ماذا يحدث للأدوات غير المتاحة؟' : 'What happens to unavailable tools?', locale === 'ar' ? 'تبقى ظاهرة كأدوات مخططة أو أفكار ويمكن طلبها دون اختلاق مسار تنفيذ.' : 'They remain visible as planned or idea entries and can be requested without fabricating an execution route.'],
+              [locale === 'ar' ? 'هل تعمل الصفحة على الهاتف؟' : 'Can I use the page on mobile?', locale === 'ar' ? 'نعم. تتكيف البنية نفسها مع الشاشات الضيقة.' : 'Yes. The same component hierarchy collapses responsively for narrow screens.'],
             ].map(([q,a]) => <details key={q} className="border-b border-border py-4"><summary className="cursor-pointer font-medium">{q}</summary><p className="mt-2 text-sm leading-relaxed text-muted-foreground">{a}</p></details>)}
           </div>
         </section>
@@ -309,7 +309,7 @@ export function ArchiveLandingHome({ locale = 'en' }: { locale?: 'en' | 'ar' }) 
       <footer className="border-t border-border/60 bg-surface/60">
         <div className="mx-auto grid max-w-6xl gap-10 px-5 py-14 md:grid-cols-[1.4fr_1fr_1fr]">
           <div><div className="flex items-center gap-2"><span className="grid size-9 place-items-center rounded-xl bg-primary text-primary-foreground"><Sparkles className="size-4" /></span><span className="font-display text-lg font-bold">Flixo</span></div><p className="mt-4 max-w-xs text-sm leading-relaxed text-muted-foreground">{locale === 'ar' ? 'مساحة هادئة لأدوات الذكاء الاصطناعي والمهام الرقمية العملية عبر المتصفح.' : 'A calm browser-first home for practical AI and digital tools.'}</p></div>
-          <div><h3 className="text-sm font-semibold">{locale === 'ar' ? 'المنتج' : 'Product'}</h3><ul className="mt-4 space-y-2.5"><li><a href="#tools" className="text-sm text-muted-foreground hover:text-foreground" >{locale === 'ar' ? 'الأدوات' : 'Tools'}</a></li><li><a href="#why" className="text-sm text-muted-foreground hover:text-foreground" >{locale === 'ar' ? 'لماذا فليكسو؟' : 'Why Flixo'}</a></li><li><a href="#stats" className="text-sm text-muted-foreground hover:text-foreground">{locale === 'ar' ? 'الأرقام' : 'Numbers'}</a></li><li><a href="#faq" className="text-sm text-muted-foreground hover:text-foreground">FAQ</a></li><li><button type="button" onClick={() => openRequest()} className="text-sm text-muted-foreground hover:text-foreground">Request a tool</button></li></ul></div>
+          <div><h3 className="text-sm font-semibold">{locale === 'ar' ? 'المنتج' : 'Product'}</h3><ul className="mt-4 space-y-2.5"><li><a href="#tools" className="text-sm text-muted-foreground hover:text-foreground" >{locale === 'ar' ? 'الأدوات' : 'Tools'}</a></li><li><a href="#why" className="text-sm text-muted-foreground hover:text-foreground" >{locale === 'ar' ? 'لماذا فليكسو؟' : 'Why Flixo'}</a></li><li><a href="#stats" className="text-sm text-muted-foreground hover:text-foreground">{locale === 'ar' ? 'الأرقام' : 'Numbers'}</a></li><li><a href="#faq" className="text-sm text-muted-foreground hover:text-foreground" >{locale === 'ar' ? 'الأسئلة الشائعة' : 'FAQ'}</a></li><li><button type="button" onClick={() => openRequest()} className="text-sm text-muted-foreground hover:text-foreground">Request a tool</button></li></ul></div>
           <div><h3 className="text-sm font-semibold">{locale === 'ar' ? 'أدوات مميزة' : 'Featured tools'}</h3><ul className="mt-4 space-y-2.5">{TOOL_CATALOG.ready.slice(0,8).map((tool) => <li key={tool.id}><Link to={toolRoute(tool)} className="text-sm text-muted-foreground hover:text-foreground">{tool.title}</Link></li>)}</ul></div>
         </div>
         <div className="border-t border-border/60"><div className="mx-auto flex max-w-6xl flex-col gap-2 px-5 py-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between"><p>© {new Date().getFullYear()} Flixo</p><p>{locale === 'ar' ? 'مساحة واحدة لكل أدوات الذكاء الاصطناعي.' : 'One workspace for every AI tool.'}</p></div></div>
