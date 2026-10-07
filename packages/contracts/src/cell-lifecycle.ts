@@ -753,7 +753,7 @@ export class CellLifecycleRuntime {
   }
 
   independentlyVerify(
-    input: Omit<CellVerificationRecord, "candidateId" | "taskId" | "candidateSha" | "sequence">,
+    input: Omit<CellVerificationRecord, "candidateId" | "taskId" | "opponentContextHash" | "opponentStartedAtMs" | "candidateSha" | "sequence">,
   ): CellVerificationRecord {
     this.requireStage("VERIFICATION_PENDING");
     if (!this.candidate || !this.redTeam || !this.admission) throw new Error("CELL_VERIFICATION_CONTEXT_INCOMPLETE");
