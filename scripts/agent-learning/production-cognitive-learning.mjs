@@ -160,8 +160,9 @@ export function createProductionCognitiveLearning({env=process.env,fetchImpl=glo
       return Object.freeze({eventCount:stored.length});
     },
     async awardXp(input){
-      const event=createCognitiveEvent({eventId:input.eventId||randomUUID(),missionId:input.missionId||'learning',taskId:input.taskId,agentId:input.agentId,sequence:1,epoch:input.epoch||0,eventType:'RESULT',causationId:null,correlationId:input.correlationId||input.eventId||randomUUID(),sourceSha:input.currentSha,confidence:1,knowledgeStatus:'VALIDATED',createdAt:input.createdAt||new Date().toISOString(),payload:{projection:{type:'XP_REWARD',agentId:input.agentId,input:{...input,currentSha:undefined}}}});
-      const stored=await events.append(event);applyProjection(stored.event);return excellence.snapshot(input.agentId);
+      const {currentSha,...xpInput}=input;
+      const event=createCognitiveEvent({eventId:xpInput.eventId||randomUUID(),missionId:xpInput.missionId||'learning',taskId:xpInput.taskId,agentId:xpInput.agentId,sequence:1,epoch:xpInput.epoch||0,eventType:'RESULT',causationId:null,correlationId:xpInput.correlationId||xpInput.eventId||randomUUID(),sourceSha:currentSha,confidence:1,knowledgeStatus:'VALIDATED',createdAt:xpInput.createdAt||new Date().toISOString(),payload:{projection:{type:'XP_REWARD',agentId:xpInput.agentId,input:xpInput}}});
+      const stored=await events.append(event);applyProjection(stored.event);return excellence.snapshot(xpInput.agentId);
     },
     async recordPerformance(input){
       const event=createCognitiveEvent({eventId:input.eventId||randomUUID(),missionId:input.missionId||'learning',taskId:input.taskId,agentId:input.agentId,sequence:1,epoch:input.epoch||0,eventType:'RESULT',causationId:null,correlationId:input.correlationId||input.eventId||randomUUID(),sourceSha:input.currentSha,confidence:1,knowledgeStatus:'VALIDATED',createdAt:input.createdAt||new Date().toISOString(),payload:{projection:{type:'PERFORMANCE',agentId:input.agentId,input}}});
