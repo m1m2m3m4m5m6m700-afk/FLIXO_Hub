@@ -102,6 +102,36 @@ export type ExecutionEnvelope = Readonly<{
   acceptanceDigest: string;
 }>;
 
+export function createExecutionEnvelope(input: ExecutionEnvelope): ExecutionEnvelope {
+  if (
+    !input.taskId ||
+    !input.agentId ||
+    !input.sessionId ||
+    !input.missionId ||
+    !input.startSha ||
+    !input.allowedBranch ||
+    input.allowedBranch === "main" ||
+    !input.normalizedObjectiveId ||
+    !input.expectedOutput ||
+    !input.acceptanceDigest ||
+    input.timeBudgetMs <= 0 ||
+    input.costBudget < 0 ||
+    input.maxDelegationDepth < 0
+  ) {
+    throw new Error("INVALID_EXECUTION_ENVELOPE");
+  }
+
+  return Object.freeze({
+    ...input,
+    allowedCapabilities: Object.freeze([...input.allowedCapabilities]),
+    readScope: Object.freeze([...input.readScope]),
+    writeScope: Object.freeze([...input.writeScope]),
+    forbiddenActions: Object.freeze([...input.forbiddenActions]),
+    acceptanceConditions: Object.freeze([...input.acceptanceConditions]),
+    evidenceRequirements: Object.freeze([...input.evidenceRequirements]),
+  });
+}
+
 export type ExecutionIdentityProbe = Readonly<{
   taskId: string; agentId: string; sessionId: string; missionId: string;
   branch: string; startSha: string; currentSha: string; capability: string;
@@ -127,7 +157,7 @@ export function verifyExecutionIdentity(envelope: ExecutionEnvelope, probe: Exec
 
 export type ExecutionAction = Readonly<{
   actionId: string; taskId: string; agentId: string; sessionId: string; missionId: string;
-  branch: string; currentSha: string; operation: "READ" | "WRITE" | "TEST" | "DELEGATE";
+  branch: string; startSha: string; currentSha: string; operation: "READ" | "WRITE" | "TEST" | "DELEGATE";
   path: string | null; capability: string; toolId: string | null;
   estimatedCost: number; expectedDurationMs: number; delegationDepth: number;
 }>;
@@ -141,6 +171,7 @@ export function authorizeExecutionAction(envelope: ExecutionEnvelope, action: Ex
     [action.agentId === envelope.agentId, "D7_AUTHORITY_DRIFT", "identity-gate", "agent identity mismatch"],
     [action.sessionId === envelope.sessionId, "D7_AUTHORITY_DRIFT", "identity-gate", "session identity mismatch"],
     [action.missionId === envelope.missionId, "D7_AUTHORITY_DRIFT", "identity-gate", "mission identity mismatch"],
+    [action.startSha === envelope.startSha, "D7_AUTHORITY_DRIFT", "identity-gate", "starting SHA mismatch"],
   ];
   for (const [ok, type, detector, reason] of identityReasons) if (!ok) return { allowed: false, drift: finding(type, detector, reason) };
 
