@@ -18,7 +18,12 @@ test('CI_SECURITY_CONTRACTS: every checkout explicitly disables credential persi
 test('EXECUTION_CREDENTIAL_ISOLATION: execution write authority is bounded', () => {
   for (const n of names()) { const t = read(n); if (!executionPush(t) || !/contents:\s*write/.test(t)) continue;
     assert.ok(n === 'continuous-discovery.yml' || n === 'triage-and-clean.yml', n);
-    if (n === 'continuous-discovery.yml') { assert.match(t, /scout\/discovery-\$GITHUB_RUN_ID/); assert.match(t, /\.agent-intelligence\/inbox/); assert.doesNotMatch(t, /secrets\.[A-Z0-9_]+/); }
+    if (n === 'continuous-discovery.yml') {
+      assert.match(t, /scout\/discovery-\$GITHUB_RUN_ID/);
+      assert.match(t, /الوكلاء\/التقارير\/AGENT-08 — Architecture Scout/);
+      assert.match(t, /\.agent-intelligence\/snapshots/);
+      assert.doesNotMatch(t, /secrets\.[A-Z0-9_]+/);
+    }
     if (n === 'triage-and-clean.yml') { assert.match(t, /HEAD:execution/); assert.match(t, /git diff --name-only/); assert.match(t, /review-queue|graveyard|handoffs/); }
   }
 });
@@ -43,8 +48,17 @@ test('SHARED_MEMORY_DISPATCH_GATE: secret-bearing shared-memory dispatch is acto
   assert.match(t, /secrets\.SUPABASE_SERVICE_ROLE_KEY/);
 });
 test('SECRET_ISOLATION_AND_REGRESSION: provider secrets stay off generic execution', () => {
-  for (const n of names()) { const t = read(n); if (!executionPush(t) || n === 'patch-capsule-controller.yml') continue; assert.doesNotMatch(t, /secrets\.(?:SUPABASE|TESTSPRITE)/i, n); }
-  const p = read('patch-capsule-controller.yml'); assert.doesNotMatch(p, / {4}env:\s*\n[\s\S]{0,300}?secrets\.GITHUB_TOKEN/);
+  for (const n of names()) {
+    const t = read(n);
+    if (!executionPush(t) || n === 'patch-capsule-controller.yml') continue;
+    assert.doesNotMatch(t, /secrets\.(?:SUPABASE|TESTSPRITE)/i, n);
+  }
+  const p = read('patch-capsule-controller.yml');
+  assert.match(p, /ref: main/u);
+  assert.match(p, /FLIXO_TARGET_BRANCH: execution/u);
+  assert.match(p, /secrets\.GITHUB_TOKEN/u);
+  assert.match(p, /secrets\.SUPABASE_URL/u);
+  assert.doesNotMatch(p, /push:\s*[\s\S]{0,160}?branches:\s*\[?execution\]?/u);
 });
 function runBlocks(text) {
   const lines = text.split(/\r?\n/);
