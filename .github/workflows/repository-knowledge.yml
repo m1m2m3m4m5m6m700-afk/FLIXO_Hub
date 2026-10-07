@@ -67,7 +67,12 @@ jobs:
           set -euo pipefail
           REPORT="الوكلاء AI/المستكشف AI/تقارير المستكشف/${GITHUB_SHA}.md"
           test -s "$REPORT"
+          SNAPSHOT="الوكلاء AI/المستكشف AI/تقارير المستكشف/${GITHUB_SHA}.json"
+          test -s "$SNAPSHOT"
           grep -Fq -- "- Exact SHA: ${GITHUB_SHA}" "$REPORT"
+          grep -Fq -- "- Model version: flixo-world-model-v1" "$REPORT"
+          grep -Fq -- '"exact_sha": "'${GITHUB_SHA}'"' "$SNAPSHOT"
+          grep -Fq -- '"model_version": "flixo-world-model-v1"' "$SNAPSHOT"
           grep -Fq -- "- Uncovered repository-authored text lines: 0" "$REPORT"
 
       - name: Fetch main branch snapshot for read-only knowledge tests
@@ -85,5 +90,6 @@ jobs:
           name: flixo-knowledge-${{ github.sha }}
           path: |
             الوكلاء AI/المستكشف AI/تقارير المستكشف/${{ github.sha }}.md
+            الوكلاء AI/المستكشف AI/تقارير المستكشف/${{ github.sha }}.json
           if-no-files-found: error
           retention-days: 30
