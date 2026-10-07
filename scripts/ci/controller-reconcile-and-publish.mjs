@@ -222,16 +222,38 @@ function verifyWorktree(worktree) {
   execFileSync('npm', ['run', 'build'], { cwd: worktree, env: safeEnv, encoding: 'utf8', stdio: 'inherit' });
 }
 
+export function parsePorcelainV1ZStatus(raw) {
+  const fields = String(raw ?? '').split('\0').filter(Boolean);
+  const paths = [];
+  for (let index = 0; index < fields.length; index += 1) {
+    const record = fields[index];
+    if (record.length < 4) continue;
+    const path = record.slice(3);
+    paths.push(path);
+    const status = record.slice(0, 2);
+    if (/[RC]/u.test(status)) {
+      const original = fields[index + 1];
+      if (original) {
+        paths.push(original);
+        index += 1;
+      }
+    }
+  }
+  return [...new Set(paths)];
+}
+
 function createCandidateCommit(worktree, targetSha, message, allowedPaths) {
-  const statusLines = git(['status', '--short'], worktree).split('\n').filter(Boolean);
-  if (statusLines.length === 0) throw new Error('CONTROLLER_NO_RECONCILED_CHANGES');
+  const statusPaths = parsePorcelainV1ZStatus(
+    execFileSync('git', ['status', '--porcelain=v1', '-z', '--untracked-files=all'], {
+      cwd: worktree,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    }),
+  );
+  if (statusPaths.length === 0) throw new Error('CONTROLLER_NO_RECONCILED_CHANGES');
   const allowed = new Set(allowedPaths);
   if (!allowed.size) throw new Error('CONTROLLER_ALLOWED_PATHS_EMPTY');
-  for (const line of statusLines) {
-    const path = line.slice(3).trim().replace(/^"|"$/g, '');
-    if (isSensitiveRepositoryPath(path)) throw new Error(`CONTROLLER_SENSITIVE_PATH_FORBIDDEN:${path}`);
-    if (isSensitiveRepositoryPath(path)) throw new Error(`CONTROLLER_SENSITIVE_PATH_FORBIDDEN:${path}`);
-    if (isSensitiveRepositoryPath(path)) throw new Error(`CONTROLLER_SENSITIVE_PATH_FORBIDDEN:${path}`);
+  for (const path of statusPaths) {
     if (isSensitiveRepositoryPath(path)) throw new Error(`CONTROLLER_SENSITIVE_PATH_FORBIDDEN:${path}`);
     if (!allowed.has(path)) throw new Error(`CONTROLLER_OUT_OF_SCOPE_CHANGE:${path}`);
   }
