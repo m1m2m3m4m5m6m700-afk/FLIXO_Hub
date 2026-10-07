@@ -355,7 +355,8 @@ export class CellRuntime {
     return this.releaseTaskLease(taskId,ownerId,token);
   }
 
-  authorizeIdentity(envelope: ExecutionEnvelope, probe: ExecutionIdentityProbe): void {
+  authorizeIdentity(envelope: ExecutionEnvelope, probe: ExecutionIdentityProbe, liveSha: string): void {
+    if (probe.currentSha !== liveSha) throw new Error("CURRENT_SHA_MISMATCH");
     const reason = verifyExecutionIdentity(envelope, probe);
     if (reason) throw new Error(reason);
   }
