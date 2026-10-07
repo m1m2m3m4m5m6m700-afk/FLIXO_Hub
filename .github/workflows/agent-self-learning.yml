@@ -13,8 +13,8 @@ on:
       - 'docs/AGENT-SHARED-MEMORY-ARCHITECTURE.md'
       - '.github/workflows/agent-self-learning.yml'
       - 'package.json'
-      - '!الوكلاء/التقارير/**'
-      - '!الوكلاء/تدريب الوكلاء/تقارير التدريب/**'
+      - 'الوكلاء/التقارير/**'
+      - 'الوكلاء/تدريب الوكلاء/تقارير التدريب/**'
   workflow_dispatch:
 
 permissions:
