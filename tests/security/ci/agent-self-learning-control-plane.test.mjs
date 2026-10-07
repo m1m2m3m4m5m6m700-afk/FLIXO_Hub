@@ -466,8 +466,9 @@ test('cognitive plane emits candidate-only learning and requires independent usa
     repeatPasses: 2,
     regressionTest: true,
   }, SHA);
-  assert.equal(promoted.status, 'PROMOTED');
-  assert.equal(promoted.promotable, true);
+  assert.equal(promoted.status, 'VALIDATED');
+  assert.equal(promoted.promotable, false);
+  assert.equal(promoted.ready_for_canonical_reconcile, true);
 
   assert.equal(classifyMemoryForExecution({ memory_id: 'usable', status: 'PROMOTED', tested_sha: SHA }, SHA).usable, true);
   assert.equal(classifyMemoryForExecution({ memory_id: 'blocked', status: 'VALIDATED', tested_sha: SHA }, SHA).usable, false);
@@ -589,4 +590,24 @@ test('experience event type rejects arbitrary lifecycle authority', async () => 
   const { assertExperienceEventType } = await import('../../../scripts/agent-learning/cognitive-plane.mjs');
   assert.equal(assertExperienceEventType('START'), 'START');
   assert.throws(() => assertExperienceEventType('PROMOTE_MYSELF'), /EXPERIENCE_EVENT_TYPE_INVALID/);
+});
+
+
+test('cognitive adapter cannot create executable promotion authority', async () => {
+  const { reconcileCandidateLesson } = await import('../../../scripts/agent-learning/cognitive-plane.mjs');
+  const candidate = {
+    status: 'CANDIDATE',
+    kind: 'LESSON',
+    tested_sha: SHA,
+    claim: 'use current SHA',
+    evidence: ['evidence'],
+    review: { decision: 'CONFIRMED', independentConfirmations: 2, reviewers: ['AGENT-01', 'AGENT-05'] },
+    independentUsageCount: 2,
+    repeatPasses: 2,
+    regressionTest: true,
+  };
+  const result = reconcileCandidateLesson(candidate, SHA);
+  assert.equal(result.status, 'VALIDATED');
+  assert.equal(result.promotable, false);
+  assert.equal(result.ready_for_canonical_reconcile, true);
 });
