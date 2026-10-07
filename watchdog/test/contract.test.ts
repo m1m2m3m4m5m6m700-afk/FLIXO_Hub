@@ -85,6 +85,9 @@ const baseEnv = (): Env => ({
   WATCHDOG_AGENTS: 'alpha,beta',
 });
 
+const envFor = (overrides: Partial<Env> = {}): Env => ({ ...baseEnv(), ...overrides });
+const newState = () => new AgentState({ id: { name: 'alpha' }, storage: new MemoryStorage() });
+
 test('LINEARIZABLE_CHECKPOINT=PASS', async () => {
   const state = new AgentState({ id: { name: 'alpha' }, storage: new MemoryStorage() });
   const results = await Promise.all(
