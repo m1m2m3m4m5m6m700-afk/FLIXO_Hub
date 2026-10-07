@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Blend, Camera, Crop, Eraser, FileImage, Grid2X2, ImageDown, ImageUp, Layers2, MonitorSmartphone, Palette, ScanText, Settings2, SlidersHorizontal, Sparkles, Stamp, Type, Wand2 } from 'lucide-react';
 import { Link } from '@tanstack/react-router';
-import { TOOL_CATALOG } from '@/config/registry';
+import { EXECUTABLE_TOOL_CATALOG } from '@/config/registry';
 import { getAuthoritativeToolSeoName } from '@/config/tool-seo-name-resolver';
 import { localizeToolDescription } from '@/lib/i18n/tool-localization';
 import type { Locale } from '@/lib/i18n';
