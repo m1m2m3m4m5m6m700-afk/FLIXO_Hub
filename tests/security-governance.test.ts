@@ -55,3 +55,29 @@ test('production security policy denies unused high-impact browser permissions',
   );
   assert.equal(rootHeaders.find((entry) => entry.key === 'X-Frame-Options')?.value, 'DENY');
 });
+
+
+test('privileged publication workflows execute from trusted main and keep candidate workflows read-only', () => {
+  const triage = readFileSync('.github/workflows/triage-and-clean.yml', 'utf8');
+  const controller = readFileSync('.github/workflows/patch-capsule-controller.yml', 'utf8');
+  const human = readFileSync('.github/workflows/human-gate.yml', 'utf8');
+  const agentPublisher = readFileSync('.github/workflows/agent3-trusted-publication.yml', 'utf8');
+  const knowledgePublisher = readFileSync('.github/workflows/knowledge-trusted-publication.yml', 'utf8');
+  const humanPublisher = readFileSync('.github/workflows/human-gate-trusted-publication.yml', 'utf8');
+
+  assert.doesNotMatch(triage, /contents:\s*write/iu);
+  assert.doesNotMatch(triage, /persist-credentials:\s*true/iu);
+  assert.doesNotMatch(triage, /git\s+push\b/iu);
+  assert.match(controller, /github\.ref == 'refs\/heads\/main'/u);
+  assert.match(controller, /ref: main/u);
+  assert.match(controller, /persist-credentials: false/u);
+  assert.match(controller, /contents: write/u);
+  assert.doesNotMatch(human, /contents:\s*write/iu);
+  assert.doesNotMatch(human, /git\s+push\b/iu);
+  for (const publisher of [agentPublisher, knowledgePublisher, humanPublisher]) {
+    assert.match(publisher, /workflow_run:/u);
+    assert.match(publisher, /ref: main/u);
+    assert.match(publisher, /persist-credentials: false/u);
+    assert.match(publisher, /contents: write/u);
+  }
+});
