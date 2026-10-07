@@ -108,7 +108,7 @@ export function decideRetry(input: Readonly<{
 }>): RetryDecision {
   if (input.attempts >= input.maxAttempts) return { allowed: false, reason: "RETRY_BUDGET_EXHAUSTED" };
   if (input.retryable === null || !input.failureFingerprint) return { allowed: false, reason: "MISSING_FAILURE_CLASSIFICATION" };
-  if (input.previousFailureFingerprint && input.failureFingerprint === input.previousFailureFingerprint) return { allowed: false, reason: "IDENTITY_CHANGED" };
+  if (input.previousFailureFingerprint && input.failureFingerprint === input.previousFailureFingerprint) return { allowed: false, reason: "SAME_FAILURE" };
   if (!input.retryable) return { allowed: false, reason: "NON_RETRYABLE" };
   return { allowed: true, reason: "RETRYABLE" };
 }
