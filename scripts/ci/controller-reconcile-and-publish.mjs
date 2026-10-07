@@ -230,6 +230,7 @@ function createCandidateCommit(worktree, targetSha, message, allowedPaths) {
   for (const line of statusLines) {
     const path = line.slice(3).trim().replace(/^"|"$/g, '');
     if (isSensitiveRepositoryPath(path)) throw new Error(`CONTROLLER_SENSITIVE_PATH_FORBIDDEN:${path}`);
+    if (isSensitiveRepositoryPath(path)) throw new Error(`CONTROLLER_SENSITIVE_PATH_FORBIDDEN:${path}`);
     if (!allowed.has(path)) throw new Error(`CONTROLLER_OUT_OF_SCOPE_CHANGE:${path}`);
   }
 
