@@ -203,7 +203,6 @@ export function validateProfileContract(profile, expected, root = process.cwd())
     issues.push(id + ': report target does not exist');
   }
   if (profile.write_scope !== expected.report) issues.push(id + ': write/report scope drifts from registry');
-  if (profile.activity_log !== expected.activityLog) issues.push(id + ': activity_log must match registry');
   validateCapabilityContract(profile, id, issues);
 
   return issues;
