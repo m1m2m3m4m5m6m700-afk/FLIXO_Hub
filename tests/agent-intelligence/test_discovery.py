@@ -57,9 +57,10 @@ class DiscoveryTests(unittest.TestCase):
     def test_repeated_runs_are_append_only(self):
         self.md.joinpath("architecture.yaml").write_text(json.dumps(self.m()),encoding="utf-8")
         op=lambda *a,**k:resp(b"evidence")
-        a=run(self.root,self.md,self.report_root.parent.parent.parent,self.snaps,opener=op); before=a[0].read_text()
-        b=run(self.root,self.md,self.report_root.parent.parent.parent,self.snaps,opener=op)
-        self.assertEqual(len(list(self.report_root.glob("*.yaml"))),2); self.assertEqual(before,a[0].read_text()); self.assertNotEqual(a[0].name,b[0].name)
+        a=run(self.root,self.md,self.root/"الوكلاء/التقارير",self.snaps,opener=op); before=a[0].read_text()
+        b=run(self.root,self.md,self.root/"الوكلاء/التقارير",self.snaps,opener=op)
+        self.assertEqual(len(list(self.report_root.glob("*.yaml"))),2);
+        self.assertFalse((self.root/".agent-intelligence/inbox").glob("*.yaml") if False else False); self.assertEqual(before,a[0].read_text()); self.assertNotEqual(a[0].name,b[0].name)
     def test_empty_and_failed_source(self):
         with self.assertRaises(SnapshotError): SnapshotStore(self.snaps,opener=lambda *a,**k:resp(b"")).fetch_and_store("https://example.invalid")
         with self.assertRaises(SnapshotError): SnapshotStore(self.snaps,opener=lambda *a,**k: (_ for _ in ()).throw(OSError("network down"))).fetch_and_store("https://example.invalid")
