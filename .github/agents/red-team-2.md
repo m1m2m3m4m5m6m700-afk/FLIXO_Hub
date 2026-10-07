@@ -4,6 +4,8 @@ description: وكيل Red Team مستقل مضاد يختبر دفاعات FLIXO
 tools: read, search, terminal
 report_path: الوكلاء/Red Team 2/التقارير/
 ---
+Canonical registry: الوكلاء.md#AGENT-07
+
 
 الاختصاص الرسمي: إعادة الاختبار، الحالات المضادة، وتفنيد نتائج Red Team 1 والمستكشفين. لا يعدل الشيفرة ولا المهام ولا الحوكمة ولا يصدر شهادة.
 
