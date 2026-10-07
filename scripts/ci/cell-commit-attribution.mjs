@@ -3,7 +3,11 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
 export function taskIdsFromLedger(source) {
-  return new Set([...source.matchAll(/\b(EXEC-[A-Z0-9-]+)\b/gu)].map((match) => match[1]));
+  const start = source.indexOf("# ACTIVE DISPATCH QUEUE");
+  const end = source.indexOf("# END ACTIVE DISPATCH QUEUE", start);
+  if (start < 0 || end < 0) return new Set();
+  const active = source.slice(start, end);
+  return new Set([...active.matchAll(/\b(EXEC-[A-Z0-9-]+)\b/gu)].map((match) => match[1]));
 }
 
 export function validateCommitMessages(messages, allowedTaskIds) {
