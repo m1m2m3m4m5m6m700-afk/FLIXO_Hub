@@ -89,3 +89,4 @@ export * from "./cell-control-plane";
 export * from "./cell-runtime";
 export * from "./cell-assignment";
 export * from "./cell-hard-control";
+export * from "./agent-learning";
