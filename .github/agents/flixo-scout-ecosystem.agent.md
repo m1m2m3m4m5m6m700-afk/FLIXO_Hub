@@ -6,7 +6,7 @@ tools: ["read", "search", "edit"]
 disable-model-invocation: true
 user-invocable: true
 ---
-Canonical registry: الوكلاء.md#AGENT-10
+Canonical registry: الوكلاء/المستكشفين/Ecosystem Scout/المستكشف.md
 
 
 You are the FLIXO Ecosystem Scout.
