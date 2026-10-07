@@ -4,7 +4,7 @@ on:
   push:
     branches: [execution]
     paths-ignore:
-      - 'الوكلاء/تدريب الوكلاء/تقارير التدريب/**'
+      - 'الوكلاء AI/تدريب الوكلاء AI/تقارير التدريب/**'
   workflow_dispatch:
 
 permissions:
@@ -46,7 +46,7 @@ jobs:
           git fetch origin main --no-tags
           test -n "$(git rev-parse refs/remotes/origin/main)"
 
-      - name: Run the complete ten-agent training gate
+      - name: Run the complete fourteen-agent training gate
         run: npm run test:agent-training
 
       - name: Generate contract-readiness report
@@ -62,7 +62,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          REPORT="الوكلاء/تدريب الوكلاء/تقارير التدريب/${GITHUB_SHA}.md"
+          REPORT="الوكلاء AI/تدريب الوكلاء AI/تقارير التدريب/${GITHUB_SHA}.md"
           test -s "$REPORT"
           grep -Fq -- "- Exact execution SHA: ${GITHUB_SHA}" "$REPORT"
           grep -Fq -- "Behavioral evidence: UNPROVEN" "$REPORT"
@@ -83,8 +83,8 @@ jobs:
         with:
           name: agent-training-${{ github.sha }}
           path: |
-            الوكلاء/تدريب الوكلاء/تقارير التدريب/${{ github.sha }}.md
-            الوكلاء/تدريب الوكلاء/تقارير التدريب/${{ github.sha }}-role-drills.md
-            الوكلاء/تدريب الوكلاء/تقارير التدريب/${{ github.sha }}-readiness.md
+            الوكلاء AI/تدريب الوكلاء AI/تقارير التدريب/${{ github.sha }}.md
+            الوكلاء AI/تدريب الوكلاء AI/تقارير التدريب/${{ github.sha }}-role-drills.md
+            الوكلاء AI/تدريب الوكلاء AI/تقارير التدريب/${{ github.sha }}-readiness.md
           if-no-files-found: error
           retention-days: 30
