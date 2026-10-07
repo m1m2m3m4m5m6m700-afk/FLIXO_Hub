@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
 
 const root = process.cwd();
-const REPORT_DIR = 'الوكلاء/المستكشف AI/تقارير المستكشف';
+const REPORT_DIR = 'الوكلاء AI/المستكشف AI/تقارير المستكشف';
 
 export function sh(command, args = []) {
   return execFileSync(command, args, { cwd: root, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 }).trim();
@@ -559,7 +559,7 @@ export function collect() {
     '',
     '## Repository knowledge map',
     '- Task authority: المهام.md',
-    '- Knowledge authority: الوكلاء/المستكشف AI/تقارير المستكشف/<EXACT-SHA>.md',
+    '- Knowledge authority: الوكلاء AI/المستكشف AI/تقارير المستكشف/<EXACT-SHA>.md',
     '- This report is knowledge, not task authority and not certification evidence.',
     '',
     '## Semantic comparison: main vs execution',
@@ -607,7 +607,7 @@ export function collect() {
     '## Unknowns / limitations',
     ...(unknownSourceLines ? ['- ' + unknownSourceLines + ' repository-authored lines require semantic review under the classifier.'] : ['- No line-level semantic-review markers under the classifier.']),
     ...(unresolved.length ? ['- ' + unresolved.length + ' local imports could not be resolved.'] : ['- No unresolved local imports detected.']),
-    '- Generated knowledge artifacts under الوكلاء/المستكشف AI/تقارير المستكشف/ are excluded from recursive analysis to prevent report self-growth.',
+    '- Generated knowledge artifacts under الوكلاء AI/المستكشف AI/تقارير المستكشف/ are excluded from recursive analysis to prevent report self-growth.',
     '',
     '## Complete file inventory',
   ];
