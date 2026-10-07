@@ -668,6 +668,7 @@ export class HardControlRuntime {
       if (existing.assignmentId !== assignmentId || existing.ownerId !== ownerId) throw hardError("SESSION_ID_MISMATCH");
       if (this.clock() < existing.lease.expiresAt) return existing;
       throw hardError("LEASE_EXPIRED");
+    }
     if (ownerId !== assignment.solverId) throw hardError("AGENT_ID_MISMATCH");
     const now = this.clock();
     const ttlMs = input.ttlMs ?? 10_000;
