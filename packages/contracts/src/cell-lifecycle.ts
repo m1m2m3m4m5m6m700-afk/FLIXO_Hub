@@ -281,6 +281,9 @@ export function validateCellAdmission(envelope: CellAdmissionEnvelope): void {
   requiredList(envelope.relevantEvidence, "CELL_ADMISSION_EVIDENCE_REQUIRED");
   validateCanonicalCellAssignment(envelope.assignment);
   required(envelope.assignmentId, "CELL_ADMISSION_ASSIGNMENT_REQUIRED");
+  if (envelope.assignmentId !== envelope.assignment.solverId + ":" + envelope.assignment.opponentId + ":" + envelope.assignment.backupSolverId + ":" + envelope.assignment.backupOpponentId && envelope.assignmentId.trim() === "") {
+    throw new Error("CELL_ADMISSION_ASSIGNMENT_MISMATCH");
+  }
 
   if (envelope.assignment.taskId !== envelope.taskId) {
     throw new Error("CELL_ADMISSION_TASK_MISMATCH");
@@ -451,7 +454,8 @@ export class CellLifecycleRuntime {
       throw new Error("CELL_OPPONENT_ID_MISMATCH");
     }
     if (sequence !== undefined) {
-      if (!Number.isInteger(sequence) || sequence < 1) throw new Error("CELL_OPPONENT_SEQUENCE_INVALID");
+      if (!Number.isInteger(sequence) || sequence <= this.sequence) throw new Error("CELL_OPPONENT_SEQUENCE_INVALID");
+      this.sequence = sequence;
       this.opponentStartSequence = sequence;
     } else {
       this.opponentStartSequence = this.next();
@@ -463,6 +467,7 @@ export class CellLifecycleRuntime {
     this.requireStage("OPPONENT_STARTED", "SOLVING");
     sha(candidateSha, "CELL_SOLVER_DISCLOSURE_SHA_INVALID");
     if (!this.admission || candidateSha !== this.admission.currentSha) throw new Error("CELL_SOLVER_DISCLOSURE_SHA_DRIFT");
+    if (this.solverDisclosureSequence !== null) throw new Error("CELL_SOLVER_DISCLOSURE_ALREADY_RECORDED");
     if (this.opponentStartSequence === null) throw new Error("CELL_OPPONENT_INDEPENDENCE_REQUIRED");
     this.solverDisclosureSequence = this.next();
     if (this.solverDisclosureSequence <= this.opponentStartSequence) {
