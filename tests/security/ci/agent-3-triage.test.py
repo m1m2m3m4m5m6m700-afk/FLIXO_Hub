@@ -13,6 +13,7 @@ class Agent3Triage(unittest.TestCase):
     (self.r/"المهام.md").write_text("### EXEC-1\n- PRIORITY: P1\n- SCOPE: src/example.ts\n",encoding="utf-8")
     (self.r/"التطوير.md").write_text("# FLIXO\n\n## Architecture Radar\n\n## Technology Radar\n\n## Ecosystem Radar\n",encoding="utf-8")
     (self.r/".agent-intelligence/validated").mkdir(parents=True);(self.r/".agent-intelligence").mkdir(exist_ok=True)
+    (self.r/"الوكلاء/التقارير").mkdir(parents=True, exist_ok=True)
   def tearDown(self):self.t.cleanup()
   def inp(self,x): (self.r/".agent-intelligence/validated/input.json").write_text(json.dumps(x),encoding="utf-8")
   def queued(self):return list((self.r/".agent-intelligence/review-queue/queued").glob("*.json"))
@@ -60,7 +61,8 @@ class Agent3Triage(unittest.TestCase):
     self.inp([p(i,f"Proposal {i}",impact=i) for i in range(20)]);triage.run(self.r);v=(self.r/"التطوير.md").read_text(encoding="utf-8");section=v[v.index(triage.START):v.index(triage.END)];self.assertEqual(section.count("### "),10);q=set(self.queued());(self.r/".agent-intelligence/validated/input.json").unlink();triage.run(self.r);self.assertEqual(set(self.queued()),q)
   def test_workflow_contracts(self):
     wf=(ROOT/".github/workflows/triage-and-clean.yml").read_text(encoding="utf-8");hg=(ROOT/".github/workflows/human-gate.yml").read_text(encoding="utf-8")
-    for s in ("branches: [execution]","ValidatorAdmission","TriageDedupPriorityQueue","ReaperTTLSuppression","GeneratedViewAndStateAudit","FAIL_CLOSED","git push origin \"HEAD:execution\""):self.assertIn(s,wf)
+    for s in ("branches: [execution]","ValidatorAdmission","TriageDedupPriorityQueue","ReaperTTLSuppression","GeneratedViewAndStateAudit","FAIL_CLOSED","push origin \"HEAD:execution\""):self.assertIn(s,wf)
+    self.assertIn('[[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]' ,wf)
     self.assertNotIn("pull_request_target",wf);self.assertIn("workflow_dispatch",hg);self.assertIn("Reject bot actors",hg);self.assertNotIn("HEAD:main",hg)
   def test_validator_result_adapter(self):
     results=self.r/".agent-intelligence/validated/validator-results.json"; inbox=self.r/".agent-intelligence/inbox"; inbox.mkdir(parents=True,exist_ok=True)

@@ -8,9 +8,11 @@ on:
     branches: [execution]
     paths:
       - '.agent-intelligence/scouts/**'
+      - '.agent-intelligence/public-repositories/**'
       - '.agent-intelligence/scripts/**'
       - '.agent-intelligence/schemas/**'
       - 'tests/agent-intelligence/**'
+      - '.agent-intelligence/scripts/discover_public_repositories.py'
       - '.github/agents/flixo-scout-*.agent.md'
       - 'الوكلاء/المستكشفين/**'
       - 'scripts/verify-scout-boundary.mjs'
@@ -84,6 +86,7 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: write
+      pull-requests: write
     steps:
       - name: Fail-closed non-PR invocation boundary
         if: ${{ github.event_name != 'pull_request' }}
@@ -121,6 +124,10 @@ jobs:
           test "$(git rev-parse HEAD)" = "$EXECUTION_SHA" 
           git switch --create "scout/discovery-$GITHUB_RUN_ID"
           echo "EXECUTION_SHA=$EXECUTION_SHA" >> "$GITHUB_ENV"
+      - name: Acquire public repository intelligence
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 .agent-intelligence/scripts/discover_public_repositories.py
       - name: Run infinite Scouts and snapshots
         run: python3 .agent-intelligence/scripts/run_scouts.py
       - name: Validate generated proposals with Agent-2 validator
@@ -133,7 +140,7 @@ jobs:
           while IFS= read -r path; do
             [ -z "$path" ] && continue
             case "$path" in
-              "الوكلاء/التقارير/AGENT-08 — Architecture Scout/"*.yaml|"الوكلاء/التقارير/AGENT-09 — Technology Scout/"*.yaml|"الوكلاء/التقارير/AGENT-10 — Ecosystem Scout/"*.yaml|.agent-intelligence/snapshots/*.json|.agent-intelligence/snapshots/*.raw|.agent-intelligence/snapshots/*.txt) ;;
+              "الوكلاء/التقارير/AGENT-08 — Architecture Scout/"*.yaml|"الوكلاء/التقارير/AGENT-09 — Technology Scout/"*.yaml|"الوكلاء/التقارير/AGENT-10 — Ecosystem Scout/"*.yaml|.agent-intelligence/snapshots/*.json|.agent-intelligence/snapshots/*.raw|.agent-intelligence/snapshots/*.txt|.agent-intelligence/public-repositories/*/*.json) ;;
               *) echo "FAIL_CLOSED: forbidden discovery mutation: $path"; exit 1 ;;
             esac
           done <<< "$CHANGED"
@@ -151,10 +158,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          git add "الوكلاء/التقارير/AGENT-08 — Architecture Scout" "الوكلاء/التقارير/AGENT-09 — Technology Scout" "الوكلاء/التقارير/AGENT-10 — Ecosystem Scout" .agent-intelligence/snapshots
+          git add "الوكلاء/التقارير/AGENT-08 — Architecture Scout" "الوكلاء/التقارير/AGENT-09 — Technology Scout" "الوكلاء/التقارير/AGENT-10 — Ecosystem Scout" .agent-intelligence/snapshots .agent-intelligence/public-repositories
           git -c core.quotePath=false diff --cached --name-only | while IFS= read -r path; do
             case "$path" in
-              "الوكلاء/التقارير/AGENT-08 — Architecture Scout/"*.yaml|"الوكلاء/التقارير/AGENT-09 — Technology Scout/"*.yaml|"الوكلاء/التقارير/AGENT-10 — Ecosystem Scout/"*.yaml|.agent-intelligence/snapshots/*.json|.agent-intelligence/snapshots/*.raw|.agent-intelligence/snapshots/*.txt) ;;
+              "الوكلاء/التقارير/AGENT-08 — Architecture Scout/"*.yaml|"الوكلاء/التقارير/AGENT-09 — Technology Scout/"*.yaml|"الوكلاء/التقارير/AGENT-10 — Ecosystem Scout/"*.yaml|.agent-intelligence/snapshots/*.json|.agent-intelligence/snapshots/*.raw|.agent-intelligence/snapshots/*.txt|.agent-intelligence/public-repositories/*/*.json) ;;
               *) echo "FAIL_CLOSED: staged path outside discovery outputs: $path"; exit 1 ;;
             esac
           done
@@ -169,3 +176,17 @@ jobs:
           git push origin "HEAD:scout/discovery-$GITHUB_RUN_ID"
       - name: Assert no main target
         run: test "scout/discovery-$GITHUB_RUN_ID" != "main"
+      - name: Open execution intake PR
+        if: ${{ success() }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DISCOVERY_BRANCH: scout/discovery-${{ github.run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh pr create \
+            --repo "$GITHUB_REPOSITORY" \
+            --base execution \
+            --head "$DISCOVERY_BRANCH" \
+            --title "chore(discovery): admit Scout findings [${GITHUB_RUN_ID}]" \
+            --body "Automated Scout intake. Public repository intelligence and external evidence are data-only inputs. Merge remains subject to execution branch protection and required gates."
