@@ -8,6 +8,7 @@ import ts from 'typescript';
 
 const root = process.cwd();
 const REPORT_DIR = 'الوكلاء AI/المستكشف AI/تقارير المستكشف';
+const MODEL_VERSION = 'flixo-world-model-v1';
 
 export function sh(command, args = []) {
   return execFileSync(command, args, { cwd: root, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 }).trim();
@@ -393,6 +394,139 @@ export function buildKnowledgeModel(entries) {
   return { sourceEntries, dependencyEdges, symbolIndex, signalMap };
 }
 
+export function buildAuthorityGraph(entries, dependencyEdges) {
+  const authorityNodes = entries
+    .filter(entry => entry.ast || entry.signals?.canonicalAuthority || entry.signals?.securityBoundary)
+    .filter(entry => entry.signals?.canonicalAuthority || /(?:canonical|registry|manifest|authorit(?:y|ative)|source of truth|permission|scope|certif)/i.test(entry.path))
+    .map(entry => ({
+      id: entry.path,
+      category: entry.category,
+      authoritySignals: Object.entries(entry.signals || {}).filter(([, value]) => value).map(([key]) => key),
+    }));
+  const nodeIds = new Set(authorityNodes.map(node => node.id));
+  const edges = dependencyEdges
+    .filter(edge => nodeIds.has(edge.from) || (edge.target && nodeIds.has(edge.target)))
+    .map(edge => ({
+      from: edge.from,
+      to: edge.target || edge.resolution,
+      relationship: 'depends-on',
+      line: edge.line,
+    }));
+  return { nodes: authorityNodes, edges };
+}
+
+export function buildCallGraph(entries) {
+  return entries.flatMap(entry => {
+    const targets = entry.ast?.callTargets || [];
+    const localNames = new Set((entry.symbols || []).map(symbol => symbol.name));
+    return targets.map(target => ({
+      from: entry.path,
+      to: target,
+      relationship: 'static-call-target',
+      resolution: localNames.has(target) ? 'LOCAL_SYMBOL' : 'UNRESOLVED_STATIC_TARGET',
+    }));
+  });
+}
+
+export function buildControlFlowGraph(entries) {
+  return entries
+    .filter(entry => entry.ast?.controlFlow)
+    .map(entry => ({
+      path: entry.path,
+      controlFlow: entry.ast.controlFlow,
+    }));
+}
+
+export function buildTaskGraph(entries) {
+  const nodes = [];
+  for (const entry of entries) {
+    const lines = readFileSync(join(root, entry.path), 'utf8').replace(/\r\n/g, '\n').split('\n');
+    for (let index = 0; index < lines.length; index++) {
+      const kind = classifyTaskSignal(lines[index]);
+      if (!kind) continue;
+      nodes.push({
+        id: entry.path + ':L' + (index + 1),
+        path: entry.path,
+        line: index + 1,
+        kind,
+        text: lines[index].trim().slice(0, 240),
+      });
+    }
+  }
+  const edges = [];
+  const byPath = new Map();
+  for (const node of nodes) {
+    const list = byPath.get(node.path) || [];
+    if (list.length) {
+      edges.push({ from: list[list.length - 1].id, to: node.id, relationship: 'same-file-order' });
+    }
+    list.push(node);
+    byPath.set(node.path, list);
+  }
+  return { nodes, edges };
+}
+
+export function buildKnowledgeSnapshot({
+  sha,
+  branch,
+  entries,
+  model,
+  mainSnapshot,
+  semanticDiff,
+  changed,
+  authorityGraph,
+  callGraph,
+  controlFlowGraph,
+  taskGraph,
+  generatedAt,
+}) {
+  const fileIndex = entries.map(entry => ({
+    path: entry.path,
+    category: entry.category,
+    bytes: entry.bytes,
+    sha256: entry.sha256,
+    binary: entry.binary,
+    generated: entry.generated,
+    language: entry.language || 'other',
+    lineCount: entry.lineCount,
+  }));
+  const repositoryState = {
+    branch,
+    execution_sha: sha,
+    main_sha: semanticDiff.mainSha || mainSnapshot.sha || null,
+    tracked_files: fileIndex.length,
+    source_text_files: entries.filter(entry => !entry.binary && !entry.generated).length,
+    generated_text_files: entries.filter(entry => !entry.binary && entry.generated).length,
+    binary_files: entries.filter(entry => entry.binary).length,
+    working_tree_readable: true,
+  };
+  return {
+    model_version: MODEL_VERSION,
+    exact_sha: sha,
+    generated_at: generatedAt,
+    repository_state: repositoryState,
+    file_index: fileIndex,
+    symbol_index: model.symbolIndex,
+    dependency_graph: model.dependencyEdges,
+    call_graph: callGraph,
+    control_flow_graph: controlFlowGraph,
+    authority_graph: authorityGraph,
+    task_graph: taskGraph,
+    semantic_diff: semanticDiff,
+    changed_files: changed.files,
+    unknowns: {
+      semantic_review_lines: entries.reduce((sum, entry) => sum + (entry.lineLedger || []).filter(line => line.includes('semantic review required')).length, 0),
+      unresolved_local_imports: model.dependencyEdges.filter(edge => edge.resolution === 'UNRESOLVED_LOCAL').length,
+    },
+    constraints: {
+      evidence_class: 'STATIC_ANALYSIS',
+      mutation_authority: false,
+      task_authority: 'المهام.md',
+      certification_authority: 'external-verification-gates',
+    },
+  };
+}
+
 export function collect() {
   const sha = sh('git', ['rev-parse', 'HEAD']);
   const branch = sh('git', ['branch', '--show-current']) || 'detached';
@@ -489,6 +623,11 @@ export function collect() {
   const mainSnapshot = collectGitRefSnapshot();
   const semanticDiff = collectSemanticDiff();
   const changed = collectChangedFiles();
+  const authorityGraph = buildAuthorityGraph(model.sourceEntries, model.dependencyEdges);
+  const callGraph = buildCallGraph(model.sourceEntries);
+  const controlFlowGraph = buildControlFlowGraph(model.sourceEntries);
+  const taskGraph = buildTaskGraph(model.sourceEntries);
+  const generatedAt = new Date().toISOString();
   const unresolved = model.dependencyEdges.filter(edge => edge.resolution === 'UNRESOLVED_LOCAL');
   const status = unknownSourceLines === 0 && unresolved.length === 0
     ? 'CAN_COMPLETE'
@@ -497,6 +636,22 @@ export function collect() {
   const reportDir = join(root, REPORT_DIR);
   mkdirSync(reportDir, { recursive: true });
   const reportPath = join(reportDir, sha + '.md');
+  const worldModelPath = join(reportDir, sha + '.json');
+  const worldModel = buildKnowledgeSnapshot({
+    sha,
+    branch,
+    entries,
+    model,
+    mainSnapshot,
+    semanticDiff,
+    changed,
+    authorityGraph,
+    callGraph,
+    controlFlowGraph,
+    taskGraph,
+    generatedAt,
+  });
+  writeFileSync(worldModelPath, JSON.stringify(worldModel, null, 2) + '\n', 'utf8');
 
   const taskFindings = [];
   for (const entry of model.sourceEntries) {
@@ -666,14 +821,23 @@ export function collect() {
     taskSignals,
     changedFiles: changed.files.length,
     status,
+    modelVersion: MODEL_VERSION,
+    generatedAt,
     reportPath: REPORT_DIR + '/' + sha + '.md',
+    worldModelPath: REPORT_DIR + '/' + sha + '.json',
+    authorityNodeCount: authorityGraph.nodes.length,
+    authorityEdgeCount: authorityGraph.edges.length,
+    callGraphEdgeCount: callGraph.length,
+    controlFlowNodeCount: controlFlowGraph.length,
+    taskGraphNodeCount: taskGraph.nodes.length,
+    taskGraphEdgeCount: taskGraph.edges.length,
   };
 }
 
 function main() {
   const result = collect();
   if (process.argv.includes('--verify') &&
-      (result.uncoveredSourceLines !== 0 || !result.reportPath || !result.sha) &&
+      (result.uncoveredSourceLines !== 0 || !result.reportPath || !result.worldModelPath || !result.sha) &&
       process.env.ALLOW_KNOWLEDGE_LIMITATIONS !== '1') {
     process.exitCode = 2;
   }
