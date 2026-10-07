@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+    <html xmlns="http://www.w3.org/1999/xhtml" lang="en-US"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>Hexagonal architecture pattern - AWS Prescriptive Guidance</title><meta name="viewport" content="width=device-width,initial-scale=1" /><meta name="assets_root" content="/assets" /><meta name="target_state" content="hexagonal-architecture" /><meta name="default_state" content="hexagonal-architecture" /><link rel="icon" type="image/ico" href="/assets/images/favicon.ico" /><link rel="shortcut icon" type="image/ico" href="/assets/images/favicon.ico" /><link rel="canonical" href="https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/hexagonal-architecture.html" /><meta name="description" content="Modernization pattern that creates loosely coupled architectures that isolate business logic from infrastructure code." /><meta name="deployment_region" content="IAD" /><meta name="product" content="AWS Prescriptive Guidance" /><meta name="guide" content="Cloud design patterns, architectures, and implementations" /><meta name="abstract" content="Technical documentation, architecture best practices, and reference implementations for commonly used cloud design patterns." /><meta name="guide-locale" content="en_us" /><meta name="tocs" content="toc-contents.json" /><link rel="canonical" href="https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/hexagonal-architecture.html" /><link rel="alternate" href="https://docs.aws.amazon.com/id_id/prescriptive-guidance/latest/cloud-design-patterns/hexagonal-architecture.html" hreflang="id-id" /><link rel="alternate" href="https://docs.aws.amazon.com/id_id/prescriptive-guidance/latest/cloud-design-patterns/hexagonal-architecture.html" hreflang="id" /><link rel="alternate" href="https://docs.aws.amazon.com/de_de/prescriptive-guidance/latest/cloud-design-patterns/hexagonal-architecture.html" hreflang="de-de" /><link rel="alternate" href="https://docs.aws.amazon.com/de_de/prescriptive-guidance/latest/cloud-design-patterns/hexagonal-architecture.html" hreflang="de" /><link rel="alternate" href="https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/hexagonal-architecture.html" hreflang="en-us" /><link rel="alternate" href="https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/hexagonal-architecture.html" hreflang="en" /><link rel="alternate" href="https://docs.aws.amazon.com/es_es/prescriptive-guidance/latest/cloud-design-patterns/hexagonal-architecture.html" hreflang="es-es" /><link rel="alternate" href="https://docs.aws.amazon.com/es_es/prescriptive-guidance/latest/cloud-design-patterns/hexagonal-architecture.html" hreflang="es" /><link rel="alternate" href="https://docs.aws.amazon.com/fr_fr/prescriptive-guidance/latest/cloud-design-patterns/hexagonal-architecture.html" hreflang="fr-fr" /><link rel="alternate" href="https://docs.aws.amazon.com/fr_fr/prescriptive-guidance/latest/cloud-design-patterns/hexagonal-architecture.html" hreflang="fr" /><link rel="alternate" href="https://docs.aws.amazon.com/it_it/prescriptive-guidance/latest/cloud-design-patterns/hexagonal-architecture.html" hreflang="it-it" /><link rel="alternate" href="https://docs.aws.amazon.com/it_it/prescriptive-guidance/latest/cloud-design-patterns/hexagonal-architecture.html" hreflang="it" /><link rel="alternate" href="https://docs.aws.amazon.com/ja_jp/prescriptive-guidance/latest/cloud-design-patterns/hexagonal-architecture.html" hreflang="ja-jp" /><link rel="alternate" href="https://docs.aws.amazon.com/ja_jp/prescriptive-guidance/latest/cloud-design-patterns/hexagonal-architecture.html" hreflang="ja" /><link rel="alternate" href="https://docs.aws.amazon.com/ko_kr/prescriptive-guidance/latest/cloud-design-patterns/hexagonal-architecture.html" hreflang="ko-kr" /><link rel="alternate" href="https://docs.aws.amazon.com/ko_kr/prescriptive-guidance/latest/cloud-design-patterns/hexagonal-architecture.html" hreflang="ko" /><link rel="alternate" href="https://docs.aws.amazon.com/pt_br/prescriptive-guidance/latest/cloud-design-patterns/hexagonal-architecture.html" hreflang="pt-br" /><link rel="alternate" href="https://docs.aws.amazon.com/pt_br/prescriptive-guidance/latest/cloud-design-patterns/hexagonal-architecture.html" hreflang="pt" /><link rel="alternate" href="https://docs.aws.amazon.com/zh_cn/prescriptive-guidance/latest/cloud-design-patterns/hexagonal-architecture.html" hreflang="zh-cn" /><link rel="alternate" href="https://docs.aws.amazon.com/zh_tw/prescriptive-guidance/latest/cloud-design-patterns/hexagonal-architecture.html" hreflang="zh-tw" /><link rel="alternate" href="https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/hexagonal-architecture.html" hreflang="x-default" /><meta name="feedback-item" content="ProServe Enterprise GPS" /><meta name="this_doc_product" content="AWS Prescriptive Guidance" /><meta name="this_doc_guide" content="Cloud design patterns, architectures, and implementations" /><head xmlns="http://www.w3.org/1999/xhtml"> <script defer="" src="/assets/r/awsdocs-doc-page.2.0.0.js"></script><link href="/assets/r/awsdocs-doc-page.2.0.0.css" rel="stylesheet"/></head>
+<script defer="" id="awsc-panorama-bundle" type="text/javascript" src="https://prod.pa.cdn.uis.awsstatic.com/panorama-nav-init.js" data-config="{'appEntity':'aws-documentation','region':'us-east-1','service':'prescriptive-guidance'}"></script><meta id="panorama-serviceSubSection" value="Cloud design patterns, architectures, and implementations" /><meta id="panorama-serviceConsolePage" value="Hexagonal architecture pattern" /></head><body class="awsdocs awsui"><div class="awsdocs-container"><p><a href="hexagonal-architecture.md">View a markdown version of this page</a></p><awsdocs-header></awsdocs-header><awsui-app-layout id="app-layout" class="awsui-util-no-gutters" ng-controller="ContentController as $ctrl" header-selector="awsdocs-header" navigation-hide="false" navigation-width="$ctrl.navWidth" navigation-open="$ctrl.navOpen" navigation-change="$ctrl.onNavChange($event)" tools-hide="$ctrl.hideTools" tools-width="$ctrl.toolsWidth" tools-open="$ctrl.toolsOpen" tools-change="$ctrl.onToolsChange($event)"><div id="guide-toc" dom-region="navigation"><awsdocs-toc></awsdocs-toc></div><div id="main-column" dom-region="content" tabindex="-1"><awsdocs-view class="awsdocs-view"><div id="awsdocs-content"><head><title>Hexagonal architecture pattern - AWS Prescriptive Guidance</title><meta name="pdf" content="/pdfs/prescriptive-guidance/latest/cloud-design-patterns/cloud-design-patterns.pdf#hexagonal-architecture" /><meta name="forums" content="https://repost.aws/" /><meta name="feedback" content="https://docs.aws.amazon.com/forms/aws-doc-feedback?hidden_service_name=ProServe%20Enterprise%20GPS&amp;topic_url=https://docs.aws.amazon.com/en_us/prescriptive-guidance/latest/cloud-design-patterns/hexagonal-architecture.html" /><meta name="feedback-yes" content="feedbackyes.html?topic_url=https://docs.aws.amazon.com/en_us/prescriptive-guidance/latest/cloud-design-patterns/hexagonal-architecture.html" /><meta name="feedback-no" content="feedbackno.html?topic_url=https://docs.aws.amazon.com/en_us/prescriptive-guidance/latest/cloud-design-patterns/hexagonal-architecture.html" /><meta name="keywords" content="AWS prescriptive guidance,Modernization,ContainersAndMicroservices,Serverless,Migration,ApiGateway,DynamoDB,Lambda,StepFunctions" /><link rel="alternate" type="text/markdown" href="hexagonal-architecture.md" title="Markdown version" /><script type="application/ld+json">
+{
+    "@context" : "https://schema.org",
+    "@type" : "BreadcrumbList",
+    "itemListElement" : [
+      {
+        "@type" : "ListItem",
+        "position" : 1,
+        "name" : "AWS",
+        "item" : "https://aws.amazon.com"
+      },
+      {
+        "@type" : "ListItem",
+        "position" : 2,
+        "name" : "AWS Prescriptive Guidance",
+        "item" : "https://aws.amazon.com/prescriptive-guidance/"
+      },
+      {
+        "@type" : "ListItem",
+        "position" : 3,
+        "name" : "Cloud design patterns, architectures, and implementations",
+        "item" : "https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns"
+      },
+      {
+        "@type" : "ListItem",
+        "position" : 4,
+        "name" : "Hexagonal architecture pattern",
+        "item" : "https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/hexagonal-architecture.html"
+      }
+    ]
+}
+</script></head><body><div id="main"><div style="display: none"><a href="/pdfs/prescriptive-guidance/latest/cloud-design-patterns/cloud-design-patterns.pdf#hexagonal-architecture" target="_blank" rel="noopener noreferrer" title="Open PDF"></a></div><div id="breadcrumbs" class="breadcrumb"><a href="/index.html">Documentation</a><a href="https://aws.amazon.com/prescriptive-guidance/">AWS Prescriptive Guidance</a><a href="introduction.html">Cloud design patterns, architectures, and implementations</a></div><div id="page-toc-src"><a href="#hexagonal-architecture-intent">Intent</a><a href="#hexagonal-architecture-motivation">Motivation</a><a href="#hexagonal-architecture-applicability">Applicability</a><a href="#hexagonal-architecture-issues">Issues and considerations</a><a href="#hexagonal-architecture-implementation">Implementation</a><a href="#hexagonal-architecture-resources">Related content</a><a href="#hexagonal-architecture-videos">Videos</a></div><div id="main-content" class="awsui-util-container"><div id="main-col-body"><awsdocs-language-banner data-service="$ctrl.pageService"></awsdocs-language-banner><h1 class="topictitle" id="hexagonal-architecture">Hexagonal architecture pattern</h1><div class="awsdocs-page-header-container"><awsdocs-page-header></awsdocs-page-header><awsdocs-filter-selector id="awsdocs-filter-selector"></awsdocs-filter-selector></div><h2 id="hexagonal-architecture-intent">Intent</h2><p>The hexagonal architecture pattern, which is also known as the ports and adapters pattern, was proposed by Dr. Alistair Cockburn in 2005. It aims to create loosely coupled architectures where application components can be tested independently, with no dependencies on data stores or user interfaces (UIs). This pattern helps prevent technology lock-in of data stores and UIs. This makes it easier to change the technology stack over time, with limited or no impact to business logic. In this loosely coupled architecture, the application communicates with external components over interfaces called <em>ports</em>, and uses <em>adapters</em> to translate the technical exchanges with these components.</p><h2 id="hexagonal-architecture-motivation">Motivation</h2><p>The hexagonal architecture pattern is used to isolate business logic (domain logic) from related infrastructure code, such as code to access a database or external APIs. This pattern is useful for creating loosely coupled business logic and infrastructure code for AWS Lambda functions that require integration with external services. 
+
+In traditional architectures, a common practice is to embed business logic in the database layer as stored procedures and in the user interface. This practice, along with using UI-specific constructs within business logic, leads to closely coupled architectures that cause bottlenecks in database migrations and user experience (UX) modernization efforts. 
+
+The hexagonal architecture pattern enables you to design your systems and applications by purpose rather than by technology. This strategy results in easily exchangeable application components such as databases, UX, and service components.</p><h2 id="hexagonal-architecture-applicability">Applicability</h2><p>Use the hexagonal architecture pattern when:</p><div class="itemizedlist"><ul class="itemizedlist"><li class="listitem"><p>You want to decouple your application architecture to create components that can be fully tested.</p></li><li class="listitem"><p>Multiple types of clients can use the same domain logic.</p></li><li class="listitem"><p>Your UI and database components require periodical technology refreshes that don't affect application logic.</p></li><li class="listitem"><p>Your application requires multiple input providers and output consumers, and customizing the application logic leads to code complexity and lack of extensibility.</p></li></ul></div><h2 id="hexagonal-architecture-issues">Issues and considerations</h2><div class="itemizedlist"><ul class="itemizedlist"><li class="listitem"><p><b>Domain-driven design</b>: Hexagonal architecture works especially well with domain-driven design (DDD). Each application component represents a sub-domain in DDD, and hexagonal architectures can be used to achieve loose coupling among application components.</p></li><li class="listitem"><p><b>Testability</b>: By design, a hexagonal architecture uses abstractions for inputs and outputs. Therefore, writing unit tests and testing in isolation become easier because of the inherent loose coupling.</p></li><li class="listitem"><p><b>Complexity</b>: The complexity of separating business logic from infrastructure code, when handled carefully, can bring great benefits such as agility, test coverage, and technology adaptability. Otherwise, issues can become complex to solve.</p></li><li class="listitem"><p><b>Maintenance overhead</b>:<b> </b>The additional adapter code that makes the architecture pluggable is justified only if the application component requires several input sources and output destinations to write to, or when the inputs and output data store has to change over time. Otherwise, the adapter becomes another additional layer to maintain, which introduces maintenance overhead.</p></li><li class="listitem"><p><b>Latency issues</b>: Using ports and adapters adds another layer, which might result in latency.</p></li></ul></div><h2 id="hexagonal-architecture-implementation">Implementation</h2><p>Hexagonal architectures support the isolation of application and business logic from infrastructure code and from code that integrates the application with UIs, external APIs, databases, and message brokers. You can easily connect business logic components to other components (such as databases) in the application architecture through ports and adapters.</p><p>Ports are technology-agnostic entry points into an application component. These custom interfaces determine the interface that allows external actors to communicate with the application component, regardless of who or what implements the interface. This is similar to how a USB port allows many different types of devices to communicate with a computer, as long as they use a USB adapter.</p><p>Adapters interact with the application through a port by using a specific technology. Adapters plug into these ports, receive data from or provide data to the ports, and transform the data for further processing. For example, a REST adapter enables actors to communicate with the application component through a REST API. A port can have multiple adapters without any risk to the port or to the application component. To extend the previous example, adding a GraphQL adapter to the same port provides an additional means for actors to interact with the application through a GraphQL API without affecting the REST API, the port, or the application.</p><p>Ports connect to the application, and adapters serve as a connection to the outside world. You can use ports to create loosely coupled application components, and exchange dependent components by changing the adapter. This enables the application component to interact with external input and outputs without needing to have any contextual awareness. Components are exchangeable at any level, which facilitates automated testing. You can test components independently without any dependencies on the infrastructure code instead of provisioning an entire environment to conduct testing. The application logic doesn't depend on external factors, so testing is simplified and it becomes easier to mock dependencies.</p><p>For example, in a loosely coupled architecture, an application component should be able to read and write data without knowing the details of the data store. The responsibility of the application component is to supply data to an interface (port). An adapter defines the logic of writing to a data store, which can be a database, a file system, or an object storage system such as Amazon S3, depending on the application's needs.</p><h3 id="high-level-architecture.7f105b73-7c81-5b04-9c05-1c4c5d878dc4">High-level architecture</h3><p>The application or application component contains the core business logic. It receives commands or queries from the ports, and sends requests out through the ports to external actors, which are implemented through adapters, as illustrated in the following diagram.</p><div class="mediaobject"><img src="/images/prescriptive-guidance/latest/cloud-design-patterns/images/guide-img/48f618e4-d8ad-490f-982b-7b304dbf76c9/images/d285f0c0-8da5-43b2-b35b-8200edb616cd.png" class="aws-docs-img-whiteBg aws-docs-img-padding" alt="Hexagonal architecture pattern" style="max-width:100%" /></div><h3 id="implementation-using-9999999999999999aws-services-.8beb07e9-d52a-53ee-a05b-21ca442c8a44">Implementation using AWS services</h3><p>AWS Lambda functions often contain both business logic and database integration code, which are tightly coupled to meet an objective. You can use the hexagonal architecture pattern to separate business logic from infrastructure code. This separation enables unit testing of the business logic without any dependencies on the database code, and improves the agility of the development process.</p><p>In the following architecture, a Lambda function implements the hexagonal architecture pattern. The Lambda function is initiated by the Amazon API Gateway REST API. The function implements business logic and writes data to DynamoDB tables.</p><div class="mediaobject"><img src="/images/prescriptive-guidance/latest/cloud-design-patterns/images/guide-img/48f618e4-d8ad-490f-982b-7b304dbf76c9/images/f273b3f8-2959-4a44-a928-670044ecfa8f.png" class="aws-docs-img-whiteBg aws-docs-img-padding" alt="Implementing the hexagonal architecture pattern on AWS" style="max-width:100%" /></div><h3 id="sample-code.e1feab8e-6db3-51f4-a7ea-9e1dc7f625d2">Sample code</h3><p>The sample code in this section shows how to implement the domain model by using Lambda, separate it from infrastructure code (such as the code to access DynamoDB), and implement unit testing for the function.</p><h4 id="domain-model.459a1ba1-f578-5665-b872-f5767e97c970">Domain model</h4><p>The domain model class has no knowledge of external components or dependencies—it only implements the business logic. In the following example, the class <code class="code">Recipient</code> is a domain model class that checks for overlaps in the reservation date.</p><pre class="programlisting"><div class="code-btn-container"><div class="btn-copy-code" title="Copy"><awsui-icon name="copy"></awsui-icon></div></div><!--DEBUG: cli ()--><code class="">class Recipient:
+    def __init__(self, recipient_id:str, email:str, first_name:str, last_name:str, age:int):
+        self.__recipient_id = recipient_id
+        self.__email = email
+        self.__first_name = first_name
+        self.__last_name = last_name
+        self.__age = age
+        self.__slots = []
+ 
+    @property
+    def recipient_id(self):
+        return self.__recipient_id
+    #.....     
+ 
+    def are_slots_same_date(self, slot:Slot) -&gt; bool:
+        for selfslot in self.__slots:
+            if selfslot.reservation_date == slot.reservation_date:
+                return True        
+        return False
+ 
+    def is_slot_counts_equal_or_over_two(self) -&gt; bool:
+    #.....</code></pre><h4 id="input-port.9d17616d-d410-5772-ad63-c3491f857041">Input port</h4><p>The <code class="code">RecipientInputPort</code> class connects to the recipient class and runs the domain logic.</p><pre class="programlisting"><div class="code-btn-container"><div class="btn-copy-code" title="Copy"><awsui-icon name="copy"></awsui-icon></div></div><!--DEBUG: cli ()--><code class="">class RecipientInputPort(IRecipientInputPort):
+    def __init__(self, recipient_output_port: IRecipientOutputPort, slot_output_port: ISlotOutputPort):
+        self.__recipient_output_port = recipient_output_port
+        self.__slot_output_port = slot_output_port
+
+    '''
+    make reservation: adapting domain model business logic
+    '''
+    def make_reservation(self, recipient_id:str, slot_id:str) -&gt; Status:
+        status = None        
+        
+        # ---------------------------------------------------
+        # get an instance from output port
+        # ---------------------------------------------------
+        recipient = self.__recipient_output_port.get_recipient_by_id(recipient_id)
+        slot = self.__slot_output_port.get_slot_by_id(slot_id)
+
+        if recipient == None or slot == None:
+            return Status(400, "Request instance is not found. Something wrong!")
+
+        print(f"recipient: <span>{</span>recipient.first_name}, slot date: <span>{</span>slot.reservation_date}")
+
+        # ---------------------------------------------------
+        # execute domain logic
+        # ---------------------------------------------------
+        ret = recipient.add_reserve_slot(slot)
+
+        # ---------------------------------------------------
+        # persistent an instance throgh output port
+        # ---------------------------------------------------
+        if ret == True:
+            ret = self.__recipient_output_port.add_reservation(recipient)
+
+        if ret == True:
+            status = Status(200, "The recipient's reservation is added.")
+        else:
+            status = Status(200, "The recipient's reservation is NOT added!")
+        return status</code></pre><h4 id="9999999999999999ddb--adapter-class.63247bb8-9c59-55e3-bd1f-2dd5c9cd063d">DynamoDB adapter class</h4><p>The <code class="code">DDBRecipientAdapter</code> class implements access to the DynamoDB tables.</p><pre class="programlisting"><div class="code-btn-container"><div class="btn-copy-code" title="Copy"><awsui-icon name="copy"></awsui-icon></div></div><!--DEBUG: cli ()--><code class="">class DDBRecipientAdapter(IRecipientAdapter):
+    def __init__(self):
+        ddb = boto3.resource('dynamodb')
+        self.__table = ddb.Table(table_name)
+ 
+    def load(self, recipient_id:str) -&gt; Recipient:
+        try:
+            response = self.__table.get_item(
+                Key=<span>{</span>'pk': pk_prefix + recipient_id})
+      　... 
+ 
+    def save(self, recipient:Recipient) -&gt; bool:
+        try:
+            item = <span>{</span>
+                "pk": pk_prefix + recipient.recipient_id,
+                "email": recipient.email,
+                "first_name": recipient.first_name,
+                "last_name": recipient.last_name,
+                "age": recipient.age,
+                "slots": []
+            }
+          # ... </code></pre><p>The Lambda function <code class="code">get_recipient_input_port</code> is a factory for instances of the <code class="code">RecipientInputPort</code> class. It constructs instances of output port classes with related adapter instances.</p><pre class="programlisting"><div class="code-btn-container"><div class="btn-copy-code" title="Copy"><awsui-icon name="copy"></awsui-icon></div></div><!--DEBUG: cli ()--><code class="">def get_recipient_input_port():
+    return RecipientInputPort(
+        RecipientOutputPort(DDBRecipientAdapter()), 
+        SlotOutputPort(DDBSlotAdapter()))
+ 
+def lambda_handler(event, context):
+
+    body = json.loads(event['body'])
+    recipient_id = body['recipient_id']
+    slot_id = body['slot_id']
+ 
+    # get an input port instance
+    recipient_input_port = get_recipient_input_port()
+    status = recipient_input_port.make_reservation(recipient_id, slot_id)
+ 
+    return <span>{</span>
+        "statusCode": status.status_code,
+        "body": json.dumps(<span>{</span>
+            "message": status.message
+        }),
+    }</code></pre><h4 id="unit-testing.dd63b3d6-17af-5d0f-94cb-caeac235fac7">Unit testing</h4><p>You can test the business logic for domain model classes by injecting mock classes. The following example provides the unit test for the domain model <code class="code">Recipent</code> class.</p><pre class="programlisting"><div class="code-btn-container"><div class="btn-copy-code" title="Copy"><awsui-icon name="copy"></awsui-icon></div></div><!--DEBUG: cli ()--><code class="">def test_add_slot_one(fixture_recipient, fixture_slot):
+    slot = fixture_slot
+    target = fixture_recipient
+    target.add_reserve_slot(slot)
+    assert slot != None
+    assert target != None
+    assert 1 == len(target.slots)
+    assert slot.slot_id == target.slots[0].slot_id
+    assert slot.reservation_date == target.slots[0].reservation_date
+    assert slot.location == target.slots[0].location
+    assert False == target.slots[0].is_vacant
+ 
+def test_add_slot_two(fixture_recipient, fixture_slot, fixture_slot_2):
+    #.....
+ 
+def test_cannot_append_slot_more_than_two(fixture_recipient, fixture_slot, fixture_slot_2, fixture_slot_3):
+    #.....
+ 
+def test_cannot_append_same_date_slot(fixture_recipient, fixture_slot):
+    #.....</code></pre><h4 id="github-repository.81ff086a-8b8a-59f7-951f-570aee804503">GitHub repository</h4><p>For a complete implementation of the sample architecture for this pattern, see the GitHub repository at <a href="https://github.com/aws-samples/aws-lambda-domain-model-sample" rel="noopener noreferrer" target="_blank"><span>https://github.com/aws-samples/aws-lambda-domain-model-sample</span><awsui-icon class="awsdocs-link-icon" name="external"></awsui-icon></a>.</p><h2 id="hexagonal-architecture-resources">Related content</h2><div class="itemizedlist"><ul class="itemizedlist"><li class="listitem"><p><a href="https://alistair.cockburn.us/hexagonal-architecture/" rel="noopener noreferrer" target="_blank"><span>Hexagonal architecture</span><awsui-icon class="awsdocs-link-icon" name="external"></awsui-icon></a>, article by Alistair Cockburn</p></li><li class="listitem"><p><a href="https://aws.amazon.com/jp/blogs/news/developing-evolutionary-architecture-with-aws-lambda/" rel="noopener noreferrer" target="_blank"><span>Developing evolutionary architectures with AWS Lambda</span><awsui-icon class="awsdocs-link-icon" name="external"></awsui-icon></a> (AWS blog post in Japanese)</p></li></ul></div><h2 id="hexagonal-architecture-videos">Videos</h2><p>The following video (in Japanese) discusses the use of hexagonal architecture in the implementation of a domain model by using a Lambda function.</p><div class="mediaobject"><iframe width="800" height="630" frameborder="0" allowfullscreen="" webkitallowfullscreen="" mozallowfullscreen="" sandbox="allow-scripts allow-same-origin allow-popups" src="https://www.youtube-nocookie.com/embed/whQ-P05QeDQ?controls=0"></iframe></div><p><a href="https://www.youtube-nocookie.com/embed/whQ-P05QeDQ?controls=0" rel="noopener noreferrer" target="_blank"><span>https://www.youtube-nocookie.com/embed/whQ-P05QeDQ?controls=0</span><awsui-icon class="awsdocs-link-icon" name="external"></awsui-icon></a></p><awsdocs-copyright class="copyright-print"></awsdocs-copyright><awsdocs-thumb-feedback right-edge="{{$ctrl.thumbFeedbackRightEdge}}"></awsdocs-thumb-feedback></div><noscript><div><div><div><div id="js_error_message"><p><img src="https://d1ge0kk1l5kms0.cloudfront.net/images/G/01/webservices/console/warning.png" alt="Warning" /> <strong>Javascript is disabled or is unavailable in your browser.</strong></p><p>To use the Amazon Web Services Documentation, Javascript must be enabled. Please refer to your browser's Help pages for instructions.</p></div></div></div></div></noscript><div id="main-col-footer" class="awsui-util-font-size-0"><div id="doc-conventions"><a target="_top" href="/general/latest/gr/docconventions.html">Document Conventions</a></div><div class="prev-next"><div id="previous" class="prev-link" accesskey="p" href="./event-sourcing-pattern.html">Event sourcing pattern</div><div id="next" class="next-link" accesskey="n" href="./publish-subscribe.html">Publish-subscribe pattern</div></div></div><awsdocs-page-utilities></awsdocs-page-utilities></div><div id="quick-feedback-yes" style="display: none;"><div class="title">Did this page help you? - Yes</div><div class="content"><p>Thanks for letting us know we're doing a good job!</p><p>If you've got a moment, please tell us what we did right so we can do more of it.</p><p><awsui-button id="fblink" rel="noopener noreferrer" target="_blank" text="Feedback" click="linkClick($event)" href="https://docs.aws.amazon.com/forms/aws-doc-feedback?hidden_service_name=ProServe Enterprise GPS&amp;topic_url=https://docs.aws.amazon.com/en_us/prescriptive-guidance/latest/cloud-design-patterns/hexagonal-architecture.html"></awsui-button></p></div></div><div id="quick-feedback-no" style="display: none;"><div class="title">Did this page help you? - No</div><div class="content"><p>Thanks for letting us know this page needs work. We're sorry we let you down.</p><p>If you've got a moment, please tell us how we can make the documentation better.</p><p><awsui-button id="fblink" rel="noopener noreferrer" target="_blank" text="Feedback" click="linkClick($event)" href="https://docs.aws.amazon.com/forms/aws-doc-feedback?hidden_service_name=ProServe Enterprise GPS&amp;topic_url=https://docs.aws.amazon.com/en_us/prescriptive-guidance/latest/cloud-design-patterns/hexagonal-architecture.html"></awsui-button></p></div></div></div></body></div></awsdocs-view><div class="page-loading-indicator" id="page-loading-indicator"><awsui-spinner size="large"></awsui-spinner></div></div><div id="tools-panel" dom-region="tools"><awsdocs-tools-panel id="awsdocs-tools-panel"></awsdocs-tools-panel></div></awsui-app-layout><awsdocs-cookie-banner class="doc-cookie-banner"></awsdocs-cookie-banner></div></body></html>
