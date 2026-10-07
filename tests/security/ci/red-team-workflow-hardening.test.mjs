@@ -42,6 +42,8 @@ test('privileged patch controller is pinned to trusted main source', async () =>
   assert.match(controller, /sanitizedWorktreeEnv/u);
   assert.match(controller, /npm.*--ignore-scripts/u);
   assert.match(controller, /GIT_CONFIG_KEY_0/u);
+  assert.match(controller, /AUTO_PUBLISH_ALLOWED_ROOTS/u);
+  assert.match(controller, /CONTROLLER_AUTOPUBLISH_PATH_FORBIDDEN/u);
 });
 
 test('human gate does not persist a write credential in repository config', async () => {
@@ -74,4 +76,10 @@ test('routes and persisted chains cannot resurrect non-executable tools', async 
   const boundaries = await readRepo('src/lib/runtime-boundaries.ts');
   assert.match(boundaries, /MVP_EXECUTABLE_TOOL_IDS/u);
   assert.match(boundaries, /Non-executable persisted tool id/u);
+});
+
+test('controller auto-publication rejects privileged control-plane paths', async () => {
+  const controller = await readRepo('scripts/ci/controller-reconcile-and-publish.mjs');
+  assert.match(controller, /AUTO_PUBLISH_ALLOWED_ROOTS = Object\.freeze\(\['src\/', 'tests\/', 'docs\/'\]\)/u);
+  assert.match(controller, /assertAutoPublishablePaths\(allowedPaths\)/u);
 });
