@@ -60,7 +60,6 @@ for(const p of profiles){
   if(/Your only writable repository path is \.agent-intelligence\/inbox\./u.test(c)) fail("stale inbox write contract remains: "+p);
   if(/writable.*(?:review-queue|التطوير\.md)/iu.test(c)) fail("Scout grants forbidden writable surface: "+p);
 }
-}
 for(const f of readdirSync(join(root,".agent-intelligence","inbox"))) if(f!==".gitkeep"&&f!=="README.md") fail("inbox is deny-only; unexpected artifact: "+f);
 for(const f of readdirSync(join(root,".agent-intelligence","snapshots"))) if(!f.endsWith(".json")&&!f.endsWith(".raw")&&!f.endsWith(".txt")&&f!==".gitkeep"&&f!=="README.md") fail("invalid snapshot artifact: "+f);
 const workflow=readFileSync(join(root,".github/workflows/continuous-discovery.yml"),"utf8");
