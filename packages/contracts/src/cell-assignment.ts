@@ -368,6 +368,151 @@ export function validateAssignmentTeamForTask(task: AssignmentRequirements, team
   }
 }
 
+
+
+export type OppositionPlan = Readonly<{
+  attackSurface: readonly string[];
+  falsificationQuestions: readonly string[];
+  expectedCounterexamples: readonly string[];
+  evidenceThatWouldDisproveSuccess: readonly string[];
+  independenceRequirement: string;
+  opponentRecoveryPlan: readonly string[];
+  escalationPolicy: readonly string[];
+}>;
+
+export type CellFalsificationPolicy = Readonly<{
+  required: true;
+  minimumChallengeDepth: string;
+  counterexampleRequirement: string;
+}>;
+
+export type CellVerificationPolicy = Readonly<{
+  verifierRequirement: string;
+  evidenceRequirement: string;
+  exactShaBinding: boolean;
+}>;
+
+export type CellIndependencePolicy = Readonly<{
+  minimumIndependence: string;
+  privateSolverContextExclusion: true;
+  preResultOpponentStartRequired: true;
+}>;
+
+export type CanonicalCellAssignment = Readonly<{
+  taskId: string;
+  missionId: string;
+  solverId: string;
+  opponentId: string;
+  backupSolverId: string;
+  backupOpponentId: string;
+  riskClass: string;
+  oppositionPlan: OppositionPlan;
+  falsificationPolicy: CellFalsificationPolicy;
+  verificationPolicy: CellVerificationPolicy;
+  independencePolicy: CellIndependencePolicy;
+}>;
+
+const requireNonEmptyStrings = (values: readonly string[], code: string): void => {
+  if (values.length === 0 || values.some((value) => !value.trim())) {
+    throw new Error(code);
+  }
+};
+
+export function validateCanonicalCellAssignment(
+  assignment: CanonicalCellAssignment,
+): void {
+  const scalarIds = [
+    assignment.taskId,
+    assignment.missionId,
+    assignment.solverId,
+    assignment.opponentId,
+    assignment.backupSolverId,
+    assignment.backupOpponentId,
+    assignment.riskClass,
+    assignment.oppositionPlan.independenceRequirement,
+    assignment.falsificationPolicy.minimumChallengeDepth,
+    assignment.falsificationPolicy.counterexampleRequirement,
+    assignment.verificationPolicy.verifierRequirement,
+    assignment.verificationPolicy.evidenceRequirement,
+    assignment.independencePolicy.minimumIndependence,
+  ];
+
+  if (scalarIds.some((value) => !value.trim())) throw new Error("CELL_ASSIGNMENT_REQUIRED_FIELD");
+
+  const roleIds = [
+    assignment.solverId,
+    assignment.opponentId,
+    assignment.backupSolverId,
+    assignment.backupOpponentId,
+  ];
+  if (new Set(roleIds).size !== roleIds.length) throw new Error("CELL_ASSIGNMENT_ROLE_COLLISION");
+
+  const plan = assignment.oppositionPlan;
+  requireNonEmptyStrings(plan.attackSurface, "OPPOSITION_ATTACK_SURFACE_REQUIRED");
+  requireNonEmptyStrings(plan.falsificationQuestions, "OPPOSITION_FALSIFICATION_QUESTIONS_REQUIRED");
+  requireNonEmptyStrings(plan.expectedCounterexamples, "OPPOSITION_COUNTEREXAMPLES_REQUIRED");
+  requireNonEmptyStrings(
+    plan.evidenceThatWouldDisproveSuccess,
+    "OPPOSITION_DISPROVING_EVIDENCE_REQUIRED",
+  );
+  requireNonEmptyStrings(plan.opponentRecoveryPlan, "OPPOSITION_RECOVERY_PLAN_REQUIRED");
+  requireNonEmptyStrings(plan.escalationPolicy, "OPPOSITION_ESCALATION_POLICY_REQUIRED");
+
+  if (assignment.falsificationPolicy.required !== true) {
+    throw new Error("FALSIFICATION_POLICY_REQUIRED");
+  }
+  if (typeof assignment.verificationPolicy.exactShaBinding !== "boolean") {
+    throw new Error("VERIFICATION_SHA_BINDING_INVALID");
+  }
+  if (assignment.independencePolicy.privateSolverContextExclusion !== true) {
+    throw new Error("PRIVATE_SOLVER_CONTEXT_EXCLUSION_REQUIRED");
+  }
+  if (assignment.independencePolicy.preResultOpponentStartRequired !== true) {
+    throw new Error("OPPONENT_INDEPENDENT_START_REQUIRED");
+  }
+}
+
+export function createCanonicalCellAssignment(input: Readonly<{
+  missionId: string;
+  riskClass: string;
+  team: AssignmentTeam;
+  oppositionPlan: OppositionPlan;
+  falsificationPolicy: CellFalsificationPolicy;
+  verificationPolicy: CellVerificationPolicy;
+  independencePolicy: CellIndependencePolicy;
+}>): CanonicalCellAssignment {
+  if (!input.team.opponentAgentId || !input.team.backupOpponentAgentId) {
+    throw new Error("CELL_ASSIGNMENT_PRIMARY_AND_BACKUP_OPPONENT_REQUIRED");
+  }
+
+  const assignment = Object.freeze({
+    taskId: input.team.assignmentId,
+    missionId: input.missionId,
+    solverId: input.team.solverAgentId,
+    opponentId: input.team.opponentAgentId,
+    backupSolverId: input.team.backupSolverAgentId,
+    backupOpponentId: input.team.backupOpponentAgentId,
+    riskClass: input.riskClass,
+    oppositionPlan: Object.freeze({
+      ...input.oppositionPlan,
+      attackSurface: Object.freeze([...input.oppositionPlan.attackSurface]),
+      falsificationQuestions: Object.freeze([...input.oppositionPlan.falsificationQuestions]),
+      expectedCounterexamples: Object.freeze([...input.oppositionPlan.expectedCounterexamples]),
+      evidenceThatWouldDisproveSuccess: Object.freeze([
+        ...input.oppositionPlan.evidenceThatWouldDisproveSuccess,
+      ]),
+      opponentRecoveryPlan: Object.freeze([...input.oppositionPlan.opponentRecoveryPlan]),
+      escalationPolicy: Object.freeze([...input.oppositionPlan.escalationPolicy]),
+    }),
+    falsificationPolicy: Object.freeze({ ...input.falsificationPolicy }),
+    verificationPolicy: Object.freeze({ ...input.verificationPolicy }),
+    independencePolicy: Object.freeze({ ...input.independencePolicy }),
+  });
+
+  validateCanonicalCellAssignment(assignment);
+  return assignment;
+}
+
 export type DelegationRule = Readonly<{
   sourceAgentId: string;
   targetAgentId: string;
