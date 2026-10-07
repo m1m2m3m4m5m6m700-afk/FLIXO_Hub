@@ -7,7 +7,7 @@ const ROOT = process.cwd();
 const SHA_RE = /^[0-9a-f]{40}$/i;
 const CI_GATE_NAMES = Object.freeze([
   'KNOWLEDGE-CONSISTENCY','WORLD-MODEL-INTEGRITY','MEMORY-INTEGRITY',
-  'MEMORY-SHA-FRESHNESS','LEARNING-ANTI-POISONING','REPORT-ROUTING',
+  'MEMORY-SHA-FRESHNESS','LEARNING-ANTI-POISONING','FALSIFICATION-NETWORK','REPORT-ROUTING',
   'DISCOVERY-BOUNDARY','AGENT-BEHAVIOR','LEARNING-REGRESSION',
 ]);
 const OPERATIONAL_GATES = Object.freeze([
@@ -75,12 +75,36 @@ export function evaluateControlAssuranceB({
     assert(workflow.includes('github.event.pull_request.base.ref') && workflow.includes("github.event_name == 'pull_request'"),'PR discovery contract not bound to execution');
   }));
 
+  results.push(runGate('FALSIFICATION-NETWORK', () => {
+    for (const path of [
+      '.github/agents/red-team-1.md',
+      '.github/agents/red-team-2.md',
+      '.github/agents/المستكشف-2.md',
+    ]) {
+      const profile = read(root, path);
+      assert(/independent_review:\s*true/u.test(profile), 'independent review must be enabled for ' + path);
+      assert(/cap_WRITE_INBOX:\s*DENY/u.test(profile), 'challenge agent may not write to inbox: ' + path);
+      assert(/cap_CERTIFY:\s*DENY/u.test(profile), 'challenge agent may not certify: ' + path);
+    }
+    for (const drill of ['independent-challenge','counterexample']) assert(roleDrills.includes(drill), 'falsification drill missing: ' + drill);
+    assert(sharedMemory.includes('flixo_review_agent_memory'), 'shared-memory independent review RPC path missing');
+    assert(sharedMemory.includes('p_regression_confirmed'), 'review must record regression confirmation');
+  }));
+
   results.push(runGate('REPORT-ROUTING', () => {
     assert(scouts.includes('الوكلاء/التقارير'),'Scout runtime must route to central reports');
     assert(!/open\([^\n]*(?:\.agent-intelligence\/inbox|inbox)[^\n]*(?:["\x27]w|["\x27]a)/u.test(scouts),'Scout runtime contains inbox write route');
     for (const id of ['AGENT-08','AGENT-09','AGENT-10']) assert(workflow.includes('الوكلاء/التقارير/' + id),'missing canonical report publication for ' + id);
     assert(workflow.includes('scout/discovery-$GITHUB_RUN_ID'),'discovery publication must use isolated scout branch');
     assert(workflow.includes('GITHUB_TOKEN:') && workflow.includes('secrets.GITHUB_TOKEN'),'publication token must be explicit');
+  }));
+
+  results.push(runGate('EXPLORATION-SCHEDULER', () => {
+    assert(workflow.includes('schedule:'), 'scheduled discovery is missing');
+    assert(workflow.includes('17 2 * * *'), 'scheduled discovery cadence is missing');
+    for (const role of ['AGENT-08','AGENT-09','AGENT-10']) assert(workflow.includes('الوكلاء/التقارير/' + role), 'scheduled Scout family route missing: ' + role);
+    assert(workflow.includes('python3 .agent-intelligence/scripts/run_scouts.py'), 'scheduled discovery does not invoke canonical Scout runner');
+    assert(workflow.includes('python3 .agent-intelligence/scripts/validate.py --all'), 'scheduled discovery does not validate proposals before publication');
   }));
 
   results.push(runGate('WORLD-MODEL-INTEGRITY', () => {
@@ -140,6 +164,8 @@ export function evaluateControlAssuranceB({
   results.push(runGate('COUNCIL-INTEGRATION', () => {
     for (const fn of ['council_claim_dispatch','council_ack_dispatch','council_heartbeat_dispatch','council_complete_dispatch']) assert(migration.includes('function public.' + fn),'Council function missing: ' + fn);
     assert(migration.includes('exact_sha'),'Council transitions must carry exact-SHA evidence');
+    assert(migration.includes('FAILED'),'Council failure state must exist');
+    assert(migration.includes('last_error'),'Council failures must preserve an RCA/error field');
     assert(migration.includes('HANDOFF_READY'),'Council handoff state missing');
   }));
 
