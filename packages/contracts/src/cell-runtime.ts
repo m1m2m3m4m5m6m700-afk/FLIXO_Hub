@@ -9,6 +9,15 @@ import {
   type PromotionGate,
   type TaskState,
 } from "./cell-control-plane";
+import {
+  decideProgressAction,
+  evaluateProgress,
+  validateTypedHandoff,
+  type AssignmentQuartet,
+  type ProgressObservation,
+  type ReplanDecision,
+  type TypedHandoff,
+} from "./cell-assignment";
 
 export type RuntimeTask = Readonly<{
   taskId: string;
@@ -24,9 +33,18 @@ export type RuntimeCandidate = Readonly<{
   version: number;
 }>;
 
+export type RuntimeAssignment = Readonly<{
+  taskId: string;
+  assignment: AssignmentQuartet;
+  version: number;
+}>;
+
 export class CellRuntime {
   private readonly tasks = new Map<string, RuntimeTask>();
   private readonly candidates = new Map<string, RuntimeCandidate>();
+  private readonly assignments = new Map<string, RuntimeAssignment>();
+  private readonly handoffs = new Map<string, TypedHandoff>();
+  private readonly progress = new Map<string, ProgressObservation[]>();
   private readonly claimedOperations = new Set<string>();
   private readonly clock: () => number;
 
@@ -123,6 +141,38 @@ export class CellRuntime {
     if (this.claimedOperations.has(operationKey)) return false;
     this.claimedOperations.add(operationKey);
     return true;
+  }
+
+  assignTask(taskId: string, assignment: AssignmentQuartet): RuntimeAssignment {
+    const task = this.getTask(taskId);
+    if (task.state !== "READY") throw new Error("ASSIGNMENT_REQUIRES_READY_TASK");
+    if (this.assignments.has(assignment.assignmentId)) throw new Error("ASSIGNMENT_ALREADY_EXISTS");
+    const record = Object.freeze({ taskId, assignment, version: 0 });
+    this.assignments.set(assignment.assignmentId, record);
+    return record;
+  }
+
+  getAssignment(assignmentId: string): RuntimeAssignment {
+    const assignment = this.assignments.get(assignmentId);
+    if (!assignment) throw new Error("ASSIGNMENT_NOT_FOUND");
+    return assignment;
+  }
+
+  createHandoff(handoff: TypedHandoff): TypedHandoff {
+    validateTypedHandoff(handoff);
+    if (!this.assignments.has(handoff.assignmentId)) throw new Error("HANDOFF_ASSIGNMENT_NOT_FOUND");
+    if (this.handoffs.has(handoff.handoffId)) throw new Error("HANDOFF_ALREADY_EXISTS");
+    this.handoffs.set(handoff.handoffId, handoff);
+    return handoff;
+  }
+
+  recordProgress(observation: ProgressObservation): ReplanDecision {
+    const history = this.progress.get(observation.taskId) ?? [];
+    const next = [...history, observation];
+    this.progress.set(observation.taskId, next);
+    const state = evaluateProgress(next, this.clock(), 500);
+    const previousStalls = history.filter((entry) => entry.state === "STALLED").length;
+    return decideProgressAction(state, previousStalls);
   }
 
   registerCandidate(candidateId: string): RuntimeCandidate {
