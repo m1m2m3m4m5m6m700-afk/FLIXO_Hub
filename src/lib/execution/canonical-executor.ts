@@ -494,8 +494,11 @@ export async function executeCanonicalTool(
   return runBoundedExecutionAttempts(
     capability.recovery.maxAttempts,
     async () => {
+      const executionController = new AbortController();
       const watchdog = startCellWatchdog(capability.safetyLimits.timeoutMs, signal);
-      const executionSignal = watchdog.signal;
+      const relayWatchdogAbort = () => executionController.abort();
+      watchdog.signal.addEventListener('abort', relayWatchdogAbort, { once: true });
+      const executionSignal = executionController.signal;
 
       try {
         recordCellEvent({ type: 'EXECUTION_STARTED', requestId, taskId: requestId, capabilityId: toolId, at: new Date().toISOString() });
@@ -504,7 +507,7 @@ export async function executeCanonicalTool(
           executeMvpTool(toolId, input, parameters, executionSignal),
           capability.safetyLimits.timeoutMs,
           executionSignal,
-          undefined,
+          executionController,
         );
         assertNotAborted(executionSignal);
         if (output.blob.size <= 0) throw new Error('Execution denied: empty artifact from ' + toolId + '.');
@@ -547,7 +550,9 @@ export async function executeCanonicalTool(
         }
         throw error;
       } finally {
+        watchdog.signal.removeEventListener('abort', relayWatchdogAbort);
         watchdog.stop();
+        executionController.abort();
       }
     },
     signal,
