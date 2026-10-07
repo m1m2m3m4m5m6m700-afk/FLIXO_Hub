@@ -479,6 +479,9 @@ export class CellLifecycleRuntime {
     if (!this.admission || opponentId !== this.admission.assignment.opponentId) {
       throw new Error("CELL_OPPONENT_ID_MISMATCH");
     }
+    if (candidateSha !== this.admission.currentSha) {
+      throw new Error("CELL_OPPONENT_SHA_DRIFT");
+    }
     if (sequence !== undefined) {
       if (!Number.isInteger(sequence) || sequence <= this.sequence) throw new Error("CELL_OPPONENT_SEQUENCE_INVALID");
       this.sequence = sequence;
