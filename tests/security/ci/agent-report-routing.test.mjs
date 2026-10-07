@@ -25,3 +25,7 @@ for (const id of ["AGENT-08", "AGENT-09", "AGENT-10"]) {
   assert.equal(agent.report.includes(".agent-intelligence/inbox/"), false);
 }
 
+
+assert.equal(existsSync(".agent-intelligence/inbox/AGENT-08__سجل التشغيل — مستكشف العمارة AI.md"), false);
+assert.equal(existsSync(".agent-intelligence/inbox/AGENT-09__سجل التشغيل — مستكشف التقنية AI.md"), false);
+assert.equal(existsSync(".agent-intelligence/inbox/AGENT-10__سجل التشغيل — مستكشف النظام البيئي AI.md"), false);
