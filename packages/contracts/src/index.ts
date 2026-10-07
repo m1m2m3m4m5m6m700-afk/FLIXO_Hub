@@ -85,7 +85,34 @@ export function createContractFailure(
   return Object.freeze({ code, message, retryable });
 }
 
-export * from "./cell-control-plane";
+export {
+  CELL_CONTRACT_VERSION,
+  TASK_STATES,
+  type TaskState,
+  AGENT_STATES,
+  type AgentState,
+  CANDIDATE_STATES,
+  type CandidateState,
+  type CellEntity,
+  canTransition,
+  assertTransition,
+  type Lease,
+  isLeaseLive,
+  assertLeaseOwner,
+  type RetryDecision,
+  decideRetry,
+  type EvidenceRecord,
+  isEvidenceCurrent,
+  classifyEvidence as classifyCellEvidence,
+  type PromotionGate,
+  canPromote,
+  type MemoryRecord,
+  isMemoryActionable,
+  type WakeDecision,
+  guardianDecision,
+  type FrontierInput,
+  scoreFrontier,
+} from "./cell-control-plane";
 export * from "./cell-runtime";
 export * from "./cell-assignment";
 export * from "./cell-hard-control";
