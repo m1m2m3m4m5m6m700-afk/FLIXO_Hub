@@ -6,9 +6,15 @@ on:
   workflow_dispatch:
   push:
     branches: [execution]
-    paths-ignore:
-      - ".agent-intelligence/inbox/**"
-      - ".agent-intelligence/snapshots/**"
+    paths:
+      - '.agent-intelligence/scouts/**'
+      - '.github/agents/flixo-scout-*.agent.md'
+      - 'الوكلاء/المستكشفين/**'
+      - 'scripts/verify-scout-boundary.mjs'
+      - 'scripts/verify-infinite-discovery.mjs'
+      - 'tests/security/ci/scout-boundary.test.mjs'
+      - 'tests/security/ci/scout-package-location.test.mjs'
+      - '.github/workflows/continuous-discovery.yml'
   pull_request:
     branches: [execution]
     paths:

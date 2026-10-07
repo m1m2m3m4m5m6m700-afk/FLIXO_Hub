@@ -167,3 +167,22 @@ test('promotion and production gates remain fail-closed and exact-SHA bound', as
   assert.ok(workflow.includes('git rev-parse HEAD'), 'production deployment must inspect the checked-out commit SHA');
   assert.ok(workflow.includes('$DEPLOYMENT_SHA'), 'production deployment must retain immutable SHA binding');
 });
+
+
+test('specialized execution gates are path-gated and TestSprite concurrency is commit-independent', async () => {
+  const testsprite = await readFile(new URL('../../.github/workflows/testsprite-execution.yml', import.meta.url), 'utf8');
+  const video = await readFile(new URL('../../.github/workflows/video-assurance.yml', import.meta.url), 'utf8');
+  const learning = await readFile(new URL('../../.github/workflows/agent-self-learning.yml', import.meta.url), 'utf8');
+  const knowledge = await readFile(new URL('../../.github/workflows/repository-knowledge.yml', import.meta.url), 'utf8');
+  const scout = await readFile(new URL('../../.github/workflows/scout-boundary.yml', import.meta.url), 'utf8');
+  const discovery = await readFile(new URL('../../.github/workflows/continuous-discovery.yml', import.meta.url), 'utf8');
+
+  assert.match(testsprite, /push:\s*\n\s*branches:\s*\n\s*- execution\s*\n\s*paths:/u);
+  assert.match(testsprite, /group:\s*testsprite-execution-\$\{\{ github\.ref_name \}\}/u);
+  assert.doesNotMatch(testsprite, /group:[^\n]*\$\{\{ github\.sha \}\}/u);
+  assert.match(video, /push:\s*\n\s*branches:\s*\[execution\]\s*\n\s*paths:/u);
+  assert.match(learning, /paths:\s*\n(?:\s+- .+\n){4,}/u);
+  assert.match(knowledge, /paths:\s*\n(?:\s+- .+\n){4,}/u);
+  assert.match(scout, /paths:\s*\n(?:\s+- .+\n){4,}/u);
+  assert.match(discovery, /paths:\s*\n(?:\s+- .+\n){4,}/u);
+});

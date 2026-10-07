@@ -3,6 +3,15 @@ name: FLIXO Video Execution Assurance
 on:
   push:
     branches: [execution]
+    paths:
+      - 'src/lib/video/**'
+      - 'src/lib/contracts/file-safety.ts'
+      - 'src/tools/**'
+      - 'tests/video-*.ts'
+      - 'tests/security/ci/media-header-safety.test.ts'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/video-assurance.yml'
   workflow_dispatch:
 
 permissions:

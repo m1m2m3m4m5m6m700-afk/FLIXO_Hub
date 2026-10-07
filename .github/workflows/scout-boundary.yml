@@ -3,6 +3,14 @@ name: FLIXO Scout Boundary
 on:
   push:
     branches: [execution]
+    paths:
+      - '.github/agents/flixo-scout-*.agent.md'
+      - 'الوكلاء/المستكشفين/**'
+      - '.agent-intelligence/scouts/**'
+      - 'scripts/verify-scout-boundary.mjs'
+      - 'tests/security/ci/scout-boundary.test.mjs'
+      - 'tests/security/ci/scout-package-location.test.mjs'
+      - '.github/workflows/scout-boundary.yml'
   pull_request:
     branches: [execution, main]
 
