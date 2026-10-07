@@ -132,7 +132,7 @@ def repo_candidate_score(item: dict[str, Any], words: set[str]) -> tuple[int, li
     if item.get("has_wiki"):
         evidence.append("documentation")
     score = min(30, overlap * 8) + min(25, round(math.log10(stars + 1) * 8)) + freshness
-    if item.get("license", {}).get("spdx_id"):
+    if (item.get("license") or {}).get("spdx_id"):
         score += 20
     if not item.get("archived") and not item.get("disabled"):
         score += 10
@@ -149,13 +149,13 @@ def is_eligible_repo(item: dict[str, Any], current_repo: str) -> bool:
         and not item.get("archived")
         and not item.get("disabled")
         and not item.get("fork")
-        and item.get("license", {}).get("spdx_id")
+        and (item.get("license") or {}).get("spdx_id")
         and item.get("default_branch")
     )
 
 
-def tree_items(client_get, full_name: str, branch: str, token: str | None) -> list[dict[str, Any]]:
-    encoded = urllib.parse.quote(branch, safe="")
+def tree_items(client_get, full_name: str, ref: str, token: str | None) -> list[dict[str, Any]]:
+    encoded = urllib.parse.quote(ref, safe="")
     data = client_get(f"/repos/{full_name}/git/trees/{encoded}?recursive=1", token)
     items = data.get("tree")
     if not isinstance(items, list):
@@ -325,7 +325,7 @@ def run(root: Path, manifest_path: Path, index_root: Path, snapshots_dir: Path, 
                 key = (full_name.lower(), head_sha.lower())
                 if key in seen or key in run_seen:
                     continue
-                files = select_files(tree_items(lambda endpoint, tok: api_get(api_opener, endpoint, tok), full_name, branch_name, token), query, max_files)
+                files = select_files(tree_items(lambda endpoint, tok: api_get(api_opener, endpoint, tok), full_name, head_sha, token), query, max_files)
                 if not files:
                     continue
 
@@ -333,7 +333,7 @@ def run(root: Path, manifest_path: Path, index_root: Path, snapshots_dir: Path, 
                 combined_content = []
                 for file in files:
                     path = str(file["path"])
-                    raw_url = "https://raw.githubusercontent.com/" + full_name + "/" + urllib.parse.quote(branch_name, safe="") + "/" + urllib.parse.quote(path, safe="/")
+                    raw_url = "https://raw.githubusercontent.com/" + full_name + "/" + urllib.parse.quote(head_sha, safe="") + "/" + urllib.parse.quote(path, safe="/")
                     try:
                         snapshot = snapshot_store.fetch_and_store(
                             raw_url,
