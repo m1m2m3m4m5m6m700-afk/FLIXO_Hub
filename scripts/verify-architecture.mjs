@@ -109,6 +109,12 @@ const authorityChecks = [
     expected: 1,
     label: 'canonical execution entrypoint',
   },
+  {
+    path: 'src/lib/cell/index.ts',
+    pattern: /export async function admitCanonicalExecution\b/gu,
+    expected: 1,
+    label: 'CELL canonical admission entrypoint',
+  },
 ];
 
 const authorityViolations = [];
