@@ -128,6 +128,8 @@ jobs:
           test "$(git rev-parse origin/execution)" = "$EXECUTION_SHA" || { echo "FAIL_CLOSED: execution moved during discovery."; exit 1; }
       - name: Append-only scout branch publication
         shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           git add "الوكلاء/التقارير/AGENT-08 — Architecture Scout" "الوكلاء/التقارير/AGENT-09 — Technology Scout" "الوكلاء/التقارير/AGENT-10 — Ecosystem Scout" .agent-intelligence/snapshots
@@ -144,6 +146,7 @@ jobs:
           git config user.name "FLIXO Discovery Bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "chore(discovery): append scout findings [$(printf '%.12s' "$EXECUTION_SHA")]"
+          git remote set-url origin "https://x-access-token:$GITHUB_TOKEN@github.com/$GITHUB_REPOSITORY.git"
           git push origin "HEAD:scout/discovery-$GITHUB_RUN_ID"
       - name: Assert no main target
         run: test "scout/discovery-$GITHUB_RUN_ID" != "main"
