@@ -14,7 +14,7 @@ import {
   validateTypedHandoff,
   type AssignmentAgentProfile,
   type AssignmentRequirements,
-} from "../../packages/contracts/src/cell-assignment.ts";
+} from "../../../packages/contracts/src/cell-assignment.ts";
 
 const task: AssignmentRequirements = {
   taskId: "task-1",
