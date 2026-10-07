@@ -44,6 +44,8 @@ export type CellAdmissionEnvelope = Readonly<{
   objective: string;
   assignment: CanonicalCellAssignment;
   assignmentId: string;
+  startingSha: string;
+  currentSha: string;
   constraints: readonly string[];
   acceptanceCriteria: readonly string[];
   relevantEvidence: readonly string[];
@@ -57,6 +59,8 @@ export type CellAdmissionRecord = Readonly<{
   taskId: string;
   assignmentId: string;
   missionId: string;
+  startingSha: string;
+  currentSha: string;
   admittedAtSequence: number;
   admittedAtMs: number;
   stage: "ADMITTED";
@@ -262,6 +266,9 @@ export function validateCellAdmission(envelope: CellAdmissionEnvelope): void {
   required(envelope.taskId, "CELL_ADMISSION_TASK_REQUIRED");
   required(envelope.missionId, "CELL_ADMISSION_MISSION_REQUIRED");
   required(envelope.objective, "CELL_ADMISSION_OBJECTIVE_REQUIRED");
+  sha(envelope.startingSha, "CELL_ADMISSION_START_SHA_INVALID");
+  sha(envelope.currentSha, "CELL_ADMISSION_CURRENT_SHA_INVALID");
+  if (envelope.startingSha !== envelope.currentSha) throw new Error("CELL_ADMISSION_SHA_DRIFT");
   requiredList(envelope.constraints, "CELL_ADMISSION_CONSTRAINTS_REQUIRED");
   requiredList(envelope.acceptanceCriteria, "CELL_ADMISSION_ACCEPTANCE_REQUIRED");
   requiredList(envelope.relevantEvidence, "CELL_ADMISSION_EVIDENCE_REQUIRED");
@@ -301,6 +308,8 @@ export function createCellAdmissionRecord(
     taskId: envelope.taskId,
     assignmentId: envelope.assignmentId,
     missionId: envelope.missionId,
+    startingSha: envelope.startingSha,
+    currentSha: envelope.currentSha,
     admittedAtSequence: sequence,
     admittedAtMs: nowMs,
     stage: "ADMITTED" as const,
@@ -444,6 +453,7 @@ export class CellLifecycleRuntime {
   discloseSolverResult(candidateSha: string): void {
     this.requireStage("OPPONENT_STARTED", "SOLVING");
     sha(candidateSha, "CELL_SOLVER_DISCLOSURE_SHA_INVALID");
+    if (!this.admission || candidateSha !== this.admission.currentSha) throw new Error("CELL_SOLVER_DISCLOSURE_SHA_DRIFT");
     if (this.opponentStartSequence === null) throw new Error("CELL_OPPONENT_INDEPENDENCE_REQUIRED");
     this.solverDisclosureSequence = this.next();
     if (this.solverDisclosureSequence <= this.opponentStartSequence) {
@@ -481,6 +491,9 @@ export class CellLifecycleRuntime {
       if (input.solverId !== this.admission!.assignment.solverId) {
         throw new Error("CELL_CLAIM_SOLVER_MISMATCH");
       }
+      if (input.candidateSha !== this.admission!.currentSha) {
+        throw new Error("CELL_CLAIM_SHA_DRIFT");
+      }
       const record = Object.freeze({
         ...input,
         taskId,
@@ -506,6 +519,7 @@ export class CellLifecycleRuntime {
       input.evidenceIds,
     );
     if (input.assignmentId !== this.claim.assignmentId) throw new Error("CELL_COUNTERCLAIM_ASSIGNMENT_MISMATCH");
+    if (input.candidateSha !== this.admission.currentSha) throw new Error("CELL_COUNTERCLAIM_SHA_DRIFT");
     if (input.claimId !== this.claim.claimId) throw new Error("CELL_COUNTERCLAIM_CLAIM_MISMATCH");
     if (input.opponentId !== this.admission.assignment.opponentId) throw new Error("CELL_COUNTERCLAIM_OPPONENT_MISMATCH");
     const record = Object.freeze({
@@ -527,6 +541,7 @@ export class CellLifecycleRuntime {
       throw new Error("CELL_EVIDENCE_SHA_MISMATCH");
     }
     sha(input.sourceSha, "CELL_EVIDENCE_SHA_INVALID");
+    if (input.sourceSha !== this.admission.currentSha) throw new Error("CELL_EVIDENCE_SHA_DRIFT");
     required(input.evidenceId, "CELL_EVIDENCE_ID_REQUIRED");
     required(input.summary, "CELL_EVIDENCE_SUMMARY_REQUIRED");
     if (this.evidence.some((entry) => entry.evidenceId === input.evidenceId)) {
@@ -600,7 +615,7 @@ export class CellLifecycleRuntime {
     } else if (input.disposition === "MORE_EVIDENCE") {
       this.stage = "FALSIFYING";
     } else if (input.disposition === "REPLAN" || input.disposition === "ESCALATE") {
-      throw new Error(`CELL_ARBITRATION_TERMINAL_DISPOSITION:${input.disposition}`);
+      this.stage = "ADMITTED";
     } else {
       this.reconciliation = Object.freeze({ ...this.reconciliation, conflicts: Object.freeze([]), dispositioned: true });
       this.stage = "RECONCILING";
@@ -760,6 +775,9 @@ export class CellLifecycleRuntime {
     required(input.claim, "CELL_KNOWLEDGE_CLAIM_REQUIRED");
     sha(input.sourceSha, "CELL_KNOWLEDGE_SHA_INVALID");
     if (input.sourceSha !== this.promotion.promotedSha) throw new Error("CELL_LEARNING_SHA_DRIFT");
+    if (input.taskId !== this.candidate.taskId) throw new Error("CELL_LEARNING_TASK_MISMATCH");
+    requiredList(input.evidenceIds, "CELL_LEARNING_EVIDENCE_REQUIRED");
+    ensureEvidenceRefs(this.evidence, input.evidenceIds, "CELL_LEARNING_EVIDENCE_UNRECORDED");
     if (!input.regressionPassed) throw new Error("CELL_LEARNING_REGRESSION_REQUIRED");
     if (input.independentConfirmations < 1) throw new Error("CELL_LEARNING_INDEPENDENT_CONFIRMATION_REQUIRED");
     const record: KnowledgeRecord = Object.freeze({
