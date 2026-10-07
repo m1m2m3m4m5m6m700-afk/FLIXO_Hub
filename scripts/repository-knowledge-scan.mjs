@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync, statSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync, mkdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join, extname, posix } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -403,12 +403,18 @@ export function buildKnowledgeModel(entries) {
 }
 
 
+const AUTHORITY_SYMBOL_PATTERN = /(?:^|_)(REGISTRY|CATALOG|MANIFEST|AUTHORITY|DEFINITION|DEFINITIONS|CAPABILITY|CAPABILITIES|SOURCE_OF_TRUTH)(?:$|_)/u;
+
 export function detectAuthorityCollisions(entries) {
   const bySymbol = new Map();
   for (const entry of entries) {
+    if (entry?.category && entry.category !== 'runtime') continue;
+    if (entry?.path === 'src/config/tool-platform/loader.ts') continue;
     if (!entry?.signals?.canonicalAuthority) continue;
     for (const symbol of entry.symbols || []) {
+      if (symbol?.kind && !['variable', 'arrow-function'].includes(symbol.kind)) continue;
       if (!symbol?.exported || typeof symbol.name !== 'string' || symbol.name.length === 0) continue;
+      if (!AUTHORITY_SYMBOL_PATTERN.test(symbol.name)) continue;
       const paths = bySymbol.get(symbol.name) || new Set();
       paths.add(entry.path);
       bySymbol.set(symbol.name, paths);

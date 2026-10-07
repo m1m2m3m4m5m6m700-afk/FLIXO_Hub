@@ -170,9 +170,9 @@ export function createSupabaseRpcClient({ baseUrl, serviceRoleKey, fetchImpl = g
         body: JSON.stringify(payload),
       });
       const raw = await response.text();
-      let parsed = null;
-      try { parsed = raw ? JSON.parse(raw) : null; } catch { parsed = raw; }
       if (!response.ok) {
+        let parsed = null;
+        try { parsed = raw ? JSON.parse(raw) : null; } catch { parsed = raw; }
         const detail = typeof parsed === 'string' ? parsed : JSON.stringify(parsed);
         throw new Error('SUPABASE_RPC_FAILED:' + functionName + ':' + response.status + ':' + detail);
       }

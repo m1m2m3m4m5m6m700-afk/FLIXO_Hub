@@ -44,7 +44,7 @@ test('SHARED_MEMORY_DISPATCH_GATE: secret-bearing shared-memory dispatch is acto
 });
 test('SECRET_ISOLATION_AND_REGRESSION: provider secrets stay off generic execution', () => {
   for (const n of names()) { const t = read(n); if (!executionPush(t) || n === 'patch-capsule-controller.yml') continue; assert.doesNotMatch(t, /secrets\.(?:SUPABASE|TESTSPRITE)/i, n); }
-  const p = read('patch-capsule-controller.yml'); assert.doesNotMatch(p, /    env:\s*\n[\s\S]{0,300}?secrets\.GITHUB_TOKEN/);
+  const p = read('patch-capsule-controller.yml'); assert.doesNotMatch(p, / {4}env:\s*\n[\s\S]{0,300}?secrets\.GITHUB_TOKEN/);
 });
 function runBlocks(text) {
   const lines = text.split(/\r?\n/);

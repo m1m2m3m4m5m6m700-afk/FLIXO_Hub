@@ -51,7 +51,7 @@ export function writeImmutableFile(path, content) {
     writeFileSync(path, content, { encoding: 'utf8', flag: 'wx' });
     return { created: true, identical: false };
   } catch (error) {
-    if (error?.code !== 'EEXIST') throw error;
+    if (error?.code !== 'EEXIST') throw new Error('IMMUTABLE_KNOWLEDGE_SNAPSHOT_WRITE_FAILED:' + path, { cause: error });
     const existing = readFileSync(path, 'utf8');
     if (existing !== content) throw new Error('IMMUTABLE_KNOWLEDGE_SNAPSHOT_COLLISION:' + path);
     return { created: false, identical: true };

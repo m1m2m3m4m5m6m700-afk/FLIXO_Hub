@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { join } from 'node:path';
 
 export const AGENT_CAPABILITIES = [
   'READ_REPOSITORY',
@@ -53,7 +53,7 @@ function parseScalar(raw) {
     try {
       const parsed = JSON.parse(value);
       if (Array.isArray(parsed)) return parsed;
-    } catch {}
+    } catch { /* invalid JSON array syntax: continue as scalar */ }
   }
   if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
     return value.slice(1, -1);
@@ -101,7 +101,7 @@ function localProfileNames(root) {
   return readdirSync(join(root, PROFILE_DIR)).filter(name => name.endsWith('.md')).sort();
 }
 
-function validateCapabilityContract(profile, id, issues) {
+function validateCapabilityContract(profile, id, issues, expected) {
   for (const capability of AGENT_CAPABILITIES) {
     const key = 'cap_' + capability;
     if (!(key in profile)) {
@@ -199,7 +199,7 @@ export function validateProfileContract(profile, expected, root = process.cwd())
     issues.push(id + ': report target does not exist');
   }
   if (profile.write_scope !== expected.report) issues.push(id + ': write/report scope drifts from registry');
-  validateCapabilityContract(profile, id, issues);
+  validateCapabilityContract(profile, id, issues, expected);
 
   return issues;
 }

@@ -3,7 +3,7 @@ import { getToolById } from '@/config/registry.ts';
 import { getToolOutputContract } from '@/lib/contracts/tool-output-contracts.ts';
 import { assertToolOutputContract } from '@/lib/contracts/tool-output.ts';
 import { validateFileSafety, MAGIC_BYTE_SIGNATURES, readRasterHeaderDimensions } from '@/lib/contracts/file-safety.ts';
-import { applyBasicImageEffect, convertImage, cropResizeImage, removeBackground, resizeImage } from '@/tools/image-toolkit/engine.ts';
+import { convertImage, cropResizeImage, removeBackground, resizeImage } from '@/tools/image-toolkit/engine.ts';
 import { compressImage } from '@/tools/image-compressor/engine.ts';
 import { renderVideoToWebm } from '@/lib/video/video-executor.ts';
 import { attachVideoBlobSource, getBoundedVideoDuration } from '@/lib/video/blob-video-source.ts';

@@ -313,7 +313,7 @@ test('privileged CI publication is separated from candidate analysis', () => {
   const publish = triage.slice(triage.indexOf('  publish:'));
   assert.match(triage, /permissions:\s+contents: read/iu);
   assert.match(triage, /persist-credentials: false/u);
-  assert.match(triage, /  publish:[\s\S]*permissions:\s+contents: write/iu);
+  assert.match(triage, / {2}publish:[\s\S]*permissions:\s+contents: write/iu);
   assert.doesNotMatch(publish, /\.agent-intelligence\/scripts\/(?:triage|reaper|validate)\.py/u);
 });
 
