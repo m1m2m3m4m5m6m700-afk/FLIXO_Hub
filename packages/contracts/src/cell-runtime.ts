@@ -629,6 +629,10 @@ export class CellRuntime {
     return this.cellLifecycle.admit(envelope);
   }
 
+  replanCell(envelope: CellAdmissionEnvelope): CellAdmissionRecord {
+    return this.cellLifecycle.replan(envelope);
+  }
+
   lockCellPair(): void {
     this.cellLifecycle.lockPair();
   }
