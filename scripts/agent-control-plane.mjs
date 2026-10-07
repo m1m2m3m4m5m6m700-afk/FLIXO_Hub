@@ -741,7 +741,7 @@ export class HardControlRuntime {
     if (!agent.authority.includes(requiredAuthority)) return this.deny("AUTHORITY_BYPASS");
     if (Number(request.delegationDepth) > assignment.delegationDepth) return this.deny("DELEGATION_OVERFLOW");
     if (operation === "WRITE") {
-      const normalized = String(request.path ?? "").replaceAll("\\","");
+      const normalized = String(request.path ?? "").replaceAll("\\","/");
       if (!normalized || !assignment.scope.write.some((scope) => this.pathMatches(normalized.replaceAll("\\","/"),scope))) return this.deny("SCOPE_DENIED");
     }
     if (operation === "READ") {
