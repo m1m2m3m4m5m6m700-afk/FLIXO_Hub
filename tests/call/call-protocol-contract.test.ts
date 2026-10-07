@@ -124,3 +124,69 @@ test("workspace isolation forbids cross-cell writes and main pushes", () => {
     /WORKSPACE_MAIN_PUSH_FORBIDDEN/,
   );
 });
+
+
+test("cell workflow accepts a build task generated from its own capability gap", () => {
+  const sha = SHA;
+  const rt = new CellRuntime(() => 5000);
+  const objective = rt.generateSelfDevelopmentTask(
+    [{ capabilityId: "build", maturity: 0.45, evidenceRefs: ["cell-state"] }],
+    [{ capabilityId: "build", maturity: 0.80, referenceId: "reference-builder", evidenceRefs: ["reference-state"] }],
+  );
+
+  const task = rt.registerTask(objective.objectiveId);
+  assert.equal(task.state, "PLANNED");
+  rt.transitionTask(task.taskId, "READY");
+
+  const team = {
+    assignmentId: "build-assignment-1",
+    solverAgentId: "builder-1",
+    backupSolverAgentId: "builder-2",
+    opponentAgentId: "opponent-1",
+    backupOpponentAgentId: "opponent-2",
+    verifierAgentId: "verifier-1",
+    escalationTargetAgentId: "steward-1",
+    startingSha: sha,
+    currentSha: sha,
+  } as const;
+
+  const assignment = rt.assignTaskTeam(task.taskId, team, sha);
+  assert.equal(assignment.team.solverAgentId, "builder-1");
+  assert.equal(assignment.team.opponentAgentId, "opponent-1");
+
+  const lease = rt.acquireAssignmentLease(
+    task.taskId,
+    team.assignmentId,
+    "builder-1",
+    "lease-1",
+    1000,
+    sha,
+  );
+  assert.equal(lease.assignmentId, team.assignmentId);
+
+  rt.transitionTask(task.taskId, "CLAIMED");
+  rt.transitionTask(task.taskId, "RUNNING");
+  assert.equal(rt.getTask(task.taskId).state, "RUNNING");
+  assert.equal(rt.getSelfDevelopmentTask(objective.objectiveId).sourceGapIds.length, 1);
+});
+
+test("cell refuses to assign a build task against a different live SHA", () => {
+  const rt = new CellRuntime(() => 5000);
+  const task = rt.registerTask("build-sha-test");
+  rt.transitionTask(task.taskId, "READY");
+  const team = {
+    assignmentId: "build-sha-assignment",
+    solverAgentId: "builder-1",
+    backupSolverAgentId: "builder-2",
+    opponentAgentId: "opponent-1",
+    backupOpponentAgentId: null,
+    verifierAgentId: "verifier-1",
+    escalationTargetAgentId: null,
+    startingSha: SHA,
+    currentSha: SHA,
+  } as const;
+  assert.throws(
+    () => rt.assignTaskTeam(task.taskId, team, "fedcba9876543210fedcba9876543210fedcba98"),
+    /ASSIGNMENT_SHA_DRIFT/,
+  );
+});
