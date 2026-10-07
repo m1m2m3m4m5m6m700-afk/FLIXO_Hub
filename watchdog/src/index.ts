@@ -11,7 +11,7 @@ import {
   stub,
   rpc,
   HttpError,
-} from './lib/runtime';
+} from './lib/runtime.ts';
 import { AgentState } from './durable.ts';
 import type { Env } from './lib/types.ts';
 
