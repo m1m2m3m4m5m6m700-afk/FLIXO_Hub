@@ -1,0 +1,26 @@
+id: "ECO-21184810"
+category: "ecosystem"
+title: "OWASP security-risk trend signals"
+status: "candidate"
+entity_key: "owasp-risk-trends::security"
+lifecycle:
+  created_at: "2026-10-07T21:18:48Z"
+  expires_at: "2026-10-21T21:18:48Z"
+  last_viewed_by_human: "2026-10-07T21:18:48Z"
+source:
+  snapshot_id: "snap-20261007T211848104231Z-f4a3e6fed48fa5bd"
+  vendor_affiliated: false
+evidence:
+  quote: "OWASP Foundation\nHome\nProjects\nChapters\nEvents\nMeetings\nNews\nAbout\nSign in\nDonate\nOWASP Top 10\nThe OWASP Top 10 is the reference standard for the most critical web application security risks. Adopting the OWASP Top 10 is perhaps the most effective first step towards changing your software development culture focused on producing secure code.\nView on GitHub\nDocumentation\nAbout the OWASP Top 10\nTranslation Efforts\nSponsors\nData 2025\nAbout\nOWASP Top 10\nThe most current released version is the\nOWASP Top 10 2025\n.\nPrevious versions are available at\nOWASP Top 10 2021\nand\nOWASP Top 10 2017 (PDF)\n. Older versions are available in the\nGitHub repo\n.\nThe OWASP Top 10 is a standard awareness document for developers and web application security. It represents a broad consensus about the most critical security risks to web applications.\nGlobally recognized by developers as the first step towards more secure coding.\nCompanies should adopt this document and start the process of ensuring that their web applications minimize these risks. Using the OWASP Top 10 is perhaps the most effective first step towards changing the software development culture within your organization into one that produces more secure code.\nSocial\n•\nLink\nProject Resources\nDocumentation\nGitHub\nMaking of OWASP Top 10\nPrevious Version (2021)\nPrevious Version (2017)\nOWASP Top 10 2017 PDF\nProject Leaders\nBrian Glas\nEmail\nNeil Smithline\nEmail\nTanya Janca\nEmail\nTorsten Gigler\nEmail\nAndrew van der Stock\nProject Leader\nEmail\nProject Information\n🚩\nFlagship Project\nClassification\n📖\nDocumentation\nLanguage\nHTML\nLatest Version\n2025\nContributors\n199\nGitHub Stars\n6238\nDownloads\n0\nCorporate Supporters\nBecome a Corporate Supporter\nMeet our Corporate Supporters\nSupporter Job Postings\nOWASP is a nonprofit foundation improving software security through open-source projects, global communities, and education. All resources are free and open to everyone.\nQuick Links\nAwards\nChapters\nCommunity\nContact\nCorporate Supporters\nEvents\nNews\nOWASP Community\nProjects\nSecurity\nStaff\nOWASP Merch\nLegal & Governance\nAbout OWASP\nBoard\nBoard EU\nFinance (all documents)\nFinance & Governance\nPolicies\nImpact Report 2025\nStrategic Plan 2026\nSocials\nBluesky\nGitHub\nLinkedIn\nMastodon\nSlack\nX\nYouTube\nMake a Donation\nJoin Now\nJoin Slack\nOWASP, the OWASP logo, and Global AppSec are registered trademarks and AppSec Days, AppSec California, AppSec Cali, SnowFROC, OWASP Boston Application Security Conference, and LASCON are trademarks of the OWASP Foundation, Inc.\n© 2026, OWASP Foundation Inc. All rights reserved.\nOWASP Top 10 | OWASP Foundation"
+inference:
+  current_state:
+    repo_refs:
+      - "src/config/registry.ts"
+      - "tests/security-governance.test.ts"
+  proposal: "Use recurring OWASP risk categories as defensive hypotheses without treating advisory text as executable instructions."
+  rollback: "Remove the hardening hypothesis and preserve existing security controls and test gates."
+triage:
+  impact_score: 0
+  complexity_score: 0
+  final_priority_score: 0
+  lane: "ecosystem"

@@ -1,0 +1,26 @@
+id: "TECH-21184844"
+category: "technology"
+title: "WebAssembly platform capabilities"
+status: "candidate"
+entity_key: "webassembly::performance"
+lifecycle:
+  created_at: "2026-10-07T21:18:48Z"
+  expires_at: "2026-10-21T21:18:48Z"
+  last_viewed_by_human: "2026-10-07T21:18:48Z"
+source:
+  snapshot_id: "snap-20261007T211848430084Z-285c0733a8c8823b"
+  vendor_affiliated: false
+evidence:
+  quote: "WebAssembly | MDN\nSkip to main content\nSkip to search\nMDN\nHTML\nHTML: Markup language\nHTML reference\nElements\nGlobal attributes\nAttributes\nSee all…\nHTML guides\nResponsive images\nHTML cheatsheet\nDate & time formats\nSee all…\nMarkup languages\nSVG\nMathML\nXML\nCSS\nCSS: Styling language\nCSS reference\nProperties\nSelectors\nAt-rules\nValues\nSee all…\nCSS guides\nBox model\nAnimations\nFlexbox\nColors\nSee all…\nLayout cookbook\nColumn layouts\nCentering an element\nCard component\nSee all…\nJavaScript\nJS\nJavaScript: Scripting language\nJS reference\nStandard built-in objects\nExpressions & operators\nStatements & declarations\nFunctions\nSee all…\nJS guides\nControl flow & error handling\nLoops and iteration\nWorking with objects\nUsing classes\nSee all…\nWeb APIs\nWeb APIs: Programming interfaces\nWeb API reference\nFile system API\nFetch API\nGeolocation API\nHTML DOM API\nPush API\nService worker API\nSee all…\nWeb API guides\nUsing the Web animation API\nUsing the Fetch API\nWorking with the History API\nUsing the Web speech API\nUsing web workers\nAll\nAll web technology\nTechnologies\nAccessibility\nHTTP\nURI\nWeb extensions\nWebAssembly\nWebDriver\nSee all…\nTopics\nMedia\nPerformance\nPrivacy\nSecurity\nProgressive web apps\nLearn\nLearn web"
+inference:
+  current_state:
+    repo_refs:
+      - "package.json"
+      - "src/lib/execution/canonical-executor.ts"
+  proposal: "Assess WASM only where measured CPU cost justifies it and licensing, bundle, memory, and compatibility evidence is acceptable."
+  rollback: "Remove the candidate WASM path and keep the current browser-local execution implementation."
+triage:
+  impact_score: 0
+  complexity_score: 0
+  final_priority_score: 0
+  lane: "technology"
