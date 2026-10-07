@@ -56,7 +56,7 @@ test('rejects execution when review hardening is incomplete', () => {
   assert.ok(result.errors.includes('execution:strict-checks'));
 });
 
-test('rejects main when stale approvals or latest-push approval are disabled', () =>
+test('rejects main when stale approvals or latest-push approval are disabled', () => {
   const weak = structuredClone(baseRuleset);
   weak.rules[2].parameters.dismiss_stale_reviews_on_push = false;
   weak.rules[2].parameters.require_last_push_approval = false;
