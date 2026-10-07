@@ -12,9 +12,17 @@ function canonicalLocaleCount() {
   return (block.match(/'[a-z]{2}'/g) ?? []).length;
 }
 function officialAgentCount() {
-  const expected = ['flixo-qa-agent.md','flixo-i18n-agent.md','flixo-maintainer-agent.md','المستكشف-ai.md','المستكشف-2.md','المطور-ai.md','red-team-1.md','red-team-2.md'];
-  const files = new Set(readdirSync('.github/agents'));
-  return expected.filter((name) => files.has(name)).length;
+  const content = readFileSync("الوكلاء.md", "utf8");
+  const start = content.indexOf("<!-- CANONICAL_AGENT_REGISTRY:START -->");
+  const end = content.indexOf("<!-- CANONICAL_AGENT_REGISTRY:END -->");
+  if (start < 0 || end <= start) throw new Error("canonical agent registry missing");
+  const block = content.slice(start, end);
+  const jsonStart = block.indexOf("```json");
+  const jsonEnd = block.indexOf("```", jsonStart + 7);
+  if (jsonStart < 0 || jsonEnd <= jsonStart) throw new Error("canonical agent registry JSON missing");
+  const registry = JSON.parse(block.slice(jsonStart + 7, jsonEnd).trim());
+  if (registry.officialAgentCount !== 10 || registry.agents?.length !== 10) throw new Error("canonical official agent count must be 10");
+  return registry.officialAgentCount;
 }
 function trainingReferenceSha() {
   const source = readFileSync('الوكلاء/المطور AI/مراجع التدريب/README.md', 'utf8');
