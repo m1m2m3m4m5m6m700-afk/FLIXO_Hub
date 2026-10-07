@@ -393,3 +393,105 @@ test("delegation is denied when edge is absent and accepted when typed", () => {
   assert.throws(() => rt.delegateHandoff(h, SHA.current, [], request), /DELEGATION_REJECTED/);
   assert.equal(rt.delegateHandoff(h, SHA.current, [rule], request).handoffId, "h-del");
 });
+
+
+test("opponent independent start is recorded before solver result disclosure", () => {
+  const rt = new CellRuntime(() => 1000);
+  rt.registerTask("t-independent");
+  rt.transitionTask("t-independent", "READY");
+  const team = {
+    assignmentId: "team-independent",
+    solverAgentId: "solver",
+    backupSolverAgentId: "solver-backup",
+    opponentAgentId: "opponent",
+    backupOpponentAgentId: "opponent-backup",
+    verifierAgentId: "verifier",
+    escalationTargetAgentId: null,
+    startingSha: SHA.start,
+    currentSha: SHA.current,
+  };
+  rt.assignTaskTeam("t-independent", team, SHA.current);
+
+  assert.throws(
+    () =>
+      rt.recordSolverResultDisclosure({
+        taskId: "t-independent",
+        assignmentId: "team-independent",
+        liveSha: SHA.current,
+      }),
+    /OPPONENT_INDEPENDENT_START_REQUIRED/,
+  );
+
+  const start = rt.startOpponentIndependently({
+    taskId: "t-independent",
+    assignmentId: "team-independent",
+    opponentId: "opponent",
+    sharedContextRefs: ["task-contract:t-independent", "evidence:e1"],
+    initialChallengePosition: "Search for acceptance-boundary counterexamples.",
+    liveSha: SHA.current,
+  });
+
+  const disclosure = rt.recordSolverResultDisclosure({
+    taskId: "t-independent",
+    assignmentId: "team-independent",
+    liveSha: SHA.current,
+  });
+
+  assert.equal(start.privateSolverContextExcluded, true);
+  assert.ok(start.sequence < disclosure.sequence);
+  assert.equal(disclosure.opponentStartEventId, start.eventId);
+  assert.equal(rt.getOpponentIndependentStart("team-independent").eventId, start.eventId);
+});
+
+test("opponent independent start is fail-closed on SHA drift and duplicate starts", () => {
+  const rt = new CellRuntime(() => 1000);
+  rt.registerTask("t-independent-sha");
+  rt.transitionTask("t-independent-sha", "READY");
+  const team = {
+    assignmentId: "team-independent-sha",
+    solverAgentId: "solver",
+    backupSolverAgentId: "solver-backup",
+    opponentAgentId: "opponent",
+    backupOpponentAgentId: "opponent-backup",
+    verifierAgentId: null,
+    escalationTargetAgentId: null,
+    startingSha: SHA.start,
+    currentSha: SHA.current,
+  };
+  rt.assignTaskTeam("t-independent-sha", team, SHA.current);
+
+  assert.throws(
+    () =>
+      rt.startOpponentIndependently({
+        taskId: "t-independent-sha",
+        assignmentId: "team-independent-sha",
+        opponentId: "opponent",
+        sharedContextRefs: ["task-contract:t-independent-sha"],
+        initialChallengePosition: "challenge",
+        liveSha: SHA.stale,
+      }),
+    /OPPONENT_START_SHA_DRIFT/,
+  );
+
+  rt.startOpponentIndependently({
+    taskId: "t-independent-sha",
+    assignmentId: "team-independent-sha",
+    opponentId: "opponent",
+    sharedContextRefs: ["task-contract:t-independent-sha"],
+    initialChallengePosition: "challenge",
+    liveSha: SHA.current,
+  });
+
+  assert.throws(
+    () =>
+      rt.startOpponentIndependently({
+        taskId: "t-independent-sha",
+        assignmentId: "team-independent-sha",
+        opponentId: "opponent",
+        sharedContextRefs: ["task-contract:t-independent-sha"],
+        initialChallengePosition: "second",
+        liveSha: SHA.current,
+      }),
+    /OPPONENT_INDEPENDENT_START_ALREADY_RECORDED/,
+  );
+});
