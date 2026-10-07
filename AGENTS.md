@@ -65,35 +65,16 @@ Routine work does not require a fixed pre-execution operation count, mandatory h
 Worker branches may be created, rebased, abandoned, and replaced freely. Their existence must not block unrelated agent work. Exact-SHA, security/privacy, and production-boundary controls remain mandatory.
 
 
-## Official Repository Agent Packages
-The official repository explorer packages are centralized under `الوكلاء/المستكشفين/`.
+## Canonical Agent Registry
 
-- Architecture Scout package: `الوكلاء/المستكشفين/Architecture Scout/`
-- Technology Scout package: `الوكلاء/المستكشفين/Technology Scout/`
-- Ecosystem Scout package: `الوكلاء/المستكشفين/Ecosystem Scout/`
-- GitHub registrations remain under `.github/agents/flixo-scout-*.agent.md`.
-- Machine-readable discovery manifests remain under `.agent-intelligence/scouts/`.
+**Canonical agent identity/count authority:** `الوكلاء.md`
 
-The official comparison agent package is centralized under `الوكلاء/المطور AI/`.
-
-- Official agent name: `المطور AI`
-- Canonical agent contract: `الوكلاء/المطور AI/المطور.md`
-- Development reports: `الوكلاء/المطور AI/تقارير التطوير/`
-- GitHub agent registration: `.github/agents/المطور-ai.md`
-- Write authority is limited to development reports. It never edits implementation, tasks, governance, or release state.
-
-Red Team agents use separate official packages and separate report scopes; comparison reports are not Red Team reports.
-
-
-The official agent training program is centralized under `الوكلاء/تدريب الوكلاء/`.
-
-- 100/100 rubric: `الوكلاء/تدريب الوكلاء/المعيار-100.md`
-- Contract test: `tests/security/ci/agent-training-contract.test.mjs`
-- No agent is considered 100/100 without passing role-specific contract gates.
-- Self-learning workflow: `.github/workflows/agent-self-learning.yml`.
-- Published training evidence is a SHA-bound GitHub Actions artifact; the workflow has `contents: read` only.
-
-
+- Official principal agents: **10**.
+- Supporting sub-role: `المستكشف 2`; preserved but excluded from the principal count.
+- `.github/agents/` is the technical registration layer and must match `الوكلاء.md`.
+- Agent packages/reports under `الوكلاء/` are subordinate role/evidence surfaces.
+- `AGENTS.md` remains repository-wide execution/security policy; `المهام.md` remains dispatch authority.
+- Any identity, count, or profile drift against `الوكلاء.md` is a fail-closed governance error.
 ## Research Scout Security Override
 
 The three FLIXO research scouts are role-restricted advisory agents. This section overrides the broad Open Agent Execution Mode for those three profiles only.
