@@ -752,6 +752,8 @@ export class CellLifecycleRuntime {
       opponentStartedAtMs: this.opponentStartedAtMs,
       candidateId: this.candidate.candidateId,
       taskId: this.candidate.taskId,
+      opponentContextHash: this.opponentContextHash,
+      opponentStartedAtMs: this.opponentStartedAtMs,
       candidateSha: this.candidate.candidateSha,
       sequence: this.next(),
       attackSurfaceChecks: Object.freeze([...input.attackSurfaceChecks]),
