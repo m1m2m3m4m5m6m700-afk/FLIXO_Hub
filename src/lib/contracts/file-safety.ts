@@ -60,6 +60,82 @@ export const EXTENSION_MIME_MAP: Readonly<Record<string, string>> = Object.freez
 const riffSignature = [0x52, 0x49, 0x46, 0x46];
 const ftypSignature = [0x66, 0x74, 0x79, 0x70];
 
+export type RasterDimensions = Readonly<{ width: number; height: number }>;
+
+function readU16BE(bytes: Uint8Array, offset: number): number {
+  return (bytes[offset] << 8) | bytes[offset + 1];
+}
+
+function readU16LE(bytes: Uint8Array, offset: number): number {
+  return bytes[offset] | (bytes[offset + 1] << 8);
+}
+
+function hasBytes(bytes: Uint8Array, offset: number, expected: readonly number[]): boolean {
+  return offset >= 0 && bytes.length >= offset + expected.length && expected.every((value, index) => bytes[offset + index] === value);
+}
+
+function readJpegDimensions(bytes: Uint8Array): RasterDimensions | undefined {
+  if (!hasBytes(bytes, 0, [0xff, 0xd8, 0xff])) return undefined;
+  let offset = 2;
+  while (offset + 3 < bytes.length) {
+    if (bytes[offset] !== 0xff) {
+      offset += 1;
+      continue;
+    }
+    while (offset < bytes.length && bytes[offset] === 0xff) offset += 1;
+    if (offset >= bytes.length) return undefined;
+    const marker = bytes[offset++];
+    if (marker === 0xd8 || marker === 0xd9) continue;
+    if (offset + 1 >= bytes.length) return undefined;
+    const segmentLength = readU16BE(bytes, offset);
+    if (segmentLength < 2 || offset + segmentLength > bytes.length) return undefined;
+    const isSof = (marker >= 0xc0 && marker <= 0xc3) ||
+      (marker >= 0xc5 && marker <= 0xc7) ||
+      (marker >= 0xc9 && marker <= 0xcb) ||
+      (marker >= 0xcd && marker <= 0xcf);
+    if (isSof && segmentLength >= 7) {
+      const height = readU16BE(bytes, offset + 3);
+      const width = readU16BE(bytes, offset + 5);
+      if (width > 0 && height > 0) return { width, height };
+    }
+    offset += segmentLength;
+  }
+  return undefined;
+}
+
+export function readRasterDimensionsFromHeader(header: Uint8Array, mime: string): RasterDimensions | undefined {
+  if (mime === 'image/png' && hasBytes(header, 0, MAGIC_BYTE_SIGNATURES.png.bytes)) {
+    if (header.length < 24) return undefined;
+    const width = (header[16] * 0x1000000) + (header[17] << 16) + (header[18] << 8) + header[19];
+    const height = (header[20] * 0x1000000) + (header[21] << 16) + (header[22] << 8) + header[23];
+    return width > 0 && height > 0 ? { width, height } : undefined;
+  }
+
+  if (mime === 'image/jpeg') return readJpegDimensions(header);
+
+  if (mime === 'image/webp' && hasBytes(header, 0, [0x52, 0x49, 0x46, 0x46]) && hasBytes(header, 8, [0x57, 0x45, 0x42, 0x50])) {
+    if (header.length < 16) return undefined;
+    const chunk = String.fromCharCode(...header.slice(12, 16));
+    if (chunk === 'VP8X' && header.length >= 30) {
+      const width = 1 + header[24] + (header[25] << 8) + (header[26] << 16);
+      const height = 1 + header[27] + (header[28] << 8) + (header[29] << 16);
+      return width > 0 && height > 0 ? { width, height } : undefined;
+    }
+    if (chunk === 'VP8L' && header.length >= 25 && header[20] === 0x2f) {
+      const width = 1 + (header[21] | ((header[22] & 0x3f) << 8));
+      const height = 1 + (((header[22] >> 6) & 0x03) | (header[23] << 2) | ((header[24] & 0x0f) << 10));
+      return width > 0 && height > 0 ? { width, height } : undefined;
+    }
+    if (chunk === 'VP8 ' && header.length >= 34 && hasBytes(header, 23, [0x9d, 0x01, 0x2a])) {
+      const width = readU16LE(header, 26) & 0x3fff;
+      const height = readU16LE(header, 28) & 0x3fff;
+      return width > 0 && height > 0 ? { width, height } : undefined;
+    }
+  }
+
+  return undefined;
+}
+
 export const MAGIC_BYTE_SIGNATURES: Readonly<Record<string, MagicByteSignature>> = Object.freeze({
   png: { name: 'PNG', bytes: [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a] },
   jpeg: { name: 'JPEG', bytes: [0xff, 0xd8, 0xff] },
