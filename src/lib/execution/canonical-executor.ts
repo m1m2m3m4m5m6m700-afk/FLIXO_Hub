@@ -7,6 +7,8 @@ import { applyBasicImageEffect, convertImage, cropResizeImage, removeBackground,
 import { compressImage } from '@/tools/image-compressor/engine.ts';
 import { renderVideoToWebm } from '@/lib/video/video-executor.ts';
 import { attachVideoBlobSource, getBoundedVideoDuration } from '@/lib/video/blob-video-source.ts';
+import { admitCellAction } from '@/lib/cell/hard-control.ts';
+import { admitCanonicalExecution, type CanonicalCellContext } from '@/lib/cell/index.ts';
 
 const IMAGE_MIME = ['image/png', 'image/jpeg', 'image/webp'] as const;
 const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp'] as const;
@@ -470,10 +472,15 @@ export async function executeCanonicalTool(
   input: CanonicalExecutionInput,
   rawParameters: CanonicalCapabilityParameters = {},
   signal?: AbortSignal,
+  cellContext?: CanonicalCellContext,
 ): Promise<CanonicalExecutionOutput> {
   const { capability } = resolveCanonicalTool(toolId);
   assertNotAborted(signal);
   const parameters = validateCapabilityParameters(toolId, rawParameters);
+  const { envelope, decision } = await admitCanonicalExecution(toolId, parameters, cellContext);
+  if (!decision.allowed) {
+    throw new Error(`CELL_DENIED:${decision.code}: ${decision.reason}`);
+  }
 
   // Preflight is intentionally outside the retry loop: it is the canonical admission
   // boundary and must not be repeated as a side effect. Execution/output verification
@@ -490,6 +497,17 @@ export async function executeCanonicalTool(
   return runBoundedExecutionAttempts(
     capability.recovery.maxAttempts,
     async () => {
+      const retryDecision = admitCellAction(envelope, {
+        action: 'CANONICAL_TOOL_EXECUTION',
+        capability: toolId,
+        scope: `capability:${toolId}`,
+        repository: envelope.repository,
+        currentSha: envelope.currentSha,
+        objectiveDigest: envelope.objectiveDigest,
+        acceptanceDigest: envelope.acceptanceDigest,
+        evidenceRequested: false,
+      });
+      if (!retryDecision.allowed) throw new Error(`CELL_DENIED:${retryDecision.code}: ${retryDecision.reason}`);
       const executionController = new AbortController();
       const relayAbort = () => executionController.abort();
       signal?.addEventListener('abort', relayAbort, { once: true });
@@ -535,6 +553,7 @@ export async function executeCanonicalChain(
   input: CanonicalExecutionInput,
   onStep?: (completed: number, total: number, toolId: string) => void,
   signal?: AbortSignal,
+  cellContext?: CanonicalCellContext,
 ): Promise<CanonicalExecutionOutput> {
   if (!steps.length || steps.length > 4) {
     throw new Error('Execution denied: chain must contain between 1 and 4 steps.');
@@ -543,7 +562,7 @@ export async function executeCanonicalChain(
   for (let index = 0; index < steps.length; index += 1) {
     const step = steps[index];
     onStep?.(index, steps.length, step.toolId);
-    current = await executeCanonicalTool(step.toolId, current, step.params ?? {}, signal);
+    current = await executeCanonicalTool(step.toolId, current, step.params ?? {}, signal, cellContext);
   }
   return current;
 }
