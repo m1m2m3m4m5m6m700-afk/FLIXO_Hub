@@ -18,6 +18,9 @@ class DiscoveryTests(unittest.TestCase):
             p=self.root/rel; p.parent.mkdir(parents=True,exist_ok=True); p.mkdir(exist_ok=True) if "." not in p.name else p.write_text("fixture",encoding="utf-8")
         self.md=self.root/".agent-intelligence/scouts"; self.report_root=self.root/"الوكلاء/التقارير/AGENT-08 — Architecture Scout"; self.snaps=self.root/".agent-intelligence/snapshots"
         self.md.mkdir(parents=True); self.report_root.mkdir(parents=True); self.snaps.mkdir(parents=True)
+        self.inbox=self.root/".agent-intelligence/inbox"; self.inbox.mkdir(parents=True)
+        (self.inbox/".gitkeep").write_text("",encoding="utf-8")
+        (self.inbox/"README.md").write_text("deny-only sentinel",encoding="utf-8")
     def tearDown(self): self.tmp.cleanup()
     def m(self):
         return {"format":"flixo-scout-manifest-v1","role":"ARCHITECTURE","ttl_days":14,"default_repo_refs":["src/config/registry.ts"],"sources":[{"url":"https://example.invalid","source_type":"official_docs","stability":"stable","evidence_kind":"documentation","vendor_affiliated":False,"title":"Test Pattern","entity_key":"test-pattern::architecture","repo_refs":["src/config/registry.ts"],"proposal":"Evaluate test pattern.","rollback":"Revert the candidate adapter."}]}
