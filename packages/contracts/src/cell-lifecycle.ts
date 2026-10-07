@@ -29,6 +29,7 @@ export const CELL_LIFECYCLE_STAGES = [
   "ARBITRATING",
   "CANDIDATE",
   "RED_TEAM",
+  "VERIFICATION_PENDING",
   "VERIFIED",
   "CERTIFIED",
   "PROMOTED",
@@ -54,6 +55,7 @@ export type CellAdmissionEnvelope = Readonly<{
 
 export type CellAdmissionRecord = Readonly<{
   taskId: string;
+  assignmentId: string;
   missionId: string;
   admittedAtSequence: number;
   admittedAtMs: number;
@@ -297,6 +299,7 @@ export function createCellAdmissionRecord(
 
   return Object.freeze({
     taskId: envelope.taskId,
+    assignmentId: envelope.assignmentId,
     missionId: envelope.missionId,
     admittedAtSequence: sequence,
     admittedAtMs: nowMs,
@@ -452,12 +455,13 @@ export class CellLifecycleRuntime {
     this.stage = "FALSIFYING";
   }
 
-  recordClaim(input: Omit<CellClaim, "sequence" | "taskId" | "assignmentId"> & { candidateSha: string }): CellClaim {
+  recordClaim(input: Omit<CellClaim, "sequence" | "taskId">): CellClaim {
     this.requireStage("SOLVING", "FALSIFYING");
     if (!this.admission) throw new Error("CELL_ADMISSION_REQUIRED");
     const taskId = this.admission.taskId;
     const assignmentId = this.admission.assignmentId;
-    return this.claim ?? (() => {
+    if (this.claim) throw new Error("CELL_CLAIM_ALREADY_EXISTS");
+    return (() => {
       validateClaim(
         taskId,
         input.assignmentId,
@@ -484,7 +488,7 @@ export class CellLifecycleRuntime {
     })();
   }
 
-  recordCounterclaim(input: Omit<CellCounterclaim, "sequence" | "taskId" | "assignmentId"> & { candidateSha: string }): CellCounterclaim {
+  recordCounterclaim(input: Omit<CellCounterclaim, "sequence" | "taskId">): CellCounterclaim {
     this.requireStage("FALSIFYING");
     if (!this.admission || !this.claim) throw new Error("CELL_CLAIM_REQUIRED");
     validateCounterclaim(
@@ -506,6 +510,7 @@ export class CellLifecycleRuntime {
       sequence: this.next(),
       evidenceIds: Object.freeze([...input.evidenceIds]),
     });
+    if (this.counterclaim) throw new Error("CELL_COUNTERCLAIM_ALREADY_EXISTS");
     this.counterclaim = record;
     return record;
   }
@@ -585,7 +590,7 @@ export class CellLifecycleRuntime {
     if (input.disposition === "DISPUTED") {
       this.stage = "ARBITRATING";
     } else if (input.disposition === "MORE_EVIDENCE") {
-      this.stage = "RECONCILING";
+      this.stage = "FALSIFYING";
     } else if (input.disposition === "REPLAN" || input.disposition === "ESCALATE") {
       throw new Error(`CELL_ARBITRATION_TERMINAL_DISPOSITION:${input.disposition}`);
     } else {
@@ -648,14 +653,14 @@ export class CellLifecycleRuntime {
       attackSurfaceChecks: Object.freeze([...input.attackSurfaceChecks]),
       findings: Object.freeze([...input.findings]),
     });
-    this.stage = input.passed ? "VERIFIED" : "CANDIDATE";
+    this.stage = input.passed ? "VERIFICATION_PENDING" : "CANDIDATE";
     return this.redTeam;
   }
 
   independentlyVerify(
     input: Omit<CellVerificationRecord, "candidateId" | "taskId" | "candidateSha" | "sequence">,
   ): CellVerificationRecord {
-    this.requireStage("VERIFIED");
+    this.requireStage("VERIFICATION_PENDING");
     if (!this.candidate || !this.redTeam || !this.admission) throw new Error("CELL_VERIFICATION_CONTEXT_INCOMPLETE");
     required(input.verificationId, "CELL_VERIFICATION_ID_REQUIRED");
     required(input.verifierId, "CELL_VERIFIER_REQUIRED");
@@ -678,12 +683,12 @@ export class CellLifecycleRuntime {
       return record;
     }
     this.verification = record;
-    this.stage = "CERTIFIED";
+    this.stage = "VERIFIED";
     return record;
   }
 
   certify(input: Omit<CellCertificationRecord, "candidateId" | "taskId" | "certifiedSha" | "verifiedSha" | "sequence">): CellCertificationRecord {
-    this.requireStage("CERTIFIED");
+    this.requireStage("VERIFIED");
     if (!this.candidate || !this.verification || !this.verification.passed) {
       throw new Error("CELL_VERIFICATION_REQUIRED");
     }
@@ -705,6 +710,7 @@ export class CellLifecycleRuntime {
       sequence: this.next(),
     });
     this.certification = record;
+    this.stage = "CERTIFIED";
     return record;
   }
 
