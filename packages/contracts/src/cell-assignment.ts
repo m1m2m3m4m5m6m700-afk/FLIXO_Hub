@@ -473,6 +473,7 @@ export function validateCanonicalCellAssignment(
 }
 
 export function createCanonicalCellAssignment(input: Readonly<{
+  taskId: string;
   missionId: string;
   riskClass: string;
   team: AssignmentTeam;
@@ -486,7 +487,7 @@ export function createCanonicalCellAssignment(input: Readonly<{
   }
 
   const assignment = Object.freeze({
-    taskId: input.team.assignmentId,
+    taskId: input.taskId,
     missionId: input.missionId,
     solverId: input.team.solverAgentId,
     opponentId: input.team.opponentAgentId,
