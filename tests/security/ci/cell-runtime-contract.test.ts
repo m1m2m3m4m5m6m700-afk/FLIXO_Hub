@@ -80,9 +80,6 @@ test("reference runtime carries assignment, typed handoff and progress decisions
   const rt = new CellRuntime(() => 1000);
   const task = rt.registerTask("t-assignment");
   const ready = rt.transitionTask("t-assignment", "READY", task.version);
-  rt.transitionTask("t-assignment", "CLAIMED", ready.version);
-  rt.transitionTask("t-assignment", "RUNNING");
-
   const assignment = {
     assignmentId: "as-1",
     primaryAgentId: "agent-a",
@@ -96,6 +93,8 @@ test("reference runtime carries assignment, typed handoff and progress decisions
   const assigned = rt.assignTask("t-assignment", assignment, SHA.current);
   assert.equal(assigned.assignment.assignmentId, "as-1");
   assert.equal(ready.state, "READY");
+  rt.transitionTask("t-assignment", "CLAIMED", ready.version);
+  rt.transitionTask("t-assignment", "RUNNING");
 
   const handoff = {
     handoffId: "h-1",
