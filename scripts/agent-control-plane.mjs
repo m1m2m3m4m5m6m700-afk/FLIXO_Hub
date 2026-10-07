@@ -2,6 +2,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { createHash } from 'node:crypto';
 
 export const AGENT_CAPABILITIES = [
   'READ_REPOSITORY',
@@ -1018,6 +1019,7 @@ export class HardControlRuntime {
       if (!REQUIRED_EVIDENCE_KINDS.includes(node.kind)) throw hardError("UNVERIFIABLE");
       if (this.evidence.has(node.id)) throw hardError("UNVERIFIABLE","DUPLICATE_ID");
       if (node.parent !== null && !this.evidence.has(node.parent)) throw hardError("UNVERIFIABLE","MISSING_PARENT");
+      if (node.hash !== hardEvidenceHash(node)) throw hardError("UNVERIFIABLE","HASH_MISMATCH");
       const value = Object.freeze({ id:node.id, kind:node.kind, hash:node.hash, identity:node.identity, version:node.version, timestamp:node.timestamp, parent:node.parent });
       this.evidence.set(node.id,value);
       return value;
@@ -1045,7 +1047,7 @@ export class HardControlRuntime {
         const parent = byKind.get(requiredKinds[i - 1]);
         if (!parent || node.parent !== parent.id) return Object.freeze({ pass:false, code:"UNVERIFIABLE", reason:"PARENT_MISMATCH" });
       }
-      if (!validHash(node.hash) || !node.identity || !node.version || !Number.isFinite(node.timestamp)) return Object.freeze({ pass:false, code:"UNVERIFIABLE", reason:"NODE_FIELDS" });
+      if (!validHash(node.hash) || !node.identity || !node.version || !Number.isFinite(node.timestamp) || node.hash !== hardEvidenceHash(node)) return Object.freeze({ pass:false, code:"UNVERIFIABLE", reason:"NODE_HASH_MISMATCH" });
     }
     return Object.freeze({ pass:true, code:"VERIFIED", count:nodes.length });
   }
@@ -1153,11 +1155,15 @@ export class HardControlRuntime {
   }
 }
 
+export function hardEvidenceHash({ id, kind, identity, version, timestamp, parent }) {
+  return createHash("sha256")
+    .update(JSON.stringify({ id, kind, identity, version, timestamp, parent:parent ?? null }), "utf8")
+    .digest("hex");
+}
+
 export function buildHardControlEvidenceNode({ id, kind, identity, version, timestamp, parent }) {
-  const input = [id,kind,identity,version,String(timestamp),String(parent ?? "")].join("|");
-  let hash = 0n;
-  for (const char of input) hash = (hash * 131n + BigInt(char.codePointAt(0))) % (1n << 256n);
-  return Object.freeze({ id,kind,hash:hash.toString(16).padStart(64,"0"),identity,version,timestamp,parent:parent ?? null });
+  const normalized = { id,kind,identity,version,timestamp,parent:parent ?? null };
+  return Object.freeze({ ...normalized, hash:hardEvidenceHash(normalized) });
 }
 
 export function hardControlTestMatrix() {
