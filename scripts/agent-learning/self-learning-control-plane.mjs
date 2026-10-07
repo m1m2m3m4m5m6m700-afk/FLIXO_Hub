@@ -64,7 +64,7 @@ export function validateSubmission(submission, currentSha) {
     case 'maintenance':
       if (!Array.isArray(submission.authorityChecks) || submission.authorityChecks.length === 0) failures.push('authorityChecks are required');
       if (!Array.isArray(submission.driftChecks) || submission.driftChecks.length === 0) failures.push('driftChecks are required');
-      if (submission.officialAgentCount !== 8) failures.push('maintainer must audit all eight official agents');
+      if (submission.officialAgentCount !== 10) failures.push('maintainer must audit all ten principal agents from canonical registry');
       break;
     case 'verification':
       if (!Array.isArray(submission.commands) || submission.commands.length === 0) failures.push('commands are required');
