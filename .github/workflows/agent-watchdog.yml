@@ -82,7 +82,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          files="$(find scripts/agent tests -type f \( -name '*runner*.test.mjs' -o -name '*runner*.test.js' -o -name '*runner*.test.ts' \) ! -path 'tests/agent-watchdog/*' | sort)"
+          files="$(find tests -type f \( -name '*runner*.test.mjs' -o -name '*runner*.test.js' -o -name '*runner*.test.ts' \) ! -path 'tests/agent-watchdog/*' | sort)"
           test -n "$files"
           printf '%s\n' "$files" | xargs node --test --experimental-strip-types
 
