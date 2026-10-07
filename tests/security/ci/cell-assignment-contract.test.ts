@@ -9,6 +9,9 @@ import {
   selectAssignmentQuartet,
   selectAssignmentTeam,
   spawnSubtask,
+  delegateHandoff,
+  validateAssignmentForTask,
+  validateAssignmentTeamForTask,
   validateTypedHandoff,
   type AssignmentAgentProfile,
   type AssignmentRequirements,
@@ -24,6 +27,8 @@ const task: AssignmentRequirements = {
   informationGain: 0.8,
   independenceRequired: true,
   maxCost: 10,
+  startingSha: "1111111111111111111111111111111111111111",
+  currentSha: "2222222222222222222222222222222222222222",
 };
 
 const agents: AssignmentAgentProfile[] = [
@@ -46,8 +51,8 @@ const agents: AssignmentAgentProfile[] = [
   },
   {
     agentId: "agent-b",
-    capabilities: ["verification"],
-    outputTypes: ["report"],
+    capabilities: ["verification", "falsification"],
+    outputTypes: ["counterexample"],
     riskClasses: ["HIGH"],
     verificationStrength: 0.8,
     reliability: 0.8,
@@ -63,7 +68,7 @@ const agents: AssignmentAgentProfile[] = [
   },
   {
     agentId: "agent-c",
-    capabilities: ["falsification"],
+    capabilities: ["verification", "falsification"],
     outputTypes: ["counterexample"],
     riskClasses: ["HIGH"],
     verificationStrength: 0.85,
@@ -80,9 +85,9 @@ const agents: AssignmentAgentProfile[] = [
   },
   {
     agentId: "agent-d",
-    capabilities: ["implementation"],
-    outputTypes: ["patch"],
-    riskClasses: ["LOW"],
+    capabilities: ["verification"],
+    outputTypes: ["counterexample"],
+    riskClasses: ["HIGH"],
     verificationStrength: 0.3,
     reliability: 0.4,
     contextFit: 0.2,
@@ -114,6 +119,7 @@ test("high-risk assignment requires an independent verifier", () => {
     ["agent-c"],
     ["agent-d"],
     true,
+    { startingSha: task.startingSha, currentSha: task.currentSha },
   );
   assert.equal(quartet.primaryAgentId, "agent-a");
   assert.equal(quartet.backupAgentId, "agent-b");
@@ -135,6 +141,7 @@ test("directional delegation enforces edge and budgets", () => {
 
   assert.equal(
     authorizeDelegation([rule], {
+      taskId: "task-1",
       sourceAgentId: "agent-a",
       targetAgentId: "agent-b",
       taskType: "VERIFY",
@@ -149,6 +156,7 @@ test("directional delegation enforces edge and budgets", () => {
 
   assert.equal(
     authorizeDelegation([rule], {
+      taskId: "task-1",
       sourceAgentId: "agent-a",
       targetAgentId: "agent-c",
       taskType: "VERIFY",
@@ -163,6 +171,7 @@ test("directional delegation enforces edge and budgets", () => {
 
   assert.equal(
     authorizeDelegation([rule], {
+      taskId: "task-1",
       sourceAgentId: "agent-a",
       targetAgentId: "agent-b",
       taskType: "VERIFY",
@@ -200,8 +209,12 @@ test("typed handoff rejects unsafe shortcuts", () => {
     taskId: "task-1",
     parentTaskId: null,
     assignmentId: "as-1",
+    missionId: "mission-1",
+    sessionId: "session-1",
     sourceAgentId: "agent-a",
     targetAgentId: "agent-c",
+    taskType: "VERIFY",
+    riskClass: "HIGH",
     reason: "independent verification",
     objective: "produce counterexample",
     inputRefs: ["candidate:c1"],
@@ -210,7 +223,8 @@ test("typed handoff rejects unsafe shortcuts", () => {
     verificationCriteria: ["reproducible evidence"],
     readScope: "tests/**",
     writeScope: "reports/**",
-    currentSha: "sha-a",
+    startingSha: "1111111111111111111111111111111111111111",
+    currentSha: "2222222222222222222222222222222222222222",
     deadlineAtMs: null,
     budget: { cost: 2, durationMs: 500 },
     evidenceRequirements: ["exact SHA"],
@@ -273,8 +287,62 @@ test("assignment team pairs solver with an independent opponent", () => {
     verifierCandidates: ["agent-c"],
     escalationCandidates: ["agent-d"],
     requireIndependentVerifier: true,
+    lineage: { startingSha: task.startingSha, currentSha: task.currentSha },
   });
   assert.equal(team.solverAgentId, "agent-a");
   assert.notEqual(team.opponentAgentId, team.solverAgentId);
   assert.ok(team.verifierAgentId !== team.solverAgentId);
+});
+
+test("wrong routing and SHA drift are fail-closed", () => {
+  const ranked = rankAgentsForTask(agents, task);
+  const good = selectAssignmentQuartet(
+    "as-extra", ranked, ["agent-c"], ["agent-d"], true,
+    { startingSha: task.startingSha, currentSha: task.currentSha },
+  );
+  assert.doesNotThrow(() => validateAssignmentForTask(task, good, agents));
+  assert.throws(() => validateAssignmentForTask(task, { ...good, primaryAgentId: "agent-wrong" }, agents), /WRONG_AGENT_ROUTING/);
+  assert.throws(() => validateAssignmentForTask(task, { ...good, currentSha: task.startingSha }, agents), /ASSIGNMENT_SHA_DRIFT/);
+  assert.throws(() => validateAssignmentForTask(task, { ...good, verifierAgentId: "agent-a" }, agents), /INDEPENDENT_VERIFIER_COLLISION|ASSIGNMENT_ROLE_COLLISION/);
+});
+
+test("delegation rejects active/cost/duration overflow and self edges", () => {
+  const rule = { sourceAgentId: "agent-a", targetAgentId: "agent-b", taskTypes: ["VERIFY"], riskClasses: ["HIGH"], maxDepth: 1, maxActiveSubtasks: 1, maxCost: 2, maxDurationMs: 500 };
+  const base = { taskId: "task-1", sourceAgentId: "agent-a", targetAgentId: "agent-b", taskType: "VERIFY", riskClass: "HIGH", depth: 1, activeSubtasks: 1, estimatedCost: 2, estimatedDurationMs: 500 };
+  assert.equal(authorizeDelegation([rule], base), true);
+  assert.equal(authorizeDelegation([rule], { ...base, activeSubtasks: 2 }), false);
+  assert.equal(authorizeDelegation([rule], { ...base, estimatedCost: 3 }), false);
+  assert.equal(authorizeDelegation([rule], { ...base, estimatedDurationMs: 501 }), false);
+  assert.equal(authorizeDelegation([rule], { ...base, sourceAgentId: "agent-b", targetAgentId: "agent-b" }), false);
+});
+
+test("typed delegate enforces context and evidence contract", () => {
+  const handoff = {
+    handoffId: "delegate-h1", missionId: "mission-1", sessionId: "session-1", taskId: "task-1", parentTaskId: null,
+    assignmentId: "as-1", sourceAgentId: "agent-a", targetAgentId: "agent-c", taskType: "VERIFY", riskClass: "HIGH",
+    reason: "verify", objective: "produce evidence", inputRefs: ["candidate:c1"], requiredCapabilities: ["falsification"],
+    expectedOutput: "COUNTEREXAMPLE", verificationCriteria: ["exact SHA"], readScope: "tests/**", writeScope: "reports/**",
+    startingSha: task.startingSha, currentSha: task.currentSha, deadlineAtMs: null, budget: { cost: 2, durationMs: 500 },
+    evidenceRequirements: ["exact SHA"], returnContract: "return evidence refs",
+  };
+  const rule = { sourceAgentId: "agent-a", targetAgentId: "agent-c", taskTypes: ["VERIFY"], riskClasses: ["HIGH"], maxDepth: 1, maxActiveSubtasks: 1, maxCost: 2, maxDurationMs: 500 };
+  const request = { taskId: "task-1", sourceAgentId: "agent-a", targetAgentId: "agent-c", taskType: "VERIFY", riskClass: "HIGH", depth: 1, activeSubtasks: 1, estimatedCost: 2, estimatedDurationMs: 500 };
+  assert.equal(delegateHandoff([rule], request, handoff).handoffId, "delegate-h1");
+  assert.throws(() => delegateHandoff([], request, handoff), /DELEGATION_REJECTED/);
+  assert.throws(() => delegateHandoff([rule], { ...request, depth: 2 }, handoff), /DELEGATION_REJECTED/);
+  assert.throws(() => delegateHandoff([rule], { ...request, estimatedCost: 3 }, handoff), /DELEGATION_REJECTED/);
+});
+
+test("subtask identity and incomplete handoff are fail-closed", () => {
+  assert.throws(() => spawnSubtask("task-1", "task-1", {
+    objective: "bad", contextRefs: ["candidate:c1"], requiredCapabilities: ["falsification"], expectedOutput: "COUNTEREXAMPLE",
+  }), /INVALID_SUBTASK_SPEC/);
+  const base = {
+    handoffId: "h2", missionId: "mission-1", sessionId: "session-1", taskId: "task-1", parentTaskId: null, assignmentId: "as-1",
+    sourceAgentId: "agent-a", targetAgentId: "agent-c", taskType: "VERIFY", riskClass: "HIGH", reason: "verify",
+    objective: "produce evidence", inputRefs: ["candidate:c1"], requiredCapabilities: ["falsification"], expectedOutput: "COUNTEREXAMPLE",
+    verificationCriteria: ["exact SHA"], readScope: "tests/**", writeScope: "reports/**", startingSha: task.startingSha, currentSha: task.currentSha,
+    deadlineAtMs: null, budget: { cost: 1, durationMs: 500 }, evidenceRequirements: ["exact SHA"], returnContract: "return evidence refs",
+  };
+  assert.throws(() => validateTypedHandoff({ ...base, verificationCriteria: [] }), /HANDOFF_VERIFICATION_REQUIRED/);
 });
