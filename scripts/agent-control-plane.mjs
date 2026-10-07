@@ -501,6 +501,9 @@ export class HardControlRuntime {
     this.assignments = new Map();
     this.sessions = new Map();
     this.evidence = new Map();
+    this.reconciliations = new Map();
+    this.redTeamResults = new Map();
+    this.verifications = new Map();
     this.proposals = new Map();
     this.journal = new Map();
     this.effects = new Map();
@@ -561,6 +564,7 @@ export class HardControlRuntime {
   }
 
   transitionTask(taskId, next) {
+    if (next === "READY_TO_CLOSE" || next === "CLOSED") throw hardError("DENY_BEFORE_MUTATION","CONTROLLED_CLOSURE_TRANSITION");
     const before = this.tasks.get(taskId);
     const result = transition(this.tasks, taskId, TASK_GRAPH, next, "INVALID_TASK_TRANSITION", this.clock);
     this.metrics.taskProgression += 1;
@@ -808,7 +812,9 @@ export class HardControlRuntime {
       decision = ["HIGH","CRITICAL"].includes(risk) ? "ESCALATE" : risk === "MEDIUM" ? "REPLAN" : "MORE_EVIDENCE";
       if (decision === "REPLAN") this.metrics.thrashingCount += 1;
     }
-    return Object.freeze({ taskId, state:"RECONCILING", solverOutcome:solver, opponentOutcome:opponent, decision });
+    const result = Object.freeze({ taskId, state:"RECONCILING", solverOutcome:solver, opponentOutcome:opponent, decision });
+    this.reconciliations.set(taskId,result);
+    return result;
   }
 
   redTeamGate(taskId, input) {
@@ -820,7 +826,23 @@ export class HardControlRuntime {
     const retested = input?.retested === true;
     const pass = !requiredGate || (findings === 0 && remediated && retested);
     if (findings > 0) this.metrics.redTeamYieldCount += 1;
-    return Object.freeze({ taskId, required:requiredGate, findings, remediated, retested, pass, gate:pass ? "PASS" : "BLOCK" });
+    const result = Object.freeze({ taskId, required:requiredGate, findings, remediated, retested, pass, gate:pass ? "PASS" : "BLOCK" });
+    this.redTeamResults.set(taskId,result);
+    return result;
+  }
+
+  recordVerification(taskId, input = {}) {
+    const task = this.tasks.get(taskId);
+    if (!task || task.state !== "VERIFYING") throw hardError("DENY_BEFORE_MUTATION","VERIFICATION_STATE");
+    const assignment = [...this.assignments.values()].find((candidate) => candidate.taskId === taskId);
+    const verifierId = required(input.verifierId,"AUTHORITY_BYPASS:VERIFIER_REQUIRED");
+    if (!assignment || verifierId !== assignment.verifierId) throw hardError("AUTHORITY_BYPASS","VERIFIER_ID");
+    const result = Object.freeze({
+      taskId, verifierId, pass:input.pass === true, certificationPass:input.certificationPass === true,
+      reviewedAt:this.clock(), reviewId:required(input.reviewId ?? "REVIEW-1","AUTHORITY_BYPASS:REVIEW_REQUIRED"),
+    });
+    this.verifications.set(taskId,result);
+    return result;
   }
 
   prepareVerification(taskId) {
@@ -834,9 +856,18 @@ export class HardControlRuntime {
     const task = this.tasks.get(taskId);
     if (!task) throw hardError("TASK_ID_MISMATCH");
     if (task.state !== "VERIFYING") throw hardError("DENY_BEFORE_MUTATION","READY_TO_CLOSE_STATE");
-    const pass = input?.opponentResolved === true && input?.redTeamPass === true && input?.verifierPass === true && input?.evidencePass === true;
+    const reconciliation = this.reconciliations.get(taskId);
+    const redTeam = this.redTeamResults.get(taskId);
+    const verification = this.verifications.get(taskId);
+    const evidence = this.verifyEvidenceChain({ through:"certification" });
+    const pass =
+      reconciliation?.opponentOutcome === "PASS" &&
+      redTeam?.pass === true &&
+      verification?.pass === true &&
+      verification?.certificationPass === true &&
+      evidence.pass === true;
     if (!pass) return this.deny("CLOSURE_BLOCKED","MORE_EVIDENCE/REPLAN/ESCALATE");
-    return this.transitionTask(taskId,"READY_TO_CLOSE");
+    return transition(this.tasks,taskId,TASK_GRAPH,"READY_TO_CLOSE","INVALID_TASK_TRANSITION",this.clock);
   }
 
   attemptPromotion(taskId, input) {
@@ -852,17 +883,21 @@ export class HardControlRuntime {
       this.metrics.falseGreenBlocks += 1;
       return this.deny("AUTHORITY_BYPASS","VERIFIER_ONLY_PROMOTION");
     }
+    const reconciliation = this.reconciliations.get(taskId);
+    const redTeam = this.redTeamResults.get(taskId);
+    const verification = this.verifications.get(taskId);
+    const evidence = this.verifyEvidenceChain();
     const gatesPass = task.state === "READY_TO_CLOSE" &&
-      input?.redTeamPass === true &&
-      input?.opponentResolved === true &&
-      input?.verifierPass === true &&
-      input?.certificationPass === true &&
-      input?.evidencePass === true;
+      reconciliation?.opponentOutcome === "PASS" &&
+      redTeam?.pass === true &&
+      verification?.pass === true &&
+      verification?.certificationPass === true &&
+      evidence.pass === true;
     if (!gatesPass) {
       this.metrics.falseGreenBlocks += 1;
       return this.deny("CLOSURE_BLOCKED","PROMOTION_GATE");
     }
-    this.transitionTask(taskId,"CLOSED");
+    transition(this.tasks,taskId,TASK_GRAPH,"CLOSED","INVALID_TASK_TRANSITION",this.clock);
     return Object.freeze({ allowed:true, promoted:true, code:"PROMOTED" });
   }
 
@@ -876,7 +911,7 @@ export class HardControlRuntime {
         const task = this.tasks.get(assignment.taskId);
         if (task && !["CLOSED","FAILED"].includes(task.state)) {
           if (["RUNNING","RECONCILING","VERIFYING","ASSIGNED","ADMITTED"].includes(task.state)) {
-            try { this.transitionTask(task.taskId,"BLOCKED"); } catch {}
+            try { this.transitionTask(task.taskId,"BLOCKED"); } catch { /* a concurrent controller may already have blocked the task */ }
           }
         }
         this.events.push(Object.freeze({ type:"AGENT_LOST_TASK_SURVIVED", agentId, taskId:assignment.taskId, at:this.clock() }));
@@ -945,7 +980,9 @@ export class HardControlRuntime {
       version:HARD_CONTROL_RUNTIME_VERSION, liveSha:this.liveSha,
       tasks:[...this.tasks.values()], agents:[...this.agents.values()],
       assignments:[...this.assignments.values()], sessions:[...this.sessions.values()],
-      evidence:[...this.evidence.values()], proposals:[...this.proposals.values()],
+      evidence:[...this.evidence.values()], reconciliations:[...this.reconciliations.values()],
+      redTeamResults:[...this.redTeamResults.values()], verifications:[...this.verifications.values()],
+      proposals:[...this.proposals.values()],
       journal:[...this.journal.entries()], effects:[...this.effects.entries()], events:[...this.events],
       sequence:this.sequence, metrics:{...this.metrics}, partitioned:this.partitioned,
     };
@@ -959,6 +996,9 @@ export class HardControlRuntime {
     for (const value of snapshot.assignments ?? []) rt.assignments.set(value.assignmentId,value);
     for (const value of snapshot.sessions ?? []) rt.sessions.set(value.sessionId,value);
     for (const value of snapshot.evidence ?? []) rt.evidence.set(value.id,value);
+    for (const value of snapshot.reconciliations ?? []) rt.reconciliations.set(value.taskId,value);
+    for (const value of snapshot.redTeamResults ?? []) rt.redTeamResults.set(value.taskId,value);
+    for (const value of snapshot.verifications ?? []) rt.verifications.set(value.taskId,value);
     for (const value of snapshot.proposals ?? []) rt.proposals.set(value.proposalId,value);
     for (const [key,value] of snapshot.journal ?? []) rt.journal.set(key,value);
     for (const [key,value] of snapshot.effects ?? []) rt.effects.set(key,value);
@@ -987,18 +1027,22 @@ export class HardControlRuntime {
     }
   }
 
-  verifyEvidenceChain() {
+  verifyEvidenceChain(options = {}) {
+    const through = options.through ?? "promotion";
+    const endIndex = REQUIRED_EVIDENCE_KINDS.indexOf(through);
+    if (endIndex < 0) return Object.freeze({ pass:false, code:"UNVERIFIABLE", reason:"UNKNOWN_EVIDENCE_BOUNDARY" });
+    const requiredKinds = REQUIRED_EVIDENCE_KINDS.slice(0,endIndex + 1);
     const nodes = [...this.evidence.values()];
     const byKind = new Map(nodes.map((node) => [node.kind,node]));
-    const missing = REQUIRED_EVIDENCE_KINDS.filter((kind) => !byKind.has(kind));
+    const missing = requiredKinds.filter((kind) => !byKind.has(kind));
     if (missing.length) return Object.freeze({ pass:false, code:"UNVERIFIABLE", missing });
-    for (let i=0;i<REQUIRED_EVIDENCE_KINDS.length;i += 1) {
-      const node = byKind.get(REQUIRED_EVIDENCE_KINDS[i]);
+    for (let i=0;i<requiredKinds.length;i += 1) {
+      const node = byKind.get(requiredKinds[i]);
       if (!node) return Object.freeze({ pass:false, code:"UNVERIFIABLE", missing:[REQUIRED_EVIDENCE_KINDS[i]] });
       if (i === 0) {
         if (node.parent !== null) return Object.freeze({ pass:false, code:"UNVERIFIABLE", reason:"ROOT_PARENT" });
       } else {
-        const parent = byKind.get(REQUIRED_EVIDENCE_KINDS[i - 1]);
+        const parent = byKind.get(requiredKinds[i - 1]);
         if (!parent || node.parent !== parent.id) return Object.freeze({ pass:false, code:"UNVERIFIABLE", reason:"PARENT_MISMATCH" });
       }
       if (!validHash(node.hash) || !node.identity || !node.version || !Number.isFinite(node.timestamp)) return Object.freeze({ pass:false, code:"UNVERIFIABLE", reason:"NODE_FIELDS" });
