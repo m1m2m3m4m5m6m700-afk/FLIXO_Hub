@@ -33,6 +33,15 @@ test('EXACT_SHA_CONTRACT: candidate-sensitive workflows verify HEAD', () => {
     if (n !== 'release-drafter.yml') assert.match(t, /git rev-parse HEAD/, n);
   }
 });
+test('SHARED_MEMORY_DISPATCH_GATE: secret-bearing shared-memory dispatch is actor/ref/repository gated', () => {
+  const t = read('agent-shared-memory-ingestion.yml');
+  assert.match(t, /workflow_dispatch:/);
+  assert.match(t, /github\.event_name == 'workflow_dispatch'/);
+  assert.match(t, /github\.repository == 'm1m2m3m4m5m6m700-afk\/FLIXO_Hub'/);
+  assert.match(t, /github\.ref == 'refs\/heads\/execution'/);
+  assert.match(t, /github\.actor == 'm1m2m3m4m5m6m700-afk'/);
+  assert.match(t, /secrets\.SUPABASE_SERVICE_ROLE_KEY/);
+});
 test('SECRET_ISOLATION_AND_REGRESSION: provider secrets stay off generic execution', () => {
   for (const n of names()) { const t = read(n); if (!executionPush(t) || n === 'patch-capsule-controller.yml') continue; assert.doesNotMatch(t, /secrets\.(?:SUPABASE|TESTSPRITE)/i, n); }
   const p = read('patch-capsule-controller.yml'); assert.doesNotMatch(p, /    env:\s*\n[\s\S]{0,300}?secrets\.GITHUB_TOKEN/);
