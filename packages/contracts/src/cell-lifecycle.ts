@@ -264,6 +264,11 @@ function unique(values: readonly string[], code: string): void {
   if (new Set(values).size !== values.length) throw new Error(code);
 }
 
+function sameJson(left: unknown, right: unknown): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+
 export function validateCellAdmission(envelope: CellAdmissionEnvelope): void {
   required(envelope.taskId, "CELL_ADMISSION_TASK_REQUIRED");
   required(envelope.missionId, "CELL_ADMISSION_MISSION_REQUIRED");
@@ -283,16 +288,16 @@ export function validateCellAdmission(envelope: CellAdmissionEnvelope): void {
   if (envelope.assignment.missionId !== envelope.missionId) {
     throw new Error("CELL_ADMISSION_MISSION_MISMATCH");
   }
-  if (envelope.assignment.oppositionPlan !== envelope.oppositionPlan) {
+  if (!sameJson(envelope.assignment.oppositionPlan, envelope.oppositionPlan)) {
     throw new Error("CELL_ADMISSION_OPPOSITION_PLAN_MISMATCH");
   }
-  if (envelope.assignment.falsificationPolicy !== envelope.falsificationPolicy) {
+  if (!sameJson(envelope.assignment.falsificationPolicy, envelope.falsificationPolicy)) {
     throw new Error("CELL_ADMISSION_FALSIFICATION_POLICY_MISMATCH");
   }
-  if (envelope.assignment.verificationPolicy !== envelope.verificationPolicy) {
+  if (!sameJson(envelope.assignment.verificationPolicy, envelope.verificationPolicy)) {
     throw new Error("CELL_ADMISSION_VERIFICATION_POLICY_MISMATCH");
   }
-  if (envelope.assignment.independencePolicy !== envelope.independencePolicy) {
+  if (!sameJson(envelope.assignment.independencePolicy, envelope.independencePolicy)) {
     throw new Error("CELL_ADMISSION_INDEPENDENCE_POLICY_MISMATCH");
   }
 }
