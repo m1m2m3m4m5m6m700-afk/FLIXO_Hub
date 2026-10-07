@@ -155,6 +155,21 @@ test('execution push branch-policy checkout never persists Git credentials', asy
   assert.doesNotMatch(checkoutBlock, /persist-credentials:\s*true\b/u);
 });
 
+test('human gate execution code cannot inherit persisted Git credentials', async () => {
+  const workflow = await readFile(new URL('../../.github/workflows/human-gate.yml', import.meta.url), 'utf8');
+
+  assert.match(workflow, /ref:\s*execution/u);
+  assert.match(workflow, /persist-credentials:\s*false\b/u);
+  assert.doesNotMatch(workflow, /persist-credentials:\s*true\b/u);
+
+  const publishMarker = '      - name: Publish human gate transition to execution';
+  const publishIndex = workflow.indexOf(publishMarker);
+  assert.ok(publishIndex >= 0, 'human gate publish step must exist');
+  const publishBlock = workflow.slice(publishIndex);
+  assert.match(publishBlock, /GITHUB_TOKEN:\s*\$\{\{\s*github\.token\s*\}\}/u);
+  assert.match(publishBlock, /http\.extraheader=AUTHORIZATION: bearer \$GITHUB_TOKEN/u);
+});
+
 test('promotion and production gates remain fail-closed and exact-SHA bound', async () => {
   const workflow = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
 
