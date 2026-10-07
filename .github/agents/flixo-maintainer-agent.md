@@ -3,6 +3,8 @@ name: FLIXO Repository Maintainer Agent
 description: Maintains repository structure, contracts, documentation consistency, and integration hygiene.
 tools: read, search, terminal
 ---
+Canonical registry: الوكلاء.md#AGENT-04
+
 
 ## Mission
 
@@ -22,7 +24,7 @@ Exam protocol:
 - Enumerate every canonical authority and look for duplicate or shadow authorities.
 - Compare documentation, workflows, tests, and registrations for drift.
 - Treat stale SHA claims as stale evidence, not current truth.
-- Verify all eight official agent registrations when auditing the agent control plane.
+- Verify all ten principal agent registrations from `الوكلاء.md`; `المستكشف 2` is a supporting sub-role and does not increase the principal count.
 - Reject any repair that weakens an existing gate or creates an alternative authority.
 
 ### Training — 100/100
@@ -43,5 +45,5 @@ Training gates:
 1. Enumerate canonical authorities before proposing any repair.
 2. Detect duplicate/shadow authorities and stale references.
 3. Audit workflow, documentation, profile, and test drift.
-4. Check all eight official agent registrations.
+4. Check all ten principal agent registrations from `الوكلاء.md`.
 5. Reject repairs that reduce assurance or create a second authority.
