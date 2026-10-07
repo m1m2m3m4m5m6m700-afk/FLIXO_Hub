@@ -18,6 +18,10 @@ export const CONTROL_ASSURANCE_B_GATES = Object.freeze([...CI_GATE_NAMES, ...OPE
 function gitHead(root = ROOT) {
   return execFileSync('git', ['rev-parse','HEAD'], { cwd: root, encoding: 'utf8' }).trim();
 }
+function liveExecutionHead(root = ROOT) {
+  const output = execFileSync('git', ['ls-remote','origin','refs/heads/execution'], { cwd: root, encoding: 'utf8' }).trim();
+  return output.split(/\s+/u)[0] ?? '';
+}
 function read(root, path) {
   const full = join(root, path);
   if (!existsSync(full)) throw new Error('missing:' + path);
@@ -63,6 +67,11 @@ export function evaluateControlAssuranceB({
     assert(SHA_RE.test(currentSha),'current execution HEAD is not exact');
     assert(!expectedSha || SHA_RE.test(expectedSha),'expected SHA is not exact');
     assert(currentSha.toLowerCase() === expectedSha.toLowerCase(),'tested SHA != current execution HEAD');
+    if (process.env.GITHUB_ACTIONS === 'true') {
+      const live = liveExecutionHead(root);
+      assert(SHA_RE.test(live),'live execution ref did not resolve to an exact SHA');
+      assert(live.toLowerCase() === currentSha.toLowerCase(),'live execution branch drifted during verification');
+    }
     assert(!workflow.includes('refs/heads/main'),'discovery workflow contains main target');
   }));
 
