@@ -47,11 +47,13 @@ export function validateKnowledgeSnapshot(snapshot, { currentSha, now = Date.now
 }
 
 export function writeImmutableFile(path, content) {
-  if (existsSync(path)) {
+  try {
+    writeFileSync(path, content, { encoding: 'utf8', flag: 'wx' });
+    return { created: true, identical: false };
+  } catch (error) {
+    if (error?.code !== 'EEXIST') throw error;
     const existing = readFileSync(path, 'utf8');
     if (existing !== content) throw new Error('IMMUTABLE_KNOWLEDGE_SNAPSHOT_COLLISION:' + path);
     return { created: false, identical: true };
   }
-  writeFileSync(path, content, 'utf8');
-  return { created: true, identical: false };
 }
