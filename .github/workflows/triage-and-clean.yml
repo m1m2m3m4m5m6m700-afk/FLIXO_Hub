@@ -1,5 +1,5 @@
 name: FLIXO Agent-3 Triage and Clean
-# Agent-3 exact-SHA CI marker: rerun after every control-plane correction.
+# Read-only candidate analysis; publication is isolated to a privileged job that never executes candidate scripts.
 
 on:
   push:
@@ -17,7 +17,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: flixo-agent3-triage-clean
@@ -26,6 +26,8 @@ concurrency:
 jobs:
   pipeline:
     name: Agent-3 mandatory triage pipeline
+    permissions:
+      contents: read
     env:
       FLIXO_TARGET_BRANCH: execution
     runs-on: ubuntu-latest
@@ -36,7 +38,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
-          persist-credentials: true
+          persist-credentials: false
 
       - name: Setup Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
@@ -57,7 +59,7 @@ jobs:
             git fetch origin execution --no-tags
             TARGET_SHA="$(git rev-parse refs/remotes/origin/execution)"
           fi
-          test -n "$TARGET_SHA"
+          test "$TARGET_SHA" =~ ^[0-9a-f]{40}$
           git checkout --detach "$TARGET_SHA"
           test "$(git rev-parse HEAD)" = "$TARGET_SHA"
           echo "sha=$TARGET_SHA" >> "$GITHUB_OUTPUT"
@@ -100,10 +102,13 @@ jobs:
           set -euo pipefail
           rm -f .agent-intelligence/validated/validator-results.json
 
-      - name: Reject unexpected mutation surface
+      - name: Create immutable publication patch
         shell: bash
         run: |
           set -euo pipefail
+          TARGET_SHA="$(git rev-parse HEAD)"
+          printf '%s\n' "$TARGET_SHA" > agent3-publication-sha.txt
+          git diff --binary --full-index > agent3-publication.patch
           git diff --name-only > agent3-changed-files.txt
           while IFS= read -r path; do
             [ -z "$path" ] && continue
@@ -117,16 +122,91 @@ jobs:
             esac
           done < agent3-changed-files.txt
 
-      - name: Reconcile execution before publication
-        if: github.event_name != 'pull_request'
+      - name: Upload exact-SHA publication evidence
+        if: always() && github.event_name != 'pull_request'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: flixo-agent3-publication-${{ github.run_id }}
+          path: |
+            agent3-publication.patch
+            agent3-publication-sha.txt
+            agent3-changed-files.txt
+            agent3-stage-results.txt
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload PR evidence
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: flixo-agent3-pr-${{ github.run_id }}
+          path: agent3-stage-results.txt
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Enforce no-false-green
         shell: bash
         run: |
           set -euo pipefail
-          git fetch origin execution --no-tags
-          test "$(git rev-parse refs/remotes/origin/execution)" = "${{ steps.target.outputs.sha }}"
+          test -s agent3-stage-results.txt
+          grep -q '^ValidatorAdmission=PASS$' agent3-stage-results.txt
+          grep -q '^TriageDedupPriorityQueue=PASS$' agent3-stage-results.txt
+          grep -q '^ReaperTTLSuppression=PASS$' agent3-stage-results.txt
+          grep -q '^GeneratedViewAndStateAudit=PASS$' agent3-stage-results.txt
+          ! grep -q '=FAIL$' agent3-stage-results.txt
 
-      - name: Publish generated state to execution
-        if: github.event_name != 'pull_request'
+  publish:
+    name: Publish precomputed Agent-3 mutation only
+    needs: pipeline
+    if: ${{ github.event_name != 'pull_request' && needs.pipeline.result == 'success' }}
+    permissions:
+      contents: write
+    env:
+      FLIXO_TARGET_BRANCH: execution
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout current execution head
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          ref: execution
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Download exact-SHA publication patch
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: flixo-agent3-publication-${{ github.run_id }}
+          path: agent3-publication
+
+      - name: Verify publication lineage and scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXPECTED_SHA="$(cat agent3-publication/agent3-publication-sha.txt)"
+          test "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$
+          git fetch origin execution --no-tags
+          CURRENT_SHA="$(git rev-parse refs/remotes/origin/execution)"
+          test "$CURRENT_SHA" = "$EXPECTED_SHA"
+          cp agent3-publication/agent3-publication.patch /tmp/agent3-publication.patch
+          git apply --check /tmp/agent3-publication.patch
+          git apply /tmp/agent3-publication.patch
+          git diff --name-only > /tmp/agent3-applied-files.txt
+          while IFS= read -r path; do
+            [ -z "$path" ] && continue
+            case "$path" in
+              .agent-intelligence/review-queue/*|.agent-intelligence/graveyard/*|.agent-intelligence/handoffs/*|التطوير.md)
+                ;;
+              *)
+                echo "FAIL_CLOSED: unexpected applied mutation: $path"
+                exit 1
+                ;;
+            esac
+          done < /tmp/agent3-applied-files.txt
+
+      - name: Publish with explicit ephemeral authorization
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
@@ -140,46 +220,13 @@ jobs:
           git diff --cached --quiet && echo "NO_STAGED_MUTATIONS=PASS" && exit 0
           git commit -m "chore(agent3): reconcile triage queue"
           git fetch origin execution --no-tags
-          test "$(git rev-parse refs/remotes/origin/execution)" = "${{ steps.target.outputs.sha }}"
-          git push origin "HEAD:execution"
+          test "$(git rev-parse refs/remotes/origin/execution)" = "$(git rev-parse HEAD^)"
+          git -c "http.extraheader=AUTHORIZATION: bearer $GITHUB_TOKEN" push origin "HEAD:execution"
 
-      - name: Verify resulting exact SHA without mutation
+      - name: Verify resulting exact SHA
         shell: bash
         run: |
           set -euo pipefail
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            RESULT_SHA="${{ steps.target.outputs.sha }}"
-            test "$(git rev-parse HEAD)" = "$RESULT_SHA"
-          else
-            git fetch origin execution --no-tags
-            RESULT_SHA="$(git rev-parse refs/remotes/origin/execution)"
-            git checkout --detach "$RESULT_SHA"
-            test "$(git rev-parse HEAD)" = "$RESULT_SHA"
-          fi
-          python3 .agent-intelligence/scripts/triage.py verify
-          {
-            echo "AGENT3_RESULT_SHA=$RESULT_SHA"
-            cat agent3-stage-results.txt
-          } > agent3-evidence.txt
-
-      - name: Upload exact-SHA Agent-3 evidence
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: flixo-agent3-triage-${{ github.run_id }}
-          path: |
-            agent3-stage-results.txt
-            agent3-evidence.txt
-          if-no-files-found: error
-          retention-days: 30
-
-      - name: Enforce no-false-green
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -s agent3-stage-results.txt
-          grep -q '^ValidatorAdmission=PASS$' agent3-stage-results.txt
-          grep -q '^TriageDedupPriorityQueue=PASS$' agent3-stage-results.txt
-          grep -q '^ReaperTTLSuppression=PASS$' agent3-stage-results.txt
-          grep -q '^GeneratedViewAndStateAudit=PASS$' agent3-stage-results.txt
-          ! grep -q '=FAIL$' agent3-stage-results.txt
+          git fetch origin execution --no-tags
+          RESULT_SHA="$(git rev-parse refs/remotes/origin/execution)"
+          test "$(git rev-parse HEAD)" = "$RESULT_SHA" 
