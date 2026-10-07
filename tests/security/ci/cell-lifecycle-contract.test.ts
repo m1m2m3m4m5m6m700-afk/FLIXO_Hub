@@ -420,6 +420,72 @@ test("CELL replan recovery resets stale downstream state and preserves task/miss
   assert.equal(snapshot.admission?.assignmentId, "team-101");
 });
 
+test("CELL replan retires old artifact identities and forbids cross-attempt replay", () => {
+  const lifecycle = new CellLifecycleRuntime(() => 4000);
+  const first = makeEnvelope();
+  lifecycle.admit(first);
+  lifecycle.lockPair();
+  lifecycle.recordOpponentIndependentStart("opponent-100", SHA, "c".repeat(64));
+  lifecycle.discloseSolverResult(SHA);
+  lifecycle.startFalsification();
+  lifecycle.recordClaim({
+    claimId: "claim-retired",
+    assignmentId: "team-100",
+    solverId: "solver-100",
+    statement: "old claim",
+    candidateSha: SHA,
+    evidenceIds: ["e-retired"],
+  });
+  lifecycle.recordEvidence({
+    evidenceId: "e-retired",
+    sourceSha: SHA,
+    candidateSha: SHA,
+    kind: "CLAIM_SUPPORT",
+    summary: "old evidence",
+    independent: false,
+  });
+
+  lifecycle.replan({
+    ...first,
+    assignmentId: "team-replan-1",
+    assignment: Object.freeze({
+      ...first.assignment,
+      assignmentId: "team-replan-1",
+      solverId: "solver-replan-1",
+      opponentId: "opponent-replan-1",
+    }),
+  });
+
+  lifecycle.lockPair();
+  lifecycle.recordOpponentIndependentStart("opponent-replan-1", SHA, "d".repeat(64));
+  lifecycle.discloseSolverResult(SHA);
+  lifecycle.startFalsification();
+
+  assert.throws(
+    () => lifecycle.recordClaim({
+      claimId: "claim-retired",
+      assignmentId: "team-replan-1",
+      solverId: "solver-replan-1",
+      statement: "replayed old identity",
+      candidateSha: SHA,
+      evidenceIds: ["e-retired"],
+    }),
+    /CELL_CLAIM_ID_RETIRED/,
+  );
+  assert.throws(
+    () => lifecycle.recordEvidence({
+      evidenceId: "e-retired",
+      sourceSha: SHA,
+      candidateSha: SHA,
+      kind: "CLAIM_SUPPORT",
+      summary: "replayed old evidence",
+      independent: false,
+    }),
+    /CELL_EVIDENCE_ID_RETIRED/,
+  );
+});
+
+
 
 test("CELL opponent independence proof is immutable, timestamped, and verifier-bound", () => {
   const lifecycle = new CellLifecycleRuntime(() => 4321);
