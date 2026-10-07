@@ -139,8 +139,7 @@ test("admission gate blocks missing task, agent, solver, capability, scope, SHA,
   const stale = seed({ taskSha: SHA2 });
   assert.throws(() => stale.admit(), /ADMISSION_BLOCK:STARTING_SHA_INVALID/);
 
-  const invalidTask = seed();
-  invalidTask.rt.tasks.get("TASK-1").valid = false;
+  const invalidTask = seed({ taskValid: false });
   assert.throws(() => invalidTask.admit(), /ADMISSION_BLOCK:TASK_INVALID/);
 });
 
