@@ -29,6 +29,7 @@ import {
   evaluateProgress,
   validateTypedHandoff,
   type AssignmentQuartet,
+  type AssignmentTeam,
   type ProgressObservation,
   type ReplanDecision,
   type TypedHandoff,
@@ -54,6 +55,12 @@ export type RuntimeAssignment = Readonly<{
   version: number;
 }>;
 
+export type RuntimeAssignmentTeam = Readonly<{
+  taskId: string;
+  team: AssignmentTeam;
+  version: number;
+}>;
+
 export type RuntimeBudget = Readonly<{ spentCost: number; spentDurationMs: number }>;
 
 export type RuntimeActionRecord = Readonly<ExecutionAction & {
@@ -66,6 +73,7 @@ export class CellRuntime {
   private readonly tasks = new Map<string, RuntimeTask>();
   private readonly candidates = new Map<string, RuntimeCandidate>();
   private readonly assignments = new Map<string, RuntimeAssignment>();
+  private readonly assignmentTeams = new Map<string, RuntimeAssignmentTeam>();
   private readonly handoffs = new Map<string, TypedHandoff>();
   private readonly progress = new Map<string, ProgressObservation[]>();
   private readonly budgets = new Map<string, RuntimeBudget>();
@@ -177,6 +185,14 @@ export class CellRuntime {
     return record;
   }
 
+  assignTaskTeam(taskId: string, team: AssignmentTeam): RuntimeAssignmentTeam {
+    const task = this.getTask(taskId);
+    if (task.state !== "READY") throw new Error("ASSIGNMENT_REQUIRES_READY_TASK");
+    if (this.assignmentTeams.has(team.assignmentId)) throw new Error("ASSIGNMENT_ALREADY_EXISTS");
+    const record = Object.freeze({ taskId, team, version: 0 });
+    this.assignmentTeams.set(team.assignmentId, record);
+    return record;
+  }
   getAssignment(assignmentId: string): RuntimeAssignment {
     const assignment = this.assignments.get(assignmentId);
     if (!assignment) throw new Error("ASSIGNMENT_NOT_FOUND");
