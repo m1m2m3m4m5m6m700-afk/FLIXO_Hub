@@ -4,6 +4,16 @@ on:
   push:
     branches:
       - execution
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'tests/official/**'
+      - 'testsprite/**'
+      - '.testsprite/**'
+      - 'scripts/ci/testsprite-fallback.mjs'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/testsprite-execution.yml'
   workflow_dispatch:
 
 concurrency:
