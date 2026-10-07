@@ -12,14 +12,27 @@ test("CALL has the complete declared model pool", () => {
   assert.equal(new Set(CALL_MODEL_CATALOG.map((m) => m.modelId)).size, 57);
 });
 
-test("GLM-5.3 is the fixed CALL Master", () => {
+test("GLM-5.3 is the sole CALL Master", () => {
   assert.equal(getCallAgentModel("master")?.modelId, "GLM-5.3");
   assert.equal(routeCallTask({
     taskId: "mission-1",
     kind: "plan",
     requiredCapabilities: ["reasoning", "planning"],
   }).modelId, "GLM-5.3");
+  assert.notEqual(getCallAgentModel("master-opponent")?.modelId, undefined);
 });
+
+test("Master opposition is a separate non-authoritative agent", () => {
+  const assignment = routeCallTask({
+    taskId: "mission-1-master-opposition",
+    kind: "oppose-master",
+    requiredCapabilities: ["reasoning", "analysis"],
+  });
+  assert.equal(assignment.agentId, "master-opponent");
+  assert.equal(assignment.modelRole, "opponent");
+  assert.notEqual(assignment.modelId, "GLM-5.3");
+
+  test("tasks are routed to specialized agents", () => {});
 
 test("tasks are routed to specialized agents", () => {
   assert.equal(routeCallTask({taskId:"b",kind:"build",requiredCapabilities:["coding"]}).agentId, "builder");
