@@ -6,8 +6,6 @@ import { evaluateAgentDrill } from './run-role-drills.mjs';
 import { AGENTS as TRAINING_AGENTS, assertSha } from './self-learning-control-plane.mjs';
 
 const ROOT = process.cwd();
-const SHA_RE = /^[0-9a-f]{40}$/i;
-
 const ROLE_RULES = {
   'المستكشف AI': {
     contract:'الوكلاء/المستكشف AI/المستكشف.md',
