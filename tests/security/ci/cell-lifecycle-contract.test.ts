@@ -635,3 +635,115 @@ test("CELL frontier is downstream-only and cannot mutate promotion state", () =>
   assert.throws(() => lifecycle.openFrontier({ frontierId: "frontier-before", proposerId: "research", hypothesis: "premature", expectedImprovement: 0.1, informationGain: 0.1, risk: 0.1, reversible: true, nextTaskProposal: "next" }), /CELL_STAGE_INVALID:ADMITTED/);
   assert.equal(lifecycle.snapshot().promotion, null);
 });
+
+
+test("CELL replay matrix rejects candidate, verification, and certification replays fail-closed", () => {
+  const lifecycle = new CellLifecycleRuntime(() => 6000);
+  const envelope = makeEnvelope();
+  lifecycle.admit(envelope);
+  lifecycle.lockPair();
+  lifecycle.recordOpponentIndependentStart("opponent-100", SHA, "e".repeat(64));
+  lifecycle.discloseSolverResult(SHA);
+  lifecycle.startFalsification();
+  lifecycle.recordClaim({
+    claimId: "claim-replay-matrix",
+    assignmentId: "team-100",
+    solverId: "solver-100",
+    statement: "candidate claim",
+    candidateSha: SHA,
+    evidenceIds: ["e-replay-matrix-claim"],
+  });
+  lifecycle.recordEvidence({
+    evidenceId: "e-replay-matrix-claim",
+    sourceSha: SHA,
+    candidateSha: SHA,
+    kind: "CLAIM_SUPPORT",
+    summary: "candidate claim evidence",
+    independent: false,
+  });
+  lifecycle.recordCounterclaim({
+    counterclaimId: "counter-replay-matrix",
+    assignmentId: "team-100",
+    opponentId: "opponent-100",
+    claimId: "claim-replay-matrix",
+    statement: "candidate challenge",
+    candidateSha: SHA,
+    evidenceIds: ["e-replay-matrix-counter"],
+  });
+  lifecycle.recordEvidence({
+    evidenceId: "e-replay-matrix-counter",
+    sourceSha: SHA,
+    candidateSha: SHA,
+    kind: "DISPROOF",
+    summary: "candidate challenge evidence",
+    independent: true,
+  });
+  lifecycle.reconcile([], SHA);
+  lifecycle.createCandidate({
+    candidateId: "candidate-replay-matrix",
+    candidateSha: SHA,
+    solverResult: "candidate result",
+    opponentChallenge: "candidate challenge",
+    exchangeComplete: true,
+    conflictsDispositioned: true,
+    evidenceIds: ["e-replay-matrix-claim", "e-replay-matrix-counter"],
+    handoffRefs: ["handoff:replay-matrix"],
+  });
+
+  assert.throws(
+    () => lifecycle.createCandidate({
+      candidateId: "candidate-replay-matrix",
+      candidateSha: SHA,
+      solverResult: "replayed candidate",
+      opponentChallenge: "replayed challenge",
+      exchangeComplete: true,
+      conflictsDispositioned: true,
+      evidenceIds: ["e-replay-matrix-claim", "e-replay-matrix-counter"],
+      handoffRefs: ["handoff:replay-matrix-replayed"],
+    }),
+    /CELL_STAGE_INVALID:CANDIDATE/,
+  );
+
+  lifecycle.redTeamReview({
+    redTeamId: "red-replay-matrix",
+    redTeamAgentId: "red-team-replay-matrix",
+    attackSurfaceChecks: ["replay"],
+    findings: [],
+    passed: true,
+  });
+  lifecycle.independentlyVerify({
+    verificationId: "verify-replay-matrix",
+    verifierId: "verifier-100",
+    evidenceIds: ["e-replay-matrix-claim", "e-replay-matrix-counter"],
+    checks: ["candidate replay", "evidence", "exact SHA"],
+    passed: true,
+  });
+
+  assert.throws(
+    () => lifecycle.independentlyVerify({
+      verificationId: "verify-replay-matrix",
+      verifierId: "verifier-100",
+      evidenceIds: ["e-replay-matrix-claim"],
+      checks: ["replayed verification"],
+      passed: true,
+    }),
+    /CELL_STAGE_INVALID:VERIFIED/,
+  );
+
+  lifecycle.certify({
+    certificationId: "cert-replay-matrix",
+    certifierId: "certifier-replay-matrix",
+    governanceRef: "governance:replay-matrix",
+    passed: true,
+  });
+
+  assert.throws(
+    () => lifecycle.certify({
+      certificationId: "cert-replay-matrix",
+      certifierId: "certifier-replay-matrix",
+      governanceRef: "governance:replay-matrix",
+      passed: true,
+    }),
+    /CELL_STAGE_INVALID:CERTIFIED/,
+  );
+});
