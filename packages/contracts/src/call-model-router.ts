@@ -1,9 +1,9 @@
 /**
  * CALL deterministic model-to-agent router v1.
  *
- * GLM-5.3 is the sole Master. master-opponent is a deliberately separate
- * adversarial peer with no planning, execution, verification, certification,
- * or governance authority. Routing is capability selection, never authority.
+ * GLM-5.3 is the sole Master. The second roster agent is the independent
+ * Opponent, with no planning, certification, or governance authority.
+ * Routing is capability selection, never authority.
  */
 
 import {
