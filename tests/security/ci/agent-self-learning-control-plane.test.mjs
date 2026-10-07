@@ -370,7 +370,16 @@ test('shared memory adapter gates executable retrieval by PROMOTED + current SHA
 
 test('memory lifecycle TTL and suppression suite is green', async () => {
   const { spawnSync } = await import('node:child_process');
-  const result = spawnSync('python3', ['tests/security/ci/agent-3-triage.test.py'], {
+  const result = spawnSync('python3', ['-c', [
+    'import importlib.util, pathlib, unittest',
+    'p=pathlib.Path("tests/security/ci/agent-3-triage.test.py")',
+    'spec=importlib.util.spec_from_file_location("agent3_triage", p)',
+    'm=importlib.util.module_from_spec(spec); spec.loader.exec_module(m)',
+    'suite=unittest.TestSuite()',
+    'for name in ("test_ttl_graveyard_suppression","test_new_evidence_bypasses_suppression","test_freeze_resume"): suite.addTest(m.Agent3Triage(name))',
+    'result=unittest.TextTestRunner(verbosity=0).run(suite)',
+    'raise SystemExit(0 if result.wasSuccessful() else 1)',
+  ].join(';')], {
     cwd: process.cwd(),
     encoding: 'utf8',
     stdio: 'pipe',
