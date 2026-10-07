@@ -24,6 +24,7 @@ import {
   type ExecutionIdentityProbe,
   type ProgressMetrics,
 } from "./cell-hard-control";
+import { CellLivenessRuntime, type CellLivenessOptions, type CellLivenessSnapshot, type CellLivenessTaskRecord } from "./cell-liveness";
 import { CellLifecycleRuntime, type CellAdmissionEnvelope, type CellAdmissionRecord, type CellArbitrationRecord, type CellCandidateHandoff, type CellCertificationRecord, type CellClaim, type CellCounterclaim, type CellEvidence, type CellFrontierProposal, type CellLearningInput, type CellPromotionRecord, type CellRedTeamRecord, type CellReconciliationRecord, type CellVerificationRecord } from "./cell-lifecycle";
 import {
   decideProgressAction,
@@ -135,10 +136,22 @@ export class CellRuntime {
   private readonly opponentIndependentStarts = new Map<string, OpponentIndependentStartProof>();
   private readonly solverDisclosures = new Map<string, SolverResultDisclosureProof>();
   private readonly cellLifecycle: CellLifecycleRuntime;
+  private readonly cellLiveness: CellLivenessRuntime;
 
-  constructor(clock: () => number = () => Date.now()) {
+  constructor(clock: () => number = () => Date.now(), livenessOptions: Omit<CellLivenessOptions, "clock"> = {}) {
     this.clock = clock;
     this.cellLifecycle = new CellLifecycleRuntime(this.clock);
+    this.cellLiveness = new CellLivenessRuntime({ ...livenessOptions, clock: this.clock });
+  }
+
+  private observeTaskForLiveness(task: RuntimeTask, currentSha?: string | null): void {
+    this.cellLiveness.observeTask({
+      taskId: task.taskId,
+      state: task.state,
+      version: task.version,
+      checkpointId: task.checkpointId,
+      currentSha,
+    });
   }
 
   registerTask(taskId: string): RuntimeTask {
@@ -151,6 +164,7 @@ export class CellRuntime {
       lease: null,
     });
     this.tasks.set(taskId, task);
+    this.observeTaskForLiveness(task);
     return task;
   }
 
@@ -172,6 +186,7 @@ export class CellRuntime {
       version: current.version + 1,
     });
     this.tasks.set(taskId, next);
+    this.observeTaskForLiveness(next);
     return next;
   }
 
@@ -221,6 +236,7 @@ export class CellRuntime {
         checkpointId,
       });
       this.tasks.set(taskId, checkpointed);
+      this.observeTaskForLiveness(checkpointed);
       return checkpointed;
     }
     const next = Object.freeze({
@@ -229,6 +245,7 @@ export class CellRuntime {
       version: current.version + 1,
     });
     this.tasks.set(taskId, next);
+    this.observeTaskForLiveness(next);
     return next;
   }
 
@@ -271,6 +288,7 @@ export class CellRuntime {
       reason:null,
     });
     this.assignments.set(assignment.assignmentId,record);
+    this.observeTaskForLiveness(task, assignment.currentSha);
     return record;
   }
 
@@ -287,6 +305,7 @@ export class CellRuntime {
       reason:null,
     });
     this.assignmentTeams.set(team.assignmentId,record);
+    this.observeTaskForLiveness(task, team.currentSha);
     return record;
   }
 
@@ -308,6 +327,7 @@ export class CellRuntime {
       reason:reason.trim(),
     });
     this.assignments.set(assignment.assignmentId,record);
+    this.observeTaskForLiveness(task, assignment.currentSha);
     return record;
   }
 
@@ -331,6 +351,7 @@ export class CellRuntime {
       reason:reason.trim(),
     });
     this.assignmentTeams.set(team.assignmentId,record);
+    this.observeTaskForLiveness(task, team.currentSha);
     return record;
   }
 
@@ -585,6 +606,7 @@ export class CellRuntime {
     const history = this.progress.get(observation.taskId) ?? [];
     const next = [...history, observation];
     this.progress.set(observation.taskId, next);
+    this.cellLiveness.recordProgress(observation.taskId, observation.progressPercent, observation.observedAtMs, observation.lastEvidenceAtMs);
     const state = evaluateProgress(next, this.clock(), 500);
     const previousStalls = history.filter((entry) => entry.state === "STALLED").length;
     return decideProgressAction(state, previousStalls);
@@ -624,6 +646,49 @@ export class CellRuntime {
     this.candidates.set(candidateId, next);
     return next;
   }
+  startCellLiveness(): void { this.cellLiveness.start(); }
+
+  tickCellLiveness(nowMs = this.clock()): CellLivenessSnapshot {
+    return this.cellLiveness.tick(nowMs);
+  }
+
+  stopCellLiveness(): void { this.cellLiveness.stop(); }
+
+  getCellLivenessSnapshot(): CellLivenessSnapshot { return this.cellLiveness.snapshot(); }
+
+  getOpenCellTasks(): readonly CellLivenessTaskRecord[] { return this.cellLiveness.getOpenTasks(); }
+
+  recoverPersistedCellTasks(): readonly RuntimeTask[] {
+    const paths: Readonly<Record<TaskState, readonly TaskState[]>> = {
+      PLANNED: [], READY: ["READY"], CLAIMED: ["READY", "CLAIMED"],
+      RUNNING: ["READY", "CLAIMED", "RUNNING"],
+      CHECKPOINTED: ["READY", "CLAIMED", "RUNNING", "CHECKPOINTED"],
+      VERIFYING: ["READY", "CLAIMED", "RUNNING", "VERIFYING"],
+      VERIFIED: ["READY", "CLAIMED", "RUNNING", "VERIFYING", "VERIFIED"],
+      PROMOTABLE: ["READY", "CLAIMED", "RUNNING", "VERIFYING", "VERIFIED", "PROMOTABLE"],
+      PROMOTED: ["READY", "CLAIMED", "RUNNING", "VERIFYING", "VERIFIED", "PROMOTABLE", "PROMOTED"],
+      FAILED: ["READY", "CLAIMED", "RUNNING", "FAILED"],
+      BLOCKED: ["BLOCKED"], ABANDONED: ["ABANDONED"],
+    };
+    const recovered: RuntimeTask[] = [];
+    for (const persisted of this.cellLiveness.getOpenTasks()) {
+      if (this.tasks.has(persisted.taskId)) continue;
+      let task = this.registerTask(persisted.taskId);
+      for (const state of paths[persisted.state]) task = this.transitionTask(persisted.taskId, state);
+      if (persisted.checkpointId) {
+        task = Object.freeze({ ...task, checkpointId: persisted.checkpointId, version: persisted.version });
+        this.tasks.set(persisted.taskId, task);
+        this.observeTaskForLiveness(task, persisted.currentSha);
+      } else if (task.version !== persisted.version) {
+        task = Object.freeze({ ...task, version: persisted.version });
+        this.tasks.set(persisted.taskId, task);
+        this.observeTaskForLiveness(task, persisted.currentSha);
+      }
+      recovered.push(task);
+    }
+    return Object.freeze(recovered);
+  }
+
   // Canonical CELL lifecycle is hosted by this runtime; it does not create a second authority.
   admitCell(envelope: CellAdmissionEnvelope) {
     return this.cellLifecycle.admit(envelope);
