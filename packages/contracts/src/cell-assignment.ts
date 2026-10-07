@@ -300,7 +300,7 @@ export function selectAssignmentTeam(input: Readonly<{
     solverAgentId: solver.agentId,
     backupSolverAgentId: backupSolver.agentId,
     opponentAgentId: opponent.agentId,
-    backupOpponentAgentId: backupOpponent,
+    backupOpponentAgentId: backupOpponent?.agentId ?? null,
     verifierAgentId: verifier,
     escalationTargetAgentId: escalation,
     startingSha: input.lineage.startingSha,
