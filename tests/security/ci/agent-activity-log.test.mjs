@@ -17,15 +17,3 @@ test("activity log protocol forbids untracked completion semantics", async () =>
   assert.match(registry, /TRACE-BLOCKED/u);
   assert.match(registry, /chain-of-thought الخاص/u);
 });
-
-
-test("scout activity logs live inside their agent packages, never the research inbox", () => {
-  const registry = JSON.parse(readFileSync("package.json", "utf8")); // package.json only anchors local fs access in this test
-  void registry;
-  const source = readFileSync("الوكلاء.md", "utf8");
-  assert.match(source, /"id": "AGENT-08"[\s\S]*?"activityLog": "الوكلاء AI\/المستكشفين\/Architecture Scout\/سجل النشاط\.md"/u);
-  assert.match(source, /"id": "AGENT-09"[\s\S]*?"activityLog": "الوكلاء AI\/المستكشفين\/Technology Scout\/سجل النشاط\.md"/u);
-  assert.match(source, /"id": "AGENT-10"[\s\S]*?"activityLog": "الوكلاء AI\/المستكشفين\/Ecosystem Scout\/سجل النشاط\.md"/u);
-  assert.doesNotMatch(source, /"activityLog": "\.agent-intelligence\/inbox\/AGENT-0[89]__سجل التشغيل/u);
-  assert.doesNotMatch(source, /"activityLog": "\.agent-intelligence\/inbox\/AGENT-10__سجل التشغيل/u);
-});

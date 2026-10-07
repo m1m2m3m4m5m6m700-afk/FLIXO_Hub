@@ -248,17 +248,10 @@ async function publish(queueId, worktree, targetSha, candidateSha) {
   }
 
   try {
-    const { token } = config();
     execFileSync('git', ['push', '--porcelain', 'origin', `HEAD:refs/heads/${BRANCH}`], {
       cwd: worktree,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
-      env: {
-        ...process.env,
-        GIT_CONFIG_COUNT: '1',
-        GIT_CONFIG_KEY_0: 'http.extraheader',
-        GIT_CONFIG_VALUE_0: `AUTHORIZATION: bearer ${token}`,
-      },
     });
   } catch (error) {
     const detail = String(error?.stderr ?? error?.message ?? error).slice(0, 2000);

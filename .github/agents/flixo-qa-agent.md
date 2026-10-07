@@ -1,6 +1,5 @@
 ---
 name: FLIXO QA Agent
-display_name: ضابط الجودة AI
 description: Runs deterministic tests and verifies exact-SHA evidence without changing release governance.
 tools: read, search, terminal
 agent_id: AGENT-05
@@ -9,10 +8,10 @@ principal: true
 registry_ref: الوكلاء.md#AGENT-05
 mission: verification
 read_scope: repository
-write_scope: الوكلاء AI/QA Agent/التقارير/
+write_scope: الوكلاء/QA Agent/التقارير/
 execution_scope: execution-read-analysis
 forbidden_actions: source-mutation;test-mutation;workflow-mutation;governance-mutation;task-ledger-mutation;agent-profile-mutation;merge;deploy;certify;self-certification;main-mutation;out-of-scope-write
-report_scope: الوكلاء AI/QA Agent/التقارير/
+report_scope: الوكلاء/QA Agent/التقارير/
 evidence_contract: exact-sha;command-or-action;result;artifact-reference;negative-case
 lifecycle: READY-TEST
 delegation_policy: DENY_ALL

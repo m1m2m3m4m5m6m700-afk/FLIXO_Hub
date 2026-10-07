@@ -30,7 +30,7 @@ test('the harness rejects evidence from a different SHA', () => {
 
 test('a complete repository-knowledge drill reaches 100', () => {
   const result = scoreSubmission({
-    agent: 'المستكشف المعرفي AI',
+    agent: 'المستكشف AI',
     drill: 'repository-knowledge',
     exactSha: SHA,
     evidence: ['report.md:L10-L20'],
@@ -49,7 +49,7 @@ test('a complete repository-knowledge drill reaches 100', () => {
 test('a lesson stays candidate until independent confirmation, repeats, and regression exist', () => {
   const candidate = buildExperience({
     id: 'exp-001',
-    agent: 'المستكشف المعرفي AI',
+    agent: 'المستكشف AI',
     exactSha: SHA,
     drill: 'repository-knowledge',
     result: 'failure',
@@ -66,7 +66,7 @@ test('a lesson stays candidate until independent confirmation, repeats, and regr
 test('lesson evidence becomes stale after the execution SHA changes', () => {
   const candidate = buildExperience({
     id: 'exp-002',
-    agent: 'ضابط الجودة AI',
+    agent: 'FLIXO QA Agent',
     exactSha: SHA,
     drill: 'verification',
     result: 'pass',
@@ -79,7 +79,7 @@ test('lesson evidence becomes stale after the execution SHA changes', () => {
 test('knowledge that changes repository authority can never be promoted', () => {
   const candidate = buildExperience({
     id: 'exp-003',
-    agent: 'المهاجم الأمني AI',
+    agent: 'Red Team 1',
     exactSha: SHA,
     drill: 'independent-challenge',
     result: 'finding',
@@ -97,23 +97,23 @@ test('adjudication vocabulary is finite and explicit', () => {
 });
 test('the principal training matrix is exactly ten and excludes the supporting Explorer-2 role', async () => {
   const { AGENTS } = await import('../../../scripts/agent-learning/self-learning-control-plane.mjs');
-  assert.equal(AGENTS.length, 14);
+  assert.equal(AGENTS.length, 10);
   assert.equal(AGENTS.some(a => a.name === 'المستكشف 2'), false);
   assert.deepEqual(AGENTS.slice(0, 7).map(a => a.name), [
-    'المستكشف المعرفي AI',
-    'المطور الهندسي AI',
-    'مُعرّب المنصة AI',
-    'حارس المستودع AI',
-    'ضابط الجودة AI',
-    'المهاجم الأمني AI',
-    'المُفنّد المضاد AI',
+    'المستكشف AI',
+    'المطور AI',
+    'FLIXO i18n Agent',
+    'FLIXO Repository Maintainer Agent',
+    'FLIXO QA Agent',
+    'Red Team 1',
+    'Red Team 2',
   ]);
 });
 
 test('Scout submissions fail closed on non-inbox status and certification escalation', async () => {
   const { validateSubmission } = await import('../../../scripts/agent-learning/self-learning-control-plane.mjs');
   const base = {
-    agent: 'مستكشف التقنية AI',
+    agent: 'FLIXO Technology Scout',
     drill: 'technology-research',
     exactSha: SHA,
     snapshotSha: SHA,
@@ -142,7 +142,7 @@ test('Scout submissions fail closed on non-inbox status and certification escala
 test('role submissions reject cross-agent drill identity and unknown agents', async () => {
   const { validateSubmission } = await import('../../../scripts/agent-learning/self-learning-control-plane.mjs');
   const crossAgent = {
-    agent: 'المهاجم الأمني AI',
+    agent: 'Red Team 1',
     drill: 'maintenance',
     exactSha: SHA,
     evidence: ['e'],

@@ -153,10 +153,6 @@ export function analyzeWorkflowAuthority(path, workflow) {
     const isolatedDiscoveryTarget =
       /git\s+switch\s+--create\s+"?scout\/discovery-\$GITHUB_RUN_ID"?/u.test(jobText) &&
       /git\s+push\s+origin\s+"?HEAD:scout\/discovery-\$GITHUB_RUN_ID"?/u.test(jobText);
-    const trustedControllerTarget =
-      path.endsWith('/patch-capsule-controller.yml') &&
-      /FLIXO_TARGET_BRANCH:\s*execution\b/u.test(jobText) &&
-      /ref:\s*main\b/u.test(jobText);
     const executionPreviewTarget =
       path.endsWith('/ui-preview.yml') &&
       /PREVIEW_WORKER_NAME:/u.test(jobText) &&
@@ -181,7 +177,7 @@ export function analyzeWorkflowAuthority(path, workflow) {
     const jobContentsWrite = /contents:\s*write\b/iu.test(jobText);
     if (jobContentsWrite || workflowContentsWrite) {
       const safeMainWrite = mainPushGate || workflowMainOnlyPush;
-      const safeExecutionWrite = executionTarget || isolatedKnowledgeTarget || isolatedDiscoveryTarget || trustedControllerTarget || hasExecutionOnlyMutationTarget(jobText);
+      const safeExecutionWrite = executionTarget || isolatedKnowledgeTarget || isolatedDiscoveryTarget || hasExecutionOnlyMutationTarget(jobText);
       if (!safeMainWrite && !safeExecutionWrite) {
         findings.push(
           `${path}#${job.id}: contents:write has neither an explicit main-push gate nor an execution-only mutation target.`,
