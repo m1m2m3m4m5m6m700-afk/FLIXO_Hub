@@ -117,6 +117,11 @@ function hasMainOnlyPushTrigger(workflow) {
 
   return triggerCount === 1 && mainPush;
 }
+function hasExecutionPushGate(jobText) {
+  const compact = jobText.replace(/\s+/gu, ' ');
+  return /github\.event_name\s*==\s*['"]push['"]/u.test(compact) && /github\.ref\s*==\s*['"]refs\/heads\/execution['"]/u.test(compact);
+}
+
 export function analyzeWorkflowAuthority(path, workflow) {
   const findings = [];
   const jobs = jobBlocks(workflow);
@@ -136,10 +141,18 @@ export function analyzeWorkflowAuthority(path, workflow) {
     const isolatedKnowledgeTarget =
       /FLIXO_TARGET_BRANCH:\s*knowledge\b/u.test(jobText) &&
       /git\s+push\s+origin\s+"?HEAD:knowledge"?/u.test(jobText);
+    const isolatedDiscoveryTarget =
+      /git\s+switch\s+--create\s+"?scout\/discovery-\$GITHUB_RUN_ID"?/u.test(jobText) &&
+      /git\s+push\s+origin\s+"?HEAD:scout\/discovery-\$GITHUB_RUN_ID"?/u.test(jobText);
+    const executionPreviewTarget =
+      path.endsWith('/ui-preview.yml') &&
+      /PREVIEW_WORKER_NAME:/u.test(jobText) &&
+      hasExecutionPushGate(jobText);
 
     if (
       (PRODUCTION_DEPLOYMENT_COMMAND.test(jobText) || PRODUCTION_DEPLOYMENT_ACTION.test(jobText)) &&
-      !mainPushGate
+      !mainPushGate &&
+      !executionPreviewTarget
     ) {
       findings.push(
         `${path}#${job.id}: production/deployment authority is not gated to a push of refs/heads/main.`,
@@ -155,7 +168,7 @@ export function analyzeWorkflowAuthority(path, workflow) {
     const jobContentsWrite = /contents:\s*write\b/iu.test(jobText);
     if (jobContentsWrite || workflowContentsWrite) {
       const safeMainWrite = mainPushGate || workflowMainOnlyPush;
-      const safeExecutionWrite = executionTarget || isolatedKnowledgeTarget;
+      const safeExecutionWrite = executionTarget || isolatedKnowledgeTarget || isolatedDiscoveryTarget;
       if (!safeMainWrite && !safeExecutionWrite) {
         findings.push(
           `${path}#${job.id}: contents:write has neither an explicit main-push gate nor an execution-only mutation target.`,
