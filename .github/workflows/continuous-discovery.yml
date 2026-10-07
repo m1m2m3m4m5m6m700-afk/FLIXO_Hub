@@ -93,10 +93,9 @@ jobs:
           else
             git fetch origin execution --no-tags
             EXECUTION_SHA="$(git rev-parse origin/execution)"
+            git switch --detach "$EXECUTION_SHA"
           fi
           test "$EXECUTION_SHA" =~ ^[0-9a-f]{40}$
-          git fetch origin "$EXECUTION_SHA" --depth=1
-          git switch --detach "$EXECUTION_SHA"
           test "$(git rev-parse HEAD)" = "$EXECUTION_SHA" 
           git switch --create "scout/discovery-$GITHUB_RUN_ID"
           echo "EXECUTION_SHA=$EXECUTION_SHA" >> "$GITHUB_ENV"

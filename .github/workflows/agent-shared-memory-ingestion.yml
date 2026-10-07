@@ -22,6 +22,7 @@ concurrency:
 
 jobs:
   ingest:
+    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/execution' && github.repository == 'm1m2m3m4m5m6m700-afk/FLIXO_Hub') || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/execution' && github.repository == 'm1m2m3m4m5m6m700-afk/FLIXO_Hub' && github.actor == 'm1m2m3m4m5m6m700-afk') }}
     name: Ingest evidence-backed scout proposals into shared memory
     runs-on: ubuntu-latest
     timeout-minutes: 10

@@ -33,13 +33,43 @@ test('EXACT_SHA_CONTRACT: candidate-sensitive workflows verify HEAD', () => {
     if (n !== 'release-drafter.yml') assert.match(t, /git rev-parse HEAD/, n);
   }
 });
+test('SHARED_MEMORY_DISPATCH_GATE: secret-bearing shared-memory dispatch is actor/ref/repository gated', () => {
+  const t = read('agent-shared-memory-ingestion.yml');
+  assert.match(t, /workflow_dispatch:/);
+  assert.match(t, /github\.event_name == 'workflow_dispatch'/);
+  assert.match(t, /github\.repository == 'm1m2m3m4m5m6m700-afk\/FLIXO_Hub'/);
+  assert.match(t, /github\.ref == 'refs\/heads\/execution'/);
+  assert.match(t, /github\.actor == 'm1m2m3m4m5m6m700-afk'/);
+  assert.match(t, /secrets\.SUPABASE_SERVICE_ROLE_KEY/);
+});
 test('SECRET_ISOLATION_AND_REGRESSION: provider secrets stay off generic execution', () => {
   for (const n of names()) { const t = read(n); if (!executionPush(t) || n === 'patch-capsule-controller.yml') continue; assert.doesNotMatch(t, /secrets\.(?:SUPABASE|TESTSPRITE)/i, n); }
   const p = read('patch-capsule-controller.yml'); assert.doesNotMatch(p, /    env:\s*\n[\s\S]{0,300}?secrets\.GITHUB_TOKEN/);
 });
-test('UNTRUSTED_PAYLOAD_AND_DISPATCH_REGRESSION: hostile payloads are not shell inputs', () => {
+function runBlocks(text) {
+  const lines = text.split(/\r?\n/);
+  const blocks = [];
+  for (let i = 0; i < lines.length; i += 1) {
+    if (!/^\s*run:\s*\|/.test(lines[i])) continue;
+    const indent = (lines[i].match(/^\s*/) || [''])[0].length;
+    const block = [];
+    for (let j = i + 1; j < lines.length; j += 1) {
+      const nextIndent = (lines[j].match(/^\s*/) || [''])[0].length;
+      if (lines[j].trim() !== '' && nextIndent <= indent) break;
+      block.push(lines[j]);
+    }
+    blocks.push(block.join('\n'));
+  }
+  return blocks;
+}
+
+test('UNTRUSTED_PAYLOAD_AND_DISPATCH_REGRESSION: hostile event data never enters shell source', () => {
   const hostile = ['${' + '{ github.event.issue.body }}','${' + '{ github.event.comment.body }}','${' + '{ github.event.pull_request.title }}','${' + '{ inputs.proposal }}'];
-  for (const n of names()) { const t = read(n); for (const x of hostile) assert.equal(t.includes(x), false, n + ': untrusted interpolation'); assert.doesNotMatch(t, /^\s*repository_dispatch:/m, n); }
+  for (const n of names()) {
+    const t = read(n);
+    for (const block of runBlocks(t)) for (const x of hostile) assert.equal(block.includes(x), false, n + ': hostile interpolation in run block');
+    assert.doesNotMatch(t, /^\s*repository_dispatch:/m, n);
+  }
 });
 test('PRIVILEGE_REGRESSIONS_AND_DEPLOYMENT: workflow enable is absent and execution cannot deploy prod', () => {
   for (const n of names()) { const t = read(n); assert.doesNotMatch(t, /actions:\s*write/); assert.doesNotMatch(t, /workflow[_-]?enable|enable-workflow/i);
