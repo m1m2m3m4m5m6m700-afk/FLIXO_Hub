@@ -112,7 +112,7 @@ jobs:
           while IFS= read -r path; do
             [ -z "$path" ] && continue
             case "$path" in
-              .agent-intelligence/inbox/*.yaml|.agent-intelligence/snapshots/*.json|.agent-intelligence/snapshots/*.raw|.agent-intelligence/snapshots/*.txt) ;;
+              الوكلاء/التقارير/AGENT-08 — Architecture Scout/*.yaml|الوكلاء/التقارير/AGENT-09 — Technology Scout/*.yaml|الوكلاء/التقارير/AGENT-10 — Ecosystem Scout/*.yaml|.agent-intelligence/snapshots/*.json|.agent-intelligence/snapshots/*.raw|.agent-intelligence/snapshots/*.txt) ;;
               *) echo "FAIL_CLOSED: forbidden discovery mutation: $path"; exit 1 ;;
             esac
           done <<< "$CHANGED"
@@ -128,10 +128,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git add .agent-intelligence/inbox .agent-intelligence/snapshots
+          git add "الوكلاء/التقارير/AGENT-08 — Architecture Scout" "الوكلاء/التقارير/AGENT-09 — Technology Scout" "الوكلاء/التقارير/AGENT-10 — Ecosystem Scout" .agent-intelligence/snapshots
           git diff --cached --name-only | while IFS= read -r path; do
             case "$path" in
-              .agent-intelligence/inbox/*.yaml|.agent-intelligence/snapshots/*.json|.agent-intelligence/snapshots/*.raw|.agent-intelligence/snapshots/*.txt) ;;
+              الوكلاء/التقارير/AGENT-08 — Architecture Scout/*.yaml|الوكلاء/التقارير/AGENT-09 — Technology Scout/*.yaml|الوكلاء/التقارير/AGENT-10 — Ecosystem Scout/*.yaml|.agent-intelligence/snapshots/*.json|.agent-intelligence/snapshots/*.raw|.agent-intelligence/snapshots/*.txt) ;;
               *) echo "FAIL_CLOSED: staged path outside discovery outputs: $path"; exit 1 ;;
             esac
           done

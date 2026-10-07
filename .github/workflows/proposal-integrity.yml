@@ -57,5 +57,5 @@ jobs:
           path: agent2-test-output.txt
           if-no-files-found: error
           retention-days: 7
-      - name: Validate all inbox proposals
+      - name: Validate all canonical report proposals
         run: python3 .agent-intelligence/scripts/validate.py --all --json

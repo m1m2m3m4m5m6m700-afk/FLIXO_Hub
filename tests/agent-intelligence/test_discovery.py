@@ -61,6 +61,19 @@ class DiscoveryTests(unittest.TestCase):
         b=run(self.root,self.md,self.root/"الوكلاء/التقارير",self.snaps,opener=op)
         self.assertEqual(len(list(self.report_root.glob("*.yaml"))),2);
         self.assertEqual(len(list((self.root/".agent-intelligence/inbox").glob("*.yaml"))),0); self.assertEqual(before,a[0].read_text()); self.assertNotEqual(a[0].name,b[0].name)
+    def test_report_root_must_be_canonical(self):
+        self.md.joinpath("architecture.yaml").write_text(json.dumps(self.m()),encoding="utf-8")
+        op=lambda *a,**k:resp(b"evidence")
+        with self.assertRaises(ValueError):
+            run(self.root,self.md,self.root/".agent-intelligence/inbox",self.snaps,opener=op)
+
+    def test_inbox_is_deny_only(self):
+        self.md.joinpath("architecture.yaml").write_text(json.dumps(self.m()),encoding="utf-8")
+        inbox=self.root/".agent-intelligence/inbox"; inbox.mkdir(parents=True,exist_ok=True)
+        (inbox/"rogue.yaml").write_text("forbidden",encoding="utf-8")
+        with self.assertRaises(ValueError):
+            run(self.root,self.md,self.root/"الوكلاء/التقارير",self.snaps,opener=lambda *a,**k:resp(b"evidence"))
+
     def test_empty_and_failed_source(self):
         with self.assertRaises(SnapshotError): SnapshotStore(self.snaps,opener=lambda *a,**k:resp(b"")).fetch_and_store("https://example.invalid")
         with self.assertRaises(SnapshotError): SnapshotStore(self.snaps,opener=lambda *a,**k: (_ for _ in ()).throw(OSError("network down"))).fetch_and_store("https://example.invalid")

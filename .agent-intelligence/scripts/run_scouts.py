@@ -79,7 +79,22 @@ def write_append_only(path,text):
         with Path(path).open("x",encoding="utf-8") as f: f.write(text)
     except FileExistsError as exc: raise ValueError(f"append-only collision: {path}") from exc
 
+def canonical_report_root(root, report_root):
+    canonical=(Path(root)/"الوكلاء"/"التقارير").resolve()
+    requested=Path(report_root)
+    requested=(requested if requested.is_absolute() else Path(root)/requested).resolve()
+    if requested != canonical:
+        raise ValueError("discovery report_root must be the canonical الوكلاء/التقارير center")
+    inbox=Path(root)/".agent-intelligence"/"inbox"
+    if not inbox.exists() or not inbox.is_dir() or inbox.is_symlink():
+        raise ValueError("discovery inbox deny-only sentinel is missing or unsafe")
+    unexpected=[p.name for p in inbox.iterdir() if p.name not in {".gitkeep","README.md"}]
+    if unexpected:
+        raise ValueError("discovery inbox deny-only violation: "+",".join(sorted(unexpected)))
+    return canonical
+
 def run(root,manifest_dir,report_root,snapshots_dir,opener=None):
+    canonical_root=canonical_report_root(Path(root),report_root)
     store=SnapshotStore(snapshots_dir,opener=opener); outputs=[]
     for mp in sorted(Path(manifest_dir).glob("*.yaml")):
         manifest=parse_manifest(mp)
@@ -91,7 +106,7 @@ def run(root,manifest_dir,report_root,snapshots_dir,opener=None):
                 "TECHNOLOGY":"AGENT-09 — Technology Scout",
                 "ECOSYSTEM":"AGENT-10 — Ecosystem Scout",
             }[manifest["role"]]
-            canonical_root = Path(report_root) if Path(report_root).is_absolute() else Path(root)/Path(report_root)
+            canonical_root = canonical_report_root(Path(root), report_root)
             out=canonical_root/role_dir/f"اقتراح-{proposal['id']}.yaml"
             while out.exists():
                 old=int(proposal["id"].rsplit("-",1)[1]); new=(old+1)%100_000_000

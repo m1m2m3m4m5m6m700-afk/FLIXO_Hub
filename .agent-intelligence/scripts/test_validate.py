@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-iimport json
+import json
 import sys
 import tempfile
 import unittest
@@ -37,7 +37,7 @@ def proposal_text(**overrides):
         "id": "ARCH-0042",
         "category": "architecture",
         "title": "Adopt bounded tile scheduling",
-        "status": "inbox",
+        "status": "candidate",
         "entity_key": "tile-scheduling",
         "created_at": "2026-10-07T00:00:00Z",
         "expires_at": "2099-10-07T00:00:00Z",
