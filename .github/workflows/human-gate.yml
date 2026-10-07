@@ -31,7 +31,7 @@ jobs:
   gate:
     name: Human decision gate
     permissions:
-      contents: write
+      contents: read
     env:
       FLIXO_TARGET_BRANCH: execution
     runs-on: ubuntu-latest
@@ -75,27 +75,32 @@ jobs:
           python3 .agent-intelligence/scripts/triage.py gate             --proposal "$PROPOSAL"             --decision "$DECISION"             --actor "$ACTOR"             --note "$NOTE"             > human-gate-result.json
           python3 .agent-intelligence/scripts/triage.py verify
 
-      - name: Publish human gate transition to execution
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
+      - name: Create immutable human-gate publication patch
         shell: bash
         run: |
           set -euo pipefail
-          git status --short
-          git config user.name "$GITHUB_ACTOR"
-          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
-          git add .agent-intelligence/review-queue .agent-intelligence/handoffs التطوير.md
-          git diff --cached --quiet && echo "FAIL_CLOSED: no gate mutation was published" && exit 1
-          git commit -m "governance(agent3): record human gate decision"
-          git -c "http.extraheader=AUTHORIZATION: bearer $GITHUB_TOKEN" fetch origin execution --no-tags
-          test "$(git rev-parse origin/execution^)" = "$(git rev-parse HEAD^)"
-          git -c "http.extraheader=AUTHORIZATION: bearer $GITHUB_TOKEN" push origin "HEAD:execution"
+          TARGET_SHA="$(git rev-parse HEAD)"
+          printf '%s\n' "$TARGET_SHA" > human-gate-publication-sha.txt
+          git diff --binary --full-index > human-gate-publication.patch
+          git diff --name-only > human-gate-changed-files.txt
+          test -s human-gate-publication.patch
+          while IFS= read -r path; do
+            [ -z "$path" ] && continue
+            case "$path" in
+              .agent-intelligence/review-queue/*|.agent-intelligence/handoffs/*|التطوير.md) ;;
+              *) echo "FAIL_CLOSED: unexpected human-gate mutation: $path"; exit 1 ;;
+            esac
+          done < human-gate-changed-files.txt
 
       - name: Upload human-gate evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: flixo-agent3-human-gate-${{ github.run_id }}
-          path: human-gate-result.json
+          path: |
+            human-gate-result.json
+            human-gate-publication.patch
+            human-gate-publication-sha.txt
+            human-gate-changed-files.txt
           if-no-files-found: error
           retention-days: 30
