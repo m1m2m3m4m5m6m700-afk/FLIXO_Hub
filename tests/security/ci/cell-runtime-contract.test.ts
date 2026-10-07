@@ -7,8 +7,8 @@ const SHA = {
 
 import assert from "node:assert/strict";
 import test from "node:test";
-import { CellRuntime } from "../../packages/contracts/src/cell-runtime.ts";
-import { isLeaseLive } from "../../packages/contracts/src/cell-control-plane.ts";
+import { CellRuntime } from "../../../packages/contracts/src/cell-runtime.ts";
+import { isLeaseLive } from "../../../packages/contracts/src/cell-control-plane.ts";
 
 test("reference runtime prevents illegal task transitions and detects version conflicts", () => {
   const rt = new CellRuntime(() => 1000);
