@@ -204,11 +204,12 @@ export async function executeAgentPlan(
     steps: plan.steps.map((step) => ({ toolId: step.toolId, params: step.params ?? {} })),
   });
   const issued = issuedPlans.get(plan);
-  const record = receipt?.token ? confirmations.get(receipt.token) : undefined;
-  if (!record || record.file !== file || record.plan !== plan || record.identity !== identityOf(validated) || !issued || issued.file !== file || issued.revision !== revisionOf(file)) {
+  const token = receipt?.token;
+  const record = token ? confirmations.get(token) : undefined;
+  if (!token || !record || record.file !== file || record.plan !== plan || record.identity !== identityOf(validated) || !issued || issued.file !== file || issued.revision !== revisionOf(file)) {
     throw new Error('Execution denied: confirmation receipt is missing, stale, or bound to another plan/file.');
   }
-  confirmations.delete(receipt.token!);
+  confirmations.delete(token);
   if (validated.steps.length !== 1) throw new Error('Execution denied: the current Agent Guided MVP is bounded to one canonical tool step.');
   const [step] = validated.steps;
   return executeCanonicalTool(step.toolId, { blob: file, fileName: file.name }, step.params ?? {}, signal);
