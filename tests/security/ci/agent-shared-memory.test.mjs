@@ -154,6 +154,22 @@ await import('./agent-shared-cognitive-learning.test.mjs');
 await import('./production-cognitive-learning.test.mjs');
 
 
+test('modern Supabase secret keys are not sent as bearer tokens', async () => {
+  const calls = [];
+  const { createSupabaseRpcClient } = await import('../../../scripts/agent-learning/shared-memory.mjs');
+  const client = createSupabaseRpcClient({
+    baseUrl: 'https://example.supabase.co',
+    serviceRoleKey: 'sb_secret_example',
+    fetchImpl: async (url, options) => {
+      calls.push({ url, options });
+      return { ok: true, async text() { return '[]'; } };
+    },
+  });
+  await client.call('flixo_search_agent_memory', { p_query:'x', p_current_sha:SHA, p_limit:1, p_include_candidates:false });
+  assert.equal(calls[0].options.headers.apikey, 'sb_secret_example');
+  assert.equal('Authorization' in calls[0].options.headers, false);
+});
+
 test('memory proposal validation requires an independent current runtime SHA', async () => {
   const { submitMemoryProposal } = await import('../../../scripts/agent-learning/shared-memory.mjs');
   const payload = {
