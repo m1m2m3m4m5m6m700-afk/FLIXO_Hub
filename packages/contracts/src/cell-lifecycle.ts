@@ -314,6 +314,9 @@ export function validateCellAdmission(envelope: CellAdmissionEnvelope): void {
   if (!sameJson(envelope.assignment.independencePolicy, envelope.independencePolicy)) {
     throw new Error("CELL_ADMISSION_INDEPENDENCE_POLICY_MISMATCH");
   }
+  if (envelope.verificationPolicy.independentVerifierRequired !== true) {
+    throw new Error("CELL_VERIFIER_INDEPENDENCE_POLICY_REQUIRED");
+  }
   required(envelope.verifierId, "CELL_ADMISSION_VERIFIER_REQUIRED");
   const roleIds = [
     envelope.assignment.solverId,
