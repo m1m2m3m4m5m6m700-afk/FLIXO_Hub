@@ -38,6 +38,9 @@ assertMvpScope(TOOL_DEFINITIONS, MVP_EXECUTABLE_TOOL_IDS);
 
 export const TOOL_REGISTRY: readonly ToolDefinition[] = Object.freeze(TOOL_DEFINITIONS);
 export const TOOL_CATALOG: ToolCatalog = getLoadedToolCatalog();
+export const EXECUTABLE_TOOL_CATALOG = Object.freeze(
+  TOOL_CATALOG.ready.filter((tool) => tool.capability.state === 'EXECUTABLE'),
+);
 
 export function getToolById(id: string): ToolDefinition | undefined {
   return TOOL_CATALOG.byId.get(id);
