@@ -28,6 +28,29 @@ export function preflightMemoryRetrieval({ currentSha, memories = [] } = {}) {
   };
 }
 
+export function createCognitiveMemoryAdapter(env = process.env) {
+  return Object.freeze({
+    preflight(currentSha, memories = []) {
+      return preflightMemoryRetrieval({ currentSha, memories });
+    },
+    retrieve({ query, currentSha, limit = 8 } = {}) {
+      return searchSharedMemoryForContext({ query, currentSha, limit }, env);
+    },
+    propose(payload) {
+      return submitMemoryProposal(payload, env);
+    },
+    review(payload) {
+      return reviewMemory(payload, env);
+    },
+    usage(payload) {
+      return recordMemoryUsage(payload, env);
+    },
+    reconcile(payload) {
+      return reconcileMemory(payload, env);
+    },
+  });
+}
+
 export async function searchSharedMemoryForContext({ query, currentSha, limit = 8 } = {}, env = process.env) {
   const rows = await searchSharedMemory({ query, currentSha, limit, includeCandidates: true }, env);
   if (!Array.isArray(rows)) throw new Error('MEMORY_RETRIEVAL_INVALID_RESPONSE');
