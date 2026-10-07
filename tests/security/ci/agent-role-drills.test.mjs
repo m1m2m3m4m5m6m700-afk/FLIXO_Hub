@@ -5,10 +5,10 @@ import { evaluateAgentDrill, evaluateAllAgents } from '../../../scripts/agent-le
 
 const SHA='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 
-test('every core trained agent has a role-specific drill', () => {
+test('every principal agent has a role-specific intensive drill', () => {
   const results=evaluateAllAgents(SHA);
   assert.equal(results.length, AGENTS.length);
-  assert.equal(results.length, 8);
+  assert.equal(results.length, 10);
   for (const result of results) {
     assert.equal(result.validScore, 100, result.name);
     assert.equal(result.validPassed, true, result.name);
@@ -27,8 +27,18 @@ test('all drills remain behavioral-evidence unproven until real agent runs exist
 });
 test('role drills are bound to repository-derived facts rather than placeholder identities', async () => {
   const { ROLE_DRILLS } = await import('../../../scripts/agent-learning/run-role-drills.mjs');
-  assert.equal(Object.keys(ROLE_DRILLS).length, 8);
+  assert.equal(Object.keys(ROLE_DRILLS).length, 10);
   assert.equal(ROLE_DRILLS['المطور AI'].valid('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa').referenceSha.length, 40);
   assert.match(ROLE_DRILLS['المطور AI'].valid('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa').referenceSha, /^[0-9a-f]{40}$/i);
   assert.equal(typeof ROLE_DRILLS['FLIXO i18n Agent'].valid, 'function');
+});
+test('Scout drills require research-only schema and fail closed on authority escalation', async () => {
+  const { ROLE_DRILLS } = await import('../../../scripts/agent-learning/run-role-drills.mjs');
+  for (const name of ['FLIXO Architecture Scout', 'FLIXO Technology Scout', 'FLIXO Ecosystem Scout']) {
+    const role = ROLE_DRILLS[name];
+    const positive = role.valid('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+    assert.equal(positive.status, 'inbox', name);
+    assert.equal(positive.proposalSchema, 'v4', name);
+    assert.equal(positive.executionClaim, false, name);
+  }
 });
