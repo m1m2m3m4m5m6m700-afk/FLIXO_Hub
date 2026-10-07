@@ -47,7 +47,9 @@
     "test:proposal-integrity": "python3 .agent-intelligence/scripts/test_validate.py && python3 .agent-intelligence/schemas/test_schema.py",
     "validate:proposals": "python3 .agent-intelligence/scripts/validate.py --all --json",
     "verify:agent-control-plane": "node scripts/agent-control-plane.mjs",
-    "test:agent-control-plane": "node --test tests/security/ci/agent-control-plane.test.mjs"
+    "test:agent-control-plane": "node --test tests/security/ci/agent-control-plane.test.mjs",
+    "verify:agent-activity": "node scripts/agent-activity-ledger.mjs audit",
+    "test:agent-activity": "node --test tests/security/ci/agent-activity-log.test.mjs"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",
