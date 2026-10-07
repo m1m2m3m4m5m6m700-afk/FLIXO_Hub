@@ -553,7 +553,6 @@ test('BODY_LIMIT rejects Content-Length lies, streaming overflow, malformed UTF-
     readBody(new Request('https://watchdog.test', {
       method: 'POST',
       body: stream,
-      duplex: 'half',
     }), DEFAULT_CONFIG.maxBodyBytes),
     (error: unknown) => error instanceof HttpError && error.status === 413,
   );
