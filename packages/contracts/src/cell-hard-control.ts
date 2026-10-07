@@ -54,6 +54,8 @@ const RESPONSE: Readonly<Record<DriftType, DriftResponse>> = Object.freeze({
 const finding = (type: DriftType, detector: string, reason: string): DriftFinding =>
   Object.freeze({ type, severity: DRIFT_POLICY[type], detector, response: RESPONSE[type], reason });
 
+const HARD_SHA = /^[0-9a-f]{40}$/iu;
+
 const normalizePath = (value: string): string | null => {
   const path = value.replaceAll("\\", "/").replace(/^\.\/+/, "");
   if (!path || path.startsWith("/") || path.includes("\0")) return null;
@@ -109,6 +111,7 @@ export function createExecutionEnvelope(input: ExecutionEnvelope): ExecutionEnve
     !input.sessionId ||
     !input.missionId ||
     !input.startSha ||
+    !HARD_SHA.test(input.startSha) ||
     !input.allowedBranch ||
     input.allowedBranch === "main" ||
     !input.normalizedObjectiveId ||
@@ -156,7 +159,7 @@ export function verifyExecutionIdentity(envelope: ExecutionEnvelope, probe: Exec
     [probe.objectiveId === envelope.normalizedObjectiveId, "OBJECTIVE_DRIFT"],
     [probe.acceptanceDigest === envelope.acceptanceDigest, "ACCEPTANCE_DRIFT"],
     [probe.expectedOutput === envelope.expectedOutput, "EXPECTED_OUTPUT_MISMATCH"],
-    [Boolean(probe.currentSha), "CURRENT_SHA_MISSING"],
+    [HARD_SHA.test(probe.currentSha), "CURRENT_SHA_INVALID"],
   ];
   for (const [ok, reason] of checks) if (!ok) return reason;
   return null;
@@ -191,7 +194,7 @@ export function authorizeExecutionAction(envelope: ExecutionEnvelope, action: Ex
   if (!Number.isFinite(action.estimatedCost) || !Number.isFinite(action.expectedDurationMs) || action.estimatedCost < 0 || action.expectedDurationMs < 0) return { allowed: false, drift: finding("D4_RESOURCE_DRIFT", "resource-gate", "invalid resource request") };
   if (usage.spentCost + action.estimatedCost > envelope.costBudget || usage.spentDurationMs + action.expectedDurationMs > envelope.timeBudgetMs) return { allowed: false, drift: finding("D4_RESOURCE_DRIFT", "resource-gate", "budget exceeded") };
   if (action.delegationDepth > envelope.maxDelegationDepth) return { allowed: false, drift: finding("D9_DELEGATION_DRIFT", "delegation-gate", "delegation depth exceeded") };
-  if (!action.currentSha) return { allowed: false, drift: finding("D6_EVIDENCE_DRIFT", "sha-gate", "action has no current SHA") };
+  if (!HARD_SHA.test(action.currentSha)) return { allowed: false, drift: finding("D6_EVIDENCE_DRIFT", "sha-gate", "action current SHA is missing or malformed") };
   if (action.operation === "WRITE" && (!action.path || !matchesScope(action.path, envelope.writeScope))) return { allowed: false, drift: finding("D1_SCOPE_DRIFT", "write-scope-firewall", "write path outside task scope") };
   if (action.operation === "READ" && (!action.path || !matchesScope(action.path, envelope.readScope))) return { allowed: false, drift: finding("D1_SCOPE_DRIFT", "read-scope-firewall", "read path outside task scope") };
   return { allowed: true, drift: null };
@@ -335,7 +338,6 @@ export type EvidenceLineageNode = Readonly<{
   parent: string | null;
 }>;
 
-const HARD_SHA = /^[0-9a-f]{40}$/iu;
 const HARD_HASH = /^[0-9a-f]{64}$/iu;
 
 export function validateCanonicalAssignment(record: CanonicalAssignmentRecord): CanonicalAssignmentRecord {
