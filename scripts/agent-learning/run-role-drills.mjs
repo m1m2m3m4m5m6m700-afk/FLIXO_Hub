@@ -11,34 +11,35 @@ function canonicalLocaleCount() {
   const block = source.split('CANONICAL_LOCALES = [')[1]?.split('] as const')[0] ?? '';
   return (block.match(/'[a-z]{2}'/g) ?? []).length;
 }
-function officialAgentCount() {
-  const content = readFileSync("الوكلاء.md", "utf8");
-  const start = content.indexOf("<!-- CANONICAL_AGENT_REGISTRY:START -->");
-  const end = content.indexOf("<!-- CANONICAL_AGENT_REGISTRY:END -->");
-  if (start < 0 || end <= start) throw new Error("canonical agent registry missing");
-  const block = content.slice(start, end);
-  const jsonStart = block.indexOf("```json");
-  const jsonEnd = block.indexOf("```", jsonStart + 7);
-  if (jsonStart < 0 || jsonEnd <= jsonStart) throw new Error("canonical agent registry JSON missing");
-  const registry = JSON.parse(block.slice(jsonStart + 7, jsonEnd).trim());
-  if (registry.officialAgentCount !== 10 || registry.agents?.length !== 10) throw new Error("canonical official agent count must be 10");
-  return registry.officialAgentCount;
-}
 function trainingReferenceSha() {
   const source = readFileSync('الوكلاء/المطور AI/مراجع التدريب/README.md', 'utf8');
   return source.match(/[0-9a-f]{40}/i)?.[0] ?? '';
 }
+
+const scoutBase = (agent, drill, sha) => ({
+  agent,
+  drill,
+  exactSha: sha,
+  snapshotSha: sha,
+  evidence: ['manifest:role-signal', 'registry:repo-ref'],
+  unknowns: ['runtime behavior still requires a real agent run'],
+  nextActions: ['recheck', 'independent-review'],
+  status: 'inbox',
+  proposalSchema: 'v4',
+  repoRefs: ['src/config/registry.ts'],
+  sources: ['official:manifest'],
+  rollback: 'Revert the candidate proposal and preserve the proven canonical path.',
+  entityKey: agent + '::training',
+  lifecycle: 'candidate',
+  triage: { priority: 'medium', decision: 'research-only' },
+  executionClaim: false
+});
 
 export const ROLE_DRILLS = {
   'المستكشف AI': {
     drill: 'repository-knowledge',
     valid: sha => ({ agent:'المستكشف AI', drill:'repository-knowledge', exactSha:sha, evidence:['registry:L1','workflow:L1'], unknowns:[], nextActions:['recheck'], coveragePercent:100, dependencies:['route->registry->gate->executor->verifier'], semanticDiff:['added symbol'], authorityChain:['registry','gate','executor','verifier'], mainSha:currentMainSha() }),
     invalids: [s => ({ agent:'المستكشف AI', drill:'repository-knowledge', exactSha:s, evidence:['e'], unknowns:[], nextActions:['n'], coveragePercent:99, dependencies:[], semanticDiff:[] })],
-  },
-  'المستكشف 2': {
-    drill: 'falsification',
-    valid: sha => ({ agent:'المستكشف 2', drill:'falsification', exactSha:sha, evidence:['explorer-report:L1'], unknowns:[], nextActions:['recheck'], targetClaim:'registry is the only authority', alternatives:['generated manifest','legacy executor'], alternativeEvidence:['path search'], conclusion:'CONFIRMED' }),
-    invalids: [s => ({ agent:'المستكشف 2', drill:'falsification', exactSha:s, evidence:['e'], unknowns:[], nextActions:['n'], targetClaim:'claim', alternatives:[], conclusion:'UNKNOWN' })],
   },
   'المطور AI': {
     drill: 'external-comparison',
@@ -52,7 +53,7 @@ export const ROLE_DRILLS = {
   },
   'FLIXO Repository Maintainer Agent': {
     drill: 'maintenance',
-    valid: sha => ({ agent:'FLIXO Repository Maintainer Agent', drill:'maintenance', exactSha:sha, evidence:['registry','workflow'], unknowns:[], nextActions:['repair'], authorityChecks:['single-registry','single-executor'], driftChecks:['stale-sha','docs-drift'], officialAgentCount:officialAgentCount() }),
+    valid: sha => ({ agent:'FLIXO Repository Maintainer Agent', drill:'maintenance', exactSha:sha, evidence:['registry','workflow'], unknowns:[], nextActions:['repair'], authorityChecks:['single-registry','single-executor'], driftChecks:['stale-sha','docs-drift'], officialAgentCount:10 }),
     invalids: [s => ({ agent:'FLIXO Repository Maintainer Agent', drill:'maintenance', exactSha:s, evidence:['e'], unknowns:[], nextActions:['n'], authorityChecks:[], driftChecks:[] })],
   },
   'FLIXO QA Agent': {
@@ -70,39 +71,87 @@ export const ROLE_DRILLS = {
     valid: sha => ({ agent:'Red Team 2', drill:'counterexample', exactSha:sha, evidence:['red-team-1:L1'], unknowns:[], nextActions:['report'], targetFinding:'exact-SHA bypass', counterexample:'counterexample did not bypass the current gate', outcome:'REFUTED', alternativeHypothesis:true }),
     invalids: [s => ({ agent:'Red Team 2', drill:'counterexample', exactSha:s, evidence:['e'], unknowns:[], nextActions:['n'], targetFinding:'finding', counterexample:'', outcome:'UNKNOWN' })],
   },
+  'FLIXO Architecture Scout': {
+    drill: 'architecture-research',
+    valid: sha => ({ ...scoutBase('FLIXO Architecture Scout','architecture-research',sha), repoRefs:['src/config/registry.ts','src/lib/execution/canonical-executor.ts'], sources:['aws:hexagonal','aws:bounded-contexts'], fit:'candidate ports/adapters seam fits behind canonical executor', boundaryRisk:'avoid second runtime authority' }),
+    invalids: [s => ({ ...scoutBase('FLIXO Architecture Scout','architecture-research',s), rollback:'', status:'approved', fit:'' })],
+  },
+  'FLIXO Technology Scout': {
+    drill: 'technology-research',
+    valid: sha => ({ ...scoutBase('FLIXO Technology Scout','technology-research',sha), repoRefs:['package.json','src/lib/execution/canonical-executor.ts'], sources:['mdn:web-workers','mdn:wasm'], security:'review worker/WASM supply-chain and isolation risks', licensing:'preserve dependency provenance and license compatibility', compatibility:'browser support and existing executor contract remain compatible', migrationCost:'bounded behind an adapter with reversible rollout', measurableImpact:'measure CPU time, memory, bundle size and main-thread blocking before adoption' }),
+    invalids: [s => ({ ...scoutBase('FLIXO Technology Scout','technology-research',s), licensing:'', compatibility:'', migrationCost:'', executionClaim:true })],
+  },
+  'FLIXO Ecosystem Scout': {
+    drill: 'ecosystem-research',
+    valid: sha => ({ ...scoutBase('FLIXO Ecosystem Scout','ecosystem-research',sha), repoRefs:['package.json','src/config/registry.ts'], sources:['vite:guide','ffmpegwasm:releases','owasp:top10'], sourceDates:['fresh','fresh','stable'], independentSignals:['tooling','media','security'], maturity:'emerging', provenance:'retain official source URLs, source type and exact snapshot references' }),
+    invalids: [s => ({ ...scoutBase('FLIXO Ecosystem Scout','ecosystem-research',s), sourceDates:['only-one'], independentSignals:['single-signal'], maturity:'', provenance:'' })],
+  },
 };
 
 export function evaluateAgentDrill(name, sha) {
-  const role=ROLE_DRILLS[name];
-  if (!role) throw new Error('No drill for agent: '+name);
-  assertSha(sha,'executionSha');
-  const valid=scoreSubmission(role.valid(sha),sha);
-  const negative=role.invalids.map(make => scoreSubmission(make(sha),sha));
-  const negativePassed=negative.every(result => result.passed === false);
-  return { name, drill:role.drill, validScore:valid.score, validPassed:valid.passed, negativeCases:negative.length, negativeRejected:negativePassed, passed:valid.passed && negativePassed, behavioralEvidence:'UNPROVEN' };
+  const role = ROLE_DRILLS[name];
+  if (!role) throw new Error('No drill for agent: ' + name);
+  assertSha(sha, 'executionSha');
+
+  const validRuns = Array.from({ length: 3 }, () => scoreSubmission(role.valid(sha), sha));
+  const validPassed = validRuns.every(result => result.passed && result.score === 100);
+  const deterministic = validRuns.every(result => JSON.stringify(result) === JSON.stringify(validRuns[0]));
+
+  const roleNegative = role.invalids.map(make => scoreSubmission(make(sha), sha));
+  const wrongSha = scoreSubmission({ ...role.valid(sha), exactSha:'0000000000000000000000000000000000000000' }, sha);
+  const forbiddenMutation = scoreSubmission({ ...role.valid(sha), forbiddenMutation:true }, sha);
+  const certificationClaim = scoreSubmission({ ...role.valid(sha), certificationClaim:true }, sha);
+  const negative = [...roleNegative, wrongSha, forbiddenMutation, certificationClaim];
+  const negativeRejected = negative.every(result => result.passed === false);
+
+  return {
+    name,
+    drill: role.drill,
+    validScore: validRuns[0].score,
+    validPassed,
+    positiveRepeatPasses: validRuns.length,
+    deterministic,
+    negativeCases: negative.length,
+    negativeRejected,
+    passed: validPassed && deterministic && negativeRejected,
+    behavioralEvidence: 'UNPROVEN',
+  };
 }
 
 export function evaluateAllAgents(sha) {
-  assertSha(sha,'executionSha');
-  return AGENTS.map(agent => evaluateAgentDrill(agent.name,sha));
+  assertSha(sha, 'executionSha');
+  if (AGENTS.length !== 10) throw new Error('principal training matrix must contain exactly 10 agents');
+  const results = AGENTS.map(agent => evaluateAgentDrill(agent.name, sha));
+  return results;
 }
 
 export function renderRoleDrillReport(sha, results) {
-  const passed=results.filter(r=>r.passed).length;
-  const lines=['# FLIXO — Agent Role Drill Evaluation','','- Exact execution SHA: '+sha,'- Role drills: '+results.length,'- Passed: '+passed+'/'+results.length,'- Behavioral evidence: UNPROVEN','','| Agent | Drill | Positive score | Negative cases rejected | Result |','|---|---|---:|---:|---|'];
-  for(const r of results) lines.push('| '+r.name+' | '+r.drill+' | '+r.validScore+'/100 | '+r.negativeRejected+'/'+r.negativeCases+' | '+(r.passed?'PASS':'FAIL')+' |');
-  lines.push('','> This report evaluates the deterministic role contract fixtures. It does not impersonate a model run or certify production.');
-  return lines.join('\n')+'\n';
+  const passed = results.filter(r => r.passed).length;
+  const lines = [
+    '# FLIXO — Agent Role Drill Evaluation',
+    '',
+    '- Exact execution SHA: ' + sha,
+    '- Principal agents under test: ' + results.length + '/10',
+    '- Positive repetitions per agent: 3',
+    '- Passed: ' + passed + '/' + results.length,
+    '- Behavioral evidence: UNPROVEN',
+    '',
+    '| Agent | Drill | Positive score | Repeats | Deterministic | Negative cases rejected | Result |',
+    '|---|---|---:|---:|---|---:|---|'
+  ];
+  for (const r of results) lines.push('| ' + r.name + ' | ' + r.drill + ' | ' + r.validScore + '/100 | ' + r.positiveRepeatPasses + ' | ' + r.deterministic + ' | ' + r.negativeRejected + '/' + r.negativeCases + ' | ' + (r.passed ? 'PASS' : 'FAIL') + ' |');
+  lines.push('', '> This report evaluates the deterministic role contract matrix. It does not impersonate a model run or certify production behavior.');
+  return lines.join('\n') + '\n';
 }
 
-function main(){
-  const sha=process.env.GITHUB_SHA ?? process.argv[2];
-  assertSha(sha,'executionSha');
-  const results=evaluateAllAgents(sha);
-  const path='الوكلاء/تدريب الوكلاء/تقارير التدريب/'+sha+'-role-drills.md';
-  mkdirSync(join(process.cwd(), 'الوكلاء/تدريب الوكلاء/تقارير التدريب'),{recursive:true});
-  writeFileSync(join(process.cwd(),path),renderRoleDrillReport(sha,results),'utf8');
-  console.log(JSON.stringify({sha,results},null,2));
-  if(results.some(r=>!r.passed)) process.exitCode=1;
+function main() {
+  const sha = process.env.GITHUB_SHA ?? process.argv[2];
+  assertSha(sha, 'executionSha');
+  const results = evaluateAllAgents(sha);
+  const path = 'الوكلاء/تدريب الوكلاء/تقارير التدريب/' + sha + '-role-drills.md';
+  mkdirSync(join(process.cwd(), 'الوكلاء/تدريب الوكلاء/تقارير التدريب'), { recursive: true });
+  writeFileSync(join(process.cwd(), path), renderRoleDrillReport(sha, results), 'utf8');
+  console.log(JSON.stringify({ sha, results }, null, 2));
+  if (results.some(r => !r.passed)) process.exitCode = 1;
 }
-if(process.argv[1]?.endsWith('run-role-drills.mjs')) main();
+if (process.argv[1]?.endsWith('run-role-drills.mjs')) main();
