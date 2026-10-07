@@ -1,4 +1,4 @@
-import { getToolById, TOOL_CATALOG } from '../../config/registry';
+import { EXECUTABLE_TOOL_CATALOG, getToolById } from '../../config/registry';
 import type { ToolDefinition } from '../../config/canonical-tool-definition';
 import type { ToolCategory } from '../../config/canonical-tool-definition.ts';
 import { IMAGE_COMPRESSOR_MANIFEST } from '../../tools/image-compressor/manifest';
@@ -40,7 +40,7 @@ const FALLBACK_COPY: Record<string, Readonly<{ open: string; configure: string; 
   vi: { open: 'Mở công cụ.', configure: 'Cấu hình các tùy chọn có sẵn.', run: 'Chạy công cụ.', download: 'Tải kết quả xuống.', browser: 'Xử lý ưu tiên trong trình duyệt', interface: 'giao diện' },
 };
 
-export const READY_TOOL_IDS = Object.freeze(TOOL_CATALOG.ready.map((tool) => tool.id));
+export const READY_TOOL_IDS = Object.freeze(EXECUTABLE_TOOL_CATALOG.map((tool) => tool.id));
 export type { ToolCategory } from '../../config/canonical-tool-definition.ts';
 const TOOL_CATEGORIES = new Set<ToolCategory>(TOOL_CATALOG.all.map((tool) => tool.category));
 export function assertToolCategory(value: string): ToolCategory { if (!TOOL_CATEGORIES.has(value as ToolCategory)) throw new Error(`Unsupported tool category: ${value}`); return value as ToolCategory; }
@@ -70,4 +70,4 @@ export function getToolSeo(localeInput: string, toolId: string) {
   } as const;
   return { locale, tool, url, xDefaultUrl, title, description, intro: localizedPayload.intro, keywords: localizedPayload.keywords, howTo: localizedPayload.howTo, features: localizedPayload.features, altText: localizedPayload.altText, languageTag: LOCALE_METADATA[locale].languageTag, direction: LOCALE_METADATA[locale].direction, alternates: LOCALES.map((alternateLocale) => ({ locale: alternateLocale, languageTag: LOCALE_METADATA[alternateLocale].languageTag, url: getLocalizedToolUrl(alternateLocale, tool.id) })), structuredData: { '@context': 'https://schema.org', '@graph': [{ '@type': 'SoftwareApplication', name: title, description, url, inLanguage: LOCALE_METADATA[locale].languageTag, applicationCategory: 'MultimediaApplication', operatingSystem: 'Any', keywords: localizedPayload.keywords.join(', ') }, { '@type': 'BreadcrumbList', itemListElement: [{ '@type': 'ListItem', position: 1, name: 'FLIXO', item: `${SITE_ORIGIN}/${locale}` }, { '@type': 'ListItem', position: 2, name: localizedCategory }, { '@type': 'ListItem', position: 3, name: title, item: getLocalizedToolUrl(locale, tool.id) }]}] } } as const;
 }
-export function getReadyToolsForSeo(): readonly ToolDefinition[] { return TOOL_CATALOG.ready; }
+export function getReadyToolsForSeo(): readonly ToolDefinition[] { return EXECUTABLE_TOOL_CATALOG; }
