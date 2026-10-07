@@ -21,13 +21,13 @@ const registry = loadRegistry();
 const controlPlane = auditAgentControlPlane(root);
 if (controlPlane.status !== "PASS") throw new Error("agent control-plane validation failed: " + controlPlane.issues.join("; "));
 if (registry.schema !== "flixo-canonical-agent-registry-v1") throw new Error("unsupported canonical agent registry schema");
-if (registry.officialAgentCount !== 10) throw new Error("canonical official agent count must be 10");
-if (!Array.isArray(registry.agents) || registry.agents.length !== 10) throw new Error("canonical registry must contain exactly 10 principal agents");
+if (registry.officialAgentCount !== 14) throw new Error("canonical official agent count must be 10");
+if (!Array.isArray(registry.agents) || registry.agents.length !== 14) throw new Error("canonical registry must contain exactly 10 principal agents");
 if (registry.agents.some((a, i) => a.id !== "AGENT-" + String(i + 1).padStart(2, "0"))) throw new Error("canonical IDs must be AGENT-01..AGENT-10");
 if (new Set(registry.agents.map(a => a.id)).size !== 10) throw new Error("canonical agent IDs must be unique");
 if (!Array.isArray(registry.supportingRoles) || registry.supportingRoles.length !== 1) throw new Error("supporting role registry must contain exactly one role");
 const support = registry.supportingRoles[0];
-if (support.id !== "SUPPORT-EXPLORER-02" || support.name !== "المستكشف 2" || support.countedInOfficialTen !== false) throw new Error("Explorer 2 must remain a supporting role");
+if (support.id !== "SUPPORT-EXPLORER-02" || support.name !== "المستكشف المعترض AI" || support.countedInOfficialTen !== false) throw new Error("Explorer 2 must remain a supporting role");
 const expected = [...registry.agents, ...registry.supportingRoles];
 const expectedProfiles = expected.map(a => a.profile.split("/").pop());
 const actualProfiles = readdirSync(agentsDir).filter(name => name.endsWith(".md"));
@@ -37,7 +37,8 @@ if (missing.length) throw new Error("missing canonical agent profiles: " + missi
 if (unexpected.length) throw new Error("unregistered agent profiles: " + unexpected.join(", "));
 for (const agent of expected) {
   const content = readFileSync(join(agentsDir, agent.profile.split("/").pop()), "utf8");
-  if (!content.split(/\r?\n/u).includes("name: " + agent.name)) throw new Error(agent.id + ": profile name drift");
+  const expectedName = agent.technicalName ?? agent.name;
+  if (!content.split(/\r?\n/u).includes("name: " + expectedName)) throw new Error(agent.id + ": profile name drift");
   if (!content.includes("100/100")) throw new Error(agent.id + ": missing 100/100 contract");
   if (!content.includes("Practical Mastery Loop")) throw new Error(agent.id + ": missing Practical Mastery Loop");
   if (!content.includes("Canonical registry: الوكلاء.md")) throw new Error(agent.id + ": missing canonical registry pointer");
@@ -49,4 +50,4 @@ for (const id of ["AGENT-08", "AGENT-09", "AGENT-10"]) {
   if (!content.includes('tools: ["read", "search", "edit"]')) throw new Error(id + ": Scout tool boundary drift");
   if (!content.includes("only writable repository path is .agent-intelligence/inbox/")) throw new Error(id + ": Scout write boundary drift");
 }
-console.log("CANONICAL_AGENT_REGISTRY_OK=10 SUPPORTING=1 PROFILES=11");
+console.log("CANONICAL_AGENT_REGISTRY_OK=14 SUPPORTING=1 PROFILES=15");
