@@ -263,7 +263,6 @@ jobs:
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: node scripts/ci/verify-current-pr-approval.mjs
-    steps:
       - name: Assert canonical CI gates are GREEN
         env:
           VERIFY_RESULT: ${{ needs.verify.result }}
