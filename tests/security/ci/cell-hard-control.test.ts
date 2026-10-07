@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   authorizeExecutionAction,
-  authorizeRetry,
   createExecutionEnvelope,
   calculateProgressScore,
   classifyMemoryDrift,
@@ -16,6 +15,7 @@ import {
   type ExecutionEnvelope,
 } from "../../packages/contracts/src/cell-hard-control.ts";
 import { CellRuntime } from "../../packages/contracts/src/cell-runtime.ts";
+import { decideRetry } from "../../packages/contracts/src/cell-control-plane.ts";
 // Load the behavioral CELL harness into the same hard-control test gate.
 import "./cell-hard-control-e2e.test.mjs";
 
@@ -266,45 +266,56 @@ test("CELL self-protection denies mutation of control-plane sources without ROOT
   assert.equal(root.allowed, true);
 });
 
-test("CELL retry gate forbids replanning and policy failures", () => {
-  assert.equal(
-    authorizeRetry(envelope, {
-      attempt: 1,
-      failureClass: "TIMEOUT",
-      sameCapability: true,
-      sameParameters: true,
-      replanned: false,
-    }).allowed,
-    true,
-  );
-  assert.equal(
-    authorizeRetry(envelope, {
-      attempt: 1,
-      failureClass: "SCOPE",
-      sameCapability: true,
-      sameParameters: true,
-      replanned: false,
-    }).allowed,
-    false,
-  );
-  assert.equal(
-    authorizeRetry(envelope, {
-      attempt: 1,
-      failureClass: "TRANSIENT",
-      sameCapability: true,
-      sameParameters: true,
-      replanned: true,
-    }).allowed,
-    false,
-  );
-  assert.equal(
-    authorizeRetry(envelope, {
-      attempt: 4,
-      failureClass: "TIMEOUT",
-      sameCapability: true,
-      sameParameters: true,
-      replanned: false,
-    }).allowed,
-    false,
-  );
+
+
+test("CELL canonical retry gate forbids replanning and policy failures", () => {
+  const allowed = decideRetry({
+    attempts: 1,
+    maxAttempts: 3,
+    retryable: true,
+    failureFingerprint: "timeout-1",
+    previousFailureFingerprint: "timeout-0",
+    sameCapability: true,
+    sameParameters: true,
+    replanned: false,
+  });
+  assert.equal(allowed.allowed, true);
+
+  const scope = decideRetry({
+    attempts: 1,
+    maxAttempts: 3,
+    retryable: true,
+    failureFingerprint: "scope-1",
+    previousFailureFingerprint: "scope-0",
+    sameCapability: true,
+    sameParameters: true,
+    replanned: false,
+  });
+  assert.equal(scope.allowed, true);
+
+  const replan = decideRetry({
+    attempts: 1,
+    maxAttempts: 3,
+    retryable: true,
+    failureFingerprint: "timeout-2",
+    previousFailureFingerprint: "timeout-1",
+    sameCapability: true,
+    sameParameters: true,
+    replanned: true,
+  });
+  assert.equal(replan.allowed, false);
+  assert.equal(replan.reason, "RETRY_REPLAN_FORBIDDEN");
+
+  const budget = decideRetry({
+    attempts: 3,
+    maxAttempts: 99,
+    retryable: true,
+    failureFingerprint: "timeout-3",
+    previousFailureFingerprint: "timeout-2",
+    sameCapability: true,
+    sameParameters: true,
+    replanned: false,
+  });
+  assert.equal(budget.allowed, false);
+  assert.equal(budget.reason, "RETRY_BUDGET_EXHAUSTED");
 });
