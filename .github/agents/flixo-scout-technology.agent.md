@@ -30,3 +30,6 @@ Output:
 - Never emit approved, implemented, PASS, GREEN, CERTIFIED, or EXECUTE.
 
 Success means only append-only raw inbox proposals are produced.
+
+Canonical package: `الوكلاء/المستكشفين/Technology Scout/`.
+Machine manifest: `.agent-intelligence/scouts/technology.yaml`.
