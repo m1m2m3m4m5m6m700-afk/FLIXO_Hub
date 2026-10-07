@@ -69,10 +69,10 @@ Worker branches may be created, rebased, abandoned, and replaced freely. Their e
 
 **Canonical agent identity/count authority:** `الوكلاء.md`
 
-- Official principal agents: **10**.
-- Supporting sub-role: `المستكشف 2`; preserved but excluded from the principal count.
+- Official principal agents: **14**.
+- Supporting sub-role: `المستكشف المعترض AI`; preserved but excluded from the principal count.
 - `.github/agents/` is the technical registration layer and must match `الوكلاء.md`.
-- Agent packages/reports under `الوكلاء/` are subordinate role/evidence surfaces.
+- Agent packages/reports under `الوكلاء AI/` are subordinate role/evidence surfaces.
 - `AGENTS.md` remains repository-wide execution/security policy; `المهام.md` remains dispatch authority.
 - Any identity, count, or profile drift against `الوكلاء.md` is a fail-closed governance error.
 ## Research Scout Security Override
