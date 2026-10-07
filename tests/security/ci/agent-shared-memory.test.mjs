@@ -52,7 +52,7 @@ test('memory promotion needs independent evidence, repeated utility and regressi
     harmful_count: 0,
   };
   assert.equal(isPromotableMemory(base, SHA), true);
-  assert.equal(isPromotableMemory({ ...base, harmful_count: 1 }, SHA), true);
+  assert.equal(isPromotableMemory({ ...base, harmful_count: 1 }, SHA), false);
   assert.equal(isPromotableMemory({ ...base, independent_confirmations: 1 }, SHA), false);
   assert.equal(isPromotableMemory({ ...base, tested_sha: OTHER_SHA }, SHA), false);
   assert.equal(isPromotableMemory({ ...base, regression_evidence: false }, SHA), false);
