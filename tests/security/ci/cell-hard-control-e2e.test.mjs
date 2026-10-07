@@ -73,6 +73,7 @@ function seed(options = {}) {
     scope,
     budget: { cost: 2, durationMs: 200 },
     delegationDepth: 1,
+    deadlineAt: 2000,
     handoffPolicy: "typed exact-SHA handoff",
     requiredCapability: "CELL_EDIT",
   };
