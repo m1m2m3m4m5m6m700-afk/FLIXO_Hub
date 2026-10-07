@@ -162,6 +162,17 @@ test('routing learning measures success, fit, regret, cost and recovery while ex
   assert.equal(r.metrics('security').selfSelectionBiasProtected,true);
 });
 
+test('live publish broadcasts to registered agents while preserving replay as the catch-up path',()=>{
+  const engine=new CognitiveLearningEngine();
+  const a=engine.consumer('AGENT-A');
+  const b=engine.consumer('AGENT-B');
+  const result=engine.publishToAll({eventId:'broadcast-1',missionId:'m',taskId:'t',agentId:'AGENT-A',eventType:'EVIDENCE',payload:{evidence:'ok'},knowledgeStatus:'VALIDATED',confidence:0.9,sourceSha:SHA});
+  assert.equal(result.status,'APPENDED');
+  assert.deepEqual(result.acks.map(x=>[x.agentId,x.status,x.offset]),[['AGENT-A','ACKED',1],['AGENT-B','ACKED',1]]);
+  assert.equal(a.snapshot().consumerOffset,1);
+  assert.equal(b.snapshot().consumerOffset,1);
+});
+
 test('integrated engine keeps one shared substrate with separate knowledge, claims, excellence and routing projections',()=>{
   const engine=new CognitiveLearningEngine();
   engine.publish({eventId:'e1',missionId:'m',taskId:'t',agentId:'AGENT-A',eventType:'LESSON',payload:{lesson:'x'},knowledgeStatus:'PROVISIONAL',confidence:0.9,sourceSha:SHA});
