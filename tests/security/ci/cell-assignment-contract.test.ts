@@ -466,6 +466,7 @@ test("canonical CELL assignment requires a complete solver/opponent opposition e
   };
 
   const assignment = createCanonicalCellAssignment({
+    taskId: "task-1",
     missionId: "mission-1",
     riskClass: "HIGH",
     team,
