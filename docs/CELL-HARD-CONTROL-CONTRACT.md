@@ -96,6 +96,8 @@ ESTIMATED_COST
 EXPECTED_DURATION
 DELEGATION_DEPTH
 
+CURRENT_SHA إلزامي لكل Action، بما في ذلك READ وTEST، وليس للـmutation فقط. Action بلا CURRENT_SHA يُرفض قبل التنفيذ باعتباره D6_EVIDENCE_DRIFT. وفي Runtime يجب أن يطابق CURRENT_SHA الـlive execution SHA؛ أي اختلاف يجعل الدليل/الفعل stale ويمنع التأثير.
+
 وكل action يمر عبر gate قبل السماح بالتنفيذ.
 
 ## Scope firewall
