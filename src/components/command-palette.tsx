@@ -24,7 +24,7 @@ export function CommandPalette() {
 
   const tools = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const all = TOOL_CATALOG.ready;
+    const all = EXECUTABLE_TOOL_CATALOG;
     const ordered = [...all].sort((a, b) => {
       const ai = recent.indexOf(a.id);
       const bi = recent.indexOf(b.id);
