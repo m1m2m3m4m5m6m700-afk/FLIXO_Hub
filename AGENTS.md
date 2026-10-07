@@ -84,7 +84,7 @@ Scout profiles:
 - .github/agents/flixo-scout-technology.agent.md
 - .github/agents/flixo-scout-ecosystem.agent.md
 
-Their only writable repository surface is `.agent-intelligence/inbox/`. The package definitions live under `الوكلاء/المستكشفين/`; `التطوير.md` is not a Scout write target.
+Their only writable repository surface is `.agent-intelligence/inbox/`. The package definitions live under `الوكلاء.md`; `التطوير.md` is not a Scout write target.
 
 Their tools must be exactly:
 read, search, edit
