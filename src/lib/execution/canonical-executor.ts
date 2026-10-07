@@ -7,7 +7,7 @@ import { convertImage, cropResizeImage, removeBackground, resizeImage } from '@/
 import { compressImage } from '@/tools/image-compressor/engine.ts';
 import { renderVideoToWebm } from '@/lib/video/video-executor.ts';
 import { attachVideoBlobSource, getBoundedVideoDuration } from '@/lib/video/blob-video-source.ts';
-import { admitExecution, getCellPolicyFingerprint } from '@/lib/cell/index.ts';
+import { admitExecution, getCellPolicyFingerprint, bindExecutionEvidence, assertExecutionEvidence, recordCellEvent } from '@/lib/cell/index.ts';
 
 const IMAGE_MIME = ['image/png', 'image/jpeg', 'image/webp'] as const;
 const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp'] as const;
@@ -468,6 +468,7 @@ export async function executeCanonicalTool(
     throw new Error(`CELL execution denied [${admission.code}]: ${admission.reason}`);
   }
   const admittedPolicyFingerprint = admission.policyFingerprint;
+  recordCellEvent({ type: 'ADMISSION_ALLOWED', requestId, taskId: requestId, capabilityId: toolId, at: new Date().toISOString() });
   if (admittedPolicyFingerprint !== getCellPolicyFingerprint()) {
     throw new Error('CELL execution denied: policy fingerprint drift detected at admission.');
   }
@@ -498,6 +499,7 @@ export async function executeCanonicalTool(
       const executionSignal = executionController.signal;
 
       try {
+        recordCellEvent({ type: 'EXECUTION_STARTED', requestId, taskId: requestId, capabilityId: toolId, at: new Date().toISOString() });
         assertNotAborted(executionSignal);
         const output = await withDeadline(
           executeMvpTool(toolId, input, parameters, executionSignal),
@@ -522,6 +524,13 @@ export async function executeCanonicalTool(
           executionController,
         );
         if (!verified) throw new Error('Execution failed closed: verifier rejected artifact for ' + toolId + '.');
+        const evidence = await bindExecutionEvidence(
+          { requestId, taskId: requestId, capabilityId: toolId, policyFingerprint: admittedPolicyFingerprint },
+          input.blob,
+          output.blob,
+        );
+        assertExecutionEvidence(evidence);
+        recordCellEvent({ type: 'EXECUTION_VERIFIED', requestId, taskId: requestId, capabilityId: toolId, at: new Date().toISOString(), detail: evidence.outputSha256 });
         return output;
       } finally {
         signal?.removeEventListener('abort', relayAbort);
