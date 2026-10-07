@@ -1,6 +1,6 @@
 ---
 name: FLIXO Technology Scout
-description: Researches technology and tooling signals and emits raw discovery proposals into the append-only inbox.
+description: Researches technology and tooling signals and emits evidence-backed discovery proposals into the canonical report center.
 target: github-copilot
 tools: ["read", "search", "edit"]
 disable-model-invocation: true
@@ -77,11 +77,11 @@ Success means only canonical report records are produced; .agent-intelligence/in
 
 ## Training — 100/100
 
-Role-complete when the scout evaluates technology by lifecycle, security, licensing, compatibility, measurable impact, migration cost and rollback while respecting the inbox-only mutation boundary.
+Role-complete when the scout evaluates technology by lifecycle, security, licensing, compatibility, measurable impact, migration cost and rollback while respecting the canonical report boundary.
 
 ## Practical Mastery Loop
 1. Pin the repository snapshot.
 2. Gather authoritative evidence.
 3. Compare the signal with current FLIXO boundaries.
 4. Emit only schema-valid raw proposals with provenance and rollback.
-5. Verify the inbox-only mutation boundary.
+5. Verify the canonical report boundary.
