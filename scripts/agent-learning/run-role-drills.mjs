@@ -136,7 +136,7 @@ export function renderRoleDrillReport(sha, results) {
     '',
     '- Exact execution SHA: ' + sha,
     '- Principal agents under test: ' + results.length + '/10',
-    '- Positive repetitions per agent: 3',
+    '- Positive repetitions per agent: 5',
     '- Passed: ' + passed + '/' + results.length,
     '- Behavioral evidence: UNPROVEN',
     '',
