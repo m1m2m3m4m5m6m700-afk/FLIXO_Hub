@@ -9,8 +9,13 @@ import {
   validateProfileContract,
 } from '../../../scripts/agent-control-plane.mjs';
 import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 
 const ROOT = process.cwd();
+
+test('agent control plane source is syntactically valid before lifecycle evaluation', () => {
+  execFileSync(process.execPath, ['--check', 'scripts/agent-control-plane.mjs'], { stdio: 'pipe' });
+});
 
 test('canonical registry is the only identity authority and contains 10 principals + one support role', () => {
   const registry = loadCanonicalRegistry(ROOT);

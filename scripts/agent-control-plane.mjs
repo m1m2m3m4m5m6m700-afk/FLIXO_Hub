@@ -205,7 +205,7 @@ export function validateProfileContract(profile, expected, root = process.cwd())
 function roleDrillRegistered(root, agent) {
   if (!existsSync(join(root, ROLE_DRILLS))) return false;
   const content = readFileSync(join(root, ROLE_DRILLS), 'utf8');
-  return content.includes(''' + agent.name + '':');
+  return content.includes("'" + agent.name + "':");
 }
 
 function currentBehaviorEvidence(root, reportScope, sha) {

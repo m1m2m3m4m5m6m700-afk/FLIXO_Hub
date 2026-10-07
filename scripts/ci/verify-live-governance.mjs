@@ -31,6 +31,7 @@ export function validateGovernance(mainRuleset, executionRuleset) {
   if (!mainRuleset) errors.push('main:ruleset-missing');
   if (!executionRuleset) errors.push('execution:ruleset-missing');
 
+  if ((mainRuleset?.bypass_actors ?? []).length > 0) errors.push('main:bypass-actors');
   const mainRules = new Set((mainRuleset?.rules ?? []).map((rule) => rule.type));
   const mainPullRequest = mainRuleset?.rules?.find((rule) => rule.type === 'pull_request')?.parameters ?? {};
   const mainChecks = mainRuleset?.rules?.find((rule) => rule.type === 'required_status_checks')?.parameters ?? {};
@@ -50,15 +51,22 @@ export function validateGovernance(mainRuleset, executionRuleset) {
     if (!requiredChecks.has(check)) errors.push('main:required-check:' + check);
   }
 
+  if ((executionRuleset?.bypass_actors ?? []).length > 0) errors.push('execution:bypass-actors');
   const executionRules = new Set((executionRuleset?.rules ?? []).map((rule) => rule.type));
   for (const rule of ['deletion', 'non_fast_forward', 'pull_request', 'required_status_checks']) {
     if (!executionRules.has(rule)) errors.push('execution:rule-missing:' + rule);
   }
-  if (Number(executionRuleset?.rules?.find((rule) => rule.type === 'pull_request')?.parameters?.required_approving_review_count) < 1) {
-    errors.push('execution:review-count');
-  }
-  if (executionRuleset?.rules?.find((rule) => rule.type === 'required_status_checks')?.parameters?.strict_required_status_checks_policy !== true) {
-    errors.push('execution:strict-checks');
+  const executionPullRequest = executionRuleset?.rules?.find((rule) => rule.type === 'pull_request')?.parameters ?? {};
+  const executionChecks = executionRuleset?.rules?.find((rule) => rule.type === 'required_status_checks')?.parameters ?? {};
+  if (Number(executionPullRequest.required_approving_review_count) < 1) errors.push('execution:review-count');
+  if (executionPullRequest.dismiss_stale_reviews_on_push !== true) errors.push('execution:dismiss-stale');
+  if (executionPullRequest.require_code_owner_review !== true) errors.push('execution:code-owner');
+  if (executionPullRequest.require_last_push_approval !== true) errors.push('execution:last-push-approval');
+  if (executionPullRequest.required_review_thread_resolution !== true) errors.push('execution:thread-resolution');
+  if (executionChecks.strict_required_status_checks_policy !== true) errors.push('execution:strict-checks');
+  const executionRequiredChecks = new Set((executionChecks.required_status_checks ?? []).map((check) => check.context));
+  for (const check of ['trust-gate', 'Exact-SHA promotion proof']) {
+    if (!executionRequiredChecks.has(check)) errors.push('execution:required-check:' + check);
   }
 
   return { ok: errors.length === 0, errors };
