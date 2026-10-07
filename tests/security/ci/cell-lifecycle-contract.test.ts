@@ -90,7 +90,7 @@ test("CELL admission fails closed and records a complete immutable envelope", ()
   );
   assert.throws(
     () => validateCellAdmission({ ...envelope, assignmentId: "wrong-team" }),
-    /CELL_ADMISSION_ASSIGNMENT_REQUIRED/,
+    /CELL_ADMISSION_ASSIGNMENT_MISMATCH/,
   );
 });
 
