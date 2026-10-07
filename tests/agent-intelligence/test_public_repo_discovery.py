@@ -61,7 +61,7 @@ class FakeGitHub:
             if path == "/repos/example/open-media/branches/main":
                 return Response(json.dumps({"commit": {"sha": self.head}}).encode())
 
-            if path == "/repos/example/open-media/git/trees/main":
+            if path == "/repos/example/open-media/git/trees/" + self.head:
                 payload = {
                     "tree": [
                         {"path": "README.md", "type": "blob", "size": 200},
