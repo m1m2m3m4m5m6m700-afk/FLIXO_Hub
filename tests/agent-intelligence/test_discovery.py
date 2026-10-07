@@ -16,8 +16,8 @@ class DiscoveryTests(unittest.TestCase):
         self.tmp=tempfile.TemporaryDirectory(); self.root=Path(self.tmp.name)/"repo"; self.root.mkdir()
         for rel in ["src/config/registry.ts","src/lib/execution/canonical-executor.ts","src/lib/contracts/tool-output-contracts.ts","package.json","tests/security","docs"]:
             p=self.root/rel; p.parent.mkdir(parents=True,exist_ok=True); p.mkdir(exist_ok=True) if "." not in p.name else p.write_text("fixture",encoding="utf-8")
-        self.md=self.root/".agent-intelligence/scouts"; self.inbox=self.root/".agent-intelligence/inbox"; self.snaps=self.root/".agent-intelligence/snapshots"
-        self.md.mkdir(parents=True); self.inbox.mkdir(parents=True); self.snaps.mkdir(parents=True)
+        self.md=self.root/".agent-intelligence/scouts"; self.report_root=self.root/"الوكلاء/التقارير/AGENT-08 — Architecture Scout"; self.snaps=self.root/".agent-intelligence/snapshots"
+        self.md.mkdir(parents=True); self.report_root.mkdir(parents=True); self.snaps.mkdir(parents=True)
     def tearDown(self): self.tmp.cleanup()
     def m(self):
         return {"format":"flixo-scout-manifest-v1","role":"ARCHITECTURE","ttl_days":14,"default_repo_refs":["src/config/registry.ts"],"sources":[{"url":"https://example.invalid","source_type":"official_docs","stability":"stable","evidence_kind":"documentation","vendor_affiliated":False,"title":"Test Pattern","entity_key":"test-pattern::architecture","repo_refs":["src/config/registry.ts"],"proposal":"Evaluate test pattern.","rollback":"Revert the candidate adapter."}]}
@@ -45,7 +45,7 @@ class DiscoveryTests(unittest.TestCase):
 
     def test_proposal_shape_quote_and_entity_key(self):
         m=self.m(); src=m["sources"][0]; s=SnapshotStore(self.snaps,opener=lambda *a,**k:resp(b"Unique evidence")).fetch_and_store(src["url"],src["source_type"],src["stability"],src["vendor_affiliated"],src["evidence_kind"])
-        p=build_proposal(self.root,m,src,s); self.assertEqual(p["status"],"inbox"); self.assertEqual(p["entity_key"],"test-pattern::architecture"); self.assertIn(p["evidence"]["quote"],Path(s.text_path).read_text())
+        p=build_proposal(self.root,m,src,s); self.assertEqual(p["status"],"candidate"); self.assertEqual(p["entity_key"],"test-pattern::architecture"); self.assertIn(p["evidence"]["quote"],Path(s.text_path).read_text())
         self.assertEqual(p["triage"]["lane"],"architecture")
     def test_malformed_output_rejected(self):
         m=self.m(); src=m["sources"][0]; s=SnapshotStore(self.snaps,opener=lambda *a,**k:resp(b"Evidence")).fetch_and_store(src["url"])
@@ -57,9 +57,9 @@ class DiscoveryTests(unittest.TestCase):
     def test_repeated_runs_are_append_only(self):
         self.md.joinpath("architecture.yaml").write_text(json.dumps(self.m()),encoding="utf-8")
         op=lambda *a,**k:resp(b"evidence")
-        a=run(self.root,self.md,self.inbox,self.snaps,opener=op); before=a[0].read_text()
-        b=run(self.root,self.md,self.inbox,self.snaps,opener=op)
-        self.assertEqual(len(list(self.inbox.glob("*.yaml"))),2); self.assertEqual(before,a[0].read_text()); self.assertNotEqual(a[0].name,b[0].name)
+        a=run(self.root,self.md,self.report_root.parent.parent.parent,self.snaps,opener=op); before=a[0].read_text()
+        b=run(self.root,self.md,self.report_root.parent.parent.parent,self.snaps,opener=op)
+        self.assertEqual(len(list(self.report_root.glob("*.yaml"))),2); self.assertEqual(before,a[0].read_text()); self.assertNotEqual(a[0].name,b[0].name)
     def test_empty_and_failed_source(self):
         with self.assertRaises(SnapshotError): SnapshotStore(self.snaps,opener=lambda *a,**k:resp(b"")).fetch_and_store("https://example.invalid")
         with self.assertRaises(SnapshotError): SnapshotStore(self.snaps,opener=lambda *a,**k: (_ for _ in ()).throw(OSError("network down"))).fetch_and_store("https://example.invalid")
