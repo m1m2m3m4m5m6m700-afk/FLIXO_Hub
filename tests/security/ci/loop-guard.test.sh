@@ -8,6 +8,12 @@ for x in a b c d e; do printf "patch-$x\n" >"patch-$x"; done
 printf 'error-a\n' > error-a; printf 'error-b\n' > error-b
 g(){ STATE_FILE="$t/state.json" COOLDOWN_SECONDS=0 "$GUARD" "$@"; }
 g --task-id=P --patch-file="$t/patch-a" >/dev/null
+# Concurrent state access is serialized; a held lock fails closed.
+g --task-id=L --patch-file="$t/patch-a" >/dev/null
+exec 9>"$t/lock.json.lock"
+flock -n 9
+if STATE_FILE="$t/lock.json" COOLDOWN_SECONDS=0 "$GUARD" --task-id=L --patch-file="$t/patch-b" >/dev/null 2>&1; then exit 1; fi
+flock -u 9
 if g --task-id=P --patch-file="$t/patch-a" >/dev/null 2>&1; then exit 1; fi
 g --task-id=E --patch-file="$t/patch-a" >/dev/null
 g --task-id=E --patch-file="$t/patch-b" --error-log="$t/error-a" >/dev/null
