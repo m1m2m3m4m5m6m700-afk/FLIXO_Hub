@@ -13,6 +13,10 @@ import {
   collectGitRefSnapshot,
   extractAstFacts,
   collectSemanticDiff,
+  buildAuthorityGraph,
+  buildCallGraph,
+  buildControlFlowGraph,
+  buildTaskGraph,
 } from '../../../scripts/repository-knowledge-scan.mjs';
 
 const repoRoot = process.cwd();
@@ -134,8 +138,60 @@ test('main/execution semantic diff detects source-shape changes', () => {
   }
 });
 
+test('world model exposes authority, call, control-flow, and task graph layers', () => {
+  const entries = [
+    {
+      path: 'src/authority.ts',
+      category: 'runtime',
+      symbols: [{ name: 'registry', kind: 'variable', line: 1, exported: true }],
+      signals: { canonicalAuthority: true, securityBoundary: true },
+      ast: { callTargets: ['execute'], controlFlow: { if: 1, switch: 0, loops: 0, try: 0, conditional: 0 } },
+    },
+    {
+      path: 'src/consumer.ts',
+      category: 'runtime',
+      symbols: [{ name: 'execute', kind: 'function', line: 1, exported: false }],
+      signals: { canonicalAuthority: false, securityBoundary: false },
+      ast: { callTargets: ['registry'], controlFlow: { if: 0, switch: 0, loops: 1, try: 0, conditional: 0 } },
+    },
+  ];
+  const dependencyEdges = [
+    { from: 'src/consumer.ts', target: 'src/authority.ts', line: 1, specifier: './authority', resolution: 'RESOLVED' },
+  ];
+  const authority = buildAuthorityGraph(entries, dependencyEdges);
+  const calls = buildCallGraph(entries);
+  const control = buildControlFlowGraph(entries);
+  const tasks = buildTaskGraph([]);
+  assert.ok(authority.nodes.some(node => node.id === 'src/authority.ts'));
+  assert.ok(authority.edges.some(edge => edge.from === 'src/consumer.ts' && edge.to === 'src/authority.ts'));
+  assert.ok(calls.some(edge => edge.from === 'src/authority.ts' && edge.to === 'execute'));
+  assert.equal(control.length, 2);
+  assert.deepEqual(tasks, { nodes: [], edges: [] });
+});
+
 test('scanner passes syntax validation', () => {
   execFileSync(process.execPath, ['--check', scannerPath], { cwd: repoRoot, stdio: 'pipe' });
+});
+
+test('knowledge output contract includes an exact-SHA world model snapshot', () => {
+  const output = execFileSync(process.execPath, [scannerPath, '--verify'], {
+    cwd: repoRoot,
+    env: { ...process.env },
+    encoding: 'utf8',
+  });
+  const result = JSON.parse(output);
+  assert.match(result.modelVersion, /^flixo-world-model-/);
+  assert.equal(typeof result.generatedAt, 'string');
+  assert.ok(result.generatedAt.includes('T'));
+  assert.equal(result.worldModelPath, reportDir + '/' + result.sha + '.json');
+  assert.ok(existsSync(result.worldModelPath));
+  const worldModel = JSON.parse(readFileSync(result.worldModelPath, 'utf8'));
+  assert.equal(worldModel.model_version, result.modelVersion);
+  assert.equal(worldModel.exact_sha, result.sha);
+  assert.equal(worldModel.repository_state.execution_sha, result.sha);
+  for (const key of ['file_index','symbol_index','dependency_graph','call_graph','control_flow_graph','authority_graph','task_graph','semantic_diff']) {
+    assert.ok(worldModel[key] !== undefined, 'missing world model layer: ' + key);
+  }
 });
 
 test('scanner produces an exact-SHA report with zero uncovered authored lines', () => {
