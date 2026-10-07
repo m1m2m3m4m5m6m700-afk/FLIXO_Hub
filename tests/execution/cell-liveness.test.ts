@@ -22,7 +22,7 @@ test("CELL emits 60-second heartbeats and never transitions an open task to slee
 });
 
 test("45-minute worker expiry automatically wakes the next worker and preserves checkpoint/progress", () => {
-  let now = 0;
+  const now = 0;
   const store = new InMemoryCellLivenessStore();
   const reasons: string[] = [];
   const live = new CellLivenessRuntime({
