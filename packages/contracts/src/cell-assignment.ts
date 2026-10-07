@@ -262,13 +262,13 @@ export function selectAssignmentTeam(input: Readonly<{
       candidate.independenceKey !== backupSolver.independenceKey,
   );
   if (!opponent) throw new Error("ASSIGNMENT_REQUIRES_INDEPENDENT_OPPONENT");
-  const backupOpponent =
-    input.opponentRanked.find(
-      (candidate) =>
-        ![solver.agentId, backupSolver.agentId, opponent.agentId].includes(candidate.agentId) &&
-        !verifierReserved.has(candidate.agentId) &&
-        ![solver.independenceKey, backupSolver.independenceKey, opponent.independenceKey].includes(candidate.independenceKey),
-    ) ?? null;
+  const backupOpponent = input.requireBackupOpponent
+    ? input.opponentRanked.find(
+        (candidate) =>
+          ![solver.agentId, backupSolver.agentId, opponent.agentId].includes(candidate.agentId) &&
+          ![solver.independenceKey, backupSolver.independenceKey, opponent.independenceKey].includes(candidate.independenceKey),
+      ) ?? null
+    : null;
   if (input.requireBackupOpponent && !backupOpponent) {
     throw new Error("BACKUP_OPPONENT_REQUIRED");
   }
