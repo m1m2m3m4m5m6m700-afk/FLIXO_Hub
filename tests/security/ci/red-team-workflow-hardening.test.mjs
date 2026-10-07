@@ -66,3 +66,12 @@ test('tool discovery does not expose ready-but-non-executable capabilities', asy
   const page = await readRepo('src/routes/tools-page.tsx');
   assert.match(page, /TOOL_CATALOG\.ready\.filter\(\(tool\) => tool\.capability\.state === 'EXECUTABLE'\)/u);
 });
+
+test('routes and persisted chains cannot resurrect non-executable tools', async () => {
+  const route = await readRepo('src/routes/localized-tool.tsx');
+  assert.match(route, /tool\.capability\.state !== 'EXECUTABLE'/u);
+
+  const boundaries = await readRepo('src/lib/runtime-boundaries.ts');
+  assert.match(boundaries, /MVP_EXECUTABLE_TOOL_IDS/u);
+  assert.match(boundaries, /Non-executable persisted tool id/u);
+});
