@@ -21,7 +21,7 @@ on:
         type: string
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: flixo-agent3-human-gate
@@ -30,6 +30,8 @@ concurrency:
 jobs:
   gate:
     name: Human decision gate
+    permissions:
+      contents: write
     env:
       FLIXO_TARGET_BRANCH: execution
     runs-on: ubuntu-latest
