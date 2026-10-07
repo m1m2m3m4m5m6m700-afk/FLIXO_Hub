@@ -3,7 +3,7 @@ import test from "node:test";
 import { CELL_HEARTBEAT_INTERVAL_MS, CELL_WORKER_WINDOW_MS, CellLivenessRuntime, InMemoryCellLivenessStore } from "../../packages/contracts/src/cell-liveness.ts";
 
 test("CELL emits 60-second heartbeats and never transitions an open task to sleep/idle", () => {
-  let now = 0;
+  const now = 0;
   const beats: number[] = [];
   const wakes: string[] = [];
   const live = new CellLivenessRuntime({
