@@ -1,0 +1,183 @@
+name: FLIXO Agent-3 Triage and Clean
+# Agent-3 exact-SHA CI marker: rerun after every control-plane correction.
+
+on:
+  push:
+    branches: [execution]
+    paths:
+      - '.agent-intelligence/validated/**'
+      - '.agent-intelligence/scripts/triage.py'
+      - '.agent-intelligence/scripts/reaper.py'
+      - '.agent-intelligence/feature-freeze.json'
+      - '.github/workflows/triage-and-clean.yml'
+  pull_request:
+    branches: [execution]
+  schedule:
+    - cron: '17 1 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: flixo-agent3-triage-clean
+  cancel-in-progress: false
+
+jobs:
+  pipeline:
+    name: Agent-3 mandatory triage pipeline
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Setup Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+
+      - name: Resolve exact candidate SHA
+        id: target
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            TARGET_SHA="${{ github.event.pull_request.head.sha }}"
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            test "$GITHUB_REF_NAME" = "execution"
+            TARGET_SHA="$GITHUB_SHA"
+          else
+            git fetch origin execution --no-tags
+            TARGET_SHA="$(git rev-parse refs/remotes/origin/execution)"
+          fi
+          test -n "$TARGET_SHA"
+          git checkout --detach "$TARGET_SHA"
+          test "$(git rev-parse HEAD)" = "$TARGET_SHA"
+          echo "sha=$TARGET_SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Mandatory contract, security and scale tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile .agent-intelligence/scripts/triage.py .agent-intelligence/scripts/reaper.py
+          python3 tests/security/ci/agent-3-triage.test.py
+
+      - name: Execute mandatory pipeline without silent skips
+        shell: bash
+        run: |
+          set +e
+          : > agent3-stage-results.txt
+          failures=0
+          stage () {
+            name="$1"; shift
+            echo "=== $name ==="
+            "$@"
+            rc=$?
+            if [ "$rc" -eq 0 ]; then
+              echo "$name=PASS" | tee -a agent3-stage-results.txt
+            else
+              echo "$name=FAIL" | tee -a agent3-stage-results.txt
+              failures=$((failures+1))
+            fi
+          }
+          stage ValidatorAdmission bash -c 'mkdir -p .agent-intelligence/validated && python3 .agent-intelligence/scripts/validate.py --all --json > .agent-intelligence/validated/validator-results.json'
+          stage TriageDedupPriorityQueue python3 .agent-intelligence/scripts/triage.py run
+          stage ReaperTTLSuppression python3 .agent-intelligence/scripts/reaper.py
+          stage GeneratedViewAndStateAudit python3 .agent-intelligence/scripts/triage.py verify
+          echo "failures=$failures" >> agent3-stage-results.txt
+          test "$failures" -eq 0
+
+      - name: Remove ephemeral validator output
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .agent-intelligence/validated/validator-results.json
+
+      - name: Reject unexpected mutation surface
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --name-only > agent3-changed-files.txt
+          while IFS= read -r path; do
+            [ -z "$path" ] && continue
+            case "$path" in
+              .agent-intelligence/review-queue/*|.agent-intelligence/graveyard/*|.agent-intelligence/handoffs/*|التطوير.md)
+                ;;
+              *)
+                echo "FAIL_CLOSED: unexpected mutation: $path"
+                exit 1
+                ;;
+            esac
+          done < agent3-changed-files.txt
+
+      - name: Reconcile execution before publication
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin execution --no-tags
+          test "$(git rev-parse refs/remotes/origin/execution)" = "${{ steps.target.outputs.sha }}"
+
+      - name: Publish generated state to execution
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "NO_GENERATED_MUTATIONS=PASS"
+            exit 0
+          fi
+          git config user.name "flixo-agent3[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .agent-intelligence/review-queue .agent-intelligence/graveyard .agent-intelligence/handoffs التطوير.md
+          git diff --cached --quiet && echo "NO_STAGED_MUTATIONS=PASS" && exit 0
+          git commit -m "chore(agent3): reconcile triage queue"
+          git fetch origin execution --no-tags
+          test "$(git rev-parse refs/remotes/origin/execution)" = "${{ steps.target.outputs.sha }}"
+          git push origin "HEAD:execution"
+
+      - name: Verify resulting exact SHA without mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            RESULT_SHA="${{ steps.target.outputs.sha }}"
+            test "$(git rev-parse HEAD)" = "$RESULT_SHA"
+          else
+            git fetch origin execution --no-tags
+            RESULT_SHA="$(git rev-parse refs/remotes/origin/execution)"
+            git checkout --detach "$RESULT_SHA"
+            test "$(git rev-parse HEAD)" = "$RESULT_SHA"
+          fi
+          python3 .agent-intelligence/scripts/triage.py verify
+          {
+            echo "AGENT3_RESULT_SHA=$RESULT_SHA"
+            cat agent3-stage-results.txt
+          } > agent3-evidence.txt
+
+      - name: Upload exact-SHA Agent-3 evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: flixo-agent3-triage-${{ github.run_id }}
+          path: |
+            agent3-stage-results.txt
+            agent3-evidence.txt
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Enforce no-false-green
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s agent3-stage-results.txt
+          grep -q '^ValidatorAdmission=PASS$' agent3-stage-results.txt
+          grep -q '^TriageDedupPriorityQueue=PASS$' agent3-stage-results.txt
+          grep -q '^ReaperTTLSuppression=PASS$' agent3-stage-results.txt
+          grep -q '^GeneratedViewAndStateAudit=PASS$' agent3-stage-results.txt
+          ! grep -q '=FAIL$' agent3-stage-results.txt

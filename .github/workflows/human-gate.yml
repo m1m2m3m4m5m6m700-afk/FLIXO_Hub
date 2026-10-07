@@ -1,0 +1,95 @@
+name: FLIXO Agent-3 Human Gate
+
+on:
+  workflow_dispatch:
+    inputs:
+      proposal:
+        description: 'Review card ID (RQ-...) or proposal ID'
+        required: true
+        type: string
+      decision:
+        description: 'Human decision'
+        required: true
+        type: choice
+        options:
+          - approved
+          - rejected
+          - deferred
+      note:
+        description: 'Human review note'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: flixo-agent3-human-gate
+  cancel-in-progress: false
+
+jobs:
+  gate:
+    name: Human decision gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Reject bot actors
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "$GITHUB_ACTOR" in
+            *"[bot]"|"github-actions"|"dependabot")
+              echo "FAIL_CLOSED: automated actor cannot approve/reject/defer"
+              exit 1
+              ;;
+          esac
+          test -n "$GITHUB_ACTOR"
+
+      - name: Checkout exact execution branch
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          ref: execution
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Assert dispatch ref is execution
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = "execution"
+          test "$(git rev-parse HEAD)" = "$(git rev-parse origin/execution)"
+
+      - name: Apply human decision
+        shell: bash
+        env:
+          PROPOSAL: ${{ inputs.proposal }}
+          DECISION: ${{ inputs.decision }}
+          NOTE: ${{ inputs.note }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          set -euo pipefail
+          python3 .agent-intelligence/scripts/triage.py gate             --proposal "$PROPOSAL"             --decision "$DECISION"             --actor "$ACTOR"             --note "$NOTE"             > human-gate-result.json
+          python3 .agent-intelligence/scripts/triage.py verify
+
+      - name: Publish human gate transition to execution
+        shell: bash
+        run: |
+          set -euo pipefail
+          git status --short
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+          git add .agent-intelligence/review-queue .agent-intelligence/handoffs التطوير.md
+          git diff --cached --quiet && echo "FAIL_CLOSED: no gate mutation was published" && exit 1
+          git commit -m "governance(agent3): record human gate decision"
+          git fetch origin execution --no-tags
+          test "$(git rev-parse origin/execution^)" = "$(git rev-parse HEAD^)"
+          git push origin "HEAD:execution"
+
+      - name: Upload human-gate evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: flixo-agent3-human-gate-${{ github.run_id }}
+          path: human-gate-result.json
+          if-no-files-found: error
+          retention-days: 30
