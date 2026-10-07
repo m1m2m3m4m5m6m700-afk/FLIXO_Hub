@@ -1,0 +1,67 @@
+name: FLIXO Red Team Remediation Verification
+
+on:
+  pull_request:
+    branches: [execution]
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: flixo-redteam-remediation-${{ github.event.pull_request.number || github.ref }}-${{ github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Read-only Red Team remediation verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout exact candidate without persisted credentials
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify exact SHA
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+
+      - name: Install without lifecycle scripts
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Red Team workflow hardening contracts
+        run: node --test tests/security/ci/red-team-workflow-hardening.test.mjs
+
+      - name: Media header and worker safety contracts
+        run: node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/security/ci/media-header-safety.test.ts
+
+      - name: Controller publication contracts
+        run: node --test scripts/ci/test-controller-publication-contract.mjs scripts/ci/test-workflow-exact-sha-contract.mjs
+
+      - name: Canonical boundary and scope regression
+        run: npm run test:core
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Production dependency audit
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Build
+        run: npm run build
+
+      - name: Confirm clean working tree
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
