@@ -425,3 +425,168 @@ test('world model snapshot contract is SHA-bound, complete, and authority-safe',
     /WORLD_MODEL_TIMESTAMP_IN_FUTURE/,
   );
 });
+
+
+test('cognitive plane emits candidate-only learning and requires independent usage before promotion', async () => {
+  const {
+    deriveCandidateLesson,
+    reconcileCandidateLesson,
+    classifyMemoryForExecution,
+  } = await import('../../../scripts/agent-learning/cognitive-plane.mjs');
+
+  const experience = buildExperience({
+    id: 'exp-cognitive-001',
+    agent: 'المستكشف AI',
+    exactSha: SHA,
+    drill: 'repository-knowledge',
+    result: 'pass',
+    evidence: ['world-model.json'],
+    lesson: 'bind context to the current execution SHA',
+  });
+
+  const candidate = deriveCandidateLesson(experience, SHA);
+  assert.equal(candidate.status, 'CANDIDATE');
+  assert.equal(candidate.promotable, false);
+  assert.equal(candidate.kind, 'LESSON');
+
+  const validated = reconcileCandidateLesson({
+    ...candidate,
+    review: { decision: 'CONFIRMED', independentConfirmations: 2, reviewers: ['AGENT-01', 'AGENT-05'] },
+    independentUsageCount: 1,
+    repeatPasses: 2,
+    regressionTest: true,
+  }, SHA);
+  assert.equal(validated.status, 'VALIDATED');
+  assert.equal(validated.promotable, false);
+
+  const promoted = reconcileCandidateLesson({
+    ...candidate,
+    review: { decision: 'CONFIRMED', independentConfirmations: 2, reviewers: ['AGENT-01', 'AGENT-05'] },
+    independentUsageCount: 2,
+    repeatPasses: 2,
+    regressionTest: true,
+  }, SHA);
+  assert.equal(promoted.status, 'PROMOTED');
+  assert.equal(promoted.promotable, true);
+
+  assert.equal(classifyMemoryForExecution({ memory_id: 'usable', status: 'PROMOTED', tested_sha: SHA }, SHA).usable, true);
+  assert.equal(classifyMemoryForExecution({ memory_id: 'blocked', status: 'VALIDATED', tested_sha: SHA }, SHA).usable, false);
+  assert.equal(classifyMemoryForExecution({ memory_id: 'stale', status: 'PROMOTED', tested_sha: OTHER_SHA }).usable, false);
+});
+
+test('cognitive context assembly rejects authority escalation and stale world models', async () => {
+  const { assembleCognitiveContext } = await import('../../../scripts/agent-learning/cognitive-plane.mjs');
+  const worldModel = {
+    model_version: 'flixo-world-model-v1',
+    snapshot_id: 'flixo-world-model-v1:' + SHA,
+    exact_sha: SHA,
+    generated_at: new Date(0).toISOString(),
+    repository_state: { execution_sha: SHA },
+    file_index: [],
+    symbol_index: [],
+    dependency_graph: [],
+    call_graph: [],
+    control_flow_graph: [],
+    authority_graph: { nodes: [], edges: [], collisions: [] },
+    task_graph: { nodes: [], edges: [] },
+    semantic_diff: {},
+    unknowns: {},
+    evidence_catalog: { static_analysis: { available: true, exact_sha: SHA } },
+    integrity: {
+      immutable_by_identity: true,
+      identity: 'flixo-world-model-v1:' + SHA,
+      authority_collisions: [],
+      required_layers: ['file_index','symbol_index','dependency_graph','call_graph','control_flow_graph','authority_graph','task_graph','semantic_diff'],
+    },
+    constraints: { mutation_authority: false },
+  };
+  const fakeAdapter = {
+    async retrieve() {
+      return {
+        currentSha: SHA,
+        retrievalCount: 1,
+        executableMemory: [{ memory_id: 'current', status: 'PROMOTED', tested_sha: SHA }],
+        warnings: [],
+        blockedCount: 0,
+      };
+    },
+  };
+  const result = await assembleCognitiveContext({
+    task: { task_id: 'TASK-COG', title: 'compile context', repo_refs: [] },
+    worldModel,
+    currentSha: SHA,
+    memoryAdapter: fakeAdapter,
+    evidenceRequirements: ['exact SHA'],
+  });
+  assert.equal(result.context.current_sha, SHA);
+  assert.equal(result.context.executable_memory[0].memory_id, 'current');
+  assert.equal(result.context.constraints.mutation_authority, false);
+  await assert.rejects(
+    assembleCognitiveContext({
+      task: {},
+      worldModel: { ...worldModel, exact_sha: OTHER_SHA, snapshot_id: 'flixo-world-model-v1:' + OTHER_SHA },
+      currentSha: SHA,
+      memoryAdapter: fakeAdapter,
+    }),
+    /WORLD_MODEL_SHA_MISMATCH/,
+  );
+});
+
+test('external knowledge snapshots remain candidate-only and never executable', async () => {
+  const { classifyExternalSnapshot } = await import('../../../scripts/agent-learning/cognitive-plane.mjs');
+  const { mkdtempSync, writeFileSync, rmSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const path = mkdtempSync(tmpdir() + '/flixo-external-');
+  const file = path + '/snapshot.json';
+  try {
+    writeFileSync(file, JSON.stringify({
+      snapshot_id: 'snap-20261007T053800000000Z-abcdef0123456789',
+      captured_at: '2026-10-07T05:38:00Z',
+      url: 'https://example.com/docs',
+      source_type: 'official_docs',
+      stability: 'stable',
+      evidence_kind: 'documentation',
+      content: 'external evidence',
+    }));
+    const candidate = classifyExternalSnapshot(file);
+    assert.equal(candidate.status, 'CANDIDATE');
+    assert.equal(candidate.executable, false);
+    assert.equal(candidate.fact_authority, false);
+    await assert.rejects(
+      Promise.resolve().then(() => classifyExternalSnapshot(file + '.missing')),
+      /ENOENT/,
+    );
+  } finally {
+    rmSync(path, { recursive: true, force: true });
+  }
+});
+
+test('learning metrics are validated and stale retrieval is measurable', async () => {
+  const { buildLearningMetrics } = await import('../../../scripts/agent-learning/cognitive-plane.mjs');
+  const metrics = buildLearningMetrics({
+    retrievals: [
+      { sha_freshness: 'CURRENT_SHA', tested_sha: SHA, current_sha: SHA },
+      { sha_freshness: 'STALE_EVIDENCE', tested_sha: OTHER_SHA, current_sha: SHA },
+    ],
+    usage: [
+      { outcome: 'HELPFUL', memory_status: 'PROMOTED' },
+      { outcome: 'HARMFUL', memory_status: 'PROMOTED' },
+    ],
+    memories: [
+      { status: 'PROMOTED', regression_evidence: true, independent_confirmations: 2, contradiction_count: 0 },
+      { status: 'DISPUTED', contradiction_count: 1, independent_confirmations: 1 },
+    ],
+    validationDurationsMs: [100, 300],
+    promotionDurationsMs: [500],
+  });
+  assert.equal(metrics.retrieval_count, 2);
+  assert.equal(metrics.helpful_usage, 1);
+  assert.equal(metrics.harmful_usage, 1);
+  assert.equal(metrics.staleness_rate, 0.5);
+});
+
+test('experience event type rejects arbitrary lifecycle authority', async () => {
+  const { assertExperienceEventType } = await import('../../../scripts/agent-learning/cognitive-plane.mjs');
+  assert.equal(assertExperienceEventType('START'), 'START');
+  assert.throws(() => assertExperienceEventType('PROMOTE_MYSELF'), /EXPERIENCE_EVENT_TYPE_INVALID/);
+});
