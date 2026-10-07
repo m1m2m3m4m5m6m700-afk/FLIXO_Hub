@@ -46,6 +46,8 @@
     "test:global-platform": "node --test tests/security/ci/global-baseline-contract.test.mjs tests/security/ci/live-governance-contract.test.mjs tests/security/ci/evidence-chain-contract.test.mjs && node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/release/global-capability-contract.test.ts",
     "test:proposal-integrity": "python3 .agent-intelligence/scripts/test_validate.py && python3 .agent-intelligence/schemas/test_schema.py",
     "validate:proposals": "python3 .agent-intelligence/scripts/validate.py --all --json",
+    "discover:public-repos": "python3 .agent-intelligence/scripts/discover_public_repositories.py",
+    "test:discovery": "python3 -m unittest discover -s tests/agent-intelligence -p 'test_*.py'",
     "verify:agent-control-plane": "node scripts/agent-control-plane.mjs",
     "test:agent-control-plane": "node --test tests/security/ci/agent-control-plane.test.mjs",
     "test:agent-report-routing": "node --test tests/security/ci/agent-report-routing.test.mjs",
