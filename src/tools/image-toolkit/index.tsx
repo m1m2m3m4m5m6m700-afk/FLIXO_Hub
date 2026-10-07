@@ -5,6 +5,8 @@ import { executeCanonicalTool } from '../../lib/execution/canonical-executor';
 import { recognizeWithOcrWorker } from './ocr-worker-client';
 import { assertImageCropperOutputIntegrity } from '../image-cropper/output-integrity';
 import { validateFileSafety } from '../../lib/contracts/file-safety';
+import { assertToolOutputContract } from '../../lib/contracts/tool-output';
+import { AI_IMAGE_GENERATOR_OUTPUT_CONTRACT } from '../../lib/contracts/external-output-contracts';
 import { validateUploadBoundary } from '../../lib/contracts/upload-boundary';
 import { LOCALE_METADATA, isLocale } from '../../lib/i18n';
 import { getToolSeo } from '../../lib/seo/tool-seo';
@@ -81,6 +83,8 @@ const UI_COPY: Record<string, UiCopy> = {
 };
 
 function baseName(name: string) { return name.replace(/\.[^.]+$/, '') || 'flixo-image'; }
+function outputExtension(mime: string): 'png' | 'jpg' | 'webp' { return mime === 'image/jpeg' ? 'jpg' : mime === 'image/webp' ? 'webp' : 'png'; }
+
 
 async function validateSharedImageInput(file: File, toolId: SharedImageToolId) {
   const allowedMime = DEFINITIONS[toolId].accept.split(',');
@@ -164,8 +168,17 @@ export function ImageToolPage({ toolId }: Props) {
         if (!response.ok) throw new Error('AI image endpoint is not configured or returned an error.');
         const blob = await response.blob();
         if (!blob.type.startsWith('image/')) throw new Error('AI endpoint did not return an image.');
+        if (blob.size > 50 * 1024 * 1024) throw new Error('AI output exceeds the canonical artifact size limit.');
+        const header = new Uint8Array(await blob.slice(0, 64).arrayBuffer());
         const info = await imageInfo(blob);
-        replaceResult(await createResult(blob, `flixo-ai-${info.width}x${info.height}.png`, info));
+        assertToolOutputContract(AI_IMAGE_GENERATOR_OUTPUT_CONTRACT, {
+          mimeType: blob.type,
+          byteLength: blob.size,
+          bytes: header,
+          filename: `flixo-ai-${info.width}x${info.height}.${outputExtension(blob.type)}`,
+          dimensions: info,
+        });
+        replaceResult(await createResult(blob, `flixo-ai-${info.width}x${info.height}.${outputExtension(blob.type)}`, info));
         return;
       }
       if (toolId === 'image-upscaler') { const factor = Number(scale); if (!Number.isFinite(factor) || factor < 1 || factor > 8) throw new Error('Scale must be between 1 and 8.'); }
