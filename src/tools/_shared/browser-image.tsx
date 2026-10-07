@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { validateFileSafety } from '../../lib/contracts/file-safety';
+import { readRasterHeaderDimensions, validateFileSafety } from '../../lib/contracts/file-safety';
 import { assertExifCleanerOutputIntegrity } from '../exif-cleaner/output-integrity';
 import { validateSvgOutput } from '../image-to-svg/output-integrity';
 import { getToolUiCopy } from '../../data/tool-ui-i18n';
@@ -20,9 +20,19 @@ const UI_COPY: Record<'en' | 'ar', UiCopy> = {
   ar: { description: 'معالجة داخل المتصفح. يبقى ملفك على جهازك ما لم تتطلب الأداة صراحةً نقطة نهاية AI مُهيأة.', choose: 'اختر ملفًا', watermark: 'نص العلامة المائية', top: 'النص العلوي', bottom: 'النص السفلي', brightness: 'السطوع', contrast: 'التباين', saturation: 'التشبع', grayscale: 'تدرج رمادي', processing: 'جارٍ المعالجة…', run: 'تشغيل الأداة', result: 'النتيجة', download: 'تنزيل الآن', noResult: 'لا توجد نتيجة بعد.', chooseImage: 'اختر صورة أولًا.', toolResult: 'نتيجة الأداة', alertOperationFailed: 'تعذر تنفيذ العملية.' },
 };
 
-const RASTER_IMAGE_POLICY = { allowedMime: ['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/bmp', 'image/avif'], maxBytes: 25 * 1024 * 1024, maxPixels: 40_000_000 } as const;
+const RASTER_IMAGE_POLICY = { allowedMime: ['image/png', 'image/jpeg', 'image/webp'], maxBytes: 25 * 1024 * 1024, maxPixels: 40_000_000 } as const;
 const SVG_FILE_POLICY = { allowedMime: ['image/svg+xml'], maxBytes: 25 * 1024 * 1024 } as const;
-function assertFileSafe(file: File, mode: Mode) { const policy = mode === 'svg-optimizer' ? SVG_FILE_POLICY : RASTER_IMAGE_POLICY; const result = validateFileSafety({ name: file.name, mime: file.type, bytes: file.size }, policy); if (!result.safe) throw new Error(`Input rejected by File Safety: ${result.failures.join('; ')}`); }
+async function assertFileSafe(file: File, mode: Mode) {
+  const policy = mode === 'svg-optimizer' ? SVG_FILE_POLICY : RASTER_IMAGE_POLICY;
+  const result = validateFileSafety({ name: file.name, mime: file.type, bytes: file.size }, policy);
+  if (!result.safe) throw new Error(`Input rejected by File Safety: ${result.failures.join('; ')}`);
+  if (mode !== 'svg-optimizer') {
+    const dimensions = await readRasterHeaderDimensions(file, file.type);
+    if (!dimensions) throw new Error('Input rejected by File Safety: raster dimensions could not be determined before decode.');
+    const dimensionResult = validateFileSafety({ name: file.name, mime: file.type, bytes: file.size, width: dimensions.width, height: dimensions.height }, policy);
+    if (!dimensionResult.safe) throw new Error(`Input rejected by File Safety: ${dimensionResult.failures.join('; ')}`);
+  }
+}
 function assertDecodedImageSafe(file: File, width: number, height: number) { const result = validateFileSafety({ name: file.name, mime: file.type, bytes: file.size, width, height }, RASTER_IMAGE_POLICY); if (!result.safe) throw new Error(`Input rejected by File Safety: ${result.failures.join('; ')}`); }
 function download(result: Result) { const link = document.createElement('a'); link.href = result.url; link.download = result.name; link.click(); setTimeout(() => URL.revokeObjectURL(result.url), 0); }
 async function loadImage(file: File) { const url = URL.createObjectURL(file); try { const image = new Image(); image.decoding = 'async'; image.src = url; await image.decode(); return image; } finally { URL.revokeObjectURL(url); } }
@@ -52,7 +62,7 @@ export function BrowserImageTool({ mode, title, accept = 'image/*', multi = fals
   async function run() {
     if (!files.length) { setError(copy.chooseImage); return; } setError(''); setBusy(true); setResult(null);
     try {
-      for (const file of files) assertFileSafe(file, mode);
+      for (const file of files) await assertFileSafe(file, mode);
       if (mode === 'svg-optimizer') { const svg = await files[0].text(); const optimized = svg.replace(/>\s+</g, '><').replace(/\s{2,}/g, ' ').trim(); const blob = new Blob([optimized], { type: 'image/svg+xml' }); setResult({ blob, url: URL.createObjectURL(blob), name: 'flixo-optimized.svg', text: optimized }); return; }
       if (mode === 'photo-colorizer') { const endpoint = import.meta.env.VITE_PHOTO_COLORIZER_ENDPOINT; if (!endpoint) throw new Error('Photo Colorizer requires VITE_PHOTO_COLORIZER_ENDPOINT; no fake AI fallback is used.'); const body = new FormData(); body.append('image', files[0]); const response = await fetch(endpoint, { method: 'POST', body }); if (!response.ok) throw new Error(`Colorizer request failed (${response.status}).`); const blob = await response.blob(); setResult({ blob, url: URL.createObjectURL(blob), name: 'flixo-colorized.png' }); return; }
       if (mode === 'image-effects') {
