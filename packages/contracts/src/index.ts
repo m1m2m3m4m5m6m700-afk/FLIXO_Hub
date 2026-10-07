@@ -98,3 +98,9 @@ export * from "./call-mission-control";
 export * from "./call-ledgers";
 export * from "./call-objective-registry";
 export * from "./call-candidate-bundle";
+
+export * from "./call-opposition";
+export * from "./call-red-team";
+export * from "./call-decision-log";
+export * from "./call-rollback";
+export * from "./call-reputation";
