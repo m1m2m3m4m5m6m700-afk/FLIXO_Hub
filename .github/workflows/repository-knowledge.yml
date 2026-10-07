@@ -16,9 +16,9 @@ concurrency:
 
 jobs:
   knowledge:
-    name: Read complete repository and publish SHA-bound knowledge report
+    name: Read complete repository and produce SHA-bound knowledge report
     permissions:
-      contents: write
+      contents: read
     env:
       FLIXO_TARGET_BRANCH: knowledge
     runs-on: ubuntu-latest
@@ -29,7 +29,7 @@ jobs:
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
-          persist-credentials: true
+          persist-credentials: false
 
       - name: Setup Node
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
@@ -74,30 +74,47 @@ jobs:
           ALLOW_KNOWLEDGE_LIMITATIONS: "1"
         run: node --test tests/security/ci/repository-knowledge-agent.test.mjs
 
-      - name: Reconcile current execution HEAD before publication
+      - name: Upload validated knowledge report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: flixo-knowledge-report-${{ github.run_id }}
+          path: |
+            الوكلاء/المستكشف AI/تقارير المستكشف/${{ github.sha }}.md
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    name: Publish validated knowledge report
+    needs: knowledge
+    if: ${{ github.event_name != 'pull_request' }}
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout without persisted credentials
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Download exact-SHA report
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: flixo-knowledge-report-${{ github.run_id }}
+          path: /tmp/flixo-knowledge-report
+
+      - name: Reconcile and publish report without executing repository code
         shell: bash
         run: |
           set -euo pipefail
-          git fetch origin execution
-          REMOTE_SHA="$(git rev-parse origin/execution)"
-          test "$REMOTE_SHA" = "${GITHUB_SHA}" || {
-            echo "FAIL_CLOSED: execution moved during knowledge scan."
-            echo "TRIGGER_SHA=${GITHUB_SHA}"
-            echo "CURRENT_EXECUTION_SHA=$REMOTE_SHA"
-            exit 1
-          }
-
-      - name: Publish report to isolated knowledge branch
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name "المستكشف AI"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          REPORT="الوكلاء/المستكشف AI/تقارير المستكشف/${GITHUB_SHA}.md"
+          REPORT="/tmp/flixo-knowledge-report/الوكلاء/المستكشف AI/تقارير المستكشف/${GITHUB_SHA}.md"
           test -s "$REPORT"
-          REPORT_COPY="${RUNNER_TEMP}/flixo-knowledge-${GITHUB_SHA}.md"
-          cp "$REPORT" "$REPORT_COPY"
+          grep -Fq -- "- Exact SHA: ${GITHUB_SHA}" "$REPORT"
 
           if git ls-remote --exit-code --heads origin knowledge >/dev/null 2>&1; then
             git fetch origin knowledge
@@ -109,10 +126,10 @@ jobs:
 
           rm -rf 'الوكلاء/المستكشف AI/تقارير المستكشف'
           mkdir -p 'الوكلاء/المستكشف AI/تقارير المستكشف'
-          cp "$REPORT_COPY" "$REPORT"
+          cp "$REPORT" 'الوكلاء/المستكشف AI/تقارير المستكشف/${GITHUB_SHA}.md'
 
           git add 'الوكلاء/المستكشف AI/تقارير المستكشف/'
-          git diff --cached --name-only
           test -n "$(git diff --cached --name-only)"
+          git diff --cached --name-only
           git commit -m "docs(knowledge): publish execution SHA ${GITHUB_SHA}"
-          git push origin "HEAD:knowledge"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: bearer $GITHUB_TOKEN" push origin "HEAD:knowledge"
