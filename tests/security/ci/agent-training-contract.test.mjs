@@ -13,7 +13,7 @@ const agents = [
   { name: 'Red Team 2', registration: '.github/agents/red-team-2.md', training: true },
 ];
 
-test('all official agents have explicit identities', () => {
+test('all core training agents have explicit identities', () => {
   for (const agent of agents) {
     const content = readFileSync(agent.registration, 'utf8');
     assert.ok(content.includes('name: ' + agent.name));
@@ -24,7 +24,7 @@ test('all official agents have explicit identities', () => {
   }
 });
 
-test('role-specific packages expose bounded report paths', () => {
+test('core role-specific packages expose bounded report paths', () => {
   const checks = [
     ['الوكلاء/المستكشف AI/المستكشف.md', 'الوكلاء/المستكشف AI/تقارير المستكشف/'],
     ['الوكلاء/المستكشف 2/المستكشف-2.md', 'الوكلاء/المستكشف 2/تقارير الاعتراضات/'],
@@ -66,7 +66,7 @@ test('agent training includes exact-SHA learning and lesson promotion checks', a
   }, sha).status, 'PROMOTED');
 });
 
-test('all core agents have canonical package contracts', () => {
+test('all core training agents have canonical package contracts', () => {
   const packages = [
     'الوكلاء/i18n Agent/العقد.md',
     'الوكلاء/Maintainer Agent/العقد.md',
