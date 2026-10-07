@@ -86,15 +86,16 @@ def run(root,manifest_dir,report_root,snapshots_dir,opener=None):
         for source in manifest["sources"]:
             snapshot=store.fetch_and_store(source["url"],source.get("source_type","official_docs"),source.get("stability","stable"),source.get("vendor_affiliated",False),source.get("evidence_kind","documentation"))
             proposal=build_proposal(root,manifest,source,snapshot)
-            report_dir = {
-                "ARCHITECTURE":"الوكلاء/التقارير/AGENT-08 — Architecture Scout",
-                "TECHNOLOGY":"الوكلاء/التقارير/AGENT-09 — Technology Scout",
-                "ECOSYSTEM":"الوكلاء/التقارير/AGENT-10 — Ecosystem Scout",
+            role_dir = {
+                "ARCHITECTURE":"AGENT-08 — Architecture Scout",
+                "TECHNOLOGY":"AGENT-09 — Technology Scout",
+                "ECOSYSTEM":"AGENT-10 — Ecosystem Scout",
             }[manifest["role"]]
-            out=Path(root)/report_dir/f"اقتراح-{proposal['id']}.yaml"
+            canonical_root = Path(report_root) if Path(report_root).is_absolute() else Path(root)/Path(report_root)
+            out=canonical_root/role_dir/f"اقتراح-{proposal['id']}.yaml"
             while out.exists():
                 old=int(proposal["id"].rsplit("-",1)[1]); new=(old+1)%100_000_000
-                proposal["id"]=f"{PREFIX[manifest['role']]}-{new:08d}"; out=Path(root)/report_dir/f"اقتراح-{proposal['id']}.yaml"
+                proposal["id"]=f"{PREFIX[manifest['role']]}-{new:08d}"; out=canonical_root/role_dir/f"اقتراح-{proposal['id']}.yaml"
             write_append_only(out,dump_yaml(proposal)); outputs.append(out)
     return outputs
 
