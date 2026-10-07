@@ -4,6 +4,7 @@ display_name: المستكشف المعرفي AI
 description: المستكشف AI يقرأ المستودع بعمق ويصدر تقارير معرفة مرتبطة بـ Exact-SHA للوكلاء الآخرين. وكيل قراءة واستطلاع فقط، لا يعدّل ولا يدمج ولا ينشر ولا يصدر شهادات.
 tools: read, search, terminal
 report_path: الوكلاء AI/المستكشف AI/تقارير المستكشف/
+activity_log: الوكلاء AI/المستكشف AI/تقارير المستكشف/سجل التشغيل — المستكشف المعرفي AI.md
 agent_id: AGENT-01
 class: principal
 principal: true
