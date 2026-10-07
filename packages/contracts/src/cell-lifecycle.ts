@@ -481,8 +481,6 @@ export class CellLifecycleRuntime {
       frontier: this.frontier,
       opponentStartSequence: this.opponentStartSequence,
       solverDisclosureSequence: this.solverDisclosureSequence,
-      opponentContextHash: this.opponentContextHash,
-      opponentStartedAtMs: this.opponentStartedAtMs,
     });
   }
 
