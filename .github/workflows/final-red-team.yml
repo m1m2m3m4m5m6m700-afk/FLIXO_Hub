@@ -10,7 +10,6 @@ on:
 permissions:
   contents: read
   actions: read
-  pull-requests: write
 
 concurrency:
   group: flixo-final-red-team-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref_name }}
@@ -35,6 +34,7 @@ jobs:
         with:
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 1
+          persist-credentials: false
 
       - name: Verify exact identity before tests
         shell: bash
@@ -102,7 +102,6 @@ jobs:
       - name: Publish browser failure diagnostics
         if: failure()
         env:
-          GH_TOKEN: ${{ github.token }}
           EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
         shell: bash
         run: |
@@ -153,12 +152,7 @@ jobs:
           process.stdout.write(lines.join('\\n'));
           NODE
           printf '\\n\\nThis diagnostic is emitted only because Browser E2E failed; no PASS is inferred from it.\\n' >> /tmp/flixo-browser-failure.md
-          PR_NUMBER="$(gh pr list --state open --head execution --json number --jq '.[0].number // empty')"
-          if [ -n "$PR_NUMBER" ]; then
-            gh pr comment "$PR_NUMBER" --body-file /tmp/flixo-browser-failure.md
-          else
-            cat /tmp/flixo-browser-failure.md
-          fi
+          cat /tmp/flixo-browser-failure.md
       - name: Wait for exact-SHA security workflows on promotion PRs
         if: github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main'
         shell: bash
