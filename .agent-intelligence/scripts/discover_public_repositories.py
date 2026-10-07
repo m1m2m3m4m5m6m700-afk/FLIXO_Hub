@@ -27,7 +27,7 @@ API_ROOT = "https://api.github.com"
 USER_AGENT = "FLIXO-Public-Repository-Acquisition/1.0"
 MAX_RESPONSE_BYTES = 2_000_000
 MAX_REPO_FILES = 4
-ALLOWED_LICENSES = {"mit", "apache-2.0", "bsd-2-clause", "bsd-3-clause", "isc", "zlib", "mpl-2.0"}
+ALLOWED_LICENSES = {"mit", "apache-2.0", "bsd-2-clause", "bsd-3-clause", "isc", "zlib"}
 SOURCE_EXTENSIONS = {
     ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".py", ".rs", ".go", ".java",
     ".kt", ".cpp", ".c", ".h", ".hpp", ".wasm", ".md", ".mdx", ".json", ".yaml",
@@ -276,12 +276,15 @@ def run(root: Path, manifest_path: Path, index_root: Path, snapshots_dir: Path, 
     run_seen: set[tuple[str, str]] = set()
     discoveries = []
     errors = []
+    total_selected = 0
 
     max_per_query = int(manifest.get("max_repositories_per_query", 8))
     max_selected = int(manifest.get("max_selected_repositories", 6))
     max_files = int(manifest.get("max_files_per_repository", 4))
 
     for query_cfg in manifest["queries"]:
+        if total_selected >= max_selected:
+            break
         role = query_cfg["role"]
         query = query_cfg["query"].strip()
         refs = query_cfg["repo_refs"]
@@ -313,7 +316,7 @@ def run(root: Path, manifest_path: Path, index_root: Path, snapshots_dir: Path, 
 
         selected = 0
         for score, full_name, item, score_evidence in ranked:
-            if selected >= max_selected:
+            if selected >= max_selected or total_selected >= max_selected:
                 break
             owner, name = full_name.split("/", 1)
             try:
@@ -359,7 +362,7 @@ def run(root: Path, manifest_path: Path, index_root: Path, snapshots_dir: Path, 
                     continue
 
                 signals = extract_signals("\n".join(combined_content), [x["path"] for x in captured])
-                spdx = str(item.get("license", {}).get("spdx_id") or "")
+                spdx = str((item.get("license") or {}).get("spdx_id") or "")
                 mode = license_mode(spdx)
                 title = f"Public repository pattern: {full_name} — {captured[0]['path']}"[:200]
                 proposal = {
@@ -369,7 +372,7 @@ def run(root: Path, manifest_path: Path, index_root: Path, snapshots_dir: Path, 
                     "evidence_kind": "fact",
                     "vendor_affiliated": False,
                     "title": title,
-                    "entity_key": f"public-repo:{owner.lower()}/{name.lower()}::{captured[0]['path'].lower()}",
+                    "entity_key": "public-repo:" + hashlib.sha256((full_name + "::" + captured[0]["path"]).encode("utf-8")).hexdigest()[:48],
                     "repo_refs": refs,
                     "proposal": (
                         f"Study the repository pattern from {full_name} at {captured[0]['path']} and adapt only "
@@ -432,6 +435,7 @@ def run(root: Path, manifest_path: Path, index_root: Path, snapshots_dir: Path, 
                 run_seen.add(key)
                 discoveries.append(index_payload)
                 selected += 1
+                total_selected += 1
             except (DiscoveryError, SnapshotError, OSError, ValueError) as exc:
                 errors.append({"role": role, "repository": full_name, "error": str(exc)})
 
