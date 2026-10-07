@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 
 export const WORLD_MODEL_VERSION = 'flixo-world-model-v1';
 export const REQUIRED_SNAPSHOT_LAYERS = Object.freeze([
