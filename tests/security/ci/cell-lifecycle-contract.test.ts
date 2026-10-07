@@ -62,6 +62,8 @@ function makeEnvelope(): CellAdmissionEnvelope {
     missionId: "mission-100",
     objective: "produce a verified candidate",
     assignmentId: "team-100",
+    startingSha: SHA,
+    currentSha: SHA,
     assignment,
     constraints: ["stay on execution", "exact SHA only"],
     acceptanceCriteria: ["candidate is reproducible", "red team passes", "independent verifier passes"],
