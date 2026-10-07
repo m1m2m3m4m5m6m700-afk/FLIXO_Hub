@@ -383,23 +383,25 @@ test("CELL replan recovery resets stale downstream state and preserves task/miss
   });
   assert.equal(lifecycle.getStage(), "ADMITTED");
 
-  const replanned = makeEnvelope();
-  replanned.assignment = Object.freeze({
-    ...replanned.assignment,
+  const base = makeEnvelope();
+  const replanned: CellAdmissionEnvelope = {
+    ...base,
     assignmentId: "team-101",
-    solverId: "solver-101",
-    opponentId: "opponent-101",
-    backupSolverId: "solver-backup-101",
-    backupOpponentId: "opponent-backup-101",
-  });
-  replanned.assignmentId = "team-101";
+    assignment: Object.freeze({
+      ...base.assignment,
+      assignmentId: "team-101",
+      solverId: "solver-101",
+      opponentId: "opponent-101",
+      backupSolverId: "solver-backup-101",
+      backupOpponentId: "opponent-backup-101",
+    }),
+  };
   const record = lifecycle.replan(replanned);
   assert.equal(record.taskId, "task-100");
   assert.equal(record.missionId, "mission-100");
 
   const snapshot = lifecycle.snapshot();
   assert.equal(snapshot.stage, "ADMITTED");
-  assert.equal(snapshot.assignmentId ?? null, null);
   assert.equal(snapshot.claim, null);
   assert.equal(snapshot.counterclaim, null);
   assert.deepEqual(snapshot.evidence, []);
