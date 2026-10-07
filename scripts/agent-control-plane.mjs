@@ -848,6 +848,10 @@ export class HardControlRuntime {
       this.metrics.falseGreenBlocks += 1;
       return this.deny("SOLVER_CANNOT_CLOSE");
     }
+    if (input?.actorId !== assignment.verifierId || input?.actorRole !== "VERIFIER") {
+      this.metrics.falseGreenBlocks += 1;
+      return this.deny("AUTHORITY_BYPASS","VERIFIER_ONLY_PROMOTION");
+    }
     const gatesPass = task.state === "READY_TO_CLOSE" &&
       input?.redTeamPass === true &&
       input?.opponentResolved === true &&
@@ -1122,3 +1126,27 @@ export function hardControlTestMatrix() {
     "restart during promotion",
   ]);
 }
+
+
+export function arbitrateHardControlConflict({ riskClass = "MEDIUM", solverOutcome, opponentOutcome }) {
+  const solver = String(solverOutcome ?? "UNKNOWN");
+  const opponent = String(opponentOutcome ?? "UNKNOWN");
+  if (solver === "SUCCESS" && opponent === "PASS") return Object.freeze({ decision:"ACCEPT", closeAllowed:false });
+  if (solver === "SUCCESS" && opponent === "COUNTEREXAMPLE") {
+    return Object.freeze({
+      decision:["HIGH","CRITICAL"].includes(riskClass) ? "ESCALATE" : riskClass === "MEDIUM" ? "REPLAN" : "MORE_EVIDENCE",
+      closeAllowed:false,
+    });
+  }
+  if (solver === "FAILURE" || opponent === "FAILURE") return Object.freeze({ decision:"MORE_EVIDENCE", closeAllowed:false });
+  return Object.freeze({ decision:"MORE_EVIDENCE", closeAllowed:false });
+}
+
+export function authorizeMemoryUse({ sourceSha, currentSha, provenance = [], confidence = 0, trusted = true, conflict = false }) {
+  if (sourceSha !== currentSha || !trusted || !Array.isArray(provenance) || provenance.length === 0 || !Number.isFinite(confidence)) {
+    return Object.freeze({ allowed:false, code:"D10_TRUTH_MEMORY", reason:"memory is stale, untrusted, unproven, or poisoned" });
+  }
+  if (conflict) return Object.freeze({ allowed:false, code:"D10_TRUTH_MEMORY", reason:"memory conflict requires independent resolution" });
+  return Object.freeze({ allowed:true, code:"ALLOW" });
+}
+
