@@ -1,9 +1,16 @@
-import { TOOL_CATALOG } from "@/config/registry.ts";
+import { CAPABILITY_DEFINITIONS } from "@/config/manual-capability-definition.ts";
 
 export function getCellPolicyFingerprint(): string {
-  const ids = [...TOOL_CATALOG.byId.keys()].sort().join("|");
-  const ready = [...TOOL_CATALOG.byId.values()]
-    .map((tool) => [tool.id, tool.isReady, tool.operational.executorId, tool.operational.outputContractId, tool.executionMode, tool.requirements.network].join(":"))
+  const ids = CAPABILITY_DEFINITIONS.map((definition) => definition.id).sort().join("|");
+  const ready = CAPABILITY_DEFINITIONS
+    .map((definition) => [
+      definition.id,
+      definition.state === "EXECUTABLE",
+      definition.operational.executorId,
+      definition.operational.outputContractId,
+      definition.executionMode,
+      definition.requirements.network,
+    ].join(":"))
     .sort()
     .join("|");
   return stableHash(ids + "::" + ready);

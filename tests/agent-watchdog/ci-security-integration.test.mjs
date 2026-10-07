@@ -98,7 +98,7 @@ test('RUNNER_WATCHDOG_CONTRACT: current watchdog surfaces are present after inte
     ['watchdog/package.json', /@flixo\/agent-watchdog/u],
     ['watchdog/src/lib/runtime.ts', /loadConfig[\s\S]*authAgent/u],
     ['watchdog/test/contract.test.ts', /AUTH_FAIL_CLOSED=PASS/u],
-    ['src/lib/cell/watchdog.ts', /startCellWatchdog[\\s\\S]*timedOut/u],
+    ['src/lib/cell/watchdog.ts', /startCellWatchdog[\s\S]*timedOut/u],
   ];
   for (const [rel, marker] of required) {
     const abs = path.join(ROOT, rel);
