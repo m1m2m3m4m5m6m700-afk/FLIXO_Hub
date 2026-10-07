@@ -46,7 +46,6 @@ export class AgentState {
     if (!isRecord(raw)
       || raw.agentId !== this.agentId
       || !Number.isSafeInteger(raw.checkpointSeq) || Number(raw.checkpointSeq) < 0
-      || Number(raw.checkpointSeq) > CORE_LIMITS.maxConsecutiveFails * 1024
       || !Number.isSafeInteger(raw.consecutiveFails) || Number(raw.consecutiveFails) < 0
       || Number(raw.consecutiveFails) > CORE_LIMITS.maxConsecutiveFails
       || typeof raw.breakerTripped !== 'boolean'
@@ -206,7 +205,7 @@ export class AgentState {
       const latest = active.at(-1);
       if (latest && at - latest.timestamp < minGapMinutes * 60_000) return { accepted: false, reason: 'min-gap' };
       const reserved: DispatchRecord = { ...record, result: 'reserved' };
-      current.dispatches = [...active, reserved];
+      current.dispatches = [...current.dispatches, reserved];
       current.updatedAt = at;
       await this.writeState(current);
       return { accepted: true };
