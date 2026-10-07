@@ -2,8 +2,8 @@ import { getCapability, validateCapabilityParameters, type CanonicalCapabilityPa
 import { getToolById } from '@/config/registry.ts';
 import { getToolOutputContract } from '@/lib/contracts/tool-output-contracts.ts';
 import { assertToolOutputContract } from '@/lib/contracts/tool-output.ts';
-import { validateFileSafety, MAGIC_BYTE_SIGNATURES } from '@/lib/contracts/file-safety.ts';
-import { applyBasicImageEffect, convertImage, cropResizeImage, removeBackground, resizeImage } from '@/tools/image-toolkit/engine.ts';
+import { validateFileSafety, MAGIC_BYTE_SIGNATURES, readRasterDimensionsFromHeader } from '@/lib/contracts/file-safety.ts';
+import { convertImage, cropResizeImage, removeBackground, resizeImage } from '@/tools/image-toolkit/engine.ts';
 import { compressImage } from '@/tools/image-compressor/engine.ts';
 import { renderVideoToWebm } from '@/lib/video/video-executor.ts';
 import { attachVideoBlobSource, getBoundedVideoDuration } from '@/lib/video/blob-video-source.ts';
@@ -148,9 +148,21 @@ async function preflightInput(
   }
 
   if (!isVideo) {
-    const dimensions = await withDeadline(readImageDimensions(input.blob, signal), Math.min(timeoutMs, 30_000), signal);
-    if (dimensions.width * dimensions.height > maxPixels) {
+    const header = new Uint8Array(await input.blob.slice(0, 256 * 1024).arrayBuffer());
+    const headerDimensions = readRasterDimensionsFromHeader(header, input.blob.type);
+    if (!headerDimensions) {
+      throw new Error('Execution denied: safe raster dimensions could not be established before decode.');
+    }
+    if (headerDimensions.width * headerDimensions.height > maxPixels) {
       throw new Error('Execution denied: image dimensions exceed the canonical pixel budget.');
+    }
+    const dimensions = await withDeadline(
+      readImageDimensions(input.blob, signal),
+      Math.min(timeoutMs, 30_000),
+      signal,
+    );
+    if (dimensions.width * dimensions.height > maxPixels) {
+      throw new Error('Execution denied: decoded image dimensions exceed the canonical pixel budget.');
     }
     return;
   }
@@ -207,9 +219,8 @@ async function executeImageEffectsInWorker(
   timeoutMs: number,
   signal?: AbortSignal,
 ): Promise<Blob> {
-  const canUseWorkerCanvas = typeof Worker !== 'undefined' && typeof OffscreenCanvas !== 'undefined';
-  if (!canUseWorkerCanvas) {
-    return executeImageEffectsFallback(input, effects);
+  if (typeof Worker === 'undefined' || typeof OffscreenCanvas === 'undefined') {
+    throw new Error('IMAGE_EFFECTS_WORKER_REQUIRED');
   }
 
   const worker = new Worker(new URL('./image-effects.worker.ts', import.meta.url), { type: 'module' });
@@ -227,7 +238,6 @@ async function executeImageEffectsInWorker(
     };
     const timer = setTimeout(
       () => finish(() => reject(new Error('Image effects worker timed out.'))),
-      // Keep worker failure bounded well below the UI acceptance timeout, then use the local fallback.
       Math.max(1, Math.min(timeoutMs, 8_000)),
     );
     const onAbort = () => finish(() => reject(cancelledError()));
@@ -238,7 +248,7 @@ async function executeImageEffectsInWorker(
     worker.onmessage = (event: MessageEvent<{ ok: boolean; blob?: Blob; error?: string }>) => {
       const data = event.data;
       if (data?.ok && data.blob instanceof Blob && data.blob.size > 0) {
-        finish(() => resolve(data.blob!));
+        finish(() => resolve(data.blob));
         return;
       }
       finish(() => reject(new Error(data?.error || 'IMAGE_EFFECTS_WORKER_FAILED')));
@@ -248,21 +258,7 @@ async function executeImageEffectsInWorker(
     } catch (error) {
       finish(() => reject(error instanceof Error ? error : new Error('IMAGE_EFFECTS_WORKER_FAILED')));
     }
-  }).catch(async (error) => {
-    if (signal?.aborted) throw error;
-    return executeImageEffectsFallback(input, effects);
   });
-}
-
-async function executeImageEffectsFallback(
-  input: Blob,
-  effects: ReadonlyArray<readonly ['brightness' | 'contrast' | 'saturation' | 'grayscale', number]>,
-): Promise<Blob> {
-  let current = input;
-  for (const [effect, value] of effects) {
-    current = await applyBasicImageEffect(current, effect, value);
-  }
-  return current;
 }
 
 async function executeImageEffects(
