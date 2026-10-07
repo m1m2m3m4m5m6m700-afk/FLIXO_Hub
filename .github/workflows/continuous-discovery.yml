@@ -50,7 +50,7 @@ jobs:
         run: node --test tests/security/ci/scout-boundary.test.mjs
 
   discover:
-    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'push' }}
     name: Append-only Scouts
     runs-on: ubuntu-latest
     timeout-minutes: 20
