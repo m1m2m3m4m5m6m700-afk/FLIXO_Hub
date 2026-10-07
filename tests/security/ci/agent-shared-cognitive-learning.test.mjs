@@ -173,6 +173,17 @@ test('live publish broadcasts to registered agents while preserving replay as th
   assert.equal(b.snapshot().consumerOffset,1);
 });
 
+test('performance and routing learning reject repeated identities to prevent same-task farming',()=>{
+  const r=new AgentExcellenceRegistry();
+  r.recordPerformance('AGENT-A',{dimension:'Coding',verifiedSuccess:true,taskId:'TASK-1'});
+  assert.throws(()=>r.recordPerformance('AGENT-A',{dimension:'Coding',verifiedSuccess:true,taskId:'TASK-1'}),/DUPLICATE_TASK_PERFORMANCE/);
+  const routing=new RoutingLearningEngine();
+  const outcome={taskClass:'coding',agentId:'A',outcomeId:'OUT-1',assignmentSuccess:true,taskClassFit:0.9,cost:1,recoveryRate:1,routingRegret:0,selfSelected:false,verified:true,exploration:false,createdAt:'2026-10-07T00:00:00Z'};
+  routing.recordOutcome(outcome);
+  assert.throws(()=>routing.recordOutcome(outcome),/DUPLICATE_ROUTING_OUTCOME/);
+  assert.throws(()=>r.awardXp('AGENT-A',{reason:'BUG_DISCOVERY',amount:20,taskId:'TASK-2',evidenceId:'E2',verified:true,meaningfulImpact:.9,novelty:1,difficulty:.5}),/XP_AMOUNT_MISMATCH/);
+});
+
 test('integrated engine keeps one shared substrate with separate knowledge, claims, excellence and routing projections',()=>{
   const engine=new CognitiveLearningEngine();
   engine.publish({eventId:'e1',missionId:'m',taskId:'t',agentId:'AGENT-A',eventType:'LESSON',payload:{lesson:'x'},knowledgeStatus:'PROVISIONAL',confidence:0.9,sourceSha:SHA});
