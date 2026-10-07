@@ -37,8 +37,8 @@ export async function createCanonicalCellEnvelope(
     toolId,
     requireVerifier: true,
   };
-  const baseSha = context.baseSha ?? "0000000000000000000000000000000000000000";
-  const currentSha = context.currentSha ?? baseSha;
+  const baseSha = context.baseSha ?? "";
+  const currentSha = context.currentSha ?? "";
 
   return Object.freeze({
     executionId: context.executionId ?? `cell-${toolId}-${Date.now()}`,
@@ -68,7 +68,7 @@ export async function createCanonicalCellEnvelope(
     }),
     evidence: Object.freeze({
       requireExecutionId: true,
-      requireExactSha: true,
+      requireExactSha: Boolean(baseSha && currentSha),
       requireVerifier: true,
       requireEvidenceDigest: false,
     }),
