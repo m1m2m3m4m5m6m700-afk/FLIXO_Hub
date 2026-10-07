@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   authorizeExecutionAction,
+  authorizeRetry,
   createExecutionEnvelope,
   calculateProgressScore,
   classifyMemoryDrift,
@@ -228,4 +229,82 @@ test("execution envelope is immutable and cannot be expanded by the agent", () =
     (created as { allowedCapabilities: string[] }).allowedCapabilities.push("governance-admin");
   }, TypeError);
   assert.equal(created.allowedCapabilities.includes("governance-admin"), false);
+});
+
+
+test("CELL authority attenuation blocks delegated privilege escalation", () => {
+  const childEscalation = authorizeExecutionAction(
+    { ...envelope, authority: "IMPLEMENTER" },
+    action({ operation: "DELEGATE", delegatedAuthority: "CERTIFIER" }),
+    { spentCost: 0, spentDurationMs: 0 },
+  );
+  assert.equal(childEscalation.allowed, false);
+  assert.equal(childEscalation.drift?.type, "D9_DELEGATION_DRIFT");
+
+  const attenuated = authorizeExecutionAction(
+    { ...envelope, authority: "IMPLEMENTER" },
+    action({ operation: "DELEGATE", delegatedAuthority: "ANALYST" }),
+    { spentCost: 0, spentDurationMs: 0 },
+  );
+  assert.equal(attenuated.allowed, true);
+});
+
+test("CELL self-protection denies mutation of control-plane sources without ROOT", () => {
+  const denied = authorizeExecutionAction(
+    { ...envelope, authority: "IMPLEMENTER" },
+    action({ operation: "WRITE", path: "packages/contracts/src/cell-hard-control.ts" }),
+    { spentCost: 0, spentDurationMs: 0 },
+  );
+  assert.equal(denied.allowed, false);
+  assert.equal(denied.drift?.type, "D7_AUTHORITY_DRIFT");
+
+  const root = authorizeExecutionAction(
+    { ...envelope, authority: "ROOT" },
+    action({ operation: "WRITE", path: "packages/contracts/src/cell-hard-control.ts" }),
+    { spentCost: 0, spentDurationMs: 0 },
+  );
+  assert.equal(root.allowed, true);
+});
+
+test("CELL retry gate forbids replanning and policy failures", () => {
+  assert.equal(
+    authorizeRetry(envelope, {
+      attempt: 1,
+      failureClass: "TIMEOUT",
+      sameCapability: true,
+      sameParameters: true,
+      replanned: false,
+    }).allowed,
+    true,
+  );
+  assert.equal(
+    authorizeRetry(envelope, {
+      attempt: 1,
+      failureClass: "SCOPE",
+      sameCapability: true,
+      sameParameters: true,
+      replanned: false,
+    }).allowed,
+    false,
+  );
+  assert.equal(
+    authorizeRetry(envelope, {
+      attempt: 1,
+      failureClass: "TRANSIENT",
+      sameCapability: true,
+      sameParameters: true,
+      replanned: true,
+    }).allowed,
+    false,
+  );
+  assert.equal(
+    authorizeRetry(envelope, {
+      attempt: 4,
+      failureClass: "TIMEOUT",
+      sameCapability: true,
+      sameParameters: true,
+      replanned: false,
+    }).allowed,
+    false,
+  );
 });
