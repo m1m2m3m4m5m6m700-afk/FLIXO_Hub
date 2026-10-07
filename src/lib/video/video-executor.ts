@@ -233,7 +233,7 @@ export async function renderVideoToWebm(inputBlob: Blob, options: VideoRenderOpt
     // requestAnimationFrame can be throttled for an off-screen processing surface.
     // Use a bounded timer-driven sampler so resizing/cropping is independent of
     // animation scheduling while remaining fully local and resource-bounded.
-    frameInterval = setInterval(draw, 33);
+    frameInterval = setInterval(draw, Math.max(4, Math.round(1000 / fps)));
     // Do not block the recorder on the media element's play() promise.
     // Headless Chromium can leave that promise pending even though the element
     // has a decodable local source. The bounded recording timer remains authoritative.
