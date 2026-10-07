@@ -1,3 +1,9 @@
+const SHA = {
+  start: "1111111111111111111111111111111111111111",
+  current: "2222222222222222222222222222222222222222",
+  stale: "3333333333333333333333333333333333333333",
+} as const;
+
 
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -83,19 +89,25 @@ test("reference runtime carries assignment, typed handoff and progress decisions
     backupAgentId: "agent-b",
     verifierAgentId: "agent-c",
     escalationTargetAgentId: "agent-d",
+    startingSha: SHA.start,
+    currentSha: SHA.current,
   };
 
-  const assigned = rt.assignTask("t-assignment", assignment);
+  const assigned = rt.assignTask("t-assignment", assignment, SHA.current);
   assert.equal(assigned.assignment.assignmentId, "as-1");
   assert.equal(ready.state, "READY");
 
   const handoff = {
     handoffId: "h-1",
+    missionId: "mission-1",
+    sessionId: "session-1",
     taskId: "t-assignment",
     parentTaskId: null,
     assignmentId: "as-1",
     sourceAgentId: "agent-a",
     targetAgentId: "agent-c",
+    taskType: "VERIFY",
+    riskClass: "HIGH",
     reason: "independent verification",
     objective: "produce counterexample",
     inputRefs: ["candidate:c1"],
@@ -104,14 +116,15 @@ test("reference runtime carries assignment, typed handoff and progress decisions
     verificationCriteria: ["exact SHA evidence"],
     readScope: "tests/**",
     writeScope: "reports/**",
-    currentSha: "sha-a",
+    startingSha: SHA.start,
+    currentSha: SHA.current,
     deadlineAtMs: null,
     budget: { cost: 1, durationMs: 1000 },
     evidenceRequirements: ["exact SHA"],
     returnContract: "return evidence refs",
   };
 
-  assert.equal(rt.createHandoff(handoff).handoffId, "h-1");
+  assert.equal(rt.createHandoff(handoff, SHA.current).handoffId, "h-1");
 
   const decision = rt.recordProgress({
     taskId: "t-assignment",
@@ -141,6 +154,161 @@ test("runtime preserves native solver-opponent assignment lineage", () => {
     backupOpponentAgentId: null,
     verifierAgentId: "agent-d",
     escalationTargetAgentId: null,
+    startingSha: SHA.start,
+    currentSha: SHA.current,
   };
-  assert.equal(rt.assignTaskTeam("t-team", team).team.opponentAgentId, "agent-c");
+  assert.equal(rt.assignTaskTeam("t-team", team, SHA.current).team.opponentAgentId, "agent-c");
+});
+
+test("assignment SHA drift and typed handoff task mismatch are rejected", () => {
+  const rt = new CellRuntime(() => 1000);
+  rt.registerTask("t");
+  rt.transitionTask("t", "READY");
+  const assignment = {
+    assignmentId: "a1",
+    primaryAgentId: "p",
+    backupAgentId: "b",
+    verifierAgentId: null,
+    escalationTargetAgentId: null,
+    startingSha: SHA.start,
+    currentSha: SHA.current,
+  };
+  assert.throws(() => rt.assignTask("t", { ...assignment, currentSha: SHA.stale }, SHA.current), /ASSIGNMENT_SHA_DRIFT/);
+  rt.assignTask("t", assignment, SHA.current);
+  const handoff = {
+    handoffId: "h",
+    missionId: "m",
+    sessionId: "s",
+    taskId: "other",
+    parentTaskId: null,
+    assignmentId: "a1",
+    sourceAgentId: "p",
+    targetAgentId: "b",
+    taskType: "VERIFY",
+    riskClass: "LOW",
+    reason: "handoff",
+    objective: "verify",
+    inputRefs: ["candidate:c"],
+    requiredCapabilities: ["verification"],
+    expectedOutput: "evidence",
+    verificationCriteria: ["exact SHA"],
+    readScope: "tests/**",
+    writeScope: "reports/**",
+    startingSha: SHA.start,
+    currentSha: SHA.current,
+    deadlineAtMs: null,
+    budget: { cost: 1, durationMs: 100 },
+    evidenceRequirements: ["exact SHA"],
+    returnContract: "return refs",
+  };
+  assert.throws(() => rt.createHandoff(handoff, SHA.current), /HANDOFF_TASK_MISMATCH/);
+});
+
+test("reassignment preserves task lineage and assignment attempt", () => {
+  const rt = new CellRuntime(() => 1000);
+  const t = rt.registerTask("t-swap");
+  rt.transitionTask("t-swap", "READY", t.version);
+  const first = {
+    assignmentId: "a1",
+    primaryAgentId: "agent-a",
+    backupAgentId: "agent-b",
+    verifierAgentId: null,
+    escalationTargetAgentId: null,
+    startingSha: SHA.start,
+    currentSha: SHA.current,
+  };
+  rt.assignTask("t-swap", first, SHA.current);
+  rt.transitionTask("t-swap", "CLAIMED");
+  rt.transitionTask("t-swap", "RUNNING");
+  rt.transitionTask("t-swap", "FAILED");
+  const second = rt.reassignTask("t-swap", { ...first, assignmentId: "a2", primaryAgentId: "agent-b", backupAgentId: "agent-a" }, "solver stalled", SHA.current);
+  assert.equal(second.taskId, "t-swap");
+  assert.equal(second.previousAssignmentId, "a1");
+  assert.equal(second.attempt, 2);
+  assert.deepEqual(rt.getAssignmentHistory("t-swap").map((x) => [x.assignmentId, x.previousAssignmentId]), [["a1", null], ["a2", "a1"]]);
+});
+
+test("assignment-linked lease is bound to assignment and exact SHA", () => {
+  const rt = new CellRuntime(() => 1000);
+  rt.registerTask("t-lease");
+  rt.transitionTask("t-lease", "READY");
+  const assignment = {
+    assignmentId: "a1",
+    primaryAgentId: "a",
+    backupAgentId: "b",
+    verifierAgentId: null,
+    escalationTargetAgentId: null,
+    startingSha: SHA.start,
+    currentSha: SHA.current,
+  };
+  rt.assignTask("t-lease", assignment, SHA.current);
+  const lease = rt.acquireAssignmentLease("t-lease", "a1", "a", "l", 100, SHA.current);
+  assert.equal(lease.assignmentId, "a1");
+  assert.equal(lease.startingSha, SHA.start);
+  assert.throws(() => rt.acquireAssignmentLease("t-lease", "a1", "a", "l2", 100, SHA.stale), /ASSIGNMENT_SHA_DRIFT/);
+  rt.releaseAssignmentLease("t-lease", "a1", "a", "l");
+});
+
+test("delegation is denied when edge is absent and accepted when typed", () => {
+  const rt = new CellRuntime(() => 1000);
+  rt.registerTask("t-del");
+  rt.transitionTask("t-del", "READY");
+  rt.assignTask("t-del", {
+    assignmentId: "a-del",
+    primaryAgentId: "a",
+    backupAgentId: "b",
+    verifierAgentId: null,
+    escalationTargetAgentId: null,
+    startingSha: SHA.start,
+    currentSha: SHA.current,
+  }, SHA.current);
+  const h = {
+    handoffId: "h-del",
+    missionId: "m",
+    sessionId: "s",
+    taskId: "t-del",
+    parentTaskId: null,
+    assignmentId: "a-del",
+    sourceAgentId: "a",
+    targetAgentId: "b",
+    taskType: "VERIFY",
+    riskClass: "HIGH",
+    reason: "verify",
+    objective: "verify",
+    inputRefs: ["candidate:c"],
+    requiredCapabilities: ["verification"],
+    expectedOutput: "evidence",
+    verificationCriteria: ["exact SHA"],
+    readScope: "tests/**",
+    writeScope: "reports/**",
+    startingSha: SHA.start,
+    currentSha: SHA.current,
+    deadlineAtMs: null,
+    budget: { cost: 1, durationMs: 100 },
+    evidenceRequirements: ["exact SHA"],
+    returnContract: "return refs",
+  };
+  const request = {
+    taskId: "t-del",
+    sourceAgentId: "a",
+    targetAgentId: "b",
+    taskType: "VERIFY",
+    riskClass: "HIGH",
+    depth: 1,
+    activeSubtasks: 1,
+    estimatedCost: 1,
+    estimatedDurationMs: 100,
+  };
+  const rule = {
+    sourceAgentId: "a",
+    targetAgentId: "b",
+    taskTypes: ["VERIFY"],
+    riskClasses: ["HIGH"],
+    maxDepth: 1,
+    maxActiveSubtasks: 1,
+    maxCost: 1,
+    maxDurationMs: 100,
+  };
+  assert.throws(() => rt.delegateHandoff(h, SHA.current, [], request), /DELEGATION_REJECTED/);
+  assert.equal(rt.delegateHandoff(h, SHA.current, [rule], request).handoffId, "h-del");
 });
