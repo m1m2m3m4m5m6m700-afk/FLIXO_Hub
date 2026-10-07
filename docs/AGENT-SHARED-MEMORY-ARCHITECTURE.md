@@ -44,7 +44,7 @@ FLIXO يعمل بنموذج **Collective Intelligence** مقيد:
 
 ## البحث
 
-يدعم المسار الحالي lexical/hybrid-ready عبر PostgreSQL FTS، مع `vector(384)` وHNSW مُجهزين لإضافة embeddings لاحقًا دون تغيير نموذج البيانات. Supabase توصي بـpgvector وHNSW للبحث الدلالي مع RLS على البيانات المحمية. citeturn797155search4turn797155search8
+يدعم المسار الحالي lexical/hybrid-ready عبر PostgreSQL FTS، مع `extensions.vector(384)` وHNSW مُجهزين لإضافة embeddings لاحقًا دون تغيير نموذج البيانات. Supabase توصي بـpgvector وHNSW للبحث الدلالي مع RLS على البيانات المحمية. citeturn797155search4turn797155search8
 
 ## التقاط المعرفة من المستكشفين
 
