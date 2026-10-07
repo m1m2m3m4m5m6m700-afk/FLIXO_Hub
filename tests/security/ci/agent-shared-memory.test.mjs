@@ -30,6 +30,7 @@ test('knowledge keys are deterministic and safe', () => {
 test('raw inbox routing is rejected and canonical reports are required', () => {
   const failures = validateMemoryProposal({
     agent: 'FLIXO Architecture Scout',
+    agentId: 'AGENT-08',
     role: 'architecture-research',
     exactSha: SHA,
     reportPath: '.agent-intelligence/inbox/proposal.yaml',
@@ -41,6 +42,9 @@ test('raw inbox routing is rejected and canonical reports are required', () => {
   assert.ok(failures.includes('reportPath must be inside the canonical agent report center'));
   assert.ok(failures.includes('inbox path is forbidden'));
   assert.ok(failures.includes('reportPath must match the registered report scope for this agent'));
+  assert.equal(failures.includes('reportPath contains forbidden traversal segments'), false);
+  const traversal = validateMemoryProposal({ ...base, reportPath: 'الوكلاء/التقارير/AGENT-08 — Architecture Scout/../AGENT-09 — Technology Scout/a.md' }, SHA);
+  assert.ok(traversal.includes('reportPath contains forbidden traversal segments'));
 });
 
 test('memory promotion needs independent evidence, repeated utility, zero harm and regression', () => {
