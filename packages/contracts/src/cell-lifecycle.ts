@@ -1,6 +1,5 @@
 import {
   canPromote,
-  type CandidateState,
   type PromotionGate,
 } from "./cell-control-plane";
 import {
