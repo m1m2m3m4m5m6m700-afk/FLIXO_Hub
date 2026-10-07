@@ -6,6 +6,7 @@ on:
       - 'src/**'
       - 'public/**'
       - 'scripts/**'
+      - 'tests/security/ci/repository-knowledge-agent.test.mjs'
       - '.github/agents/**'
       - '.github/workflows/**'
       - 'package.json'
