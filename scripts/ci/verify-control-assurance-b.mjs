@@ -117,7 +117,8 @@ export function evaluateControlAssuranceB({
 
   results.push(runGate('LEARNING-ANTI-POISONING', () => {
     assert(/harmful_count|harmful/u.test(sharedMemory),'harmful memory usage must be tracked');
-    assert(sharedMemory.includes('source agent'),'self-review/self-use boundary missing');
+    assert(sharedMemory.includes('reviewerAgent') && sharedMemory.includes('p_reviewer_agent'),'independent reviewer identity boundary missing');
+    assert(sharedMemory.includes('p_decision') && sharedMemory.includes('reviewMemory'),'independent memory review path missing');
     assert(learningControl.includes('independent confirmation is required'),'promotion requires independent confirmation');
     assert(learningControl.includes('regression test'),'promotion requires regression test');
   }));
