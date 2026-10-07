@@ -281,6 +281,35 @@ function parseJpegDimensions(bytes: Uint8Array): RasterDimensions | null {
   return null;
 }
 
+function parseGifDimensions(bytes: Uint8Array): RasterDimensions | null {
+  if (bytes.length < 10) return null;
+  const signature = String.fromCharCode(...bytes.slice(0, 6));
+  if (signature !== 'GIF87a' && signature !== 'GIF89a') return null;
+  const width = uint16LE(bytes, 6);
+  const height = uint16LE(bytes, 8);
+  return width > 0 && height > 0 ? { width, height } : null;
+}
+
+function parseBmpDimensions(bytes: Uint8Array): RasterDimensions | null {
+  if (bytes.length < 26 || bytes[0] !== 0x42 || bytes[1] !== 0x4d) return null;
+  const dibSize = uint32LE(bytes, 14) >>> 0;
+  if (dibSize < 40) return null;
+  const width = uint32LE(bytes, 18) >>> 0;
+  const height = Math.abs(uint32LE(bytes, 22) | 0);
+  return width > 0 && height > 0 ? { width, height } : null;
+}
+
+function parseAvifDimensions(bytes: Uint8Array): RasterDimensions | null {
+  if (bytes.length < 16 || fourCC(bytes, 4) !== 'ftyp') return null;
+  for (let offset = 8; offset + 16 <= bytes.length; offset += 1) {
+    if (fourCC(bytes, offset) !== 'ispe') continue;
+    const width = uint32BE(bytes, offset + 8);
+    const height = uint32BE(bytes, offset + 12);
+    if (width > 0 && height > 0) return { width, height };
+  }
+  return null;
+}
+
 function parseWebpDimensions(bytes: Uint8Array): RasterDimensions | null {
   if (bytes.length < 16 || fourCC(bytes, 0) !== 'RIFF' || fourCC(bytes, 8) !== 'WEBP') return null;
   let offset = 12;
@@ -319,10 +348,15 @@ export async function readRasterHeaderDimensions(
   mime: string,
   maxProbeBytes = 64 * 1024,
 ): Promise<RasterDimensions | null> {
-  if (!['image/png', 'image/jpeg', 'image/webp'].includes(mime)) return null;
+  if (!['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/bmp', 'image/avif'].includes(mime)) return null;
   const limit = Math.max(32, Math.min(maxProbeBytes, blob.size));
   const bytes = new Uint8Array(await blob.slice(0, limit).arrayBuffer());
-  if (mime === 'image/png') return parsePngDimensions(bytes);
-  if (mime === 'image/jpeg') return parseJpegDimensions(bytes);
-  return parseWebpDimensions(bytes);
+  switch (mime) {
+    case 'image/png': return parsePngDimensions(bytes);
+    case 'image/jpeg': return parseJpegDimensions(bytes);
+    case 'image/webp': return parseWebpDimensions(bytes);
+    case 'image/gif': return parseGifDimensions(bytes);
+    case 'image/bmp': return parseBmpDimensions(bytes);
+    case 'image/avif': return parseAvifDimensions(bytes);
+  }
 }
