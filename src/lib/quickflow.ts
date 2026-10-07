@@ -6,6 +6,6 @@ export const buildQuickFlowPlan = (intent: string, tools: readonly ToolDefinitio
   const normalized = intent.trim();
   if (!normalized) return null;
   const match = getBestToolIntent(normalized, tools);
-  if (!match || match.score < 60 || !match.tool.isReady) return null;
+  if (!match || match.score < 60 || !match.tool.isReady || match.tool.capability.state !== 'EXECUTABLE') return null;
   return { version: 2, intent: normalized, steps: [{ toolId: match.tool.id, path: match.tool.path }] };
 };
