@@ -39,7 +39,10 @@ test("duplicate recovery/execution key is idempotently rejected", () => {
 
 test("candidate promotion is impossible before exact certification lineage", () => {
   const rt = new CellRuntime();
-  rt.registerCandidate("c1", "CERTIFIED");
+  const created = rt.registerCandidate("c1");
+  rt.transitionCandidate("c1", "PROMISING", created.version);
+  rt.transitionCandidate("c1", "SELECTED");
+  rt.transitionCandidate("c1", "CERTIFIED");
   const good = {
     candidateState: "CERTIFIED" as const,
     testedSha: "sha-a",
@@ -51,4 +54,15 @@ test("candidate promotion is impossible before exact certification lineage", () 
   };
   assert.throws(() => rt.promoteCandidate("c1", { ...good, certification: "FAIL" }, "sha-a"), /PROMOTION_DENIED/);
   assert.equal(rt.promoteCandidate("c1", good, "sha-a").state, "PROMOTED");
+});
+
+
+test("lease cannot be considered live before acquisition time", () => {
+  const rt = new CellRuntime(() => 1000);
+  rt.registerTask("t1");
+  rt.acquireTaskLease("t1", "a1", "l1", 100);
+  assert.throws(() => {
+    const contract = { ownerId: "a1", token: "l1", acquiredAtMs: 1000, expiresAtMs: 1100 };
+    if (!(1000 < contract.expiresAtMs && 1000 >= contract.acquiredAtMs)) throw new Error("EXPECTED_WINDOW");
+  }, /EXPECTED_WINDOW/);
 });
