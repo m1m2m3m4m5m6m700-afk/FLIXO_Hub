@@ -96,7 +96,7 @@ export function assertLeaseOwner(lease: Lease, ownerId: string, token: string, n
 
 export type RetryDecision = Readonly<{
   allowed: boolean;
-  reason: "RETRYABLE" | "RETRY_BUDGET_EXHAUSTED" | "NON_RETRYABLE" | "MISSING_FAILURE_CLASSIFICATION" | "SAME_FAILURE";
+  reason: "RETRYABLE" | "RETRY_BUDGET_EXHAUSTED" | "NON_RETRYABLE" | "MISSING_FAILURE_CLASSIFICATION" | "SAME_FAILURE" | "RETRY_REPLAN_FORBIDDEN";
 }>;
 
 export function decideRetry(input: Readonly<{
