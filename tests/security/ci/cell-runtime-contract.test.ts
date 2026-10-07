@@ -69,6 +69,8 @@ test("reference runtime carries assignment, typed handoff and progress decisions
   const rt = new CellRuntime(() => 1000);
   const task = rt.registerTask("t-assignment");
   const ready = rt.transitionTask("t-assignment", "READY", task.version);
+  rt.transitionTask("t-assignment", "CLAIMED", ready.version);
+  rt.transitionTask("t-assignment", "RUNNING");
 
   const assignment = {
     assignmentId: "as-1",
