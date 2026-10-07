@@ -36,7 +36,7 @@ def build_proposal(root,manifest,source,snapshot):
     suffix=int(now.strftime("%H%M%S%f")[:8])
     proposal_id=f"{PREFIX[manifest['role']]}-{suffix:08d}"
     proposal={
-      "id":proposal_id,"category":CATEGORIES[manifest["role"]],"title":source["title"],"status":"inbox","entity_key":entity,
+      "id":proposal_id,"category":CATEGORIES[manifest["role"]],"title":source["title"],"status":"candidate","entity_key":entity,
       "lifecycle":{"created_at":now.strftime("%Y-%m-%dT%H:%M:%SZ"),"expires_at":(now+timedelta(days=int(manifest.get("ttl_days",14)))).strftime("%Y-%m-%dT%H:%M:%SZ"),"last_viewed_by_human":now.strftime("%Y-%m-%dT%H:%M:%SZ")},
       "source":{"snapshot_id":snapshot.snapshot_id,"vendor_affiliated":bool(source.get("vendor_affiliated",False))},
       "evidence":{"quote":quote_unique(Path(snapshot.text_path).read_text(encoding="utf-8"))},
@@ -48,7 +48,7 @@ def build_proposal(root,manifest,source,snapshot):
 
 def validate_proposal(p,root,snapshot):
     required={"id","category","title","status","entity_key","lifecycle","source","evidence","inference","triage"}
-    if set(p)!=required or p["status"]!="inbox": raise ValueError("discovery emits inbox only with exact top-level schema")
+    if set(p)!=required or p["status"]!="candidate": raise ValueError("discovery emits candidate reports only with exact top-level schema")
     if not re.fullmatch(r"^[A-Z][A-Z0-9_-]{1,31}-[0-9]{2,8}$",p["id"]): raise ValueError("invalid proposal id")
     if not re.fullmatch(r"^[a-z][a-z0-9._-]{1,63}$",p["category"]): raise ValueError("invalid category")
     if not re.fullmatch(r"^[a-z0-9][a-z0-9._:/-]{1,127}$",p["entity_key"]): raise ValueError("invalid entity_key")
@@ -79,23 +79,28 @@ def write_append_only(path,text):
         with Path(path).open("x",encoding="utf-8") as f: f.write(text)
     except FileExistsError as exc: raise ValueError(f"append-only collision: {path}") from exc
 
-def run(root,manifest_dir,inbox_dir,snapshots_dir,opener=None):
+def run(root,manifest_dir,report_root,snapshots_dir,opener=None):
     store=SnapshotStore(snapshots_dir,opener=opener); outputs=[]
     for mp in sorted(Path(manifest_dir).glob("*.yaml")):
         manifest=parse_manifest(mp)
         for source in manifest["sources"]:
             snapshot=store.fetch_and_store(source["url"],source.get("source_type","official_docs"),source.get("stability","stable"),source.get("vendor_affiliated",False),source.get("evidence_kind","documentation"))
             proposal=build_proposal(root,manifest,source,snapshot)
-            out=Path(inbox_dir)/f"{proposal['id']}.yaml"
+            report_dir = {
+                "ARCHITECTURE":"الوكلاء/التقارير/AGENT-08 — Architecture Scout",
+                "TECHNOLOGY":"الوكلاء/التقارير/AGENT-09 — Technology Scout",
+                "ECOSYSTEM":"الوكلاء/التقارير/AGENT-10 — Ecosystem Scout",
+            }[manifest["role"]]
+            out=Path(root)/report_dir/f"اقتراح-{proposal['id']}.yaml"
             while out.exists():
                 old=int(proposal["id"].rsplit("-",1)[1]); new=(old+1)%100_000_000
-                proposal["id"]=f"{PREFIX[manifest['role']]}-{new:08d}"; out=Path(inbox_dir)/f"{proposal['id']}.yaml"
+                proposal["id"]=f"{PREFIX[manifest['role']]}-{new:08d}"; out=Path(root)/report_dir/f"اقتراح-{proposal['id']}.yaml"
             write_append_only(out,dump_yaml(proposal)); outputs.append(out)
     return outputs
 
 if __name__=="__main__":
-    parser=argparse.ArgumentParser(); parser.add_argument("--repo-root",default="."); parser.add_argument("--manifest-dir",default=".agent-intelligence/scouts"); parser.add_argument("--inbox-dir",default=".agent-intelligence/inbox"); parser.add_argument("--snapshots-dir",default=".agent-intelligence/snapshots")
+    parser=argparse.ArgumentParser(); parser.add_argument("--repo-root",default="."); parser.add_argument("--manifest-dir",default=".agent-intelligence/scouts"); parser.add_argument("--report-root",default="الوكلاء/التقارير"); parser.add_argument("--snapshots-dir",default=".agent-intelligence/snapshots")
     a=parser.parse_args()
-    try: out=run(Path(a.repo_root),Path(a.manifest_dir),Path(a.inbox_dir),Path(a.snapshots_dir))
+    try: out=run(Path(a.repo_root),Path(a.manifest_dir),Path(a.report_root),Path(a.snapshots_dir))
     except (SnapshotError,ValueError,OSError) as exc: print(f"DISCOVERY_FAIL_CLOSED: {exc}",file=sys.stderr); raise SystemExit(1)
     print(json.dumps({"count":len(out),"outputs":[str(p) for p in out]},ensure_ascii=False))
