@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: "17 2 * * *"
   workflow_dispatch:
+  push:
+    branches: [execution]
+    paths-ignore:
+      - ".agent-intelligence/inbox/**"
+      - ".agent-intelligence/snapshots/**"
   pull_request:
     branches: [execution]
     paths:
