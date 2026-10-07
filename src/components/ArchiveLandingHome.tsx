@@ -75,7 +75,7 @@ export function ArchiveLandingHome() {
     try {
       localStorage.setItem('flixo-archive-theme', dark ? 'dark' : 'light');
     } catch {
-      return;
+      // localStorage may be unavailable in restricted browser contexts.
     }
   }, [dark]);
 
