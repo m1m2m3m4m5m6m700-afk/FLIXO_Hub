@@ -28,4 +28,4 @@
 /scripts/ci/** @m1m2m3m4m5m6m700-afk
 
 /watchdog/ @m1m2m3m4m5m6m700-afk
-/scripts/agent/ @m1m2m3m4m5m6m700-afk
+/src/lib/cell/ @m1m2m3m4m5m6m700-afk
