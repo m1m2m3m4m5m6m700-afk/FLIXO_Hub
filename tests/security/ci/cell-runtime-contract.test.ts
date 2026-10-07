@@ -64,3 +64,59 @@ test("lease is not live before its acquisition instant", () => {
   assert.equal(isLeaseLive(lease, 1000), true);
   assert.equal(isLeaseLive(lease, 1100), false);
 });
+
+test("reference runtime carries assignment, typed handoff and progress decisions", () => {
+  const rt = new CellRuntime(() => 1000);
+  const task = rt.registerTask("t-assignment");
+  const ready = rt.transitionTask("t-assignment", "READY", task.version);
+
+  const assignment = {
+    assignmentId: "as-1",
+    primaryAgentId: "agent-a",
+    backupAgentId: "agent-b",
+    verifierAgentId: "agent-c",
+    escalationTargetAgentId: "agent-d",
+  };
+
+  const assigned = rt.assignTask("t-assignment", assignment);
+  assert.equal(assigned.assignment.assignmentId, "as-1");
+  assert.equal(ready.state, "READY");
+
+  const handoff = {
+    handoffId: "h-1",
+    taskId: "t-assignment",
+    parentTaskId: null,
+    assignmentId: "as-1",
+    sourceAgentId: "agent-a",
+    targetAgentId: "agent-c",
+    reason: "independent verification",
+    objective: "produce counterexample",
+    inputRefs: ["candidate:c1"],
+    requiredCapabilities: ["falsification"],
+    expectedOutput: "COUNTEREXAMPLE",
+    verificationCriteria: ["exact SHA evidence"],
+    readScope: "tests/**",
+    writeScope: "reports/**",
+    currentSha: "sha-a",
+    deadlineAtMs: null,
+    budget: { cost: 1, durationMs: 1000 },
+    evidenceRequirements: ["exact SHA"],
+    returnContract: "return evidence refs",
+  };
+
+  assert.equal(rt.createHandoff(handoff).handoffId, "h-1");
+
+  const decision = rt.recordProgress({
+    taskId: "t-assignment",
+    assignmentId: "as-1",
+    agentId: "agent-a",
+    observedAtMs: 1000,
+    progressPercent: 0,
+    usefulOutputCount: 0,
+    lastEvidenceAtMs: null,
+    state: "NOT_STARTED",
+    blocker: null,
+    nextAction: "begin",
+  });
+  assert.equal(decision, "REASSIGN");
+});
