@@ -730,6 +730,8 @@ export class HardControlRuntime {
     if (request.taskId !== assignment.taskId) return this.deny("TASK_ID_MISMATCH");
     if (request.agentId !== session.ownerId) return this.deny("AGENT_ID_MISMATCH");
     if (request.missionId !== assignment.missionId || request.missionId !== session.missionId) return this.deny("MISSION_ID_MISMATCH");
+    if (request.objectiveId !== assignment.objectiveId || request.objectiveId !== task.objectiveId) return this.deny("OBJECTIVE_DRIFT");
+    if (request.acceptanceDigest !== assignment.acceptanceDigest || request.acceptanceDigest !== task.acceptanceDigest) return this.deny("ACCEPTANCE_DRIFT");
     if (!validSha(request.startingSha) || request.startingSha !== assignment.startingSha || request.startingSha !== task.startingSha) return this.deny("SHA_STALE");
     if (!validSha(request.currentSha) || request.currentSha !== this.liveSha) return this.deny("SHA_STALE");
     if (this.clock() >= session.lease.expiresAt) return this.deny("LEASE_EXPIRED");
