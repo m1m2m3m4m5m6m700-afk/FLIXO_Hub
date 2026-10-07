@@ -5,7 +5,7 @@ import { evaluateAgentDrill, evaluateAllAgents } from '../../../scripts/agent-le
 
 const SHA='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 
-test('every official agent has a role-specific drill', () => {
+test('every core trained agent has a role-specific drill', () => {
   const results=evaluateAllAgents(SHA);
   assert.equal(results.length, AGENTS.length);
   assert.equal(results.length, 8);
