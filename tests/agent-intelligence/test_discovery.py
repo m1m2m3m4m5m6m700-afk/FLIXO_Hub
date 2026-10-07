@@ -38,7 +38,7 @@ class DiscoveryTests(unittest.TestCase):
                 SnapshotStore(self.snaps,opener=lambda *a,**k:resp(body,"text/html")).fetch_and_store("https://example.invalid")
     def test_quote_unique_caps_large_unique_snapshot(self):
         from run_scouts import quote_unique
-        large=("UNIQUE_ENGINEERING_SIGNAL_8c1d " * 400)
+        large=("A" * 9000) + "\nUNIQUE_ENGINEERING_SIGNAL_8c1d " + ("B" * 256)
         quote=quote_unique(large)
         self.assertLessEqual(len(quote),8192)
         self.assertEqual(large.count(quote),1)
