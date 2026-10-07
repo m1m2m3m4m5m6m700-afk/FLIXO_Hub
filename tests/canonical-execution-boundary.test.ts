@@ -347,11 +347,13 @@ test('CELL lifecycle is orchestration-only and cannot become a second execution 
   const canonical = readFileSync(resolve(root, 'src/lib/execution/canonical-executor.ts'), 'utf8');
   const registry = readFileSync(resolve(root, 'src/config/registry.ts'), 'utf8');
 
-  assert.doesNotMatch(lifecycle, /src\\/(?:tools|config\\/registry)|canonical-executor/u);
+  assert.equal(lifecycle.includes('canonical-executor'), false);
+  assert.equal(lifecycle.includes('src/tools'), false);
+  assert.equal(lifecycle.includes('src/config/registry'), false);
   assert.match(runtime, /CellLifecycleRuntime/u);
-  assert.match(canonical, /getToolById\\(toolId\\)/u);
-  assert.match(canonical, /getToolOutputContract/u);
-  assert.match(canonical, /assertToolOutputContract/u);
-  assert.match(registry, /export const TOOL_REGISTRY/u);
-  assert.match(registry, /export const TOOL_CATALOG/u);
+  assert.equal(canonical.includes('getToolById(toolId)'), true);
+  assert.equal(canonical.includes('getToolOutputContract'), true);
+  assert.equal(canonical.includes('assertToolOutputContract'), true);
+  assert.equal(registry.includes('export const TOOL_REGISTRY'), true);
+  assert.equal(registry.includes('export const TOOL_CATALOG'), true);
 });
