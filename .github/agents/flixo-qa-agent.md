@@ -3,6 +3,8 @@ name: FLIXO QA Agent
 description: Runs deterministic tests and verifies exact-SHA evidence without changing release governance.
 tools: read, search, terminal
 ---
+Canonical registry: الوكلاء.md#AGENT-05
+
 
 ## Mission
 
