@@ -4,7 +4,7 @@ on:
   push:
     branches: [execution]
     paths-ignore:
-      - 'الوكلاء AI/تدريب الوكلاء AI/تقارير التدريب/**'
+      - 'الوكلاء AI/تدريب الوكلاء/تقارير التدريب/**'
   workflow_dispatch:
 
 permissions:
@@ -62,7 +62,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          REPORT="الوكلاء AI/تدريب الوكلاء AI/تقارير التدريب/${GITHUB_SHA}.md"
+          REPORT="الوكلاء AI/تدريب الوكلاء/تقارير التدريب/${GITHUB_SHA}.md"
           test -s "$REPORT"
           grep -Fq -- "- Exact execution SHA: ${GITHUB_SHA}" "$REPORT"
           grep -Fq -- "Behavioral evidence: UNPROVEN" "$REPORT"
@@ -83,8 +83,8 @@ jobs:
         with:
           name: agent-training-${{ github.sha }}
           path: |
-            الوكلاء AI/تدريب الوكلاء AI/تقارير التدريب/${{ github.sha }}.md
-            الوكلاء AI/تدريب الوكلاء AI/تقارير التدريب/${{ github.sha }}-role-drills.md
-            الوكلاء AI/تدريب الوكلاء AI/تقارير التدريب/${{ github.sha }}-readiness.md
+            الوكلاء AI/تدريب الوكلاء/تقارير التدريب/${{ github.sha }}.md
+            الوكلاء AI/تدريب الوكلاء/تقارير التدريب/${{ github.sha }}-role-drills.md
+            الوكلاء AI/تدريب الوكلاء/تقارير التدريب/${{ github.sha }}-readiness.md
           if-no-files-found: error
           retention-days: 30
