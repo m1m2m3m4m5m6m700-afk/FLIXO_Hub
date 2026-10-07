@@ -259,7 +259,11 @@ test("CELL self-protection denies mutation of control-plane sources without ROOT
   assert.equal(denied.drift?.type, "D7_AUTHORITY_DRIFT");
 
   const root = authorizeExecutionAction(
-    { ...envelope, authority: "ROOT" },
+    {
+      ...envelope,
+      authority: "ROOT",
+      writeScope: Object.freeze(["src/lib/video/**", "tests/**", "packages/contracts/src/cell-hard-control.ts"]),
+    },
     action({ operation: "WRITE", path: "packages/contracts/src/cell-hard-control.ts" }),
     { spentCost: 0, spentDurationMs: 0 },
   );
