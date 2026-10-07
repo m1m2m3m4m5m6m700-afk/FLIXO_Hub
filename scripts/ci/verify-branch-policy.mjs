@@ -116,7 +116,7 @@ function hasMainOnlyPushTrigger(workflow) {
   }
 
   return triggerCount === 1 && mainPush;
-}(jobText) {
+function hasExecutionPushGate(jobText) {
   const compact = jobText.replace(/\s+/gu, ' ');
   return /github\.event_name\s*==\s*['"]push['"]/u.test(compact) && /github\.ref\s*==\s*['"]refs\/heads\/execution['"]/u.test(compact);
 }
