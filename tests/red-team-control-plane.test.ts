@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { executeCanonicalTool } from '../src/lib/execution/canonical-executor.ts';
-import { validateFileSafety, detectZipBombRisk } from '../src/lib/contracts/file-safety.ts';
+import { readRasterHeaderDimensions, validateFileSafety, detectZipBombRisk } from '../src/lib/contracts/file-safety.ts';
 import { MVP_EXECUTABLE_TOOL_IDS } from '../src/config/manual-capability-definition.ts';
 
 const image = () => new File(['not-a-real-image'], 'fixture.png', { type: 'image/png' });
@@ -71,4 +71,27 @@ test('red-team: archive bomb and deep nesting controls are bounded', () => {
   assert.equal(detectZipBombRisk(100, 5000, 40).isBomb, true);
   assert.equal(detectZipBombRisk(1000, 20000, 40).isBomb, false);
   assert.equal(detectZipBombRisk(0, 1).isBomb, true);
+});
+
+
+test('red-team: bounded raster header admission covers non-MVP raster formats before decode', async () => {
+  const gif = new Uint8Array([0x47,0x49,0x46,0x38,0x39,0x61,0x20,0x03,0x58,0x02]);
+  assert.deepEqual(await readRasterHeaderDimensions(new Blob([gif], { type: 'image/gif' }), 'image/gif'), { width: 800, height: 600 });
+
+  const bmp = new Uint8Array(26);
+  bmp.set([0x42,0x4d], 0);
+  const bmpView = new DataView(bmp.buffer);
+  bmpView.setUint32(14, 40, true);
+  bmpView.setUint32(18, 640, true);
+  bmpView.setInt32(22, 480, true);
+  assert.deepEqual(await readRasterHeaderDimensions(new Blob([bmp], { type: 'image/bmp' }), 'image/bmp'), { width: 640, height: 480 });
+
+  const avif = new Uint8Array(40);
+  const avifView = new DataView(avif.buffer);
+  avifView.setUint32(0, 40);
+  avif.set([0x66,0x74,0x79,0x70,0x61,0x76,0x69,0x66], 4);
+  avif.set([0x69,0x73,0x70,0x65], 20);
+  avifView.setUint32(28, 1280);
+  avifView.setUint32(32, 720);
+  assert.deepEqual(await readRasterHeaderDimensions(new Blob([avif], { type: 'image/avif' }), 'image/avif'), { width: 1280, height: 720 });
 });
