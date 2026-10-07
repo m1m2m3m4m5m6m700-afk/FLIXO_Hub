@@ -736,6 +736,7 @@ test('CONSERVATIVE_CANCEL refuses every ambiguous identity and allows only one e
     GITHUB_REPOSITORY: 'owner/repo',
     GITHUB_DISPATCH_WORKFLOW: 'dispatch.yml',
     GITHUB_DISPATCH_REF: 'execution',
+    WATCHDOG_AGENTS: 'alpha',
     WATCHDOG_ENABLE_HUNG_CANCEL: '1',
     WATCHDOG_AUTO_DISPATCH: '0',
   });
