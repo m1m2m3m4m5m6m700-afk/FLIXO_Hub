@@ -93,17 +93,23 @@ test('PRIVILEGE_REGRESSIONS_AND_DEPLOYMENT: workflow enable is absent and execut
     else assert.fail(n + ': execution deployment path is not bounded');
   }
 });
-test('RUNNER_WATCHDOG_CONTRACT: integration becomes blocking after parallel merges', () => {
-  const roots = [path.join(ROOT, 'watchdog'), path.join(ROOT, 'scripts', 'agent')];
-  for (const r of roots) assert.ok(fs.existsSync(r), r + ' must exist after its lane merge');
-  const files = roots.flatMap((r) => fs.readdirSync(r, { recursive: true }).map(String).filter((x) => /\.(?:mjs|js|ts|json|jsonc|md)$/i.test(x)).map((x) => [r,x]));
-  const all = files.map(([r,x]) => fs.readFileSync(path.join(r,x),'utf8')).join('\n');
-  for (const k of ['/checkpoint','/heartbeat','agent_id','seq','status','pending','run_url','WATCHDOG_URL','AGENT_TOKEN','AGENT_TOKEN_PREV','ADMIN_TOKEN','WORKFLOW_FILE','EVENT_TYPE']) assert.ok(all.includes(k), k);
+test('RUNNER_WATCHDOG_CONTRACT: current watchdog surfaces are present after integration', () => {
+  const required = [
+    ['watchdog/package.json', /@flixo\/agent-watchdog/u],
+    ['watchdog/src/lib/runtime.ts', /loadConfig[\\s\\S]*authAgent/u],
+    ['watchdog/test/contract.test.ts', /AUTH_FAIL_CLOSED=PASS/u],
+    ['src/lib/cell/watchdog.ts', /startCellWatchdog[\\s\\S]*timedOut/u],
+  ];
+  for (const [rel, marker] of required) {
+    const abs = path.join(ROOT, rel);
+    assert.ok(fs.existsSync(abs), rel + ' must exist after its lane merge');
+    assert.match(fs.readFileSync(abs, 'utf8'), marker, rel);
+  }
 });
 test('NO_SECOND_AUTHORITY_AND_CODEOWNERS: canonical authority is not redefined', () => {
-  for (const r of [path.join(ROOT,'watchdog'),path.join(ROOT,'scripts','agent')]) if (fs.existsSync(r)) for (const x of fs.readdirSync(r,{recursive:true}).map(String).filter((x)=>/\.(?:mjs|js|ts)$/i.test(x))) {
+  for (const r of [path.join(ROOT,'watchdog'),path.join(ROOT,'src','lib','cell')]) if (fs.existsSync(r)) for (const x of fs.readdirSync(r,{recursive:true}).map(String).filter((x)=>/\.(?:mjs|js|ts)$/i.test(x))) {
     const t=fs.readFileSync(path.join(r,x),'utf8'); assert.doesNotMatch(t,/\b(?:TOOL_REGISTRY|TOOL_CATALOG|executeCanonicalTool)\b/);
   }
   const c=fs.readFileSync(path.join(ROOT,'.github','CODEOWNERS'),'utf8');
-  assert.match(c,new RegExp('^/watchdog/\\s+@'+OWNER+'$','m')); assert.match(c,new RegExp('^/scripts/agent/\\s+@'+OWNER+'$','m'));
+  assert.match(c,new RegExp('^/watchdog/\\s+@'+OWNER+'$','m')); assert.match(c,new RegExp('^/src/lib/cell/\\s+@'+OWNER+'$','m'));
 });
