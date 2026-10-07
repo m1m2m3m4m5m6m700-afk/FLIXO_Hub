@@ -677,7 +677,7 @@ export class CellRuntime {
     return this.cellLifecycle.redTeamReview(input);
   }
 
-  verifyCell(input: Omit<CellVerificationRecord, "candidateId" | "taskId" | "candidateSha" | "sequence">): CellVerificationRecord {
+  verifyCell(input: Omit<CellVerificationRecord, "candidateId" | "taskId" | "opponentContextHash" | "opponentStartedAtMs" | "candidateSha" | "sequence">): CellVerificationRecord {
     return this.cellLifecycle.independentlyVerify(input);
   }
 
