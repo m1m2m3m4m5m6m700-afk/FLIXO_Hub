@@ -11,7 +11,8 @@ test.describe('Production browser verification', () => {
     expect(arabic?.status()).toBe(200);
     await expect(page.locator('html')).toHaveAttribute('lang', 'ar');
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
-    await expect(page.locator('.home-shell')).toBeVisible();
+    await expect(page.locator('.flixo-archive-home')).toBeVisible();
+    await expect(page.locator('.flixo-archive-home')).toBeVisible();
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   });
 });

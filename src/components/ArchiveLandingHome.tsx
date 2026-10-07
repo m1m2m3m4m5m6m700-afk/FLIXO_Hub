@@ -97,7 +97,7 @@ export function ArchiveLandingHome() {
   const submitRequest = (e: FormEvent) => { e.preventDefault(); if (requestText.trim()) setSubmitted(true); };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="flixo-archive-home min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-5">
           <Link to="/" className="flex min-w-0 items-center gap-2">
