@@ -43,14 +43,6 @@ function homeLocale(): string {
   return window.location.pathname.match(/^\/([a-z]{2})(?:\/|$)/u)?.[1] ?? 'en';
 }
 
-const FEATURED_IDS = [
-  'background-remover',
-  'image-upscaler',
-  'image-cropper',
-  'image-compressor',
-  'image-converter',
-  'image-effects',
-] as const;
 
 const CATEGORY_FAMILY_MAP: Readonly<Record<string, string>> = {
   image: 'images',
