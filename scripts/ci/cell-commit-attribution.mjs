@@ -30,7 +30,7 @@ function main() {
   const ledger = readFileSync("المهام.md", "utf8");
   const baselineDoc = readFileSync("docs/CELL-HARD-CONTROL-ATTRIBUTION-BASELINE.md", "utf8");
   const baseline = baselineDoc.match(/BASELINE_SHA:\s*([0-9a-f]{40})/u)?.[1];
-  const head = process.env.GITHUB_SHA ?? execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+  const head = process.env.CELL_ATTRIBUTION_HEAD_SHA ?? execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
   const base = process.env.CELL_ATTRIBUTION_BASE_SHA ?? baseline;
   if (!base) throw new Error("ATTRIBUTION_BASELINE_MISSING");
   const result = validateCommitMessages(commitMessagesBetween(base, head), taskIdsFromLedger(ledger));
