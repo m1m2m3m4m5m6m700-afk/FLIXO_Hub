@@ -53,19 +53,19 @@ const ROLE_RULES = {
   },
   'FLIXO Architecture Scout': {
     contract:'.github/agents/flixo-scout-architecture.agent.md',
-    report:'التطوير.md#Architecture Radar',
+    report:'.agent-intelligence/inbox/',
     anchors:['.agent-intelligence/scouts/architecture.yaml','src/config/registry.ts','src/lib/execution/canonical-executor.ts'],
     required:['tools: ["read", "search", "edit"]','inbox','Proposal Schema v4','rollback','provenance']
   },
   'FLIXO Technology Scout': {
     contract:'.github/agents/flixo-scout-technology.agent.md',
-    report:'التطوير.md#Technology Radar',
+    report:'.agent-intelligence/inbox/',
     anchors:['.agent-intelligence/scouts/technology.yaml','package.json','src/lib/execution/canonical-executor.ts'],
     required:['tools: ["read", "search", "edit"]','inbox','Proposal Schema v4','licensing','compatibility']
   },
   'FLIXO Ecosystem Scout': {
     contract:'.github/agents/flixo-scout-ecosystem.agent.md',
-    report:'التطوير.md#Ecosystem Radar',
+    report:'.agent-intelligence/inbox/',
     anchors:['.agent-intelligence/scouts/ecosystem.yaml','package.json','src/config/registry.ts'],
     required:['tools: ["read", "search", "edit"]','inbox','Proposal Schema v4','provenance','maturity']
   }
