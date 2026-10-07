@@ -24,7 +24,7 @@ import {
   type ExecutionIdentityProbe,
   type ProgressMetrics,
 } from "./cell-hard-control";
-import { CellLifecycleRuntime, type CellAdmissionEnvelope, type CellArbitrationRecord, type CellCandidateHandoff, type CellCertificationRecord, type CellClaim, type CellCounterclaim, type CellEvidence, type CellFrontierProposal, type CellLearningInput, type CellPromotionRecord, type CellRedTeamRecord, type CellReconciliationRecord, type CellVerificationRecord } from "./cell-lifecycle";
+import { CellLifecycleRuntime, type CellAdmissionEnvelope, type CellAdmissionRecord, type CellArbitrationRecord, type CellCandidateHandoff, type CellCertificationRecord, type CellClaim, type CellCounterclaim, type CellEvidence, type CellFrontierProposal, type CellLearningInput, type CellPromotionRecord, type CellRedTeamRecord, type CellReconciliationRecord, type CellVerificationRecord } from "./cell-lifecycle";
 import {
   decideProgressAction,
   delegateHandoff,
