@@ -18,6 +18,31 @@ id = "generic-api-key"
   ]
 
 [[rules]]
+id = "generic-api-key"
+
+  [[rules.allowlists]]
+  description = "Known non-secret CELL scope example in historical hard-control contract"
+  condition = "AND"
+  commits = [
+    "06197e57ea31138287c14faf2418c9e59583df5e",
+  ]
+  paths = [
+    '''^docs/CELL-HARD-CONTROL-CONTRACT\.md
+
+  [[rules.allowlists]]
+  description = "Known public sample JWT used only by the JWT decoder demo"
+  condition = "AND"
+  commits = [
+    "c5184d553a96199dc91001e7d775a69078ca65cd",
+    "1ced2a86f8a08311341342cbc446ebd5f8959fe4",
+  ]
+  paths = [
+    '''^src/lib/tool-runtime/tools/jwt-decoder\.tsx$''',
+  ]
+'',
+  ]
+
+[[rules]]
 id = "jwt"
 
   [[rules.allowlists]]
