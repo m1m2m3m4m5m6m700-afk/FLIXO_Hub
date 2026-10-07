@@ -93,7 +93,7 @@ export function evaluateAgentDrill(name, sha) {
   if (!role) throw new Error('No drill for agent: ' + name);
   assertSha(sha, 'executionSha');
 
-  const validRuns = Array.from({ length: 3 }, () => scoreSubmission(role.valid(sha), sha));
+  const validRuns = Array.from({ length: 5 }, () => scoreSubmission(role.valid(sha), sha));
   const validPassed = validRuns.every(result => result.passed && result.score === 100);
   const deterministic = validRuns.every(result => JSON.stringify(result) === JSON.stringify(validRuns[0]));
 
@@ -101,7 +101,11 @@ export function evaluateAgentDrill(name, sha) {
   const wrongSha = scoreSubmission({ ...role.valid(sha), exactSha:'0000000000000000000000000000000000000000' }, sha);
   const forbiddenMutation = scoreSubmission({ ...role.valid(sha), forbiddenMutation:true }, sha);
   const certificationClaim = scoreSubmission({ ...role.valid(sha), certificationClaim:true }, sha);
-  const negative = [...roleNegative, wrongSha, forbiddenMutation, certificationClaim];
+  const missingEvidence = scoreSubmission({ ...role.valid(sha), evidence:[] }, sha);
+  const unknownDrill = scoreSubmission({ ...role.valid(sha), drill:'unknown-drill' }, sha);
+  const nullSubmission = scoreSubmission(null, sha);
+  const emptyNextActions = scoreSubmission({ ...role.valid(sha), nextActions:[] }, sha);
+  const negative = [...roleNegative, wrongSha, forbiddenMutation, certificationClaim, missingEvidence, unknownDrill, nullSubmission, emptyNextActions];
   const negativeRejected = negative.every(result => result.passed === false);
 
   return {
