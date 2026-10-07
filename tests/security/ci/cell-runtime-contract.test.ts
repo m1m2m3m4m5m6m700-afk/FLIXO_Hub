@@ -26,7 +26,7 @@ test("checkpoint cannot be created before task execution", () => {
   rt.registerTask("t1");
   assert.throws(() => rt.checkpointTask("t1", "cp-before-run"), /CHECKPOINT_NOT_ALLOWED/);
 });
-\ntest("checkpoint is persisted before verification transition", () => {
+test("checkpoint is persisted before verification transition", () => {
   const rt = new CellRuntime(() => 1000);
   rt.registerTask("t1");
   rt.transitionTask("t1", "READY");
