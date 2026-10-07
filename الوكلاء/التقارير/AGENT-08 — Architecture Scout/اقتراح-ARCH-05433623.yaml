@@ -1,0 +1,26 @@
+id: "ARCH-05433623"
+category: "architecture"
+title: "Hexagonal architecture / ports and adapters"
+status: "candidate"
+entity_key: "hexagonal-architecture::architecture"
+lifecycle:
+  created_at: "2026-10-07T05:43:36Z"
+  expires_at: "2026-10-21T05:43:36Z"
+  last_viewed_by_human: "2026-10-07T05:43:36Z"
+source:
+  snapshot_id: "snap-20261007T054336231694Z-5f1c2629b56425a3"
+  vendor_affiliated: true
+evidence:
+  quote: "Hexagonal architecture pattern - AWS Prescriptive Guidance\nView a markdown version of this page\nHexagonal architecture pattern - AWS Prescriptive Guidance\nDocumentation\nAWS Prescriptive Guidance\nCloud design patterns, architectures, and implementations\nIntent\nMotivation\nApplicability\nIssues and considerations\nImplementation\nRelated content\nVideos\nHexagonal architecture pattern\nIntent\nThe hexagonal architecture pattern, which is also known as the ports and adapters pattern, was proposed by Dr. Alistair Cockburn in 2005. It aims to create loosely coupled architectures where application components can be tested independently, with no dependencies on data stores or user interfaces (UIs). This pattern helps prevent technology lock-in of data stores and UIs. This makes it easier to change the technology stack over time, with limited or no impact to business logic. In this loosely coupled architecture, the application communicates with external components over interfaces called\nports\n, and uses\nadapters\nto translate the technical exchanges with these components.\nMotivation\nThe hexagonal architecture pattern is used to isolate business logic (domain logic) from related infrastructure code,"
+inference:
+  current_state:
+    repo_refs:
+      - "src/config/registry.ts"
+      - "src/lib/execution/canonical-executor.ts"
+  proposal: "Evaluate a narrow ports/adapters seam around replaceable integration surfaces without creating a second runtime authority."
+  rollback: "Revert the adapter seam and restore the proven dependency path behind the canonical executor."
+triage:
+  impact_score: 0
+  complexity_score: 0
+  final_priority_score: 0
+  lane: "architecture"

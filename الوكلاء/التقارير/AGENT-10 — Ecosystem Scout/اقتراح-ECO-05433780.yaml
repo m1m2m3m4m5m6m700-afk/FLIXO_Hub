@@ -1,0 +1,26 @@
+id: "ECO-05433780"
+category: "ecosystem"
+title: "FFmpeg.wasm ecosystem release signals"
+status: "candidate"
+entity_key: "ffmpeg-wasm-releases::ecosystem"
+lifecycle:
+  created_at: "2026-10-07T05:43:37Z"
+  expires_at: "2026-10-21T05:43:37Z"
+  last_viewed_by_human: "2026-10-07T05:43:37Z"
+source:
+  snapshot_id: "snap-20261007T054337769456Z-80e37c9c24a66d9f"
+  vendor_affiliated: true
+evidence:
+  quote: "Releases · ffmpegwasm/ffmpeg.wasm · GitHub\nSkip to content\nNavigation Menu\nSign in\nAppearance settings\nPlatform\nAI CODE CREATION\nGitHub Copilot\nWrite better code with AI\nGitHub Copilot app\nDirect agents from issue to merge\nMCP Registry\nIntegrate external tools\nDEVELOPER WORKFLOWS\nActions\nAutomate any workflow\nCodespaces\nInstant dev environments\nIssues\nPlan and track work\nCode Review\nManage code changes\nCode Quality\nEnforce quality at merge\nAPPLICATION SECURITY\nGitHub Advanced Security\nFind and fix vulnerabilities\nCode security\nSecure your code as you build\nSecret protection\nStop leaks before they start\nEXPLORE\nWhy GitHub\nDocumentation\nBlog\nChangelog\nMarketplace\nView all features\nSolutions\nBY COMPANY SIZE\nEnterprises\nSmall and medium teams\nStartups\nNonprofits\nBY USE CASE\nApp Modernization\nDevSecOps\nDevOps\nCI/CD\nView all use cases\nBY INDUSTRY\nHealthcare\nFinancial services\nManufacturing\nGovernment\nView all industries\nView all solutions\nResources\nEXPLORE BY TOPIC\nAI\nSoftware Development\nDevOps\nSecurity\nView all topics\nEXPLORE BY TYPE\nCustomer stories\nEvents & webinars\nEbooks & reports\nBusiness insights\nGitHub Skills\nSUPPORT & SERVICES\nDocumentation\nCustomer support\nCommunity forum\nTrus"
+inference:
+  current_state:
+    repo_refs:
+      - "package.json"
+      - "src/config/registry.ts"
+  proposal: "Monitor FFmpeg.wasm releases for browser-local media capabilities while checking licenses, memory, workers, and bundle impact."
+  rollback: "Remove the candidate dependency and restore the current browser-local media implementation."
+triage:
+  impact_score: 0
+  complexity_score: 0
+  final_priority_score: 0
+  lane: "ecosystem"
