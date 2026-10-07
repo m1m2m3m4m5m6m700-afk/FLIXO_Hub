@@ -163,6 +163,7 @@ test("reference runtime rejects every execution action outside RUNNING state", (
 
 test("live SHA mismatch blocks mutation even when the envelope is otherwise valid", () => {
   const rt = new CellRuntime(() => 1000);
+  rt.registerTask("TASK-1");
   const denied = rt.authorizeAction(envelope, action({ currentSha: OLD_SHA }), "sha-live");
   assert.equal(denied.allowed, false);
   assert.equal(denied.drift?.type, "D6_EVIDENCE_DRIFT");
@@ -172,6 +173,19 @@ test("live SHA mismatch blocks mutation even when the envelope is otherwise vali
 
 test("accepted actions consume budget and later actions are denied", () => {
   const rt = new CellRuntime(() => 1000);
+  rt.registerTask("TASK-1");
+  rt.transitionTask("TASK-1", "READY");
+  rt.assignTask("TASK-1", {
+    assignmentId: "ACTION-ASSIGN",
+    primaryAgentId: "AGENT-1",
+    backupAgentId: "AGENT-2",
+    verifierAgentId: null,
+    escalationTargetAgentId: null,
+    startingSha: START_SHA,
+    currentSha: LIVE_SHA,
+  }, "sha-live");
+  rt.transitionTask("TASK-1", "CLAIMED");
+  rt.transitionTask("TASK-1", "RUNNING");
   const first = rt.authorizeAction(envelope, action(), "sha-live");
   assert.equal(first.allowed, true);
   assert.equal(rt.getTaskBudget("TASK-1").spentCost, 1);
