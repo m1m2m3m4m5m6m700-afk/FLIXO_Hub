@@ -784,8 +784,6 @@ export class CellLifecycleRuntime {
     sha(this.candidate.candidateSha, "CELL_RED_TEAM_SHA_INVALID");
     this.redTeam = Object.freeze({
       ...input,
-      opponentContextHash: this.opponentContextHash,
-      opponentStartedAtMs: this.opponentStartedAtMs,
       candidateId: this.candidate.candidateId,
       taskId: this.candidate.taskId,
       opponentContextHash: this.opponentContextHash,
@@ -819,6 +817,8 @@ export class CellLifecycleRuntime {
       ...input,
       candidateId: this.candidate.candidateId,
       taskId: this.candidate.taskId,
+      opponentContextHash: this.opponentContextHash,
+      opponentStartedAtMs: this.opponentStartedAtMs,
       candidateSha: this.candidate.candidateSha,
       sequence: this.next(),
       evidenceIds: Object.freeze([...input.evidenceIds]),
