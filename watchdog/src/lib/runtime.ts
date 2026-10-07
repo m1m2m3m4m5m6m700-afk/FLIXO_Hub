@@ -1,5 +1,5 @@
-import type { AgentState, Config, DispatchRecord, Env, HeartbeatRecord, DurableObjectStubLike, ReserveResult } from './types';
-import { CORE_LIMITS } from './config';
+import type { AgentState, Config, DispatchRecord, Env, HeartbeatRecord, DurableObjectStubLike, ReserveResult } from './types.ts';
+import { CORE_LIMITS } from './config.ts';
 
 export interface GithubConfig { repository:string; workflow:string; ref:string; apiVersion:string; autoDispatch:boolean; enableCancel:boolean; allowedWorkflows:string[]; githubTimeoutMs:number; maxResponseBytes:number; }
 export const METRIC_NAMES=['auth_denied','heartbeat_invalid','rate_limit_hit','hb_running','hb_completed','hb_failed','dispatch_ok','dispatch_fail','verify_pass','verify_fail','breaker_trip','limit_hit'] as const;
