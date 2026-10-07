@@ -12,18 +12,21 @@ They are research roles, not implementation roles.
 Each Scout explicitly exposes only read, search, and edit.
 No execute, shell, terminal, agent delegation, web, merge, deployment, certification, promotion, or scope-change tool is exposed.
 
-The edit tool is limited by the agent role and protected by CI. Any Scout branch that changes a file other than التطوير.md fails the Scout boundary check.
+The edit tool is limited by the agent role and protected by CI. Any Scout branch that changes a file outside the append-only discovery output surface fails the Scout boundary check.
 
 ## Write boundary
 
-Only التطوير.md may be changed by a Scout.
+The Scout's only writable repository surface is the append-only inbox:
+`.agent-intelligence/inbox/*.yaml`.
 
-Section ownership:
-- Architecture Scout -> Architecture Radar.
-- Technology Scout -> Technology Radar.
-- Ecosystem Scout -> Ecosystem Radar.
+External evidence is first materialized as immutable snapshots by `.agent-intelligence/scripts/fetch_snapshot.py`; Scouts do not mutate snapshots.
 
-Scout branches use scout/*, target execution, and must never target main.
+Canonical package ownership:
+- Architecture Scout -> `الوكلاء/المستكشفين/Architecture Scout/` and `.agent-intelligence/scouts/architecture.yaml`.
+- Technology Scout -> `الوكلاء/المستكشفين/Technology Scout/` and `.agent-intelligence/scouts/technology.yaml`.
+- Ecosystem Scout -> `الوكلاء/المستكشفين/Ecosystem Scout/` and `.agent-intelligence/scouts/ecosystem.yaml`.
+
+GitHub registration remains under `.github/agents/flixo-scout-*.agent.md`. Scout branches target execution and must never target main.
 
 ## Trust boundary
 
@@ -35,7 +38,7 @@ The Execution Agent independently verifies every proposal against the current SH
 
 ## Concurrency
 
-Scouts re-read التطوير.md immediately before editing and never overwrite another Scout's section.
+Scouts publish independent raw proposal artifacts to the append-only inbox. They never overwrite another proposal artifact.
 
 Concurrent Scout branches may conflict. Conflict is fail-closed and must be reconciled rather than silently overwritten.
 
