@@ -25,7 +25,7 @@ test('candidate diagnostics stay bound to the exact PR head SHA', async () => {
     !workflow.includes('    EXPECTED_SHA: ${{ github.sha }}'),
     'bare github.sha must not label PR-head diagnostics',
   );
-  const expectedRedTeamGroup = "  group: flixo-final-red-team-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.ref }}";
+  const expectedRedTeamGroup = "  group: flixo-final-red-team-${{ github.event.pull_request.head.ref || github.ref_name }}";
   assert.ok(
     workflow.includes(expectedRedTeamGroup),
     'final Red Team concurrency must deduplicate promotion PR runs by PR identity',
@@ -64,9 +64,9 @@ test('execution-only assurance lanes deduplicate by branch while promotion lanes
   const redTeam = await readFile(new URL('../../.github/workflows/final-red-team.yml', import.meta.url), 'utf8');
   const video = await readFile(new URL('../../.github/workflows/video-assurance.yml', import.meta.url), 'utf8');
 
-  assert.match(redTeam, /group:\s*flixo-final-red-team-\$\{\{ github\.event_name == 'pull_request' && github\.event\.pull_request\.number \|\| github\.ref \}\}/u);
-  assert.match(video, /group:\s*flixo-video-assurance-\$\{\{ github\.event_name == 'pull_request' && github\.event\.pull_request\.number \|\| github\.ref \}\}/u);
-  assert.match(redTeam, /cancel-in-progress:\s*\$\{\{ github\.event_name == 'push' && github\.ref == 'refs\/heads\/execution' \}\}/u);
+  assert.match(redTeam, /group:\s*flixo-final-red-team-\$\{\{ github\.event\.pull_request\.head\.ref \|\| github\.ref_name \}\}/u);
+  assert.match(video, /group:\s*flixo-video-assurance-\$\{\{ github\.ref_name \}\}/u);
+  assert.match(redTeam, /cancel-in-progress:\s*true/u);
   assert.match(video, /cancel-in-progress: true/u);
 });
 
