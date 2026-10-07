@@ -1,0 +1,95 @@
+name: Agent Watchdog CI / Security integration
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [execution]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flixo-agent-watchdog-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  agent-watchdog:
+    if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.ref == 'execution' && github.event.pull_request.head.repo.full_name == github.repository) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    env:
+      EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Verify exact SHA boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "m1m2m3m4m5m6m700-afk/FLIXO_Hub"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            test "${{ github.event.pull_request.base.ref }}" = "main"
+            test "${{ github.event.pull_request.head.repo.full_name }}" = "$GITHUB_REPOSITORY"
+          fi
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install root dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: CI security and integration contracts
+        run: node --test tests/agent-watchdog/*.test.mjs
+      - name: Watchdog dependency preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f watchdog/package.json
+          test -f watchdog/package-lock.json
+          test -n "$(find watchdog -maxdepth 2 -type f \( -name 'wrangler.jsonc' -o -name 'wrangler.json' -o -name 'wrangler.toml' \) | head -1)"
+      - name: Install watchdog dependencies
+        run: npm --prefix watchdog ci --ignore-scripts --no-audit --no-fund
+      - name: Watchdog typecheck
+        run: npm --prefix watchdog run typecheck
+      - name: Watchdog unit tests
+        run: npm --prefix watchdog test
+      - name: Watchdog Wrangler dry-run
+        shell: bash
+        run: |
+          set -euo pipefail
+          CONFIG="$(find watchdog -maxdepth 2 -type f \( -name 'wrangler.jsonc' -o -name 'wrangler.json' -o -name 'wrangler.toml' \) | head -1)"
+          test -n "$CONFIG"
+          npm --prefix watchdog exec -- wrangler deploy --dry-run --config "$CONFIG"
+      - name: Agent Runner tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          files="$(find scripts/agent tests -type f \( -name '*runner*.test.mjs' -o -name '*runner*.test.js' -o -name '*runner*.test.ts' \) ! -path 'tests/agent-watchdog/*' | sort)"
+          test -n "$files"
+          printf '%s
+' "$files" | xargs node --test --experimental-strip-types
+      - name: Stamp exact-SHA evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p agent-watchdog-evidence
+          printf 'repository=%s
+expectedSha=%s
+head=%s
+' "$GITHUB_REPOSITORY" "$EXPECTED_SHA" "$(git rev-parse HEAD)" > agent-watchdog-evidence/exact-sha.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: flixo-agent-watchdog-${{ github.run_id }}
+          path: agent-watchdog-evidence
+          if-no-files-found: error
+          retention-days: 30
