@@ -318,3 +318,26 @@ Future edits must preserve the single canonical flow and INV-CELL-### namespace,
 This publication does not claim full CELL runtime closure.
 
 The current execution branch now contains executable Assignment/Delegation infrastructure and an Opponent independent-start proof on exact SHA, while Admission, Arbitration, Candidate/Red Team, certification mapping, learning, and Frontier remain TARGET/PROPOSED pending independent implementation and evidence.
+
+## 24. Executable lifecycle closure
+
+The target stages are now represented by an executable `CellLifecycleRuntime` hosted inside the existing `CellRuntime`. This is an orchestration contract, not a second authority.
+
+Executable gates now cover:
+- fail-closed task admission with complete Solver/Opponent envelope and exact starting/current SHA;
+- Pair Lock and independently ordered Opponent start before Solver disclosure;
+- CLAIM → COUNTERCLAIM → EVIDENCE → RECONCILIATION;
+- bounded ARBITRATION with self-adjudication denied and explicit recovery dispositions;
+- Candidate handoff requiring completed exchange, dispositioned conflicts, recorded evidence, and exact candidate SHA;
+- separate Red Team stage;
+- independent verification and certification mapped through an explicit governance reference;
+- promotion only through the existing exact-SHA `PromotionGate`;
+- learning only after promotion and with independent confirmation/regression evidence;
+- Frontier only after promoted learning, producing a bounded next-task proposal.
+
+Implementation:
+- `packages/contracts/src/cell-lifecycle.ts`
+- `packages/contracts/src/cell-runtime.ts`
+- `tests/security/ci/cell-lifecycle-contract.test.ts`
+
+This closes the CELL orchestration contract at runtime level. Repository release certification, live governance administration, external QA, production deployment, and promotion to `main` remain governed by their existing P0/P1 release tasks and are not fabricated as complete by this runtime implementation.
