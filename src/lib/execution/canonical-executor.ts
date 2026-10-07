@@ -504,7 +504,7 @@ export async function executeCanonicalTool(
           executeMvpTool(toolId, input, parameters, executionSignal),
           capability.safetyLimits.timeoutMs,
           executionSignal,
-          executionController,
+          undefined,
         );
         assertNotAborted(executionSignal);
         if (output.blob.size <= 0) throw new Error('Execution denied: empty artifact from ' + toolId + '.');
@@ -513,14 +513,14 @@ export async function executeCanonicalTool(
           verifyOutputContract(toolId, output, capability.safetyLimits.timeoutMs, executionSignal),
           capability.safetyLimits.timeoutMs,
           executionSignal,
-          executionController,
+          undefined,
         );
 
         const verified = await withDeadline(
           capability.verifier(input.blob, output.blob, parameters, executionSignal),
           capability.safetyLimits.timeoutMs,
           executionSignal,
-          executionController,
+          undefined,
         );
         if (!verified) throw new Error('Execution failed closed: verifier rejected artifact for ' + toolId + '.');
         const evidence = await bindExecutionEvidence(
