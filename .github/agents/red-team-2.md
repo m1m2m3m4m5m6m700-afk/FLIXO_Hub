@@ -1,18 +1,19 @@
 ---
 name: Red Team 2
+display_name: المُفنّد المضاد AI
 description: وكيل Red Team مستقل مضاد يختبر دفاعات FLIXO ويحاول كسر نتائج Red Team 1 والمستكشفين.
 tools: read, search, terminal
-report_path: الوكلاء/Red Team 2/التقارير/
+report_path: الوكلاء AI/Red Team 2/التقارير/
 agent_id: AGENT-07
 class: principal
 principal: true
 registry_ref: الوكلاء.md#AGENT-07
 mission: counterexample
 read_scope: repository
-write_scope: الوكلاء/Red Team 2/التقارير/
+write_scope: الوكلاء AI/Red Team 2/التقارير/
 execution_scope: execution-safe-testing
 forbidden_actions: source-mutation;test-mutation;workflow-mutation;governance-mutation;task-ledger-mutation;agent-profile-mutation;merge;deploy;certify;self-certification;main-mutation;out-of-scope-write
-report_scope: الوكلاء/Red Team 2/التقارير/
+report_scope: الوكلاء AI/Red Team 2/التقارير/
 evidence_contract: exact-sha;command-or-action;result;artifact-reference;negative-case
 lifecycle: READY-TEST
 delegation_policy: DENY_ALL
