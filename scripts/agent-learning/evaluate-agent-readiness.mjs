@@ -8,61 +8,61 @@ import { AGENTS as TRAINING_AGENTS, assertSha } from './self-learning-control-pl
 const ROOT = process.cwd();
 const ROLE_RULES = {
   'المستكشف AI': {
-    contract:'الوكلاء/المستكشف AI/المستكشف.md',
-    report:'الوكلاء/المستكشف AI/تقارير المستكشف/',
+    contract:'الوكلاء AI/المستكشف AI/المستكشف.md',
+    report:'الوكلاء AI/المستكشف AI/تقارير المستكشف/',
     anchors:['scripts/repository-knowledge-scan.mjs','src/config/registry.ts','src/lib/execution/canonical-executor.ts','src/lib/contracts/tool-output-contracts.ts'],
     required:['Exact-SHA','Semantic analysis','Main branch read scope','Mutation prohibition']
   },
   'المطور AI': {
-    contract:'الوكلاء/المطور AI/المطور.md',
-    report:'الوكلاء/المطور AI/تقارير التطوير/',
+    contract:'الوكلاء AI/المطور AI/المطور.md',
+    report:'الوكلاء AI/المطور AI/تقارير التطوير/',
     anchors:['.github/agents/المطور-ai.md','src/config/registry.ts','package.json'],
     required:['exact SHA','context-equivalent','GAP','licensing']
   },
   'FLIXO i18n Agent': {
-    contract:'الوكلاء/i18n Agent/العقد.md',
-    report:'الوكلاء/i18n Agent/التقارير/',
+    contract:'الوكلاء AI/i18n Agent/العقد.md',
+    report:'الوكلاء AI/i18n Agent/التقارير/',
     anchors:['src/lib/i18n/config.ts'],
     required:['RTL/LTR','SEO','exact SHA','missing']
   },
   'FLIXO Repository Maintainer Agent': {
-    contract:'الوكلاء/Maintainer Agent/العقد.md',
-    report:'الوكلاء/Maintainer Agent/التقارير/',
+    contract:'الوكلاء AI/Maintainer Agent/العقد.md',
+    report:'الوكلاء AI/Maintainer Agent/التقارير/',
     anchors:['src/config/registry.ts','scripts/verify-agent-profiles.mjs','AGENTS.md'],
     required:['duplicate','stale SHA','drift','canonical']
   },
   'FLIXO QA Agent': {
-    contract:'الوكلاء/QA Agent/العقد.md',
-    report:'الوكلاء/QA Agent/التقارير/',
+    contract:'الوكلاء AI/QA Agent/العقد.md',
+    report:'الوكلاء AI/QA Agent/التقارير/',
     anchors:['package.json','.github/workflows','tests/'],
     required:['cancelled','neutral','missing','stale']
   },
   'Red Team 1': {
-    contract:'الوكلاء/Red Team 1/العقد.md',
-    report:'الوكلاء/Red Team 1/التقارير/',
+    contract:'الوكلاء AI/Red Team 1/العقد.md',
+    report:'الوكلاء AI/Red Team 1/التقارير/',
     anchors:['.github/workflows/agent-self-learning.yml','scripts/ci/check-governance.sh'],
     required:['threat model','attack','reproducible','NOT_REPRODUCED']
   },
   'Red Team 2': {
-    contract:'الوكلاء/Red Team 2/العقد.md',
-    report:'الوكلاء/Red Team 2/التقارير/',
+    contract:'الوكلاء AI/Red Team 2/العقد.md',
+    report:'الوكلاء AI/Red Team 2/التقارير/',
     anchors:['.github/agents/red-team-1.md','.github/agents/المستكشف-2.md'],
     required:['counterexample','false positives','false negatives','REFUTED']
   },
   'FLIXO Architecture Scout': {
-    contract:'الوكلاء/المستكشفين/Architecture Scout/المستكشف.md',
+    contract:'الوكلاء AI/المستكشفين/Architecture Scout/المستكشف.md',
     report:'.agent-intelligence/inbox/',
     anchors:['.agent-intelligence/scouts/architecture.yaml','src/config/registry.ts','src/lib/execution/canonical-executor.ts'],
     required:['tools: ["read", "search", "edit"]','inbox','Proposal Schema v4','rollback','provenance']
   },
   'FLIXO Technology Scout': {
-    contract:'الوكلاء/المستكشفين/Technology Scout/المستكشف.md',
+    contract:'الوكلاء AI/المستكشفين/Technology Scout/المستكشف.md',
     report:'.agent-intelligence/inbox/',
     anchors:['.agent-intelligence/scouts/technology.yaml','package.json','src/lib/execution/canonical-executor.ts'],
     required:['tools: ["read", "search", "edit"]','inbox','Proposal Schema v4','licensing','compatibility']
   },
   'FLIXO Ecosystem Scout': {
-    contract:'الوكلاء/المستكشفين/Ecosystem Scout/المستكشف.md',
+    contract:'الوكلاء AI/المستكشفين/Ecosystem Scout/المستكشف.md',
     report:'.agent-intelligence/inbox/',
     anchors:['.agent-intelligence/scouts/ecosystem.yaml','package.json','src/config/registry.ts'],
     required:['tools: ["read", "search", "edit"]','inbox','Proposal Schema v4','provenance','maturity']
@@ -98,7 +98,7 @@ export function scoreAgent(agent, sha){
 
 export function evaluateAllAgents(sha){
   assertSha(sha,'executionSha');
-  if(TRAINING_AGENTS.length!==10) throw new Error('readiness evaluator requires exactly 10 principal agents');
+  if(TRAINING_AGENTS.length!==14) throw new Error('readiness evaluator requires exactly 14 principal agents');
   const results=TRAINING_AGENTS.map(agent=>scoreAgent(agent,sha));
   return {sha,results,all100:results.every(result=>result.score===100 && result.passed)};
 }
@@ -115,8 +115,8 @@ export function renderReadinessReport(evaluation){
 function main(){
   const sha=process.argv[2] ?? process.env.GITHUB_SHA ?? gitHead();
   const evaluation=evaluateAllAgents(sha);
-  const output='الوكلاء/تدريب الوكلاء/تقارير التدريب/'+sha+'-readiness.md';
-  mkdirSync(join(ROOT,'الوكلاء/تدريب الوكلاء/تقارير التدريب'),{recursive:true});
+  const output='الوكلاء AI/تدريب الوكلاء AI/تقارير التدريب/'+sha+'-readiness.md';
+  mkdirSync(join(ROOT,'الوكلاء AI/تدريب الوكلاء AI/تقارير التدريب'),{recursive:true});
   writeFileSync(join(ROOT,output),renderReadinessReport(evaluation),'utf8');
   console.log(JSON.stringify(evaluation,null,2));
   if(!evaluation.all100) process.exitCode=1;
