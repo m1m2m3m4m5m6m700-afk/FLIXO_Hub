@@ -4,6 +4,8 @@ description: المستكشف AI يقرأ المستودع بعمق ويصدر �
 tools: read, search, terminal
 report_path: الوكلاء/المستكشف AI/تقارير المستكشف/
 ---
+Canonical registry: الوكلاء.md#AGENT-01
+
 
 # Mission
 
