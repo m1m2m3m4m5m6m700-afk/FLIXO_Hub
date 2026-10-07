@@ -243,7 +243,7 @@ test("hard mutation authorization denies every requested adversarial path before
     ["forbidden tool", { toolId: "secret-admin" }, "TOOL_DENIED"],
     ["resource drift", { resource: "network" }, "RESOURCE_DENIED"],
     ["delegation overflow", { delegationDepth: 2 }, "DELEGATION_OVERFLOW"],
-    ["budget exceeded", { estimatedCost: 2, estimatedDurationMs: 200 }, "BUDGET_EXCEEDED"],
+    ["budget exceeded", { estimatedCost: 3, estimatedDurationMs: 200 }, "BUDGET_EXCEEDED"],
   ];
 
   for (const [label, overrides, expected] of cases) {
