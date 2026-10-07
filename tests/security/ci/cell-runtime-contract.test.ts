@@ -49,6 +49,48 @@ test("duplicate recovery/execution key is idempotently rejected", () => {
   assert.equal(rt.claimIdempotentOperation("wake:t1"), false);
 });
 
+test("identity authorization rejects a stale live SHA before execution", () => {
+  const rt = new CellRuntime(() => 1000);
+  const envelope = {
+    taskId: "task-identity",
+    agentId: "agent-identity",
+    sessionId: "session-identity",
+    missionId: "mission-identity",
+    startSha: SHA.start,
+    allowedCapabilities: ["verification"],
+    readScope: ["tests/**"],
+    writeScope: ["tests/**"],
+    allowedBranch: "execution",
+    forbiddenActions: [],
+    expectedOutput: "evidence",
+    acceptanceConditions: ["exact SHA"],
+    evidenceRequirements: ["exact SHA"],
+    timeBudgetMs: 1000,
+    costBudget: 10,
+    maxDelegationDepth: 1,
+    normalizedObjectiveId: "objective-identity",
+    acceptanceDigest: "digest-identity",
+  } as const;
+  const probe = {
+    taskId: envelope.taskId,
+    agentId: envelope.agentId,
+    sessionId: envelope.sessionId,
+    missionId: envelope.missionId,
+    branch: "execution",
+    startSha: SHA.start,
+    currentSha: SHA.current,
+    capability: "verification",
+    objectiveId: envelope.normalizedObjectiveId,
+    acceptanceDigest: envelope.acceptanceDigest,
+    expectedOutput: envelope.expectedOutput,
+  } as const;
+  assert.throws(
+    () => rt.authorizeIdentity(envelope, probe, SHA.stale),
+    /CURRENT_SHA_MISMATCH/,
+  );
+  assert.doesNotThrow(() => rt.authorizeIdentity(envelope, probe, SHA.current));
+});
+
 test("candidate promotion is impossible before exact certification lineage", () => {
   const rt = new CellRuntime();
   const created = rt.registerCandidate("c1");
