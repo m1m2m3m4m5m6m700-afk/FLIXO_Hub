@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createCognitiveEvent } from '../../../scripts/agent-learning/cognitive-learning-engine.mjs';
+import { assertCognitiveEvent, createCognitiveEvent } from '../../../scripts/agent-learning/cognitive-learning-engine.mjs';
 import { createSupabaseCognitiveTransport, createProductionCognitiveLearning } from '../../../scripts/agent-learning/production-cognitive-learning.mjs';
 
 const SHA='0000000000000000000000000000000000000001';
@@ -87,6 +87,25 @@ test('production cognitive facade shares durable events and shared memory withou
   assert.equal(consumer.snapshot().consumerOffset,1);
   assert.equal(facade.memory.preflight(SHA,[{memory_id:'candidate',status:'VALIDATED',tested_sha:SHA},{memory_id:'usable',status:'PROMOTED',tested_sha:SHA}]).executableMemory[0].memory_id,'usable');
   assert.ok(calls.some(x=>x.url.includes('/rpc/flixo_append_agent_task_event')));
+});
+
+test('production XP event remains hash-valid after durable serialization',async()=>{
+  let requestBody;
+  const facade=createProductionCognitiveLearning({
+    env:{SUPABASE_URL:'https://example.supabase.co',SUPABASE_SECRET_KEY:'secret'},
+    fetchImpl:async(url,options)=>{
+      requestBody=JSON.parse(options.body);
+      return {ok:true,async text(){return JSON.stringify({sequence:4,hash:'hash-4'});}};
+    },
+  });
+  const snapshot=await facade.awardXp({
+    eventId:'xp-event-1',missionId:'m',taskId:'task-xp',agentId:'AGENT-01',
+    currentSha:SHA,reason:'BUG_DISCOVERY',amount:16,evidenceId:'E-XP',
+    verified:true,meaningfulImpact:.9,novelty:1,difficulty:.5
+  });
+  assert.equal(snapshot.xp,16);
+  assert.equal(Object.hasOwn(requestBody.p_payload._cognitive.payload.projection.input,'currentSha'),false);
+  assertCognitiveEvent(requestBody.p_payload._cognitive);
 });
 
 test('production projections rebuild from durable cognitive events after process restart',async()=>{
