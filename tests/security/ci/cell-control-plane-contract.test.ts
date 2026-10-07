@@ -30,7 +30,7 @@ test("stale lease is fail-closed", () => {
 test("blind retry is denied when failure identity is unchanged", () => {
   assert.deepEqual(
     decideRetry({ attempts: 1, maxAttempts: 3, retryable: true, failureFingerprint: "E_TIMEOUT", previousFailureFingerprint: "E_TIMEOUT" }),
-    { allowed: false, reason: "IDENTITY_CHANGED" },
+    { allowed: false, reason: "SAME_FAILURE" },
   );
   assert.deepEqual(
     decideRetry({ attempts: 1, maxAttempts: 3, retryable: true, failureFingerprint: "E_TIMEOUT_2", previousFailureFingerprint: "E_TIMEOUT" }),
