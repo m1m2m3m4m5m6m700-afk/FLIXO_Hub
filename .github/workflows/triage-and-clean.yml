@@ -21,7 +21,7 @@ permissions:
 
 concurrency:
   group: flixo-agent3-triage-clean
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   pipeline:
