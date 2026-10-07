@@ -6,7 +6,7 @@ import {
   Loader2, Menu, Moon, ShieldCheck, Sparkles, Sun, Wand2, X,
 } from 'lucide-react';
 import { TOOL_CATALOG } from '../config/registry';
-import { ROADMAP_CATEGORIES } from '../data/roadmap-categories';
+import { ROADMAP_CATEGORIES, type RoadmapCategory } from '../data/roadmap-categories';
 import { LOCALES } from '../lib/i18n';
 import { classifyHomeIntent, type AssistantResult } from '../lib/home-intent-classifier';
 
