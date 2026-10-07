@@ -95,3 +95,46 @@ test('knowledge that changes repository authority can never be promoted', () => 
 test('adjudication vocabulary is finite and explicit', () => {
   assert.deepEqual(DECISIONS, ['CONFIRMED', 'REJECTED', 'DISPUTED', 'UNKNOWN']);
 });
+test('the principal training matrix is exactly ten and excludes the supporting Explorer-2 role', async () => {
+  const { AGENTS } = await import('../../../scripts/agent-learning/self-learning-control-plane.mjs');
+  assert.equal(AGENTS.length, 10);
+  assert.equal(AGENTS.some(a => a.name === 'المستكشف 2'), false);
+  assert.deepEqual(AGENTS.slice(0, 7).map(a => a.name), [
+    'المستكشف AI',
+    'المطور AI',
+    'FLIXO i18n Agent',
+    'FLIXO Repository Maintainer Agent',
+    'FLIXO QA Agent',
+    'Red Team 1',
+    'Red Team 2',
+  ]);
+});
+
+test('Scout submissions fail closed on non-inbox status and certification escalation', async () => {
+  const { validateSubmission } = await import('../../../scripts/agent-learning/self-learning-control-plane.mjs');
+  const base = {
+    agent: 'FLIXO Technology Scout',
+    drill: 'technology-research',
+    exactSha: SHA,
+    snapshotSha: SHA,
+    evidence: ['source'],
+    unknowns: [],
+    nextActions: ['review'],
+    status: 'approved',
+    proposalSchema: 'v4',
+    repoRefs: ['package.json'],
+    sources: ['source'],
+    rollback: 'revert',
+    entityKey: 'technology::test',
+    lifecycle: 'candidate',
+    security: 'reviewed',
+    licensing: 'compatible',
+    compatibility: 'compatible',
+    migrationCost: 'bounded',
+    measurableImpact: 'measured',
+    executionClaim: true,
+  };
+  const failures = validateSubmission(base, SHA);
+  assert.ok(failures.includes('technology scout status must remain inbox'));
+  assert.ok(failures.includes('technology scout cannot claim execution'));
+});
