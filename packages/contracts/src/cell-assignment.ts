@@ -171,8 +171,11 @@ export function selectAssignmentQuartet(
   validateAssignmentShaLineage(lineage);
   if (ranked.length < 2) throw new Error("ASSIGNMENT_REQUIRES_PRIMARY_AND_BACKUP");
 
-  const primary = ranked[0];
-  const backup = ranked.find((candidate) => candidate.agentId !== primary.agentId) ?? null;
+  const verifierReserved = new Set(verifierCandidates);
+  const primary = ranked.find((candidate) => !verifierReserved.has(candidate.agentId)) ?? ranked[0];
+  const backup = ranked.find(
+    (candidate) => candidate.agentId !== primary.agentId && !verifierReserved.has(candidate.agentId),
+  ) ?? null;
   if (!backup) throw new Error("ASSIGNMENT_REQUIRES_BACKUP");
 
   const rankedIds = new Set(ranked.map((candidate) => candidate.agentId));
@@ -241,13 +244,20 @@ export function selectAssignmentTeam(input: Readonly<{
 }>): AssignmentTeam {
   validateAssignmentShaLineage(input.lineage);
   if (input.solverRanked.length < 2) throw new Error("ASSIGNMENT_REQUIRES_PRIMARY_AND_BACKUP");
-  const solver = input.solverRanked[0];
-  const backupSolver = input.solverRanked.find((candidate) => candidate.agentId !== solver.agentId);
+  const verifierReserved = new Set(input.verifierCandidates);
+  const solver =
+    input.solverRanked.find((candidate) => !verifierReserved.has(candidate.agentId)) ??
+    input.solverRanked[0];
+  const backupSolver = input.solverRanked.find(
+    (candidate) =>
+      candidate.agentId !== solver.agentId && !verifierReserved.has(candidate.agentId),
+  );
   if (!backupSolver) throw new Error("ASSIGNMENT_REQUIRES_BACKUP");
   const opponent = input.opponentRanked.find(
     (candidate) =>
       candidate.agentId !== solver.agentId &&
       candidate.agentId !== backupSolver.agentId &&
+      !verifierReserved.has(candidate.agentId) &&
       candidate.independenceKey !== solver.independenceKey &&
       candidate.independenceKey !== backupSolver.independenceKey,
   );
