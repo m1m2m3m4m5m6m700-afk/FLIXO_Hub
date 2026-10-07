@@ -23,8 +23,11 @@ export function validateCellEnvelope(envelope: CellExecutionEnvelope): CellAdmis
   if (!ID.test(envelope.executionId) || !ID.test(envelope.taskId) || !ID.test(envelope.agentId)) {
     return deny("AGENT_IDENTITY_INVALID", "Execution, task, and agent identities must be canonical.");
   }
-  if (!SHA.test(envelope.baseSha) || !SHA.test(envelope.currentSha)) {
-    return deny("INVALID_ENVELOPE", "Base and current repository state must be exact lowercase SHA-1 values.");
+  if (envelope.evidence.requireExactSha && (!SHA.test(envelope.baseSha) || !SHA.test(envelope.currentSha))) {
+    return deny("INVALID_ENVELOPE", "Exact-SHA evidence requires canonical lowercase SHA-1 values.");
+  }
+  if (envelope.evidence.requireExactSha && envelope.baseSha !== envelope.currentSha) {
+    return deny("SHA_DRIFT", "Admission requires a single pinned repository state.");
   }
   if (!validAuthority(envelope.authority)) return deny("INVALID_ENVELOPE", "Authority is invalid.");
   if (envelope.delegatedAuthority && !validAuthority(envelope.delegatedAuthority)) {
@@ -62,7 +65,7 @@ export function admitCellAction(
   if (request.repository !== envelope.repository) {
     return deny("REPOSITORY_MISMATCH", "Repository does not match the admitted envelope.");
   }
-  if (request.currentSha !== envelope.currentSha) {
+  if (envelope.evidence.requireExactSha && request.currentSha !== envelope.currentSha) {
     return deny("SHA_DRIFT", "Repository SHA changed outside the admitted execution state.");
   }
   if (request.objectiveDigest !== envelope.objectiveDigest) {
