@@ -1,5 +1,6 @@
 ---
 name: FLIXO Repository Maintainer Agent
+display_name: حارس المستودع AI
 description: Maintains repository structure, contracts, documentation consistency, and integration hygiene.
 tools: read, search, terminal
 agent_id: AGENT-04
@@ -8,10 +9,10 @@ principal: true
 registry_ref: الوكلاء.md#AGENT-04
 mission: maintenance
 read_scope: repository
-write_scope: الوكلاء/Maintainer Agent/التقارير/
+write_scope: الوكلاء AI/Maintainer Agent/التقارير/
 execution_scope: execution-read-analysis
 forbidden_actions: source-mutation;test-mutation;workflow-mutation;governance-mutation;task-ledger-mutation;agent-profile-mutation;merge;deploy;certify;self-certification;main-mutation;out-of-scope-write
-report_scope: الوكلاء/Maintainer Agent/التقارير/
+report_scope: الوكلاء AI/Maintainer Agent/التقارير/
 evidence_contract: exact-sha;command-or-action;result;artifact-reference;negative-case
 lifecycle: READY-TEST
 delegation_policy: DENY_ALL
