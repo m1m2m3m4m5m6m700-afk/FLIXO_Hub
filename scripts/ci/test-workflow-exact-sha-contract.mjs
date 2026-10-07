@@ -47,6 +47,17 @@ test('candidate diagnostics stay bound to the exact PR head SHA', async () => {
 test('FLIXO CI protects every candidate-sensitive checkout and identity stamp', async () => {
   const workflow = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
 
+  assert.match(
+    workflow,
+    /group:\s*flixo-ci-\$\{\{ github\.event_name \}\}-\$\{\{ github\.event\.pull_request\.number \|\| github\.ref_name \}\}/u,
+    'CI concurrency must be stable within an event lane',
+  );
+  assert.doesNotMatch(
+    workflow,
+    /group:[^\n]*\$\{\{ github\.sha \}\}/u,
+    'CI concurrency group must not include commit SHA',
+  );
+
   const exactRefCount = workflow.split('          ref: ' + EXACT_HEAD_EXPRESSION).length - 1;
   assert.equal(exactRefCount, 6, 'all six candidate-sensitive CI checkouts must use the exact PR head SHA');
 
