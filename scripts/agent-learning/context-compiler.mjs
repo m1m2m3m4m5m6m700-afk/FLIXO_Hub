@@ -88,7 +88,7 @@ export function compileContext({
     }));
 
   const currentFailures = knownFailures
-    .filter(failure => String(failure?.tested_sha ?? currentSha).toLowerCase() === currentSha.toLowerCase())
+    .filter(failure => String(failure?.tested_sha ?? '').toLowerCase() === currentSha.toLowerCase())
     .slice(0, 20);
   const staleFailures = knownFailures
     .filter(failure => !currentFailures.includes(failure))
