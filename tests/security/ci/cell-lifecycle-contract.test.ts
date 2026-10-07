@@ -307,7 +307,7 @@ test("CELL lifecycle stays exact-SHA and fail-closed across promotion and learni
   rt.admitCell(envelope);
   rt.lockCellPair();
   rt.startCellOpponent("opponent-100", SHA);
-  assert.throws(() => rt.discloseCellSolverResult("b".repeat(40)), /CELL_SOLVER_DISCLOSURE_SHA_INVALID/);
+  assert.throws(() => rt.discloseCellSolverResult("b".repeat(40)), /CELL_SOLVER_DISCLOSURE_SHA_DRIFT/);
 
   rt.discloseCellSolverResult(SHA);
   assert.throws(
