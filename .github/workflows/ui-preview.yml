@@ -1,18 +1,6 @@
 name: FLIXO UI Preview
 
 on:
-  push:
-    branches: [execution]
-    paths:
-      - 'src/**'
-      - 'public/**'
-      - 'index.html'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'vite.config.ts'
-      - 'tsconfig.json'
-      - 'wrangler.jsonc'
-      - '.github/workflows/ui-preview.yml'
   workflow_dispatch:
 
 permissions:
@@ -24,7 +12,7 @@ concurrency:
 
 jobs:
   preview:
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/execution' }}
+    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/execution' && github.repository == 'm1m2m3m4m5m6m700-afk/FLIXO_Hub' && github.actor == 'm1m2m3m4m5m6m700-afk' }}
     name: Publish execution UI preview
     runs-on: ubuntu-latest
     timeout-minutes: 20
