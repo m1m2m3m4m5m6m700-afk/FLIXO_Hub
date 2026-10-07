@@ -1,4 +1,17 @@
-
+import {
+  type AuthorityContextArtifact,
+  type CanonicalTaskContext,
+  createAuthorityContextArtifact,
+} from "./call-context";
+import {
+  detectCapabilityGaps,
+  generateSelfDevelopmentObjective,
+  validateSelfDevelopmentObjective,
+  type CapabilityGap,
+  type CapabilityObservation,
+  type ReferenceCapability,
+  type SelfDevelopmentObjective,
+} from "./call-self-development";
 import {
   assertLeaseOwner,
   assertTransition,
@@ -133,7 +146,9 @@ export class CellRuntime {
   private readonly clock: () => number;
   private opponentStartSequence = 0;
   private readonly opponentIndependentStarts = new Map<string, OpponentIndependentStartProof>();
-  private readonly solverDisclosures = new Map<string, SolverResultDisclosureProof>();
+  private readonly solverDisclosures = new Map<string, SolverResultDisclosureProof>();\n  private readonly authorityContexts = new Map<string, AuthorityContextArtifact>();
+  private readonly selfDevelopmentObjectives = new Map<string, SelfDevelopmentObjective>();
+  private readonly selfDevelopmentTaskLinks = new Map<string, string>();
   private readonly cellLifecycle: CellLifecycleRuntime;
 
   constructor(clock: () => number = () => Date.now()) {
@@ -152,6 +167,20 @@ export class CellRuntime {
     });
     this.tasks.set(taskId, task);
     return task;
+  }
+
+  registerSelfDevelopmentTask(objectiveId: string): RuntimeTask {
+    const objective = this.getSelfDevelopmentTask(objectiveId);
+    if (this.selfDevelopmentTaskLinks.has(objectiveId)) throw new Error("SELF_DEVELOPMENT_TASK_ALREADY_REGISTERED");
+    const task = this.registerTask(objective.objectiveId);
+    this.selfDevelopmentTaskLinks.set(objectiveId, task.taskId);
+    return task;
+  }
+
+  getSelfDevelopmentTaskForTask(taskId: string): SelfDevelopmentObjective {
+    const objectiveId = [...this.selfDevelopmentTaskLinks.entries()].find(([, linkedTaskId]) => linkedTaskId === taskId)?.[0];
+    if (!objectiveId) throw new Error("SELF_DEVELOPMENT_TASK_LINK_NOT_FOUND");
+    return this.getSelfDevelopmentTask(objectiveId);
   }
 
   getTask(taskId: string): RuntimeTask {
@@ -637,8 +666,27 @@ export class CellRuntime {
     this.cellLifecycle.lockPair();
   }
 
-  startCellOpponent(opponentId: string, candidateSha: string, sharedContextHash: string, sequence?: number): void {
-    this.cellLifecycle.recordOpponentIndependentStart(opponentId, candidateSha, sharedContextHash, sequence);
+  async startCellOpponent(
+    opponentId: string,
+    candidateSha: string,
+    context: CanonicalTaskContext,
+    policyVersion: string,
+    sequence?: number,
+  ): Promise<AuthorityContextArtifact> {
+    const artifact = await createAuthorityContextArtifact(context, policyVersion, this.clock);
+    if (artifact.taskId !== context.taskId) throw new Error("CALL_CONTEXT_TASK_MISMATCH");
+    const assignmentId = this.assignmentTaskId(context.taskId);
+    if (assignmentId === null) throw new Error("CALL_CONTEXT_ASSIGNMENT_REQUIRED");
+    if (candidateSha !== context.startingSha) throw new Error("CALL_CONTEXT_SHA_MISMATCH");
+    this.authorityContexts.set(context.taskId, artifact);
+    this.cellLifecycle.recordOpponentIndependentStart(opponentId, candidateSha, artifact.sharedContextHash, sequence);
+    return artifact;
+  }
+
+  getAuthorityContext(taskId: string): AuthorityContextArtifact {
+    const artifact = this.authorityContexts.get(taskId);
+    if (!artifact) throw new Error("CALL_CONTEXT_NOT_FOUND");
+    return artifact;
   }
 
   discloseCellSolverResult(candidateSha: string): void {
@@ -703,6 +751,39 @@ export class CellRuntime {
 
   getCellLifecycleSnapshot() {
     return this.cellLifecycle.snapshot();
+  }
+
+  assessSelfDevelopment(
+    observed: readonly CapabilityObservation[],
+    reference: readonly ReferenceCapability[],
+    minimumGap = 0.05,
+  ): readonly CapabilityGap[] {
+    return detectCapabilityGaps(observed, reference, minimumGap);
+  }
+
+  generateSelfDevelopmentTask(
+    observed: readonly CapabilityObservation[],
+    reference: readonly ReferenceCapability[],
+    minimumGap = 0.05,
+  ): SelfDevelopmentObjective {
+    const gaps = this.assessSelfDevelopment(observed, reference, minimumGap);
+    const objective = generateSelfDevelopmentObjective(gaps, this.clock());
+    validateSelfDevelopmentObjective(objective, gaps);
+    if (this.selfDevelopmentObjectives.has(objective.objectiveId)) {
+      throw new Error("SELF_DEVELOPMENT_OBJECTIVE_ALREADY_EXISTS");
+    }
+    this.selfDevelopmentObjectives.set(objective.objectiveId, objective);
+    return objective;
+  }
+
+  getSelfDevelopmentTask(objectiveId: string): SelfDevelopmentObjective {
+    const objective = this.selfDevelopmentObjectives.get(objectiveId);
+    if (!objective) throw new Error("SELF_DEVELOPMENT_OBJECTIVE_NOT_FOUND");
+    return objective;
+  }
+
+  listSelfDevelopmentTasks(): readonly SelfDevelopmentObjective[] {
+    return Object.freeze([...this.selfDevelopmentObjectives.values()]);
   }
 
 }
