@@ -19,10 +19,19 @@ def parse_manifest(path):
 
 def quote_unique(content):
     flat=" ".join(content.split())
-    for size in (600,500,400,300,200):
-        candidate=flat[:size].rstrip()
-        if candidate and flat.count(candidate)==1: return candidate
-    raise ValueError("could not select a unique evidence quote")
+    if not flat:
+        raise ValueError("snapshot content is empty")
+    for size in (1200,1000,800,600,500,400,300,240,200,160,120,96,80,64,48,32):
+        if len(flat) < size:
+            continue
+        for start in range(0, len(flat) - size + 1, max(1, size // 4)):
+            candidate=flat[start:start + size].rstrip()
+            if candidate and flat.count(candidate)==1:
+                return candidate
+        candidate=flat[-size:].rstrip()
+        if candidate and flat.count(candidate)==1:
+            return candidate
+    raise ValueError("could not select a unique evidence quote from snapshot")
 
 def repo_ref_exists(root,ref):
     target=Path(root)/ref.split(":",1)[0]
