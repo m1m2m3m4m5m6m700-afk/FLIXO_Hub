@@ -303,14 +303,29 @@ export function collectGitRefSnapshot(
         throw new Error('main branch reference is unavailable');
       }
     }
-    const paths = sh('git', ['ls-tree', '-r', '-z', '--name-only', resolvedRef]).split('\0').filter(Boolean);
+    const tree = execFileSync('git', ['ls-tree', '-r', '-z', resolvedRef], {
+      cwd: root,
+      encoding: 'utf8',
+      maxBuffer: 32 * 1024 * 1024,
+    });
+    const entries = tree.split('\0').filter(Boolean).map((entry) => {
+      const tab = entry.indexOf('\t');
+      const metadata = tab >= 0 ? entry.slice(0, tab).split(/\s+/u) : [];
+      const path = tab >= 0 ? entry.slice(tab + 1) : '';
+      return { mode: metadata[0] ?? '', type: metadata[1] ?? '', objectSha: metadata[2] ?? '', path };
+    }).filter((entry) => entry.type === 'blob' && /^[0-9a-f]{40}$/.test(entry.objectSha) && entry.path);
+
     let textFiles = 0;
     let binaryFiles = 0;
     let textLines = 0;
     let bytes = 0;
 
-    for (const path of paths) {
-      const buffer = Buffer.from(sh('git', ['show', `${resolvedRef}:${path}`]), 'utf8');
+    for (const entry of entries) {
+      const buffer = execFileSync('git', ['cat-file', 'blob', entry.objectSha], {
+        cwd: root,
+        encoding: null,
+        maxBuffer: 32 * 1024 * 1024,
+      });
       bytes += buffer.length;
       if (!looksText(buffer)) {
         binaryFiles++;
@@ -320,6 +335,8 @@ export function collectGitRefSnapshot(
       const normalized = buffer.toString('utf8').replace(/\r\n/g, '\n');
       textLines += normalized === '' ? 0 : (normalized.endsWith('\n') ? normalized.slice(0, -1).split('\n').length : normalized.split('\n').length);
     }
+
+    const paths = entries.map((entry) => entry.path);
 
     return {
       ref,
