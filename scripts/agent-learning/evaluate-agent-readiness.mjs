@@ -9,63 +9,55 @@ const ROOT = process.cwd();
 const ROLE_RULES = {
   'المستكشف AI': {
     contract:'الوكلاء/المستكشف AI/المستكشف.md',
-    report:'الوكلاء/المستكشف AI/تقارير المستكشف/',
     anchors:['scripts/repository-knowledge-scan.mjs','src/config/registry.ts','src/lib/execution/canonical-executor.ts','src/lib/contracts/tool-output-contracts.ts'],
     required:['Exact-SHA','Semantic analysis','Main branch read scope','Mutation prohibition']
   },
   'المطور AI': {
     contract:'الوكلاء/المطور AI/المطور.md',
-    report:'الوكلاء/المطور AI/تقارير التطوير/',
     anchors:['.github/agents/المطور-ai.md','src/config/registry.ts','package.json'],
     required:['exact SHA','context-equivalent','GAP','licensing']
   },
   'FLIXO i18n Agent': {
     contract:'الوكلاء/i18n Agent/العقد.md',
-    report:'الوكلاء/i18n Agent/التقارير/',
     anchors:['src/lib/i18n/config.ts'],
     required:['RTL/LTR','SEO','exact SHA','missing']
   },
   'FLIXO Repository Maintainer Agent': {
     contract:'الوكلاء/Maintainer Agent/العقد.md',
-    report:'الوكلاء/Maintainer Agent/التقارير/',
     anchors:['src/config/registry.ts','scripts/verify-agent-profiles.mjs','AGENTS.md'],
     required:['duplicate','stale SHA','drift','canonical']
   },
   'FLIXO QA Agent': {
     contract:'الوكلاء/QA Agent/العقد.md',
-    report:'الوكلاء/QA Agent/التقارير/',
     anchors:['package.json','.github/workflows','tests/'],
     required:['cancelled','neutral','missing','stale']
   },
   'Red Team 1': {
     contract:'الوكلاء/Red Team 1/العقد.md',
-    report:'الوكلاء/Red Team 1/التقارير/',
     anchors:['.github/workflows/agent-self-learning.yml','scripts/ci/check-governance.sh'],
     required:['threat model','attack','reproducible','NOT_REPRODUCED']
   },
   'Red Team 2': {
     contract:'الوكلاء/Red Team 2/العقد.md',
-    report:'الوكلاء/Red Team 2/التقارير/',
     anchors:['.github/agents/red-team-1.md','.github/agents/المستكشف-2.md'],
     required:['counterexample','false positives','false negatives','REFUTED']
   },
   'FLIXO Architecture Scout': {
     contract:'الوكلاء/المستكشفين/Architecture Scout/المستكشف.md',
-    report:'.agent-intelligence/inbox/',
     anchors:['.agent-intelligence/scouts/architecture.yaml','src/config/registry.ts','src/lib/execution/canonical-executor.ts'],
-    required:['tools: ["read", "search", "edit"]','inbox','Proposal Schema v4','rollback','provenance']
+    required:['tools: ["read", "search", "edit"]','canonical report','Proposal Schema v4','rollback','provenance']
   },
   'FLIXO Technology Scout': {
     contract:'الوكلاء/المستكشفين/Technology Scout/المستكشف.md',
     report:'.agent-intelligence/inbox/',
     anchors:['.agent-intelligence/scouts/technology.yaml','package.json','src/lib/execution/canonical-executor.ts'],
-    required:['tools: ["read", "search", "edit"]','inbox','Proposal Schema v4','licensing','compatibility']
+    required:['tools: ["read", "search", "edit"]','canonical report','Proposal Schema v4','licensing','compatibility']
   },
   'FLIXO Ecosystem Scout': {
     contract:'الوكلاء/المستكشفين/Ecosystem Scout/المستكشف.md',
     report:'.agent-intelligence/inbox/',
     anchors:['.agent-intelligence/scouts/ecosystem.yaml','package.json','src/config/registry.ts'],
-    required:['tools: ["read", "search", "edit"]','inbox','Proposal Schema v4','provenance','maturity']
+    required:['tools: ["read", "search", "edit"]','canonical report','Proposal Schema v4','provenance','maturity']
   }
 };
 
@@ -85,7 +77,7 @@ export function scoreAgent(agent, sha){
   checks.push(check(/Practical Mastery Loop/u.test(profile),'practical mastery loop is explicit','complete the mastery loop'));
   checks.push(check(sha===gitHead(),'training target equals repository HEAD','re-read the live execution SHA'));
   checks.push(check(exists(rule.contract),'canonical role contract exists','restore the canonical role contract'));
-  checks.push(check(profile.includes(rule.report) || contract.includes(rule.report),'bounded report path is declared','declare the isolated report path'));
+  checks.push(check(typeof agent.report === 'string' && profile.includes(agent.report),'bounded canonical report path is declared','declare the canonical report path in the registry and profile'));
   for(const anchor of rule.anchors) checks.push(check(exists(anchor),'role anchor exists: '+anchor,'inspect or restore the referenced repository surface'));
   for(const required of rule.required) checks.push(check(profile.toLowerCase().includes(required.toLowerCase()) || contract.toLowerCase().includes(required.toLowerCase()),'training rule present: '+required,'add the missing role-specific training rule'));
   const drill=evaluateAgentDrill(agent.name,sha);

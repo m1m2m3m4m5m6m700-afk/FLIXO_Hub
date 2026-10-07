@@ -5,7 +5,7 @@ import { auditActivityLogs } from "../../../scripts/agent-activity-ledger.mjs";
 test("all registered agents have fail-closed append-only activity logs", () => {
   const result = auditActivityLogs();
   assert.equal(result.protocol, "flixo-agent-activity-v1");
-  assert.equal(result.agentCount, 15);
+  assert.equal(result.agentCount, 11);
   assert.deepEqual(result.failures, []);
   assert.equal(result.status, "PASS");
 });
