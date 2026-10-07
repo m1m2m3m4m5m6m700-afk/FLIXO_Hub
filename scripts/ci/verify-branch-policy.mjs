@@ -116,6 +116,8 @@ function hasMainOnlyPushTrigger(workflow) {
   }
 
   return triggerCount === 1 && mainPush;
+}
+
 function hasExecutionPushGate(jobText) {
   const compact = jobText.replace(/\s+/gu, ' ');
   return /github\.event_name\s*==\s*['"]push['"]/u.test(compact) && /github\.ref\s*==\s*['"]refs\/heads\/execution['"]/u.test(compact);
@@ -178,14 +180,15 @@ export function analyzeWorkflowAuthority(path, workflow) {
     }
 
     const jobContentsWrite = /contents:\s*write\b/iu.test(jobText);
-    if (workflowExecutionPush && (jobContentsWrite || workflowContentsWrite)) {
-      findings.push(`${path}#${job.id}: execution-push workflow may not expose contents:write to mutable execution code.`);
+    const executionPush = hasExecutionPushGate(jobText);
+    if (executionPush && (jobContentsWrite || workflowContentsWrite)) {
+      findings.push(`${path}#${job.id}: execution-push job may not expose contents:write to mutable execution code.`);
     }
-    if (workflowExecutionPush && /\bsecrets\.[A-Za-z0-9_]+/u.test(jobText)) {
-      findings.push(`${path}#${job.id}: execution-push workflow may not expose repository secrets.`);
+    if (executionPush && /\bsecrets\.[A-Za-z0-9_]+/u.test(jobText)) {
+      findings.push(`${path}#${job.id}: execution-push job may not expose repository secrets.`);
     }
-    if (workflowExecutionPush && /persist-credentials:\s*true\b/iu.test(jobText)) {
-      findings.push(`${path}#${job.id}: execution-push workflow may not persist Git credentials.`);
+    if (executionPush && /persist-credentials:\s*true\b/iu.test(jobText)) {
+      findings.push(`${path}#${job.id}: execution-push job may not persist Git credentials.`);
     }
     if (jobContentsWrite || workflowContentsWrite) {
       const safeMainWrite = mainPushGate || workflowMainOnlyPush;
