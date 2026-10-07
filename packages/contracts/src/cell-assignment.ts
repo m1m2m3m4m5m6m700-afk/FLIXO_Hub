@@ -388,6 +388,7 @@ export type CellFalsificationPolicy = Readonly<{
 
 export type CellVerificationPolicy = Readonly<{
   verifierRequirement: string;
+  independentVerifierRequired?: true;
   evidenceRequirement: string;
   exactShaBinding: boolean;
 }>;
