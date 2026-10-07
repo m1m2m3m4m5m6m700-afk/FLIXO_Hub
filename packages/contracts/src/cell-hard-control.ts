@@ -147,6 +147,8 @@ export function createExecutionEnvelope(input: ExecutionEnvelope): ExecutionEnve
     input.timeBudgetMs <= 0 ||
     input.costBudget < 0 ||
     input.maxDelegationDepth < 0 ||
+    (input.authority !== undefined && !(input.authority in CELL_AUTHORITY_RANK)) ||
+    (input.maxRetryAttempts !== undefined && (!Number.isInteger(input.maxRetryAttempts) || input.maxRetryAttempts < 1 || input.maxRetryAttempts > 3)) ||
     input.allowedCapabilities.length === 0 ||
     input.acceptanceConditions.length === 0 ||
     input.evidenceRequirements.length === 0
