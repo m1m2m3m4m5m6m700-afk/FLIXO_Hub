@@ -1,4 +1,17 @@
-
+import {
+  type AuthorityContextArtifact,
+  type CanonicalTaskContext,
+  createAuthorityContextArtifact,
+} from "./call-context";
+import {
+  detectCapabilityGaps,
+  generateSelfDevelopmentObjective,
+  validateSelfDevelopmentObjective,
+  type CapabilityGap,
+  type CapabilityObservation,
+  type ReferenceCapability,
+  type SelfDevelopmentObjective,
+} from "./call-self-development";
 import {
   assertLeaseOwner,
   assertTransition,
@@ -134,6 +147,7 @@ export class CellRuntime {
   private opponentStartSequence = 0;
   private readonly opponentIndependentStarts = new Map<string, OpponentIndependentStartProof>();
   private readonly solverDisclosures = new Map<string, SolverResultDisclosureProof>();\n  private readonly authorityContexts = new Map<string, AuthorityContextArtifact>();
+  private readonly selfDevelopmentObjectives = new Map<string, SelfDevelopmentObjective>();
   private readonly cellLifecycle: CellLifecycleRuntime;
 
   constructor(clock: () => number = () => Date.now()) {
@@ -722,6 +736,39 @@ export class CellRuntime {
 
   getCellLifecycleSnapshot() {
     return this.cellLifecycle.snapshot();
+  }
+
+  assessSelfDevelopment(
+    observed: readonly CapabilityObservation[],
+    reference: readonly ReferenceCapability[],
+    minimumGap = 0.05,
+  ): readonly CapabilityGap[] {
+    return detectCapabilityGaps(observed, reference, minimumGap);
+  }
+
+  generateSelfDevelopmentTask(
+    observed: readonly CapabilityObservation[],
+    reference: readonly ReferenceCapability[],
+    minimumGap = 0.05,
+  ): SelfDevelopmentObjective {
+    const gaps = this.assessSelfDevelopment(observed, reference, minimumGap);
+    const objective = generateSelfDevelopmentObjective(gaps, this.clock());
+    validateSelfDevelopmentObjective(objective, gaps);
+    if (this.selfDevelopmentObjectives.has(objective.objectiveId)) {
+      throw new Error("SELF_DEVELOPMENT_OBJECTIVE_ALREADY_EXISTS");
+    }
+    this.selfDevelopmentObjectives.set(objective.objectiveId, objective);
+    return objective;
+  }
+
+  getSelfDevelopmentTask(objectiveId: string): SelfDevelopmentObjective {
+    const objective = this.selfDevelopmentObjectives.get(objectiveId);
+    if (!objective) throw new Error("SELF_DEVELOPMENT_OBJECTIVE_NOT_FOUND");
+    return objective;
+  }
+
+  listSelfDevelopmentTasks(): readonly SelfDevelopmentObjective[] {
+    return Object.freeze([...this.selfDevelopmentObjectives.values()]);
   }
 
 }
