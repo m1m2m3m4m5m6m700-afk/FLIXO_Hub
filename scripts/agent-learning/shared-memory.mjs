@@ -163,7 +163,7 @@ export function createSupabaseRpcClient({ baseUrl, serviceRoleKey, fetchImpl = g
         method: 'POST',
         headers: {
           apikey: serviceRoleKey,
-          Authorization: 'Bearer ' + serviceRoleKey,
+          ...(String(serviceRoleKey).startsWith('sb_secret_') ? {} : { Authorization: 'Bearer ' + serviceRoleKey }),
           'Content-Type': 'application/json',
           Accept: 'application/json',
         },
