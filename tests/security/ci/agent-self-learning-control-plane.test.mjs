@@ -472,7 +472,7 @@ test('cognitive plane emits candidate-only learning and requires independent usa
 
   assert.equal(classifyMemoryForExecution({ memory_id: 'usable', status: 'PROMOTED', tested_sha: SHA }, SHA).usable, true);
   assert.equal(classifyMemoryForExecution({ memory_id: 'blocked', status: 'VALIDATED', tested_sha: SHA }, SHA).usable, false);
-  assert.equal(classifyMemoryForExecution({ memory_id: 'stale', status: 'PROMOTED', tested_sha: OTHER_SHA }).usable, false);
+  assert.equal(classifyMemoryForExecution({ memory_id: 'stale', status: 'PROMOTED', tested_sha: OTHER_SHA }, SHA).usable, false);
 });
 
 test('cognitive context assembly rejects authority escalation and stale world models', async () => {
