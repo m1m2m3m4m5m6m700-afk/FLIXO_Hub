@@ -1,6 +1,19 @@
 import type { AgentState } from "./cell-control-plane";
 
-export const ASSIGNMENT_CONTRACT_VERSION = "1.0.0" as const;
+export const ASSIGNMENT_CONTRACT_VERSION = "1.1.0" as const;
+
+export type AssignmentShaLineage = Readonly<{
+  startingSha: string;
+  currentSha: string;
+}>;
+
+const SHA_PATTERN = /^[0-9a-f]{40}$/iu;
+
+export function validateAssignmentShaLineage(lineage: AssignmentShaLineage): void {
+  if (!SHA_PATTERN.test(lineage.startingSha) || !SHA_PATTERN.test(lineage.currentSha)) {
+    throw new Error("INVALID_ASSIGNMENT_SHA");
+  }
+}
 
 export type AssignmentAgentProfile = Readonly<{
   agentId: string;
@@ -31,6 +44,8 @@ export type AssignmentRequirements = Readonly<{
   informationGain: number;
   independenceRequired: boolean;
   maxCost: number;
+  startingSha: string;
+  currentSha: string;
   deadlineAtMs?: number | null;
 }>;
 
@@ -44,10 +59,29 @@ const overlapScore = (required: readonly string[], available: readonly string[])
 
 const safeRate = (value: number) => clamp(Number.isFinite(value) ? value : 0);
 
+export function isAgentRoutableForTask(
+  agent: AssignmentAgentProfile,
+  task: AssignmentRequirements,
+): boolean {
+  validateAssignmentShaLineage({ startingSha: task.startingSha, currentSha: task.currentSha });
+  return Boolean(
+    agent.agentId.trim() &&
+      (agent.state === "READY" || agent.state === "IDLE") &&
+      Number.isFinite(agent.costRate) &&
+      agent.costRate >= 0 &&
+      agent.costRate <= task.maxCost &&
+      agent.availability > 0 &&
+      overlapScore(task.requiredCapabilities, agent.capabilities) === 1 &&
+      overlapScore(task.requiredOutputTypes, agent.outputTypes) === 1 &&
+      overlapScore([task.riskClass], agent.riskClasses) === 1,
+  );
+}
+
 export type RankedAgent = Readonly<{
   agentId: string;
   score: number;
   reasons: readonly string[];
+  independenceKey: string;
 }>;
 
 export function scoreAgentForTask(
@@ -98,6 +132,7 @@ export function scoreAgentForTask(
     agentId: agent.agentId,
     score: Number(score.toFixed(6)),
     reasons: Object.freeze(reasons),
+    independenceKey: agent.independenceKey?.trim() || agent.agentId,
   });
 }
 
@@ -107,6 +142,7 @@ export function rankAgentsForTask(
 ): readonly RankedAgent[] {
   return Object.freeze(
     agents
+      .filter((agent) => isAgentRoutableForTask(agent, task))
       .map((agent) => scoreAgentForTask(agent, task))
       .filter((candidate) => candidate.score > -1)
       .sort(
@@ -116,7 +152,7 @@ export function rankAgentsForTask(
   );
 }
 
-export type AssignmentQuartet = Readonly<{
+export type AssignmentQuartet = Readonly<AssignmentShaLineage & {
   assignmentId: string;
   primaryAgentId: string;
   backupAgentId: string;
@@ -130,17 +166,22 @@ export function selectAssignmentQuartet(
   verifierCandidates: readonly string[],
   escalationCandidates: readonly string[],
   independenceRequired: boolean,
+  lineage: AssignmentShaLineage,
 ): AssignmentQuartet {
+  validateAssignmentShaLineage(lineage);
   if (ranked.length < 2) throw new Error("ASSIGNMENT_REQUIRES_PRIMARY_AND_BACKUP");
 
   const primary = ranked[0];
   const backup = ranked.find((candidate) => candidate.agentId !== primary.agentId) ?? null;
   if (!backup) throw new Error("ASSIGNMENT_REQUIRES_BACKUP");
 
+  const rankedIds = new Set(ranked.map((candidate) => candidate.agentId));
   const verifier =
     verifierCandidates.find(
       (agentId) =>
-        agentId !== primary.agentId && agentId !== backup.agentId,
+        agentId !== primary.agentId &&
+        agentId !== backup.agentId &&
+        rankedIds.has(agentId),
     ) ?? null;
 
   if (independenceRequired && !verifier) {
@@ -152,8 +193,20 @@ export function selectAssignmentQuartet(
       (agentId) =>
         agentId !== primary.agentId &&
         agentId !== backup.agentId &&
-        agentId !== verifier,
+        agentId !== verifier &&
+        rankedIds.has(agentId),
     ) ?? null;
+
+  const roleIds = [primary.agentId, backup.agentId, verifier, escalation];
+  if (new Set(roleIds.filter(Boolean)).size !== roleIds.filter(Boolean).length) {
+    throw new Error("ASSIGNMENT_ROLE_COLLISION");
+  }
+  if (independenceRequired && verifier) {
+    const vr = ranked.find((candidate) => candidate.agentId === verifier);
+    if (!vr || vr.independenceKey === primary.independenceKey || vr.independenceKey === backup.independenceKey) {
+      throw new Error("INDEPENDENT_VERIFIER_COLLISION");
+    }
+  }
 
   return Object.freeze({
     assignmentId,
@@ -161,10 +214,12 @@ export function selectAssignmentQuartet(
     backupAgentId: backup.agentId,
     verifierAgentId: verifier,
     escalationTargetAgentId: escalation,
+    startingSha: lineage.startingSha,
+    currentSha: lineage.currentSha,
   });
 }
 
-export type AssignmentTeam = Readonly<{
+export type AssignmentTeam = Readonly<AssignmentShaLineage & {
   assignmentId: string;
   solverAgentId: string;
   backupSolverAgentId: string;
@@ -181,17 +236,51 @@ export function selectAssignmentTeam(input: Readonly<{
   verifierCandidates: readonly string[];
   escalationCandidates: readonly string[];
   requireIndependentVerifier: boolean;
+  requireBackupOpponent?: boolean;
+  lineage: AssignmentShaLineage;
 }>): AssignmentTeam {
+  validateAssignmentShaLineage(input.lineage);
   if (input.solverRanked.length < 2) throw new Error("ASSIGNMENT_REQUIRES_PRIMARY_AND_BACKUP");
   const solver = input.solverRanked[0];
   const backupSolver = input.solverRanked.find((candidate) => candidate.agentId !== solver.agentId);
   if (!backupSolver) throw new Error("ASSIGNMENT_REQUIRES_BACKUP");
-  const opponent = input.opponentRanked.find((candidate) => candidate.agentId !== solver.agentId && candidate.agentId !== backupSolver.agentId);
+  const opponent = input.opponentRanked.find(
+    (candidate) =>
+      candidate.agentId !== solver.agentId &&
+      candidate.agentId !== backupSolver.agentId &&
+      candidate.independenceKey !== solver.independenceKey &&
+      candidate.independenceKey !== backupSolver.independenceKey,
+  );
   if (!opponent) throw new Error("ASSIGNMENT_REQUIRES_INDEPENDENT_OPPONENT");
-  const backupOpponent = input.opponentRanked.find((candidate) => candidate.agentId !== solver.agentId && candidate.agentId !== backupSolver.agentId && candidate.agentId !== opponent.agentId) ?? null;
-  const verifier = input.verifierCandidates.find((agentId) => ![solver.agentId, backupSolver.agentId, opponent.agentId, backupOpponent?.agentId].includes(agentId)) ?? null;
+  const backupOpponent =
+    input.opponentRanked.find(
+      (candidate) =>
+        ![solver.agentId, backupSolver.agentId, opponent.agentId].includes(candidate.agentId) &&
+        ![solver.independenceKey, backupSolver.independenceKey, opponent.independenceKey].includes(candidate.independenceKey),
+    ) ?? null;
+  if (input.requireBackupOpponent && !backupOpponent) {
+    throw new Error("BACKUP_OPPONENT_REQUIRED");
+  }
+  const verifier = input.verifierCandidates.find(
+    (agentId) =>
+      ![solver.agentId, backupSolver.agentId, opponent.agentId, backupOpponent?.agentId].includes(agentId),
+  ) ?? null;
   if (input.requireIndependentVerifier && !verifier) throw new Error("INDEPENDENT_VERIFIER_REQUIRED");
-  const escalation = input.escalationCandidates.find((agentId) => ![solver.agentId, backupSolver.agentId, opponent.agentId, backupOpponent?.agentId, verifier].includes(agentId)) ?? null;
+  const escalation = input.escalationCandidates.find(
+    (agentId) =>
+      ![solver.agentId, backupSolver.agentId, opponent.agentId, backupOpponent?.agentId, verifier].includes(agentId),
+  ) ?? null;
+  const roleIds = [solver.agentId, backupSolver.agentId, opponent.agentId, backupOpponent?.agentId ?? null, verifier, escalation];
+  if (new Set(roleIds.filter(Boolean)).size !== roleIds.filter(Boolean).length) {
+    throw new Error("ASSIGNMENT_ROLE_COLLISION");
+  }
+  if (input.requireIndependentVerifier && verifier) {
+    const merged = [...input.solverRanked, ...input.opponentRanked];
+    const vr = merged.find((candidate) => candidate.agentId === verifier);
+    if (!vr || [solver.independenceKey, backupSolver.independenceKey, opponent.independenceKey].includes(vr.independenceKey)) {
+      throw new Error("INDEPENDENT_VERIFIER_COLLISION");
+    }
+  }
   return Object.freeze({
     assignmentId: input.assignmentId,
     solverAgentId: solver.agentId,
@@ -200,8 +289,59 @@ export function selectAssignmentTeam(input: Readonly<{
     backupOpponentAgentId: backupOpponent,
     verifierAgentId: verifier,
     escalationTargetAgentId: escalation,
+    startingSha: input.lineage.startingSha,
+    currentSha: input.lineage.currentSha,
   });
 }
+const agentMap = (agents: readonly AssignmentAgentProfile[]): ReadonlyMap<string, AssignmentAgentProfile> =>
+  new Map(agents.map((agent) => [agent.agentId, agent]));
+
+const routed = (task: AssignmentRequirements, profiles: ReadonlyMap<string, AssignmentAgentProfile>, id: string) => {
+  const agent = profiles.get(id);
+  if (!agent || !isAgentRoutableForTask(agent, task)) throw new Error("WRONG_AGENT_ROUTING");
+  return agent;
+};
+
+export function validateAssignmentForTask(task: AssignmentRequirements, assignment: AssignmentQuartet, agents: readonly AssignmentAgentProfile[]): void {
+  if (assignment.startingSha !== task.startingSha || assignment.currentSha !== task.currentSha) throw new Error("ASSIGNMENT_SHA_DRIFT");
+  const ids = [assignment.primaryAgentId, assignment.backupAgentId, assignment.verifierAgentId, assignment.escalationTargetAgentId];
+  if (new Set(ids.filter(Boolean)).size !== ids.filter(Boolean).length) throw new Error("ASSIGNMENT_ROLE_COLLISION");
+  const m=agentMap(agents);
+  const p=routed(task,m,assignment.primaryAgentId);
+  const b=routed(task,m,assignment.backupAgentId);
+  if (task.independenceRequired) {
+    if (!assignment.verifierAgentId) throw new Error("INDEPENDENT_VERIFIER_REQUIRED");
+    const v=routed(task,m,assignment.verifierAgentId);
+    const vk=v.independenceKey?.trim()||v.agentId;
+    if (vk===(p.independenceKey?.trim()||p.agentId) || vk===(b.independenceKey?.trim()||b.agentId)) throw new Error("INDEPENDENT_VERIFIER_COLLISION");
+  }
+  if (assignment.escalationTargetAgentId) routed(task,m,assignment.escalationTargetAgentId);
+}
+
+export function validateAssignmentTeamForTask(task: AssignmentRequirements, team: AssignmentTeam, agents: readonly AssignmentAgentProfile[]): void {
+  if (team.startingSha !== task.startingSha || team.currentSha !== task.currentSha) throw new Error("ASSIGNMENT_SHA_DRIFT");
+  const ids=[team.solverAgentId,team.backupSolverAgentId,team.opponentAgentId,team.backupOpponentAgentId,team.verifierAgentId,team.escalationTargetAgentId];
+  if (new Set(ids.filter(Boolean)).size !== ids.filter(Boolean).length) throw new Error("ASSIGNMENT_ROLE_COLLISION");
+  const m=agentMap(agents);
+  const s=routed(task,m,team.solverAgentId);
+  const b=routed(task,m,team.backupSolverAgentId);
+  const o=routed(task,m,team.opponentAgentId);
+  const sk=[s.independenceKey?.trim()||s.agentId,b.independenceKey?.trim()||b.agentId];
+  const ok=o.independenceKey?.trim()||o.agentId;
+  if (sk.includes(ok)) throw new Error("SOLVER_OPPONENT_COLLISION");
+  if (team.backupOpponentAgentId) {
+    const bo=routed(task,m,team.backupOpponentAgentId);
+    const k=bo.independenceKey?.trim()||bo.agentId;
+    if ([...sk,ok].includes(k)) throw new Error("BACKUP_OPPONENT_COLLISION");
+  }
+  if (task.independenceRequired) {
+    if (!team.verifierAgentId) throw new Error("INDEPENDENT_VERIFIER_REQUIRED");
+    const v=routed(task,m,team.verifierAgentId);
+    const k=v.independenceKey?.trim()||v.agentId;
+    if ([...sk,ok].includes(k)) throw new Error("INDEPENDENT_VERIFIER_COLLISION");
+  }
+}
+
 export type DelegationRule = Readonly<{
   sourceAgentId: string;
   targetAgentId: string;
@@ -214,6 +354,7 @@ export type DelegationRule = Readonly<{
 }>;
 
 export type DelegationRequest = Readonly<{
+  taskId: string;
   sourceAgentId: string;
   targetAgentId: string;
   taskType: string;
@@ -224,26 +365,14 @@ export type DelegationRequest = Readonly<{
   estimatedDurationMs: number;
 }>;
 
-export function authorizeDelegation(
-  rules: readonly DelegationRule[],
-  request: DelegationRequest,
-): boolean {
-  const rule = rules.find(
-    (candidate) =>
-      candidate.sourceAgentId === request.sourceAgentId &&
-      candidate.targetAgentId === request.targetAgentId &&
-      candidate.taskTypes.includes(request.taskType) &&
-      candidate.riskClasses.includes(request.riskClass),
-  );
+const validRule=(r: DelegationRule)=>Boolean(r.sourceAgentId.trim()&&r.targetAgentId.trim()&&r.sourceAgentId!==r.targetAgentId&&r.taskTypes.length>0&&r.taskTypes.every((x)=>x.trim())&&r.riskClasses.length>0&&r.riskClasses.every((x)=>x.trim())&&Number.isInteger(r.maxDepth)&&r.maxDepth>=0&&Number.isInteger(r.maxActiveSubtasks)&&r.maxActiveSubtasks>=0&&Number.isFinite(r.maxCost)&&r.maxCost>=0&&Number.isFinite(r.maxDurationMs)&&r.maxDurationMs>0);
+const validRequest=(r: DelegationRequest)=>Boolean(r.taskId.trim()&&r.sourceAgentId.trim()&&r.targetAgentId.trim()&&r.sourceAgentId!==r.targetAgentId&&r.taskType.trim()&&r.riskClass.trim()&&Number.isInteger(r.depth)&&r.depth>=0&&Number.isInteger(r.activeSubtasks)&&r.activeSubtasks>=0&&Number.isFinite(r.estimatedCost)&&r.estimatedCost>=0&&Number.isFinite(r.estimatedDurationMs)&&r.estimatedDurationMs>=0);
 
-  if (!rule) return false;
-
-  return (
-    request.depth <= rule.maxDepth &&
-    request.activeSubtasks <= rule.maxActiveSubtasks &&
-    request.estimatedCost <= rule.maxCost &&
-    request.estimatedDurationMs <= rule.maxDurationMs
-  );
+export function authorizeDelegation(rules: readonly DelegationRule[],request: DelegationRequest): boolean {
+  if(!validRequest(request)) return false;
+  const rule=rules.find((candidate)=>validRule(candidate)&&candidate.sourceAgentId===request.sourceAgentId&&candidate.targetAgentId===request.targetAgentId&&candidate.taskTypes.includes(request.taskType)&&candidate.riskClasses.includes(request.riskClass));
+  if(!rule) return false;
+  return request.depth<=rule.maxDepth&&request.activeSubtasks<=rule.maxActiveSubtasks&&request.estimatedCost<=rule.maxCost&&request.estimatedDurationMs<=rule.maxDurationMs;
 }
 
 export type SubtaskSpec = Readonly<{
@@ -261,29 +390,32 @@ export function spawnSubtask(
   spec: Omit<SubtaskSpec, "subtaskId" | "parentTaskId">,
 ): SubtaskSpec {
   if (
-    !parentTaskId ||
-    !subtaskId ||
-    !spec.objective ||
-    !spec.expectedOutput ||
+    !parentTaskId.trim() ||
+    !subtaskId.trim() ||
+    parentTaskId === subtaskId ||
+    !spec.objective.trim() ||
+    spec.contextRefs.length === 0 ||
+    !spec.expectedOutput.trim() ||
     spec.requiredCapabilities.length === 0
   ) {
     throw new Error("INVALID_SUBTASK_SPEC");
   }
 
-  return Object.freeze({
-    subtaskId,
-    parentTaskId,
-    ...spec,
-  });
+  if(spec.contextRefs.some((ref)=>!ref.trim())||spec.requiredCapabilities.some((capability)=>!capability.trim())) throw new Error("INVALID_SUBTASK_SPEC");
+  return Object.freeze({subtaskId,parentTaskId,...spec});
 }
 
 export type TypedHandoff = Readonly<{
   handoffId: string;
+  missionId: string;
+  sessionId: string;
   taskId: string;
   parentTaskId: string | null;
   assignmentId: string;
   sourceAgentId: string;
   targetAgentId: string;
+  taskType: string;
+  riskClass: string;
   reason: string;
   objective: string;
   inputRefs: readonly string[];
@@ -292,6 +424,7 @@ export type TypedHandoff = Readonly<{
   verificationCriteria: readonly string[];
   readScope: string;
   writeScope: string;
+  startingSha: string;
   currentSha: string;
   deadlineAtMs: number | null;
   budget: Readonly<{ cost: number; durationMs: number }>;
@@ -300,44 +433,24 @@ export type TypedHandoff = Readonly<{
 }>;
 
 export function validateTypedHandoff(handoff: TypedHandoff): void {
-  const requiredStrings = [
-    handoff.handoffId,
-    handoff.taskId,
-    handoff.assignmentId,
-    handoff.sourceAgentId,
-    handoff.targetAgentId,
-    handoff.reason,
-    handoff.objective,
-    handoff.expectedOutput,
-    handoff.writeScope,
-    handoff.currentSha,
-    handoff.returnContract,
-  ];
+  const required = [handoff.handoffId,handoff.missionId,handoff.sessionId,handoff.taskId,handoff.assignmentId,handoff.sourceAgentId,handoff.targetAgentId,handoff.taskType,handoff.riskClass,handoff.reason,handoff.objective,handoff.expectedOutput,handoff.readScope,handoff.writeScope,handoff.returnContract];
+  if (required.some((value) => typeof value !== "string" || !value.trim())) throw new Error("INVALID_TYPED_HANDOFF");
+  if (handoff.sourceAgentId === handoff.targetAgentId) throw new Error("SELF_HANDOFF_FORBIDDEN");
+  const nonEmpty=(values: readonly string[])=>values.length>0&&values.every((value)=>value.trim().length>0);
+  if (!nonEmpty(handoff.inputRefs)||!nonEmpty(handoff.requiredCapabilities)) throw new Error("HANDOFF_INPUTS_AND_CAPABILITIES_REQUIRED");
+  if (!nonEmpty(handoff.verificationCriteria)) throw new Error("HANDOFF_VERIFICATION_REQUIRED");
+  if (!nonEmpty(handoff.evidenceRequirements)) throw new Error("HANDOFF_EVIDENCE_REQUIRED");
+  validateAssignmentShaLineage({startingSha:handoff.startingSha,currentSha:handoff.currentSha});
+  if (handoff.deadlineAtMs!==null&&(!Number.isFinite(handoff.deadlineAtMs)||handoff.deadlineAtMs<0)) throw new Error("HANDOFF_INVALID_DEADLINE");
+  if (handoff.budget.cost<0||!Number.isFinite(handoff.budget.cost)||handoff.budget.durationMs<=0||!Number.isFinite(handoff.budget.durationMs)) throw new Error("HANDOFF_INVALID_BUDGET");
+}
 
-  if (requiredStrings.some((value) => !value.trim())) {
-    throw new Error("INVALID_TYPED_HANDOFF");
-  }
-
-  if (handoff.sourceAgentId === handoff.targetAgentId) {
-    throw new Error("SELF_HANDOFF_FORBIDDEN");
-  }
-
-  if (handoff.requiredCapabilities.length === 0) {
-    throw new Error("HANDOFF_CAPABILITIES_REQUIRED");
-  }
-
-  if (handoff.verificationCriteria.length === 0) {
-    throw new Error("HANDOFF_VERIFICATION_REQUIRED");
-  }
-
-  if (
-    handoff.budget.cost < 0 ||
-    handoff.budget.durationMs < 0 ||
-    !Number.isFinite(handoff.budget.cost) ||
-    !Number.isFinite(handoff.budget.durationMs)
-  ) {
-    throw new Error("HANDOFF_INVALID_BUDGET");
-  }
+export function delegateHandoff(rules: readonly DelegationRule[],request: DelegationRequest,handoff: TypedHandoff): TypedHandoff {
+  validateTypedHandoff(handoff);
+  if (handoff.taskId!==request.taskId||handoff.sourceAgentId!==request.sourceAgentId||handoff.targetAgentId!==request.targetAgentId||handoff.taskType!==request.taskType||handoff.riskClass!==request.riskClass) throw new Error("DELEGATION_CONTEXT_MISMATCH");
+  if (handoff.budget.cost>request.estimatedCost||handoff.budget.durationMs>request.estimatedDurationMs) throw new Error("DELEGATION_BUDGET_MISMATCH");
+  if (!authorizeDelegation(rules,request)) throw new Error("DELEGATION_REJECTED");
+  return Object.freeze({...handoff});
 }
 
 export type ProgressState =
@@ -404,6 +517,7 @@ export function decideProgressAction(
   state: ProgressState,
   consecutiveStalls: number,
 ): ReplanDecision {
+  if (!Number.isInteger(consecutiveStalls) || consecutiveStalls < 0) throw new Error("INVALID_STALL_COUNT");
   if (state === "COMPLETE" || state === "ON_TRACK") return "CONTINUE";
   if (state === "SLOW") return "REASSIGN";
   if (state === "STALLED" && consecutiveStalls < 2) return "REASSIGN";
