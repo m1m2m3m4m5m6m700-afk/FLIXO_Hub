@@ -83,6 +83,7 @@ export function isLeaseLive(lease: Lease, nowMs: number): boolean {
       Number.isFinite(lease.acquiredAtMs) &&
       Number.isFinite(lease.expiresAtMs) &&
       lease.expiresAtMs > lease.acquiredAtMs &&
+      nowMs >= lease.acquiredAtMs &&
       nowMs < lease.expiresAtMs,
   );
 }
