@@ -184,7 +184,7 @@ export function createSupabaseRpcClient({ baseUrl, serviceRoleKey, fetchImpl = g
 export function loadRpcClient(env = process.env) {
   return createSupabaseRpcClient({
     baseUrl: env.SUPABASE_URL || env.SUPABASE_PROJECT_URL,
-    serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY,
+    serviceRoleKey: env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY,
   });
 }
 
