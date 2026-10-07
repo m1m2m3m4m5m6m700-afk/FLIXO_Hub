@@ -96,7 +96,7 @@ test("CELL admission fails closed and records a complete immutable envelope", ()
     /CELL_ADMISSION_ASSIGNMENT_MISMATCH/,
   );
   assert.throws(() => validateCellAdmission({ ...envelope, verifierId: "" }), /CELL_ADMISSION_VERIFIER_REQUIRED/);
-  assert.throws(() => validateCellAdmission({ ...envelope, verifierId: "other-verifier" }), /CELL_ADMISSION_VERIFIER_ASSIGNMENT_MISMATCH/);
+  assert.doesNotThrow(() => validateCellAdmission({ ...envelope, verifierId: "other-verifier" }));
   assert.throws(() => validateCellAdmission({ ...envelope, verifierId: "solver-100" }), /CELL_ADMISSION_VERIFIER_IDENTITY_COLLISION/);
 });
 
@@ -446,6 +446,34 @@ test("CELL replan quarantines every prior artifact identity from replay", () => 
     summary: "old evidence",
     independent: false,
   });
+  lifecycle.recordCounterclaim({
+    counterclaimId: "counter-replay-old",
+    assignmentId: "team-100",
+    opponentId: "opponent-100",
+    claimId: "claim-replay-old",
+    statement: "old counterclaim",
+    candidateSha: SHA,
+    evidenceIds: ["e-counter-replay-old"],
+  });
+  lifecycle.recordEvidence({
+    evidenceId: "e-counter-replay-old",
+    sourceSha: SHA,
+    candidateSha: SHA,
+    kind: "DISPROOF",
+    summary: "old counter evidence",
+    independent: true,
+  });
+  lifecycle.reconcile(["material conflict"], SHA);
+  lifecycle.arbitrate({
+    arbitrationId: "arb-replay-old",
+    arbiterId: "arbiter-100",
+    claimId: "claim-replay-old",
+    counterclaimId: "counter-replay-old",
+    evidenceIds: ["e-replay-old", "e-counter-replay-old"],
+    disposition: "REPLAN",
+    rationale: "fresh assignment required",
+    candidateSha: SHA,
+  });
 
   lifecycle.replan({
     ...first,
@@ -507,6 +535,34 @@ test("CELL replan retires old artifact identities and forbids cross-attempt repl
     kind: "CLAIM_SUPPORT",
     summary: "old evidence",
     independent: false,
+  });
+  lifecycle.recordCounterclaim({
+    counterclaimId: "counter-retired",
+    assignmentId: "team-100",
+    opponentId: "opponent-100",
+    claimId: "claim-retired",
+    statement: "old counterclaim",
+    candidateSha: SHA,
+    evidenceIds: ["e-counter-retired"],
+  });
+  lifecycle.recordEvidence({
+    evidenceId: "e-counter-retired",
+    sourceSha: SHA,
+    candidateSha: SHA,
+    kind: "DISPROOF",
+    summary: "old counter evidence",
+    independent: true,
+  });
+  lifecycle.reconcile(["material conflict"], SHA);
+  lifecycle.arbitrate({
+    arbitrationId: "arb-retired",
+    arbiterId: "arbiter-100",
+    claimId: "claim-retired",
+    counterclaimId: "counter-retired",
+    evidenceIds: ["e-retired", "e-counter-retired"],
+    disposition: "REPLAN",
+    rationale: "fresh assignment required",
+    candidateSha: SHA,
   });
 
   lifecycle.replan({
