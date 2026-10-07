@@ -1,4 +1,4 @@
-import { TOOL_CATALOG } from '@/config/registry';
+import { EXECUTABLE_TOOL_CATALOG } from '@/config/registry';
 import {
   ROADMAP_CATEGORIES,
   roadmapCategoryById,
@@ -58,11 +58,11 @@ function normalize(value: string): string {
     .trim();
 }
 
-function readyToolForPrompt(prompt: string): (typeof TOOL_CATALOG.ready)[number] | undefined {
+function readyToolForPrompt(prompt: string): (typeof EXECUTABLE_TOOL_CATALOG)[number] | undefined {
   const text = normalize(prompt);
   const direct = Object.entries(TOOL_HINTS)
     .map(([toolId, hints]) => ({
-      tool: TOOL_CATALOG.ready.find((candidate) => candidate.id === toolId),
+      tool: EXECUTABLE_TOOL_CATALOG.find((candidate) => candidate.id === toolId),
       score: hints.reduce((score, hint) => score + (text.includes(normalize(hint)) ? 1 : 0), 0),
     }))
     .filter((entry): entry is {
