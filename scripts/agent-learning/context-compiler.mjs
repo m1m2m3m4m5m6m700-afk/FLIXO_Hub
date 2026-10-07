@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { validateKnowledgeSnapshot } from '../repository-knowledge-scan.mjs';
+import { validateKnowledgeSnapshot } from './world-model-contract.mjs';
 import { preflightMemoryRetrieval } from './shared-memory.mjs';
 
 export const CONTEXT_VERSION = 'flixo-context-package-v1';
