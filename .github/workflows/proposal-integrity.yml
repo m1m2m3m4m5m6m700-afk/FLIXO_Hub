@@ -7,7 +7,7 @@ on:
       - '.agent-intelligence/**'
       - 'package.json'
   pull_request:
-    branches: [execution, main]
+    branches: [execution]
     paths:
       - '.agent-intelligence/**'
       - 'package.json'
@@ -18,7 +18,7 @@ permissions:
 
 concurrency:
   group: flixo-proposal-integrity-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   validate:
