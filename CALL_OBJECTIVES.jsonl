@@ -1,0 +1,1 @@
+{"recordType":"SCHEMA","version":"1.0.0","appendOnly":true,"requiredFields":["taskId","missionId","owner","status","master","opponent","objective","evidenceRequirements"],"statusValues":["QUEUED","ACTIVE","BLOCKED","COMPLETED","ESCALATED","FRONTIER"]}
