@@ -68,6 +68,7 @@ async function main() {
       role: item.agent.role,
       taskId: proposal.id,
       exactSha: sha,
+      currentSha: sha,
       kind: proposal.category === 'security' ? 'WARNING' : 'LESSON',
       claim: proposal.title,
       title: proposal.title,
