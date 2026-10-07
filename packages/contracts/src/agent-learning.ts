@@ -99,6 +99,7 @@ export type KnowledgeRecord = Readonly<{
 export type ClaimNode = Readonly<{
   claimId: string;
   statement: string;
+  agentId: string;
   status: KnowledgeStatus;
   confidence: number;
   unresolvedQuestions: readonly string[];
@@ -128,6 +129,7 @@ export type RoutingOutcome = Readonly<{
   taskClass: string;
   agentId: string;
   outcomeId: string;
+  exploration: boolean;
   assignmentSuccess: boolean;
   taskClassFit: number;
   cost: number;
@@ -148,6 +150,8 @@ export type RoutingStats = Readonly<{
   recoveryRate: number;
   routingRegret: number;
   explorationRate: number;
+  selfSelectionBiasProtected: boolean;
+  selfSelectedSamples: number;
 }>;
 
 const EVENT_FIELD_SET = new Set([
