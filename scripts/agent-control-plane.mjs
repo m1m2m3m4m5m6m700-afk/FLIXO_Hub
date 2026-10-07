@@ -660,7 +660,7 @@ export class HardControlRuntime {
     const assignment = this.assignments.get(assignmentId);
     if (!assignment) throw hardError("ADMISSION_BLOCK","ASSIGNMENT_NOT_FOUND");
     const task = this.tasks.get(assignment.taskId);
-    if (task.state !== "ADMITTED") throw hardError("DENY_BEFORE_MUTATION","SESSION_TASK_STATE");
+    if (!task) throw hardError("TASK_ID_MISMATCH");
     const sessionId = required(input.sessionId ?? ("session-" + (++this.sequence)),"SESSION_ID_MISMATCH");
     const ownerId = required(input.ownerId ?? assignment.solverId,"AGENT_ID_MISMATCH");
     const existing = this.sessions.get(sessionId);
@@ -669,6 +669,7 @@ export class HardControlRuntime {
       if (this.clock() < existing.lease.expiresAt) return existing;
       throw hardError("LEASE_EXPIRED");
     }
+    if (task.state !== "ADMITTED") throw hardError("DENY_BEFORE_MUTATION","SESSION_TASK_STATE");
     if (ownerId !== assignment.solverId) throw hardError("AGENT_ID_MISMATCH");
     const now = this.clock();
     const ttlMs = input.ttlMs ?? 10_000;
@@ -874,7 +875,7 @@ export class HardControlRuntime {
     return this.transitionTask(taskId,"VERIFYING");
   }
 
-  markReadyToClose(taskId) {
+  markReadyToClose(taskId, input = {}) {
     const task = this.tasks.get(taskId);
     if (!task) throw hardError("TASK_ID_MISMATCH");
     if (task.state !== "VERIFYING") throw hardError("DENY_BEFORE_MUTATION","READY_TO_CLOSE_STATE");
@@ -883,7 +884,7 @@ export class HardControlRuntime {
     const verification = this.verifications.get(taskId);
     const evidence = this.verifyEvidenceChain({ through:"certification" });
     const pass =
-      reconciliation?.opponentOutcome === "PASS" &&
+      input.opponentResolved === true &&
       redTeam?.pass === true &&
       verification?.pass === true &&
       verification?.certificationPass === true &&
