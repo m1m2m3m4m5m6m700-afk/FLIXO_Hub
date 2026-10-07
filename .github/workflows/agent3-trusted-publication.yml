@@ -1,0 +1,81 @@
+name: FLIXO Agent-3 Trusted Publication
+
+on:
+  workflow_run:
+    workflows: ["FLIXO Agent-3 Triage and Clean"]
+    types: [completed]
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: flixo-agent3-trusted-publication
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: >-
+      ${{ github.event.workflow_run.conclusion == 'success'
+        && github.event.workflow_run.head_branch == 'execution'
+        && github.event.workflow_run.head_repository.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      RUN_ID: ${{ github.event.workflow_run.id }}
+      EXPECTED_SHA: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      - name: Checkout trusted publisher source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Download exact-run publication artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download "$RUN_ID" -R "$GITHUB_REPOSITORY" -n "flixo-agent3-publication-$RUN_ID" -D agent3-publication
+
+      - name: Verify exact lineage and scope
+        run: |
+          set -euo pipefail
+          test "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$
+          git fetch origin execution --no-tags
+          CURRENT_SHA="$(git rev-parse refs/remotes/origin/execution)"
+          test "$CURRENT_SHA" = "$EXPECTED_SHA"
+          test "$(cat agent3-publication/agent3-publication-sha.txt)" = "$EXPECTED_SHA"
+          test -s agent3-publication/agent3-publication.patch
+          cp agent3-publication/agent3-publication.patch /tmp/agent3-publication.patch
+          git apply --check /tmp/agent3-publication.patch
+          git apply /tmp/agent3-publication.patch
+          git diff --name-only > /tmp/agent3-applied-files.txt
+          while IFS= read -r path; do
+            [ -z "$path" ] && continue
+            case "$path" in
+              .agent-intelligence/review-queue/*|.agent-intelligence/graveyard/*|.agent-intelligence/handoffs/*|التطوير.md) ;;
+              *) echo "FAIL_CLOSED: unexpected applied mutation: $path"; exit 1 ;;
+            esac
+          done < /tmp/agent3-applied-files.txt
+
+      - name: Publish exact scoped mutation
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git add .agent-intelligence/review-queue .agent-intelligence/graveyard .agent-intelligence/handoffs التطوير.md
+          git diff --cached --quiet && echo "NO_GENERATED_MUTATIONS=PASS" && exit 0
+          git config user.name "flixo-agent3[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(agent3): reconcile triage queue"
+          git fetch origin execution --no-tags
+          test "$(git rev-parse refs/remotes/origin/execution)" = "$(git rev-parse HEAD^)"
+          git -c "http.extraheader=AUTHORIZATION: bearer $GITHUB_TOKEN" push origin "HEAD:execution"
+
+      - name: Verify resulting exact SHA
+        run: |
+          set -euo pipefail
+          git fetch origin execution --no-tags
+          test "$(git rev-parse refs/remotes/origin/execution)" = "$(git rev-parse HEAD)"
