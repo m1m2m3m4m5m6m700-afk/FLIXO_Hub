@@ -1,6 +1,6 @@
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useEffect, useMemo, useState } from 'react';
-import { TOOL_CATALOG } from '../config/registry';
+import { EXECUTABLE_TOOL_CATALOG } from '../config/registry';
 import { loadHomeCopy } from '@/lib/i18n/home-loader';
 import { getAuthoritativeToolSeoName } from '@/config/tool-seo-name-resolver';
 import { localizeMsUkCategory, localizeMsUkDescription } from '@/lib/i18n/ms-uk-category';
@@ -19,7 +19,7 @@ type ToolCardProps = Readonly<{
   path: string;
 }>;
 
-const READY_TOOLS = TOOL_CATALOG.ready;
+const READY_TOOLS = EXECUTABLE_TOOL_CATALOG;
 const LANGUAGE_LABELS: Record<string, string> = { en: 'English', ar: 'العربية', es: 'Español', fr: 'Français', de: 'Deutsch', hi: 'हिन्दी', id: 'Bahasa Indonesia', it: 'Italiano', ja: '日本語', ko: '한국어', ms: 'Bahasa Melayu', nl: 'Nederlands', pl: 'Polski', pt: 'Português', ru: 'Русский', sv: 'Svenska', th: 'ไทย', tr: 'Türkçe', uk: 'Українська', vi: 'Tiếng Việt' };
 const FILTER_LABELS: Record<string, string> = { en: 'Filters', ar: 'الفلاتر', es: 'Filtros', fr: 'Filtres', de: 'Filter', hi: 'फ़िल्टर', id: 'Filter', it: 'Filtri', ja: 'フィルター', ko: '필터', ms: 'Penapis', nl: 'Filters', pl: 'Filtry', pt: 'Filtros', ru: 'Фильтры', sv: 'Filter', th: 'ฟิลเตอร์', tr: 'Filtreler', uk: 'Фільтри', vi: 'Bộ lọc' };
 
