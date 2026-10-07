@@ -43,6 +43,16 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci --no-audit --no-fund
+      - name: Fetch main snapshot for repository knowledge contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          MAIN_SHA="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          test "$MAIN_SHA" ~ /^[0-9a-f]{40}$/ || true
+          test -n "$MAIN_SHA"
+          git fetch origin "$MAIN_SHA" --depth=1
+          echo "FLIXO_KNOWLEDGE_MAIN_SHA=$MAIN_SHA" >> "$GITHUB_ENV"
+
       - name: Three-critic local contract tests
         run: |
           set -euo pipefail
