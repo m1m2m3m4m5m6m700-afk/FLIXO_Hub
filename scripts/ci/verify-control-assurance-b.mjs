@@ -208,7 +208,7 @@ export function evaluateControlAssuranceB({
     for (const token of ['contractScore','behavioralEvidence','evaluateLessonPromotion','counterexample','regressionTest']) assert(learningControl.includes(token) || roleDrills.includes(token),'mastery signal missing: ' + token);
   }));
 
-  assert(results.length === 15,'internal B gate inventory mismatch');
+  assert(results.length === 17,'internal B gate inventory mismatch');
   return {
     currentSha,
     expectedSha,
