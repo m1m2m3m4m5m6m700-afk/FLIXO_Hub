@@ -30,16 +30,22 @@ function recordEvidenceThrough(rt, through = "promotion") {
   const kinds = ["sourceSha","build","session","action","candidate","test","opponent","redTeam","verifier","certification","promotion"];
   let parent = null;
   for (const kind of kinds) {
-    const node = buildHardControlEvidenceNode({
-      id: "E2-" + kind,
-      kind,
-      identity: "CELL",
-      version: HARD_CONTROL_RUNTIME_VERSION,
-      timestamp: 1000 + rt.evidence.size,
-      parent,
-    });
-    rt.recordEvidenceNode(node);
-    parent = node.id;
+    const id = "E2-" + kind;
+    const existing = rt.evidence.get(id);
+    if (existing) {
+      parent = existing.id;
+    } else {
+      const node = buildHardControlEvidenceNode({
+        id,
+        kind,
+        identity: "CELL",
+        version: HARD_CONTROL_RUNTIME_VERSION,
+        timestamp: 1000 + rt.evidence.size,
+        parent,
+      });
+      rt.recordEvidenceNode(node);
+      parent = node.id;
+    }
     if (kind === through) break;
   }
 }
