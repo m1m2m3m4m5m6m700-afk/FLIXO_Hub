@@ -47,7 +47,7 @@ export type CellExecutionEnvelope = Readonly<{
 }>;
 
 export type CellAuditEvent = Readonly<{
-  type: "ADMISSION_ALLOWED" | "ADMISSION_DENIED" | "EXECUTION_STARTED" | "EXECUTION_VERIFIED" | "EXECUTION_FAILED";
+  type: "ADMISSION_ALLOWED" | "ADMISSION_DENIED" | "EXECUTION_STARTED" | "EXECUTION_VERIFIED" | "EXECUTION_FAILED" | "EXECUTION_ABORTED";
   requestId: string;
   taskId: string;
   capabilityId: string;
