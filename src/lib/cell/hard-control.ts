@@ -49,6 +49,6 @@ export function admitExecution(request: CellAdmissionRequest): CellAdmissionDeci
   return Object.freeze({ decision: "ALLOW", capabilityId: request.capabilityId, policyFingerprint: getCellPolicyFingerprint() });
 }
 
-function deny(code: Parameters<typeof Object.freeze>[0] extends never ? never : any, reason: string, capabilityId: string): CellAdmissionDecision {
+function deny(code: import("./types.ts").CellDenialCode, reason: string, capabilityId: string): CellAdmissionDecision {
   return Object.freeze({ decision: "DENY", code, reason, capabilityId });
 }
