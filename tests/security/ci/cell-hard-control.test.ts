@@ -61,6 +61,8 @@ const action = (overrides: Partial<ExecutionAction> = {}): ExecutionAction => ({
   estimatedCost: 1,
   expectedDurationMs: 100,
   delegationDepth: 0,
+  objectiveId: "OBJ-VIDEO",
+  acceptanceDigest: "accept-1",
   ...overrides,
 });
 
