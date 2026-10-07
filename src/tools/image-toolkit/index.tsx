@@ -196,7 +196,15 @@ export function ImageToolPage({ toolId }: Props) {
         fileName = output.fileName;
       }
       else { blob = await rasterToSvg(file, Number(columns) || 48); fileName += '.svg'; }
-      if (blob.type.startsWith('image/') && !info) info = await imageInfo(blob);
+      if (blob.type.startsWith('image/')) {
+        if (!info) info = await imageInfo(blob);
+        const contractId = toolId === 'crop-resize' ? 'image-cropper' : toolId;
+        const contract = getToolOutputContract(contractId);
+        if (contract) {
+          const header = new Uint8Array(await blob.slice(0, 64).arrayBuffer());
+          assertToolOutputContract(contract, { mimeType: blob.type, byteLength: blob.size, bytes: header, filename: fileName, dimensions: info });
+        }
+      }
       replaceResult(await createResult(blob, fileName, info));
     } catch (caught) { setError(caught instanceof Error ? caught.message : 'Tool failed.'); }
     finally { setBusy(false); }
