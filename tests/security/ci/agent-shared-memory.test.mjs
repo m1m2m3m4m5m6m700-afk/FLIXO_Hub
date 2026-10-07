@@ -150,3 +150,5 @@ test('shared-memory retrieval rejects unbounded result limits', async () => {
 });
 
 await import('./agent-shared-cognitive-learning.test.mjs');
+
+await import('./production-cognitive-learning.test.mjs');
