@@ -59,7 +59,7 @@
     "test:cell-lifecycle": "node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/security/ci/cell-lifecycle-contract.test.ts",
     "test:cell-commit-attribution": "node --test tests/security/ci/cell-commit-attribution.test.mjs",
     "test:loop-guard": "bash tests/security/ci/loop-guard.test.sh",
-    "test:call-protocol": "node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/call/call-protocol-contract.test.ts tests/call/gate-a-harness.test.ts",
+    "test:call-protocol": "node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/call/call-protocol-contract.test.ts tests/call/gate-a-harness.test.ts tests/call/call-agent-runtime.test.ts",
     "test:call-lab": "python3 agent-lab/tools/lab_tool.py validate --templates && python3 agent-lab/tools/lab_tool.py ledger-verify"
   },
   "dependencies": {
