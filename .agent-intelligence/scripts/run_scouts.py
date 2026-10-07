@@ -19,8 +19,11 @@ def parse_manifest(path):
 
 def quote_unique(content):
     raw=str(content)
-    if not raw.strip():
+    stripped=raw.strip()
+    if not stripped:
         raise ValueError("snapshot content is empty")
+    if raw.count(stripped)==1:
+        return stripped
     for size in (1200,1000,800,600,500,400,300,240,200,160,120,96,80,64,48,32):
         if len(raw) < size:
             continue
