@@ -94,6 +94,30 @@ export type RuntimeActionRecord = Readonly<ExecutionAction & {
   driftType: string | null;
 }>;
 
+
+
+export type OpponentIndependentStartProof = Readonly<{
+  eventId: string;
+  sequence: number;
+  taskId: string;
+  assignmentId: string;
+  opponentId: string;
+  sharedContextRefs: readonly string[];
+  privateSolverContextExcluded: true;
+  initialChallengePosition: string;
+  startingSha: string;
+  currentSha: string;
+}>;
+
+export type SolverResultDisclosureProof = Readonly<{
+  eventId: string;
+  sequence: number;
+  taskId: string;
+  assignmentId: string;
+  opponentStartEventId: string;
+  currentSha: string;
+}>;
+
 export class CellRuntime {
   private readonly tasks = new Map<string, RuntimeTask>();
   private readonly candidates = new Map<string, RuntimeCandidate>();
@@ -106,6 +130,9 @@ export class CellRuntime {
   private readonly actions: RuntimeActionRecord[] = [];
   private readonly claimedOperations = new Set<string>();
   private readonly clock: () => number;
+  private opponentStartSequence = 0;
+  private readonly opponentIndependentStarts = new Map<string, OpponentIndependentStartProof>();
+  private readonly solverDisclosures = new Map<string, SolverResultDisclosureProof>();
 
   constructor(clock: () => number = () => Date.now()) {
     this.clock = clock;
@@ -332,6 +359,95 @@ export class CellRuntime {
     if(handoff.currentSha!==liveSha) throw new Error("HANDOFF_SHA_DRIFT");
     const delegated=delegateHandoff(rules,request,handoff);
     return this.createHandoff(delegated,liveSha);
+  }
+
+  startOpponentIndependently(input: Readonly<{
+    taskId: string;
+    assignmentId: string;
+    opponentId: string;
+    sharedContextRefs: readonly string[];
+    initialChallengePosition: string;
+    liveSha: string;
+  }>): OpponentIndependentStartProof {
+    if (input.sharedContextRefs.length === 0 || input.sharedContextRefs.some((ref) => !ref.trim())) {
+      throw new Error("OPPONENT_SHARED_CONTEXT_REQUIRED");
+    }
+    if (!input.initialChallengePosition.trim()) {
+      throw new Error("OPPONENT_INITIAL_CHALLENGE_REQUIRED");
+    }
+
+    const team = this.assignmentTeams.get(input.assignmentId)?.team;
+    if (!team || this.assignmentTaskId(input.assignmentId) !== input.taskId) {
+      throw new Error("OPPONENT_ASSIGNMENT_NOT_FOUND");
+    }
+    if (team.opponentAgentId !== input.opponentId) {
+      throw new Error("OPPONENT_ID_MISMATCH");
+    }
+    if (team.currentSha !== input.liveSha) {
+      throw new Error("OPPONENT_START_SHA_DRIFT");
+    }
+    if (this.opponentIndependentStarts.has(input.assignmentId)) {
+      throw new Error("OPPONENT_INDEPENDENT_START_ALREADY_RECORDED");
+    }
+
+    const sequence = ++this.opponentStartSequence;
+    const proof = Object.freeze({
+      eventId: \`OPPONENT-START-\${input.taskId}-\${sequence}\`,
+      sequence,
+      taskId: input.taskId,
+      assignmentId: input.assignmentId,
+      opponentId: input.opponentId,
+      sharedContextRefs: Object.freeze([...input.sharedContextRefs]),
+      privateSolverContextExcluded: true as const,
+      initialChallengePosition: input.initialChallengePosition.trim(),
+      startingSha: team.startingSha,
+      currentSha: team.currentSha,
+    });
+
+    this.opponentIndependentStarts.set(input.assignmentId, proof);
+    return proof;
+  }
+
+  getOpponentIndependentStart(assignmentId: string): OpponentIndependentStartProof {
+    const proof = this.opponentIndependentStarts.get(assignmentId);
+    if (!proof) throw new Error("OPPONENT_INDEPENDENT_START_NOT_FOUND");
+    return proof;
+  }
+
+  recordSolverResultDisclosure(input: Readonly<{
+    taskId: string;
+    assignmentId: string;
+    liveSha: string;
+  }>): SolverResultDisclosureProof {
+    const start = this.opponentIndependentStarts.get(input.assignmentId);
+    if (!start || start.taskId !== input.taskId) {
+      throw new Error("OPPONENT_INDEPENDENT_START_REQUIRED");
+    }
+    if (start.currentSha !== input.liveSha) {
+      throw new Error("SOLVER_DISCLOSURE_SHA_DRIFT");
+    }
+    if (this.solverDisclosures.has(input.assignmentId)) {
+      throw new Error("SOLVER_DISCLOSURE_ALREADY_RECORDED");
+    }
+
+    const sequence = ++this.opponentStartSequence;
+    const proof = Object.freeze({
+      eventId: \`SOLVER-DISCLOSURE-\${input.taskId}-\${sequence}\`,
+      sequence,
+      taskId: input.taskId,
+      assignmentId: input.assignmentId,
+      opponentStartEventId: start.eventId,
+      currentSha: input.liveSha,
+    });
+
+    this.solverDisclosures.set(input.assignmentId, proof);
+    return proof;
+  }
+
+  getSolverResultDisclosure(assignmentId: string): SolverResultDisclosureProof {
+    const proof = this.solverDisclosures.get(assignmentId);
+    if (!proof) throw new Error("SOLVER_DISCLOSURE_NOT_FOUND");
+    return proof;
   }
 
   acquireAssignmentLease(
