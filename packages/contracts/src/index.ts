@@ -91,3 +91,4 @@ export * from "./cell-assignment";
 export * from "./cell-hard-control";
 export * from "./agent-learning";
 export * from "./cell-lifecycle";
+export * from "./cell-liveness";
