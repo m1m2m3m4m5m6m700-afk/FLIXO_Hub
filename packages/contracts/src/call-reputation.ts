@@ -13,7 +13,7 @@ export type ReputationRecord = Readonly<{
   failedExperiments: number;
 }>;
 
-export type ReputationOutcome = Readonly<{
+export type AgentReputationOutcome = Readonly<{
   agentId: string;
   taskId: string;
   domain: string;
@@ -24,7 +24,7 @@ export type ReputationOutcome = Readonly<{
   policyVersion: string;
 }>;
 
-export function validateReputationOutcome(outcome: ReputationOutcome): void {
+export function validateAgentReputationOutcome(outcome: AgentReputationOutcome): void {
   if (!outcome.agentId || !outcome.taskId || !outcome.domain || !outcome.evidenceId || !outcome.dispositionId || !outcome.policyVersion) {
     throw new Error("REPUTATION_EVIDENCE_REQUIRED");
   }
