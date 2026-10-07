@@ -164,7 +164,10 @@ test("reference runtime rejects every execution action outside RUNNING state", (
 test("live SHA mismatch blocks mutation even when the envelope is otherwise valid", () => {
   const rt = new CellRuntime(() => 1000);
   rt.registerTask("TASK-1");
-  const denied = rt.authorizeAction(envelope, action({ currentSha: OLD_SHA }), "sha-live");
+  rt.transitionTask("TASK-1", "READY");
+  rt.transitionTask("TASK-1", "CLAIMED");
+  rt.transitionTask("TASK-1", "RUNNING");
+  const denied = rt.authorizeAction(envelope, action({ currentSha: OLD_SHA }), LIVE_SHA);
   assert.equal(denied.allowed, false);
   assert.equal(denied.drift?.type, "D6_EVIDENCE_DRIFT");
   assert.equal(rt.listActionRecords().length, 1);
@@ -183,22 +186,22 @@ test("accepted actions consume budget and later actions are denied", () => {
     escalationTargetAgentId: null,
     startingSha: START_SHA,
     currentSha: LIVE_SHA,
-  }, "sha-live");
+  }, LIVE_SHA);
   rt.transitionTask("TASK-1", "CLAIMED");
   rt.transitionTask("TASK-1", "RUNNING");
-  const first = rt.authorizeAction(envelope, action(), "sha-live");
+  const first = rt.authorizeAction(envelope, action(), LIVE_SHA);
   assert.equal(first.allowed, true);
   assert.equal(rt.getTaskBudget("TASK-1").spentCost, 1);
   const second = rt.authorizeAction(
     envelope,
     action({ actionId: "ACTION-2", estimatedCost: 9, expectedDurationMs: 900 }),
-    "sha-live",
+    LIVE_SHA,
   );
   assert.equal(second.allowed, true);
   const third = rt.authorizeAction(
     envelope,
     action({ actionId: "ACTION-3", estimatedCost: 1, expectedDurationMs: 1 }),
-    "sha-live",
+    LIVE_SHA,
   );
   assert.equal(third.allowed, false);
   assert.equal(third.drift?.type, "D4_RESOURCE_DRIFT");
