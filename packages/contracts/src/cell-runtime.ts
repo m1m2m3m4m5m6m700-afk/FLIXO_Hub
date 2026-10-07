@@ -25,11 +25,15 @@ import {
   type ProgressMetrics,
 } from "./cell-hard-control";
 import {
+  authorizeDelegation,
   decideProgressAction,
+  delegateHandoff,
   evaluateProgress,
   validateTypedHandoff,
   type AssignmentQuartet,
   type AssignmentTeam,
+  type DelegationRequest,
+  type DelegationRule,
   type ProgressObservation,
   type ReplanDecision,
   type TypedHandoff,
@@ -53,12 +57,34 @@ export type RuntimeAssignment = Readonly<{
   taskId: string;
   assignment: AssignmentQuartet;
   version: number;
+  previousAssignmentId: string | null;
+  attempt: number;
+  reason: string | null;
 }>;
 
 export type RuntimeAssignmentTeam = Readonly<{
   taskId: string;
   team: AssignmentTeam;
   version: number;
+  previousAssignmentId: string | null;
+  attempt: number;
+  reason: string | null;
+}>;
+
+export type RuntimeAssignmentLease = Readonly<{
+  assignmentId: string;
+  taskId: string;
+  startingSha: string;
+  currentSha: string;
+  lease: Lease;
+}>;
+
+export type RuntimeAssignmentLineage = Readonly<{
+  assignmentId: string;
+  taskId: string;
+  previousAssignmentId: string | null;
+  attempt: number;
+  reason: string | null;
 }>;
 
 export type RuntimeBudget = Readonly<{ spentCost: number; spentDurationMs: number }>;
@@ -74,6 +100,7 @@ export class CellRuntime {
   private readonly candidates = new Map<string, RuntimeCandidate>();
   private readonly assignments = new Map<string, RuntimeAssignment>();
   private readonly assignmentTeams = new Map<string, RuntimeAssignmentTeam>();
+  private readonly assignmentHistory = new Map<string, RuntimeAssignmentLineage[]>();
   private readonly handoffs = new Map<string, TypedHandoff>();
   private readonly progress = new Map<string, ProgressObservation[]>();
   private readonly budgets = new Map<string, RuntimeBudget>();
@@ -176,35 +203,127 @@ export class CellRuntime {
     return true;
   }
 
-  assignTask(taskId: string, assignment: AssignmentQuartet): RuntimeAssignment {
-    const task = this.getTask(taskId);
-    if (task.state !== "READY") throw new Error("ASSIGNMENT_REQUIRES_READY_TASK");
-    if (this.assignments.has(assignment.assignmentId)) throw new Error("ASSIGNMENT_ALREADY_EXISTS");
-    const record = Object.freeze({ taskId, assignment, version: 0 });
-    this.assignments.set(assignment.assignmentId, record);
+  private hasAssignment(assignmentId: string): boolean {
+    return this.assignments.has(assignmentId) || this.assignmentTeams.has(assignmentId);
+  }
+
+  private assignmentTaskId(assignmentId: string): string | null {
+    return this.assignments.get(assignmentId)?.taskId ??
+      this.assignmentTeams.get(assignmentId)?.taskId ??
+      null;
+  }
+
+  private appendAssignmentLineage(taskId: string, assignmentId: string, reason: string | null): RuntimeAssignmentLineage {
+    const history=this.assignmentHistory.get(taskId)??[];
+    const previousAssignmentId=history[history.length-1]?.assignmentId??null;
+    const entry=Object.freeze({assignmentId,taskId,previousAssignmentId,attempt:history.length+1,reason});
+    history.push(entry);
+    this.assignmentHistory.set(taskId,history);
+    return entry;
+  }
+
+  assignTask(taskId: string, assignment: AssignmentQuartet, liveSha: string): RuntimeAssignment {
+    const task=this.getTask(taskId);
+    if(task.state!=="READY") throw new Error("ASSIGNMENT_REQUIRES_READY_TASK");
+    if(this.hasAssignment(assignment.assignmentId)) throw new Error("ASSIGNMENT_ALREADY_EXISTS");
+    if(assignment.currentSha!==liveSha) throw new Error("ASSIGNMENT_SHA_DRIFT");
+    const lineage=this.appendAssignmentLineage(taskId,assignment.assignmentId,null);
+    const record=Object.freeze({
+      taskId,assignment,version:0,
+      previousAssignmentId:lineage.previousAssignmentId,
+      attempt:lineage.attempt,
+      reason:null,
+    });
+    this.assignments.set(assignment.assignmentId,record);
     return record;
   }
 
-  assignTaskTeam(taskId: string, team: AssignmentTeam): RuntimeAssignmentTeam {
-    const task = this.getTask(taskId);
-    if (task.state !== "READY") throw new Error("ASSIGNMENT_REQUIRES_READY_TASK");
-    if (this.assignmentTeams.has(team.assignmentId)) throw new Error("ASSIGNMENT_ALREADY_EXISTS");
-    const record = Object.freeze({ taskId, team, version: 0 });
-    this.assignmentTeams.set(team.assignmentId, record);
+  assignTaskTeam(taskId: string, team: AssignmentTeam, liveSha: string): RuntimeAssignmentTeam {
+    const task=this.getTask(taskId);
+    if(task.state!=="READY") throw new Error("ASSIGNMENT_REQUIRES_READY_TASK");
+    if(this.hasAssignment(team.assignmentId)) throw new Error("ASSIGNMENT_ALREADY_EXISTS");
+    if(team.currentSha!==liveSha) throw new Error("ASSIGNMENT_SHA_DRIFT");
+    const lineage=this.appendAssignmentLineage(taskId,team.assignmentId,null);
+    const record=Object.freeze({
+      taskId,team,version:0,
+      previousAssignmentId:lineage.previousAssignmentId,
+      attempt:lineage.attempt,
+      reason:null,
+    });
+    this.assignmentTeams.set(team.assignmentId,record);
     return record;
   }
+
+  reassignTask(taskId: string, assignment: AssignmentQuartet, reason: string, liveSha: string): RuntimeAssignment {
+    const task=this.getTask(taskId);
+    if(!["READY","FAILED","BLOCKED"].includes(task.state)) throw new Error("TASK_NOT_REASSIGNABLE");
+    if(!reason.trim()) throw new Error("REASSIGNMENT_REASON_REQUIRED");
+    if(this.hasAssignment(assignment.assignmentId)) throw new Error("ASSIGNMENT_ALREADY_EXISTS");
+    if(assignment.currentSha!==liveSha) throw new Error("ASSIGNMENT_SHA_DRIFT");
+    const history=this.assignmentHistory.get(taskId)??[];
+    const prevId=history[history.length-1]?.assignmentId??null;
+    const prev=prevId?this.assignments.get(prevId)?.assignment:undefined;
+    if(prev && assignment.startingSha!==prev.startingSha) throw new Error("ASSIGNMENT_START_SHA_DRIFT");
+    const lineage=this.appendAssignmentLineage(taskId,assignment.assignmentId,reason.trim());
+    const record=Object.freeze({
+      taskId,assignment,version:0,
+      previousAssignmentId:lineage.previousAssignmentId,
+      attempt:lineage.attempt,
+      reason:reason.trim(),
+    });
+    this.assignments.set(assignment.assignmentId,record);
+    return record;
+  }
+
+  getAssignmentHistory(taskId: string): readonly RuntimeAssignmentLineage[] {
+    return Object.freeze([...(this.assignmentHistory.get(taskId)??[])]);
+  }
+
   getAssignment(assignmentId: string): RuntimeAssignment {
-    const assignment = this.assignments.get(assignmentId);
-    if (!assignment) throw new Error("ASSIGNMENT_NOT_FOUND");
+    const assignment=this.assignments.get(assignmentId);
+    if(!assignment) throw new Error("ASSIGNMENT_NOT_FOUND");
     return assignment;
   }
 
-  createHandoff(handoff: TypedHandoff): TypedHandoff {
+  createHandoff(handoff: TypedHandoff, liveSha: string): TypedHandoff {
     validateTypedHandoff(handoff);
-    if (!this.assignments.has(handoff.assignmentId)) throw new Error("HANDOFF_ASSIGNMENT_NOT_FOUND");
-    if (this.handoffs.has(handoff.handoffId)) throw new Error("HANDOFF_ALREADY_EXISTS");
-    this.handoffs.set(handoff.handoffId, handoff);
-    return handoff;
+    if(!this.hasAssignment(handoff.assignmentId)) throw new Error("HANDOFF_ASSIGNMENT_NOT_FOUND");
+    if(this.assignmentTaskId(handoff.assignmentId)!==handoff.taskId) throw new Error("HANDOFF_TASK_MISMATCH");
+    const assignment=this.assignments.get(handoff.assignmentId)?.assignment ?? this.assignmentTeams.get(handoff.assignmentId)?.team;
+    if(!assignment) throw new Error("HANDOFF_ASSIGNMENT_NOT_FOUND");
+    if(handoff.startingSha!==assignment.startingSha||handoff.currentSha!==assignment.currentSha) throw new Error("HANDOFF_ASSIGNMENT_SHA_MISMATCH");
+    if(handoff.currentSha!==liveSha) throw new Error("HANDOFF_SHA_DRIFT");
+    if(this.handoffs.has(handoff.handoffId)) throw new Error("HANDOFF_ALREADY_EXISTS");
+    const stored=Object.freeze({...handoff});
+    this.handoffs.set(handoff.handoffId,stored);
+    return stored;
+  }
+
+  delegateHandoff(handoff: TypedHandoff, liveSha: string, rules: readonly DelegationRule[], request: DelegationRequest): TypedHandoff {
+    if(handoff.currentSha!==liveSha) throw new Error("HANDOFF_SHA_DRIFT");
+    const delegated=delegateHandoff(rules,request,handoff);
+    return this.createHandoff(delegated,liveSha);
+  }
+
+  acquireAssignmentLease(
+    taskId: string,
+    assignmentId: string,
+    ownerId: string,
+    token: string,
+    ttlMs: number,
+    liveSha: string,
+  ): RuntimeAssignmentLease {
+    if(this.assignmentTaskId(assignmentId)!==taskId) throw new Error("ASSIGNMENT_NOT_FOUND");
+    const assignment=this.assignments.get(assignmentId)?.assignment ?? this.assignmentTeams.get(assignmentId)?.team;
+    if(!assignment) throw new Error("ASSIGNMENT_NOT_FOUND");
+    if(assignment.currentSha!==liveSha) throw new Error("ASSIGNMENT_SHA_DRIFT");
+    const lease=this.acquireTaskLease(taskId,ownerId,token,ttlMs);
+    return Object.freeze({assignmentId,taskId,startingSha:assignment.startingSha,currentSha:assignment.currentSha,lease});
+  }
+
+  releaseAssignmentLease(taskId: string,assignmentId: string,ownerId: string,token: string): RuntimeTask {
+    if(this.assignmentTaskId(assignmentId)!==taskId) throw new Error("ASSIGNMENT_NOT_FOUND");
+    return this.releaseTaskLease(taskId,ownerId,token);
   }
 
   authorizeIdentity(envelope: ExecutionEnvelope, probe: ExecutionIdentityProbe): void {
