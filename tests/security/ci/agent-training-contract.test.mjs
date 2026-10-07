@@ -23,7 +23,7 @@ test('all ten principal training agents have explicit identities', () => {
     else assert.ok(content.includes('tools: read, search, terminal'));
     assert.doesNotMatch(content, /git push origin main|force[- ]push|write directly to main/iu);
     assert.doesNotMatch(content, /(?:^|\\n)\\s*(?:the agent|agent)\\s+(?:can|may|will|shall)\\s+(?:declare\\s+)?(?:PASS|GREEN|CERTIFIED)|(?:^|\\n)\\s*(?:the agent|agent)\\s+(?:can|may|will|shall)\\s+(?:certify|self-certify)\\b/imu);
-    if (agent.training) assert.match(content, /100\/100/u);
+    assert.match(content, /100\/100/u);
   }
 });
 
