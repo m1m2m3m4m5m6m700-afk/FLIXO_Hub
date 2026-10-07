@@ -15,6 +15,8 @@ import {
   type ExecutionEnvelope,
 } from "../../packages/contracts/src/cell-hard-control.ts";
 import { CellRuntime } from "../../packages/contracts/src/cell-runtime.ts";
+// Load the behavioral CELL harness into the same hard-control test gate.
+import "./cell-hard-control-e2e.test.mjs";
 
 const START_SHA = "a".repeat(40);
 const LIVE_SHA = "b".repeat(40);
