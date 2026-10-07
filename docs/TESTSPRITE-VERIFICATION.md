@@ -24,23 +24,25 @@ Agent-era remote TestSprite cases may remain in the external TestSprite project 
 
 ## Canonical execution workflow
 
-`.github/workflows/testsprite-execution.yml` runs on every push to `execution`.
+`.github/workflows/testsprite-execution.yml` runs on pushes to `execution` and is deliberately unprivileged.
 
 It:
 
-1. Checks out the exact execution SHA.
-2. Installs FLIXO dependencies and starts the local application.
-3. Installs the pinned TestSprite CLI.
-4. Validates every committed manual plan offline.
-5. Fails closed when the required TestSprite repository configuration is missing.
-6. Materializes the configured project id into runtime-only copies of the plans.
-7. Lists the external project's existing frontend tests and creates only missing committed manual cases.
-8. Resolves exactly one TestSprite test id for every committed plan and fails on zero or duplicate matches.
-9. Runs only those resolved committed manual test ids through the local tunnel.
-10. Requires at least two tests and a complete pass verdict with zero failed, skipped, or timed-out cases.
-11. Uploads JUnit, summary, resolved test ids, runtime plans, and FLIXO startup-log evidence.
+1. Checks out the exact execution SHA with Git credentials disabled.
+2. Installs FLIXO dependencies with lifecycle scripts disabled.
+3. Starts the local application from that exact SHA.
+4. Validates committed TestSprite plans offline.
+5. Verifies the checked-out SHA immediately before the native fallback.
+6. Runs the committed native exact-SHA E2E fallback without repository secrets.
+7. Uploads available local E2E evidence without claiming an external TestSprite verdict.
 
-The workflow never treats an empty run, skipped test, stale agent test, or missing evidence as green.
+The privileged external TestSprite workflow is now separate:
+
+`.github/workflows/testsprite-manual.yml`
+
+It is `workflow_dispatch` only, restricted to the canonical repository and `execution` ref, and actor-gated. It may use the TestSprite API key and project variable, but it is not an automatic execution-push workflow and is not itself a release authority.
+
+Neither workflow treats an empty run, skipped test, stale agent test, or missing evidence as green.
 
 ## Local validation
 
