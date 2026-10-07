@@ -20,10 +20,10 @@ import {
 } from '../../../scripts/repository-knowledge-scan.mjs';
 
 const repoRoot = process.cwd();
-const profilePath = 'الوكلاء/المستكشف AI/المستكشف.md';
+const profilePath = '.github/agents/المستكشف-ai.md';
 const scannerPath = 'scripts/repository-knowledge-scan.mjs';
 const workflowPath = '.github/workflows/repository-knowledge.yml';
-const reportDir = 'الوكلاء/المستكشف AI/تقارير المستكشف';
+const reportDir = 'الوكلاء AI/المستكشف AI/تقارير المستكشف';
 
 test('knowledge agent profile declares bounded read-only mission', () => {
   const profile = readFileSync(profilePath, 'utf8');
@@ -204,8 +204,7 @@ test('scanner produces an exact-SHA report with zero uncovered authored lines', 
 
   assert.match(result.sha, /^[0-9a-f]{40}$/);
   assert.equal(result.uncoveredSourceLines, 0);
-  const normalizedReportPath = result.reportPath.replace(repoRoot + '/', '');
-  assert.equal(normalizedReportPath, reportDir + '/' + result.sha + '.md');
+  assert.equal(result.reportPath, reportDir + '/' + result.sha + '.md');
   assert.ok(result.trackedFiles > 0);
   assert.ok(result.sourceTextFiles > 0);
   assert.ok(result.symbolCount > 0);
