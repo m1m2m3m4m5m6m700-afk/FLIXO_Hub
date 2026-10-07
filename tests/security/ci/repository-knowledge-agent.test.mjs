@@ -172,21 +172,15 @@ test('scanner produces an exact-SHA report with zero uncovered authored lines', 
   assert.match(report, /Generated knowledge artifacts/);
 });
 
-test('workflow wakes on execution changes and ignores only its own report directory', () => {
+test('workflow wakes on execution changes and publishes evidence without mutation authority', () => {
   const workflow = readFileSync(workflowPath, 'utf8');
-
   assert.match(workflow, /branches: \[execution\]/);
-  assert.match(workflow, /paths-ignore:/);
-  assert.match(workflow, /الوكلاء\/المستكشف AI\/تقارير المستكشف\/\*\*/);
-  assert.match(workflow, /ref: \$\{\{ github\.sha \}\}/);
-  assert.match(workflow, /persist-credentials: true/);
-  assert.match(workflow, /test "\$\(git rev-parse HEAD\)" = "\$\{GITHUB_SHA\}"/);
-  assert.match(workflow, /Uncovered repository-authored text lines: 0/);
-  assert.match(workflow, /git fetch origin execution/);
-  assert.match(workflow, /git add 'الوكلاء\/المستكشف AI\/تقارير المستكشف\//);
-  assert.match(workflow, /git push origin "HEAD:knowledge"/);
-  assert.doesNotMatch(workflow, /git push origin "HEAD:execution"/);
-  assert.doesNotMatch(workflow, /reports\/repository-knowledge/);
+  assert.match(workflow, /الوكلاء AI\/المستكشف AI\/تقارير المستكشف\/\*\*/);
+  assert.match(workflow, /persist-credentials: false/);
+  assert.match(workflow, /contents: read/);
+  assert.match(workflow, /Upload SHA-bound knowledge artifact/);
+  assert.doesNotMatch(workflow, /contents: write/);
+  assert.doesNotMatch(workflow, /git push origin/);
 });
 
 test('scanner does not re-ingest legacy English report directory', () => {
