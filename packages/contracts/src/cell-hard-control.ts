@@ -114,9 +114,15 @@ export function createExecutionEnvelope(input: ExecutionEnvelope): ExecutionEnve
     !input.normalizedObjectiveId ||
     !input.expectedOutput ||
     !input.acceptanceDigest ||
+    !Number.isFinite(input.timeBudgetMs) ||
+    !Number.isFinite(input.costBudget) ||
+    !Number.isFinite(input.maxDelegationDepth) ||
     input.timeBudgetMs <= 0 ||
     input.costBudget < 0 ||
-    input.maxDelegationDepth < 0
+    input.maxDelegationDepth < 0 ||
+    input.allowedCapabilities.length === 0 ||
+    input.acceptanceConditions.length === 0 ||
+    input.evidenceRequirements.length === 0
   ) {
     throw new Error("INVALID_EXECUTION_ENVELOPE");
   }
