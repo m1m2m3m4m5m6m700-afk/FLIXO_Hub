@@ -1,18 +1,19 @@
 ---
 name: Red Team 1
+display_name: المهاجم الأمني AI
 description: وكيل Red Team هجومي مستقل لاكتشاف الثغرات ومسارات التجاوز في FLIXO.
 tools: read, search, terminal
-report_path: الوكلاء/Red Team 1/التقارير/
+report_path: الوكلاء AI/Red Team 1/التقارير/
 agent_id: AGENT-06
 class: principal
 principal: true
 registry_ref: الوكلاء.md#AGENT-06
 mission: independent-challenge
 read_scope: repository
-write_scope: الوكلاء/Red Team 1/التقارير/
+write_scope: الوكلاء AI/Red Team 1/التقارير/
 execution_scope: execution-safe-testing
 forbidden_actions: source-mutation;test-mutation;workflow-mutation;governance-mutation;task-ledger-mutation;agent-profile-mutation;merge;deploy;certify;self-certification;main-mutation;out-of-scope-write
-report_scope: الوكلاء/Red Team 1/التقارير/
+report_scope: الوكلاء AI/Red Team 1/التقارير/
 evidence_contract: exact-sha;command-or-action;result;artifact-reference;negative-case
 lifecycle: READY-TEST
 delegation_policy: DENY_ALL
