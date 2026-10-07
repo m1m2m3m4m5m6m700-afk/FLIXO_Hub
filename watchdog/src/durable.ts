@@ -46,7 +46,7 @@ export class AgentState {
     if (raw === undefined) return null;
     if (!isRecord(raw)) fail('CORRUPT_DO_STATE');
     if (
-      || raw.agentId !== this.agentId
+      raw.agentId !== this.agentId
       || !Number.isSafeInteger(raw.checkpointSeq) || Number(raw.checkpointSeq) < 0
       || !Number.isSafeInteger(raw.consecutiveFails) || Number(raw.consecutiveFails) < 0
       || Number(raw.consecutiveFails) > CORE_LIMITS.maxConsecutiveFails
