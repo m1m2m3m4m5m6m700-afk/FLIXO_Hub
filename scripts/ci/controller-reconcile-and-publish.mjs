@@ -10,6 +10,14 @@ const REPOSITORY = 'm1m2m3m4m5m6m700-afk/FLIXO_Hub';
 const BRANCH = 'execution';
 const CONTROLLER = 'assistantController';
 const SHA_RE = /^[0-9a-f]{40}$/;
+const CANONICAL_GIT_REMOTE = 'https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub.git';
+const SENSITIVE_REPO_PATHS = [
+  /^\.github(?:\/|$)/u, /^scripts\/ci(?:\/|$)/u, /^supabase(?:\/|$)/u,
+  /^package(?:\.json|-lock\.json)$/u, /^\.npmrc$/u, /^\.env(?:\.|$)/u,
+  /^wrangler\.jsonc$/u, /^vercel\.json$/u, /^SECURITY\.md$/u, /^AGENTS\.md$/u,
+  /^المهام\.md$/u, /^الوكلاء(?: AI)?\.md$/u,
+];
+const SENSITIVE_ENV_KEY = /(?:TOKEN|SECRET|PASSWORD|PRIVATE|API_KEY|ACCESS_KEY|CLIENT_SECRET|CREDENTIAL|SUPABASE|CLOUDFLARE|TESTSPRITE|GITHUB_|ACTIONS_|RUNNER_)/iu;
 
 function assertSha(value, label) {
   if (!SHA_RE.test(value ?? '')) throw new Error(`CONTROLLER_INVALID_${label.toUpperCase()}_SHA`);
@@ -72,14 +80,14 @@ async function getQueue(queueId) {
 }
 
 function refreshExecutionRef() {
-  execFileSync('git', ['fetch', '--no-tags', 'origin', `+refs/heads/${BRANCH}:refs/remotes/origin/${BRANCH}`], {
+  execFileSync('git', ['fetch', '--no-tags', CANONICAL_GIT_REMOTE, `+refs/heads/${BRANCH}:refs/remotes/origin/${BRANCH}`], {
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 }
 
 async function liveHead() {
-  const output = execFileSync('git', ['ls-remote', 'origin', `refs/heads/${BRANCH}`], { encoding: 'utf8' }).trim();
+  const output = execFileSync('git', ['ls-remote', CANONICAL_GIT_REMOTE, `refs/heads/${BRANCH}`], { encoding: 'utf8' }).trim();
   const sha = output.split(/\s+/)[0] ?? '';
   assertSha(sha, 'live_head');
   return sha;
@@ -87,6 +95,21 @@ async function liveHead() {
 
 function stablePatchHash(patchText) {
   return createHash('sha256').update(patchText, 'utf8').digest('hex');
+}
+
+export function sanitizeUntrustedEnv(input = process.env) {
+  const output = {};
+  for (const [key, value] of Object.entries(input)) {
+    if (SENSITIVE_ENV_KEY.test(key)) continue;
+    output[key] = value;
+  }
+  delete output.GIT_CONFIG_COUNT; delete output.GIT_CONFIG_KEY_0; delete output.GIT_CONFIG_VALUE_0;
+  delete output.GIT_CONFIG_KEY_1; delete output.GIT_CONFIG_VALUE_1;
+  return output;
+}
+
+export function isSensitiveRepositoryPath(path) {
+  return SENSITIVE_REPO_PATHS.some((pattern) => pattern.test(path));
 }
 
 function assertControllerContext() {
@@ -192,10 +215,11 @@ async function persistReconciliation(queueId, row, current, result, candidateSha
 }
 
 function verifyWorktree(worktree) {
+  const safeEnv = sanitizeUntrustedEnv();
   git(['diff', '--check'], worktree);
-  execFileSync('npm', ['ci', '--no-audit', '--no-fund'], { cwd: worktree, encoding: 'utf8', stdio: 'inherit' });
-  execFileSync('npm', ['test'], { cwd: worktree, encoding: 'utf8', stdio: 'inherit' });
-  execFileSync('npm', ['run', 'build'], { cwd: worktree, encoding: 'utf8', stdio: 'inherit' });
+  execFileSync('npm', ['ci', '--ignore-scripts', '--no-audit', '--no-fund'], { cwd: worktree, env: safeEnv, encoding: 'utf8', stdio: 'inherit' });
+  execFileSync('npm', ['test'], { cwd: worktree, env: safeEnv, encoding: 'utf8', stdio: 'inherit' });
+  execFileSync('npm', ['run', 'build'], { cwd: worktree, env: safeEnv, encoding: 'utf8', stdio: 'inherit' });
 }
 
 function createCandidateCommit(worktree, targetSha, message, allowedPaths) {
@@ -205,6 +229,7 @@ function createCandidateCommit(worktree, targetSha, message, allowedPaths) {
   if (!allowed.size) throw new Error('CONTROLLER_ALLOWED_PATHS_EMPTY');
   for (const line of statusLines) {
     const path = line.slice(3).trim().replace(/^"|"$/g, '');
+    if (isSensitiveRepositoryPath(path)) throw new Error(`CONTROLLER_SENSITIVE_PATH_FORBIDDEN:${path}`);
     if (!allowed.has(path)) throw new Error(`CONTROLLER_OUT_OF_SCOPE_CHANGE:${path}`);
   }
 
@@ -249,7 +274,7 @@ async function publish(queueId, worktree, targetSha, candidateSha) {
 
   try {
     const { token } = config();
-    execFileSync('git', ['push', '--porcelain', 'origin', `HEAD:refs/heads/${BRANCH}`], {
+    execFileSync('git', ['push', '--porcelain', CANONICAL_GIT_REMOTE, `HEAD:refs/heads/${BRANCH}`], {
       cwd: worktree,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
