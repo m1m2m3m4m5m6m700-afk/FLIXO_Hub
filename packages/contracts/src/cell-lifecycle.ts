@@ -315,6 +315,15 @@ export function validateCellAdmission(envelope: CellAdmissionEnvelope): void {
     throw new Error("CELL_ADMISSION_INDEPENDENCE_POLICY_MISMATCH");
   }
   required(envelope.verifierId, "CELL_ADMISSION_VERIFIER_REQUIRED");
+  const roleIds = [
+    envelope.assignment.solverId,
+    envelope.assignment.opponentId,
+    envelope.assignment.backupSolverId,
+    envelope.assignment.backupOpponentId,
+  ];
+  if (roleIds.includes(envelope.verifierId)) {
+    throw new Error("CELL_ADMISSION_VERIFIER_IDENTITY_COLLISION");
+  }
 }
 
 export function createCellAdmissionRecord(
