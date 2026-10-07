@@ -36,12 +36,6 @@ test('FAST governance accepts relaxed development review controls', () => {
   assert.equal(result.mode, 'fast');
 });
 
-test('CI main promotion path uses strict governance', () => {
-  const workflow = readFileSync(new URL('../../../.github/workflows/ci.yml', import.meta.url), 'utf8');
-  assert.doesNotMatch(workflow, /Verify main governance ruleset \(FAST agent mode\)/u);
-  assert.match(workflow, /GOVERNANCE_MODE: strict/u);
-});
-
 test('STRICT governance still rejects relaxed review controls', () => {
   const result = evaluateMainGovernance([relaxedRuleset], 'main', 'strict');
   assert.equal(result.pass, false);

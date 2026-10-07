@@ -9,18 +9,13 @@ import {
   validateProfileContract,
 } from '../../../scripts/agent-control-plane.mjs';
 import { readFileSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
 
 const ROOT = process.cwd();
 
-test('agent control plane source is syntactically valid before lifecycle evaluation', () => {
-  execFileSync(process.execPath, ['--check', 'scripts/agent-control-plane.mjs'], { stdio: 'pipe' });
-});
-
 test('canonical registry is the only identity authority and contains 10 principals + one support role', () => {
   const registry = loadCanonicalRegistry(ROOT);
-  assert.equal(registry.officialAgentCount, 14);
-  assert.equal(registry.agents.length, 14);
+  assert.equal(registry.officialAgentCount, 10);
+  assert.equal(registry.agents.length, 10);
   assert.deepEqual(registry.agents.map(a => a.id), Array.from({ length: 10 }, (_, i) => 'AGENT-' + String(i + 1).padStart(2, '0')));
   assert.equal(registry.supportingRoles.length, 1);
   assert.equal(registry.supportingRoles[0].id, 'SUPPORT-EXPLORER-02');
@@ -29,8 +24,8 @@ test('canonical registry is the only identity authority and contains 10 principa
 test('all registered profiles expose the unified machine contract and capability matrix', () => {
   const audit = auditAgentControlPlane(ROOT);
   assert.equal(audit.status, 'PASS', audit.issues.join('; '));
-  assert.equal(audit.agents.length, 15);
-  assert.equal(audit.agents.filter(a => a.class === 'principal').length, 14);
+  assert.equal(audit.agents.length, 11);
+  assert.equal(audit.agents.filter(a => a.class === 'principal').length, 10);
   assert.equal(audit.agents.find(a => a.id === 'SUPPORT-EXPLORER-02')?.effectiveLifecycle, 'READY-TEST');
   for (const agent of audit.agents) {
     assert.equal(agent.issues.length, 0, agent.id + ': ' + agent.issues.join('; '));

@@ -2,7 +2,7 @@ import { getCapability, validateCapabilityParameters, type CanonicalCapabilityPa
 import { getToolById } from '@/config/registry.ts';
 import { getToolOutputContract } from '@/lib/contracts/tool-output-contracts.ts';
 import { assertToolOutputContract } from '@/lib/contracts/tool-output.ts';
-import { validateFileSafety, MAGIC_BYTE_SIGNATURES, readRasterHeaderDimensions } from '@/lib/contracts/file-safety.ts';
+import { validateFileSafety, MAGIC_BYTE_SIGNATURES } from '@/lib/contracts/file-safety.ts';
 import { applyBasicImageEffect, convertImage, cropResizeImage, removeBackground, resizeImage } from '@/tools/image-toolkit/engine.ts';
 import { compressImage } from '@/tools/image-compressor/engine.ts';
 import { renderVideoToWebm } from '@/lib/video/video-executor.ts';
@@ -87,10 +87,15 @@ async function withDeadline<T>(
   });
 }
 
-async function readImageDimensionsFromHeader(blob: Blob): Promise<{ width: number; height: number }> {
-  const dimensions = await readRasterHeaderDimensions(blob, blob.type);
-  if (!dimensions) throw new Error('Execution denied: raster dimensions could not be determined from the bounded header.');
-  return dimensions;
+async function readImageDimensions(blob: Blob, signal?: AbortSignal): Promise<{ width: number; height: number }> {
+  assertNotAborted(signal);
+  if (typeof createImageBitmap !== 'function') throw new Error('Browser image decoder is unavailable.');
+  const bitmap = await createImageBitmap(blob);
+  try {
+    return { width: bitmap.width, height: bitmap.height };
+  } finally {
+    bitmap.close();
+  }
 }
 
 async function preflightInput(
@@ -143,7 +148,7 @@ async function preflightInput(
   }
 
   if (!isVideo) {
-    const dimensions = await withDeadline(readImageDimensionsFromHeader(input.blob), Math.min(timeoutMs, 2_000), signal);
+    const dimensions = await withDeadline(readImageDimensions(input.blob, signal), Math.min(timeoutMs, 30_000), signal);
     if (dimensions.width * dimensions.height > maxPixels) {
       throw new Error('Execution denied: image dimensions exceed the canonical pixel budget.');
     }
@@ -204,7 +209,7 @@ async function executeImageEffectsInWorker(
 ): Promise<Blob> {
   const canUseWorkerCanvas = typeof Worker !== 'undefined' && typeof OffscreenCanvas !== 'undefined';
   if (!canUseWorkerCanvas) {
-    throw new Error('IMAGE_EFFECTS_WORKER_UNAVAILABLE');
+    return executeImageEffectsFallback(input, effects);
   }
 
   const worker = new Worker(new URL('./image-effects.worker.ts', import.meta.url), { type: 'module' });
@@ -243,7 +248,21 @@ async function executeImageEffectsInWorker(
     } catch (error) {
       finish(() => reject(error instanceof Error ? error : new Error('IMAGE_EFFECTS_WORKER_FAILED')));
     }
+  }).catch(async (error) => {
+    if (signal?.aborted) throw error;
+    return executeImageEffectsFallback(input, effects);
   });
+}
+
+async function executeImageEffectsFallback(
+  input: Blob,
+  effects: ReadonlyArray<readonly ['brightness' | 'contrast' | 'saturation' | 'grayscale', number]>,
+): Promise<Blob> {
+  let current = input;
+  for (const [effect, value] of effects) {
+    current = await applyBasicImageEffect(current, effect, value);
+  }
+  return current;
 }
 
 async function executeImageEffects(
