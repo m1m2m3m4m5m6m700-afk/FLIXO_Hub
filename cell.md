@@ -2,7 +2,7 @@
 
 STATUS: TARGET ORCHESTRATION CONTRACT / CURRENT-REPO ALIGNED
 SOURCE OF TRUTH: `AGENTS.md`, `المهام.md`, `الوكلاء.md`, canonical runtime contracts, exact-SHA evidence.
-PRESERVED DOCUMENT: `الخلية.md` is retained unchanged. This file is the execution-oriented companion and does not replace it.
+CANONICAL ARCHITECTURE: `الخلية.md` is the canonical CELL architecture contract. This file is a derived execution-oriented companion and cannot override it.
 
 ## 0. PURPOSE
 
@@ -26,7 +26,7 @@ No state may be skipped.
 - Implementation/integration lane: `execution`
 - Production truth: `main`
 - Direct mutation of `main`: FORBIDDEN
-- Current execution SHA at document creation: `701fd42decbdc1f4c0cbd819c35f44328b83e406`
+- Current execution SHA is live state and must be resolved from the execution branch before each qualification.
 - Canonical runtime chain:
   `src/config/registry.ts`
   → `src/lib/execution/canonical-executor.ts`
