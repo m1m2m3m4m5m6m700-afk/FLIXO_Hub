@@ -1,0 +1,61 @@
+name: FLIXO Proposal Integrity
+
+on:
+  push:
+    branches: [execution, main]
+    paths:
+      - '.agent-intelligence/**'
+      - 'package.json'
+  pull_request:
+    branches: [execution]
+    paths:
+      - '.agent-intelligence/**'
+      - 'package.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flixo-proposal-integrity-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Deterministic proposal integrity
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Verify exact candidate SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXPECTED_SHA="$(jq -r '.pull_request.head.sha // .after // empty' "$GITHUB_EVENT_PATH")"
+          test -n "$EXPECTED_SHA" || EXPECTED_SHA="$GITHUB_SHA"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.12'
+      - name: Schema V4 contract
+        run: python3 .agent-intelligence/schemas/test_schema.py
+      - name: Validator security suite
+        id: validator-tests
+        run: |
+          set -o pipefail
+          python3 .agent-intelligence/scripts/test_validate.py 2>&1 | tee agent2-test-output.txt
+
+      - name: Upload validator failure evidence
+        if: failure() && steps.validator-tests.outcome == 'failure'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: agent2-validator-failure
+          path: agent2-test-output.txt
+          if-no-files-found: error
+          retention-days: 7
+      - name: Validate all canonical report proposals
+        run: python3 .agent-intelligence/scripts/validate.py --all --json

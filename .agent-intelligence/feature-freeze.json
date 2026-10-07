@@ -1,0 +1,6 @@
+{
+  "active": false,
+  "started_at": null,
+  "ended_at": null,
+  "reason": "Set active=true with deterministic started_at during feature freeze; set active=false with ended_at to resume TTL."
+}

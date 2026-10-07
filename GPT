@@ -1,0 +1,10 @@
+﻿# FLIXO Manual-Only Product Directive
+
+FLIXO production exposes direct manual browser tools only.
+
+- No public or internal AI agent runtime.
+- No agent gateway, specialist router, autonomous planner, agent memory, or agent execution loop.
+- User actions are initiated explicitly from tool pages.
+- Supported local tool chains execute only through direct browser-local adapters.
+- Raw files remain browser-local unless a specific standalone tool explicitly documents a remote dependency.
+- `src/config/registry.ts` remains the canonical tool registry.

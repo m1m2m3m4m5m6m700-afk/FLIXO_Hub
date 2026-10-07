@@ -1,0 +1,100 @@
+name: FLIXO Agent Self-Learning Control Plane
+
+on:
+  push:
+    branches: [execution]
+    paths:
+      - 'الوكلاء.md'
+      - '.github/agents/**'
+      - 'الوكلاء/**'
+      - 'scripts/agent-learning/**'
+      - 'tests/security/ci/agent-*.mjs'
+      - 'tests/security/ci/agent-*.py'
+      - 'docs/AGENT-SHARED-MEMORY-ARCHITECTURE.md'
+      - '.github/workflows/agent-self-learning.yml'
+      - 'package.json'
+      - 'الوكلاء/التقارير/**'
+      - 'الوكلاء/تدريب الوكلاء/تقارير التدريب/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flixo-agent-self-learning
+  cancel-in-progress: true
+
+jobs:
+  train:
+    name: Evaluate all agents against the self-learning contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact triggering SHA
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Verify exact trigger SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+
+      - name: Refresh main reference for cross-branch drills
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main --no-tags
+          test -n "$(git rev-parse refs/remotes/origin/main)"
+
+      - name: Run the complete ten-agent training gate
+        run: npm run test:agent-training
+
+      - name: Generate contract-readiness report
+        run: node scripts/agent-learning/self-learning-control-plane.mjs "${GITHUB_SHA}"
+
+      - name: Enforce 100/100 agent readiness
+        run: node scripts/agent-learning/evaluate-agent-readiness.mjs "${GITHUB_SHA}"
+
+      - name: Execute all role capability drills
+        run: node scripts/agent-learning/run-role-drills.mjs "${GITHUB_SHA}"
+
+      - name: Validate report identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          REPORT="الوكلاء/تدريب الوكلاء/تقارير التدريب/${GITHUB_SHA}.md"
+          test -s "$REPORT"
+          grep -Fq -- "- Exact execution SHA: ${GITHUB_SHA}" "$REPORT"
+          grep -Fq -- "Behavioral evidence: UNPROVEN" "$REPORT"
+
+      - name: Reconcile execution HEAD before publication
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin execution
+          test "$(git rev-parse origin/execution)" = "${GITHUB_SHA}" || {
+            echo "FAIL_CLOSED: execution moved during training."
+            exit 1
+          }
+
+      - name: Upload SHA-bound training evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: agent-training-${{ github.sha }}
+          path: |
+            الوكلاء/تدريب الوكلاء/تقارير التدريب/${{ github.sha }}.md
+            الوكلاء/تدريب الوكلاء/تقارير التدريب/${{ github.sha }}-role-drills.md
+            الوكلاء/تدريب الوكلاء/تقارير التدريب/${{ github.sha }}-readiness.md
+          if-no-files-found: error
+          retention-days: 30

@@ -1,0 +1,66 @@
+{
+  "format": "flixo-scout-manifest-v1",
+  "role": "ECOSYSTEM",
+  "ttl_days": 14,
+  "default_repo_refs": [
+    "package.json",
+    "src/config/registry.ts"
+  ],
+  "topics": [
+    "Changelogs",
+    "Migration Guides",
+    "Engineering Blogs",
+    "Official Documentation",
+    "RFCs",
+    "Release Notes",
+    "Architecture changes",
+    "Security advisories"
+  ],
+  "sources": [
+    {
+      "url": "https://vite.dev/guide/",
+      "source_type": "official_docs",
+      "stability": "stable",
+      "evidence_kind": "documentation",
+      "vendor_affiliated": true,
+      "title": "Vite architecture and tooling guidance",
+      "entity_key": "vite-tooling::ecosystem",
+      "repo_refs": [
+        "package.json",
+        "vite.config.ts"
+      ],
+      "proposal": "Track Vite changes that materially affect build reproducibility, testing, or route generation before upgrades.",
+      "rollback": "Revert Vite upgrades and configuration adaptations to the last proven toolchain."
+    },
+    {
+      "url": "https://github.com/ffmpegwasm/ffmpeg.wasm/releases",
+      "source_type": "release_notes",
+      "stability": "stable",
+      "evidence_kind": "release",
+      "vendor_affiliated": true,
+      "title": "FFmpeg.wasm ecosystem release signals",
+      "entity_key": "ffmpeg-wasm-releases::ecosystem",
+      "repo_refs": [
+        "package.json",
+        "src/config/registry.ts"
+      ],
+      "proposal": "Monitor FFmpeg.wasm releases for browser-local media capabilities while checking licenses, memory, workers, and bundle impact.",
+      "rollback": "Remove the candidate dependency and restore the current browser-local media implementation."
+    },
+    {
+      "url": "https://owasp.org/www-project-top-ten/",
+      "source_type": "official_docs",
+      "stability": "stable",
+      "evidence_kind": "documentation",
+      "vendor_affiliated": false,
+      "title": "OWASP security-risk trend signals",
+      "entity_key": "owasp-risk-trends::security",
+      "repo_refs": [
+        "src/config/registry.ts",
+        "tests/security-governance.test.ts"
+      ],
+      "proposal": "Use recurring OWASP risk categories as defensive hypotheses without treating advisory text as executable instructions.",
+      "rollback": "Remove the hardening hypothesis and preserve existing security controls and test gates."
+    }
+  ]
+}

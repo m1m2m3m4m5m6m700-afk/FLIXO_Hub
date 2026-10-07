@@ -1,0 +1,578 @@
+name: FLIXO CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main, execution]
+  workflow_dispatch:
+    inputs:
+      strict_governance:
+        description: 'Run strict release governance verification'
+        required: false
+        default: false
+        type: boolean
+  merge_group:
+    types: [checks_requested]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flixo-ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref_name }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main' || github.ref == 'refs/heads/execution' }}
+
+env:
+  VITE_SITE_URL: https://flixoai.m1m2m3m4m5m6m700.workers.dev
+  VITE_RUNTIME_ORIGIN: http://127.0.0.1:3000
+  VITE_TEST_ORIGIN: http://127.0.0.1:3000
+
+jobs:
+  verify:
+    # Only the canonical execution->main promotion PR consumes pull-request CI; worker PRs are implementation lanes, not release candidates.
+    if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.ref == 'execution' && github.event.pull_request.head.repo.full_name == github.repository) }}
+    name: Typecheck, lint, core contracts, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Typecheck CELL contract package
+        run: npm run typecheck:contracts
+      - name: Fetch main snapshot for repository knowledge contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          MAIN_SHA="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          [[ "$MAIN_SHA" =~ ^[0-9a-f]{40}$ ]]
+          git fetch origin "$MAIN_SHA" --depth=1
+          echo "FLIXO_KNOWLEDGE_MAIN_SHA=$MAIN_SHA" >> "$GITHUB_ENV"
+
+      - name: CELL hard-control commit attribution
+        run: node scripts/ci/cell-commit-attribution.mjs
+      - name: Three-critic local contract tests
+        run: |
+          set -euo pipefail
+          python3 scripts/three_critic_review.py --self-test
+          python3 tests/three_critic_review.test.py
+      - name: Exact-SHA workflow contract tests
+        run: node --test scripts/ci/test-workflow-exact-sha-contract.mjs
+      - name: Fetch main governance snapshot for read-only contract tests
+        run: git fetch origin main:refs/remotes/origin/main --depth=1
+      - name: Agent 2 CI security contract tests
+        run: node --test tests/security/ci/*.test.mjs
+      - name: Model license and admission gate
+        run: npm run test:model-license
+      - name: Run npm test
+        shell: bash
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee npm-test.log
+      - name: Upload npm test failure evidence
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: flixo-npm-test-failure-${{ github.run_id }}
+          path: npm-test.log
+          if-no-files-found: error
+          retention-days: 14
+      - run: npm audit --omit=dev --audit-level=high
+      - run: npm run build
+      - name: Stamp exact build identity
+        shell: bash
+        env:
+          BUILD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$BUILD_SHA"
+          SOURCE_TREE_SHA="$(git rev-parse "$BUILD_SHA^{tree}")"
+          test -z "$(git diff --name-only)"
+          mkdir -p dist/__flixo
+          printf '{"repository":"%s","candidateSha":"%s","sourceTreeSha":"%s","buildRunId":"%s"}\n' \
+            "$GITHUB_REPOSITORY" "$BUILD_SHA" "$SOURCE_TREE_SHA" "$GITHUB_RUN_ID" \
+            > dist/__flixo/build-provenance.json
+          printf '%s\n' "$BUILD_SHA" > dist/flixo-head-sha.txt
+          printf '%s\n' "$BUILD_SHA" > "dist/__flixo-identity-$BUILD_SHA.txt"
+          printf '%s\n' "$BUILD_SHA" > dist/__flixo-identity.txt
+          mkdir -p "dist/__flixo/identity/$BUILD_SHA"
+          printf '%s\n' "$BUILD_SHA" > "dist/__flixo/identity/$BUILD_SHA/index.txt"
+      - name: Upload build artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: flixo-build-${{ github.run_id }}
+          path: dist
+          if-no-files-found: error
+          retention-days: 7
+
+  browser:
+    name: Chromium browser smoke
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: flixo-build-${{ github.run_id }}
+          path: dist
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e -- --project=chromium
+      - name: Upload browser runtime evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: flixo-browser-evidence-${{ github.run_id }}
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: warn
+          retention-days: 14
+
+  coverage:
+    name: Exact-SHA internal coverage
+    needs: verify
+    if: ${{ needs.verify.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+          fetch-depth: 1
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Generate exact-SHA lcov
+        run: npm run test:coverage
+      - name: Verify coverage identity and shape
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          test -s coverage/lcov.info
+          grep -q '^SF:' coverage/lcov.info
+          grep -q '^LF:[0-9][0-9]*$' coverage/lcov.info
+          grep -q '^LH:[0-9][0-9]*$' coverage/lcov.info
+          printf '%s\\n' "$EXPECTED_SHA" > coverage/exact-sha.txt
+          sha256sum coverage/lcov.info | awk '{print $1}' > coverage/lcov.sha256
+          printf 'COVERAGE_SHA=%s\\n' "$EXPECTED_SHA"
+          printf 'LCOV_SHA256=%s\\n' "$(cat coverage/lcov.sha256)"
+      - name: Upload exact-SHA coverage evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: flixo-coverage-${{ github.run_id }}
+          path: coverage
+          if-no-files-found: error
+          retention-days: 30
+
+  red-team:
+    name: Red Team adversarial regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+          fetch-depth: 1
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Verify exact SHA
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - name: Run adversarial control-plane suite
+        run: npm run test:red-team
+
+  agent-watchdog:
+    name: Agent Watchdog CI / Security integration
+    if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.ref == 'execution' && github.event.pull_request.head.repo.full_name == github.repository) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    env:
+      EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Verify exact SHA boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "m1m2m3m4m5m6m700-afk/FLIXO_Hub"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            test "${{ github.event.pull_request.base.ref }}" = "main"
+            test "${{ github.event.pull_request.head.repo.full_name }}" = "$GITHUB_REPOSITORY"
+          fi
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install root dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: CI security and integration contracts
+        run: node --test tests/agent-watchdog/*.test.mjs
+      - name: Watchdog dependency preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f watchdog/package.json
+          test -f watchdog/package-lock.json
+          test -n "$(find watchdog -maxdepth 2 -type f \( -name 'wrangler.jsonc' -o -name 'wrangler.json' -o -name 'wrangler.toml' \) | head -1)"
+      - name: Install watchdog dependencies
+        run: npm --prefix watchdog ci --ignore-scripts --no-audit --no-fund
+      - name: Watchdog typecheck
+        run: npm --prefix watchdog run typecheck
+      - name: Watchdog unit tests
+        run: npm --prefix watchdog test
+      - name: Watchdog Wrangler dry-run
+        shell: bash
+        run: |
+          set -euo pipefail
+          CONFIG="$(find watchdog -maxdepth 2 -type f \( -name 'wrangler.jsonc' -o -name 'wrangler.json' -o -name 'wrangler.toml' \) | head -1)"
+          test -n "$CONFIG"
+          npm --prefix watchdog exec -- wrangler deploy --dry-run --config "$CONFIG"
+      - name: Agent Runner tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          files="$(find scripts/agent tests -type f \( -name '*runner*.test.mjs' -o -name '*runner*.test.js' -o -name '*runner*.test.ts' \) ! -path 'tests/agent-watchdog/*' | sort)"
+          test -n "$files"
+          printf '%s
+' "$files" | xargs node --test --experimental-strip-types
+      - name: Stamp exact-SHA evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p agent-watchdog-evidence
+          printf 'repository=%s
+expectedSha=%s
+head=%s
+' "$GITHUB_REPOSITORY" "$EXPECTED_SHA" "$(git rev-parse HEAD)" > agent-watchdog-evidence/exact-sha.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: flixo-agent-watchdog-${{ github.run_id }}
+          path: agent-watchdog-evidence
+          if-no-files-found: error
+          retention-days: 30
+
+  branch-policy:
+    name: Branch policy
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Validate branch policy for the current ref
+        if: ${{ github.event_name != 'pull_request' }}
+        run: node scripts/ci/verify-branch-policy.mjs
+      - name: Verify canonical PR source identity
+        if: ${{ github.event_name == 'pull_request' }}
+        env:
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          BASE_REPO: ${{ github.event.pull_request.base.repo.full_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$HEAD_REPO"
+          test -n "$BASE_REPO"
+          test "$HEAD_REPO" = "$GITHUB_REPOSITORY"
+          test "$BASE_REPO" = "$GITHUB_REPOSITORY"
+          echo "PR_SOURCE_IDENTITY=PASS"
+      - name: Verify main governance ruleset (STRICT release mode)
+        if: ${{ (github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main') || github.ref == 'refs/heads/main' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GOVERNANCE_MODE: strict
+        run: bash scripts/ci/check-governance.sh
+
+      - name: Verify main governance ruleset (STRICT release mode)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.strict_governance == true }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GOVERNANCE_MODE: strict
+        run: bash scripts/ci/check-governance.sh
+      - name: Record execution-branch governance deferral
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/execution' }}
+        run: echo 'MAIN_GOVERNANCE=PR_OR_MAIN_ONLY'
+
+  trust-gate:
+    name: trust-gate
+    needs: [verify, browser, branch-policy, coverage, red-team, agent-watchdog]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Assert canonical CI gates are GREEN
+        env:
+          VERIFY_RESULT: ${{ needs.verify.result }}
+          BROWSER_RESULT: ${{ needs.browser.result }}
+          COVERAGE_RESULT: ${{ needs.coverage.result }}
+          RED_TEAM_RESULT: ${{ needs.red-team.result }}
+          BRANCH_RESULT: ${{ needs.branch-policy.result }}
+          AGENT_WATCHDOG_RESULT: ${{ needs.agent-watchdog.result }}
+        run: |
+          set -euo pipefail
+          test "$VERIFY_RESULT" = success
+          test "$BROWSER_RESULT" = success
+          test "$COVERAGE_RESULT" = success
+          test "$RED_TEAM_RESULT" = success
+          test "$BRANCH_RESULT" = success
+          test "$AGENT_WATCHDOG_RESULT" = success
+          echo 'TRUST_GATE=PASS'
+
+  promotion-proof:
+    name: Exact-SHA promotion proof
+    needs: [trust-gate]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify exact head identity and live promotion lineage
+        env:
+          EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_REF: ${{ github.ref }}
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          BASE_REPO: ${{ github.event.pull_request.base.repo.full_name || github.repository }}
+          TRUST_RESULT: ${{ needs.trust-gate.result }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$TRUST_RESULT" = success
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          node scripts/ci/verify-promotion-lineage.mjs
+          echo "EXACT_SHA_PROMOTION_PROOF=$EXPECTED_SHA"
+
+      - name: Wait for exact-head security workflows
+        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          required=("FLIXO CodeQL" "FLIXO Secret Scan")
+          for attempt in $(seq 1 15); do
+            runs="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$EXPECTED_SHA&event=pull_request&per_page=100")"
+            all_ok=true
+            for workflow in "${required[@]}"; do
+              state="$(printf '%s' "$runs" | jq -r --arg workflow "$workflow" --arg sha "$EXPECTED_SHA" '[.workflow_runs[] | select(.head_sha == $sha and .name == $workflow)] | sort_by(.updated_at) | last | if . == null then "MISSING" else (.status + ":" + (.conclusion // "null")) end')"
+              echo "$workflow@$EXPECTED_SHA => $state"
+              case "$state" in
+                completed:success) ;;
+                completed:*) echo "FAIL_CLOSED: exact-head security workflow failed: $workflow => $state"; exit 1 ;;
+                *) all_ok=false ;;
+              esac
+            done
+            if [ "$all_ok" = true ]; then echo "EXACT_SHA_SECURITY_GATE=PASS"; exit 0; fi
+            sleep 10
+          done
+          echo "FAIL_CLOSED: timed out waiting for exact-head CodeQL and Secret Scan."
+          exit 1
+  production-deploy:
+    name: Production exact-SHA deployment
+    needs: [promotion-proof]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      contents: read
+      actions: read
+    env:
+      DEPLOYMENT_SHA: ${{ github.sha }}
+      FLIXOAI_PRODUCTION_ORIGIN: https://flixoai.m1m2m3m4m5m6m700.workers.dev
+      WRANGLER_WORKER_NAME: flixoai
+    steps:
+      - name: Checkout exact main SHA
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify deployment checkout identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$DEPLOYMENT_SHA"
+
+      - name: Wait for all required security workflows at exact SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          required=("FLIXO CodeQL" "FLIXO Secret Scan")
+          for attempt in $(seq 1 30); do
+            runs="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$DEPLOYMENT_SHA&event=push&per_page=100")"
+            all_ok=true
+            for workflow in "${required[@]}"; do
+              state="$(printf '%s' "$runs" | WORKFLOW="$workflow" DEPLOYMENT_SHA="$DEPLOYMENT_SHA" node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const w=process.env.WORKFLOW;const x=(JSON.parse(s).workflow_runs||[]).filter(r=>r.head_sha===process.env.DEPLOYMENT_SHA&&r.name===w);const r=x[0];console.log(r?`${r.status}:${r.conclusion||"null"}`:"MISSING")})')"
+              echo "$workflow => $state"
+              case "$state" in
+                completed:success) ;;
+                completed:*) echo "Required workflow failed: $workflow => $state"; exit 1 ;;
+                *) all_ok=false ;;
+              esac
+            done
+            if [ "$all_ok" = true ]; then echo "EXACT_SHA_SECURITY_GATE=PASS"; exit 0; fi
+            sleep 20
+          done
+          echo "Timed out waiting for exact-SHA required security workflows"
+          exit 1
+
+      - name: Download certified build artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          gh run download "$GITHUB_RUN_ID" -n "flixo-build-${GITHUB_RUN_ID}" -D dist
+          test "$(cat dist/flixo-head-sha.txt)" = "$DEPLOYMENT_SHA"
+          test "$(cat "dist/__flixo-identity-$DEPLOYMENT_SHA.txt")" = "$DEPLOYMENT_SHA"
+          test "$(cat dist/__flixo-identity.txt)" = "$DEPLOYMENT_SHA"
+          test "$(cat "dist/__flixo/identity/$DEPLOYMENT_SHA/index.txt")" = "$DEPLOYMENT_SHA"
+          test "$(jq -r '.candidateSha' dist/__flixo/build-provenance.json)" = "$DEPLOYMENT_SHA"
+          test "$(jq -r '.sourceTreeSha' dist/__flixo/build-provenance.json)" = "$(git rev-parse HEAD^{tree})"
+          test -s dist/index.html
+
+      - name: Verify release source and artifact purity
+        shell: bash
+        env:
+          DEPLOYMENT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$DEPLOYMENT_SHA"
+          test -z "$(git status --porcelain)"
+          test -z "$(git diff --name-only)"
+          test -z "$(git diff --cached --name-only)"
+          test -s dist/__flixo/build-provenance.json
+          test "$(jq -r '.candidateSha' dist/__flixo/build-provenance.json)" = "$DEPLOYMENT_SHA"
+          test "$(jq -r '.sourceTreeSha' dist/__flixo/build-provenance.json)" = "$(git rev-parse HEAD^{tree})"
+          echo "RELEASE_SOURCE_PURITY=PASS"
+      - name: Safety Guard — strict Cloudflare target allowlist
+        shell: bash
+        run: |
+          set -euo pipefail
+          CONFIG_NAME="$(grep -oE '"name"[[:space:]]*:[[:space:]]*"[^"]+"' wrangler.jsonc | head -1 | sed -E 's/.*"name"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/')"
+          test "$CONFIG_NAME" = "$WRANGLER_WORKER_NAME"
+          test "$WRANGLER_WORKER_NAME" = "flixoai"
+          test "$FLIXOAI_PRODUCTION_ORIGIN" = "https://flixoai.m1m2m3m4m5m6m700.workers.dev"
+          if grep -qE 'flixotoolscom|flixotools\b' wrangler.jsonc; then exit 1; fi
+
+      - name: Validate Cloudflare credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+
+      - name: Dry-run exact SHA deployment
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4.141.0"
+          command: deploy --dry-run --config wrangler.jsonc --name ${{ env.WRANGLER_WORKER_NAME }} --var FLIXO_DEPLOYMENT_SHA:${{ github.sha }}
+
+      - name: Deploy exact SHA to Cloudflare
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4.141.0"
+          command: deploy --config wrangler.jsonc --name ${{ env.WRANGLER_WORKER_NAME }} --var FLIXO_DEPLOYMENT_SHA:${{ github.sha }}
+
+      - name: Verify immutable production identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          identity_url="$FLIXOAI_PRODUCTION_ORIGIN/__flixo-identity-$DEPLOYMENT_SHA.txt?__flixo_sha=$DEPLOYMENT_SHA&__flixo_verify=$GITHUB_RUN_ID"
+          status="$(curl --silent --show-error --location --compressed --retry 10 --retry-delay 3 --retry-all-errors --max-time 30 -H 'Cache-Control: no-cache, no-store' -o /tmp/flixo-production-identity.txt -w '%{http_code}' "$identity_url")"
+          body="$(tr -d '\r\n' < /tmp/flixo-production-identity.txt)"
+          echo "HTTP=$status BODY=$body"
+          test "$status" = "200"
+          test "$body" = "$DEPLOYMENT_SHA"
+          root_status="$(curl --silent --show-error --location --compressed --retry 10 --retry-delay 3 --retry-all-errors --max-time 30 -H 'Cache-Control: no-cache, no-store' -o /tmp/flixo-production.html -w '%{http_code}' "$FLIXOAI_PRODUCTION_ORIGIN/?__flixo_sha=$DEPLOYMENT_SHA&__flixo_verify=1")"
+          test "$root_status" = "200"
+          grep -Eiq '<html[[:space:]>]' /tmp/flixo-production.html
+          echo "PRODUCTION_IDENTITY=PASS"
+
+      - name: Install Node dependencies for production browser verification
+        run: npm ci --prefer-offline --no-audit --no-fund
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Verify deployed production UI
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+          PLAYWRIGHT_TEST_BASE_URL: ${{ env.FLIXOAI_PRODUCTION_ORIGIN }}
+          PLAYWRIGHT_REUSE_SERVER: "true"
+        run: npm run test:e2e -- --project=chromium tests/official/production-browser-smoke.spec.ts tests/official/mvp-10-release-verification.spec.ts
+
+      - name: Write deployment evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          status="${{ job.status }}"
+          printf '{"worker":"flixoai","origin":"%s","sha":"%s","status":"%s"}\n' "$FLIXOAI_PRODUCTION_ORIGIN" "$DEPLOYMENT_SHA" "$status" > flixoai-production-evidence.json
+
+      - name: Upload deployment evidence
+        if: always()
+        uses: actions/upload-artifact@615b319bd27bb32c3d64dca6b6ed6974d5fbe653 # v6.0.0
+        with:
+          name: flixoai-production-evidence-${{ github.sha }}
+          path: flixoai-production-evidence.json
+          if-no-files-found: error
+          retention-days: 30

@@ -1,0 +1,84 @@
+name: FLIXO CodeQL
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    - cron: "31 2 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    # Security analysis is required for canonical execution promotion and production main pushes; disposable worker PRs do not consume runners.
+    if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.ref == 'execution' && github.event.pull_request.head.repo.full_name == github.repository) }}
+    name: CodeQL JavaScript and TypeScript
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+      security-events: read
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ["javascript-typescript"]
+
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify exact SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXPECTED_SHA="$(jq -r '.pull_request.head.sha // .after // empty' "$GITHUB_EVENT_PATH")"
+          test -n "$EXPECTED_SHA" || EXPECTED_SHA="$GITHUB_SHA"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+        with:
+          languages: ${{ matrix.language }}
+
+      - name: Analyze CodeQL and emit SARIF without API upload
+        uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+        with:
+          category: "/language:${{ matrix.language }}"
+          upload: never
+
+      - name: Prepare durable SARIF evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p codeql-sarif
+          sarif_files=()
+          for candidate in \
+            "$GITHUB_WORKSPACE/results/javascript.sarif" \
+            "$GITHUB_WORKSPACE/../results/javascript.sarif" \
+            "$RUNNER_TEMP/codeql_databases/javascript/results/javascript.sarif"; do
+            if [ -f "$candidate" ]; then sarif_files+=("$candidate"); fi
+          done
+          test "${#sarif_files[@]}" -eq 1
+          cp "${sarif_files[0]}" "codeql-sarif/${{ matrix.language }}.sarif"
+          sha256sum "codeql-sarif/${{ matrix.language }}.sarif" > "codeql-sarif/${{ matrix.language }}.sarif.sha256"
+          printf '%s\n' '${{ matrix.language }}' > codeql-sarif/language.txt
+          printf '%s\n' "$(git rev-parse HEAD)" > codeql-sarif/exact-sha.txt
+          jq -n --arg repo "$GITHUB_REPOSITORY" --arg sha "$(git rev-parse HEAD)" --arg language '${{ matrix.language }}' --arg sarif "codeql-sarif/${{ matrix.language }}.sarif" '{repository:$repo,candidateSha:$sha,language:$language,sarif:$sarif}' > codeql-sarif/provenance.json
+          grep -q '"candidateSha": "' codeql-sarif/provenance.json
+
+      - name: Upload durable CodeQL SARIF evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: flixo-codeql-sarif-${{ github.sha }}-${{ matrix.language }}
+          path: codeql-sarif
+          if-no-files-found: error
+          retention-days: 90
