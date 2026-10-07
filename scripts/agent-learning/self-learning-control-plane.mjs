@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { buildExperienceObject, validateExperience } from './experience-runtime.mjs';
 
 export const SHA_RE = /^[0-9a-f]{40}$/i;
 export const DECISIONS = ['CONFIRMED', 'REJECTED', 'DISPUTED', 'UNKNOWN'];
@@ -159,10 +160,58 @@ export function scoreSubmission(submission, currentSha) {
   return { score, passed: failures.length === 0, behavioralEvidence: submission?.behavioralEvidence === true ? 'OBSERVED' : 'UNPROVEN', failures };
 }
 
-export function buildExperience({ id, agent, exactSha, drill, result, evidence, rootCause = null, lesson = null, review = null, repeatPasses = 0, regressionTest = false, scope = 'repository' }) {
+export function buildExperience({
+  id,
+  agent,
+  agentId = agent,
+  taskId = 'UNBOUND',
+  exactSha,
+  drill,
+  objective = drill,
+  actionSummary = 'role execution evidence recorded',
+  result,
+  evidence,
+  failure = null,
+  rootCause = null,
+  lesson = null,
+  counterexample = null,
+  nextAction = null,
+  review = null,
+  repeatPasses = 0,
+  regressionTest = false,
+  scope = 'repository',
+}) {
   assertSha(exactSha, 'exactSha');
   if (!id || !agent || !drill) throw new Error('experience requires id, agent, and drill');
-  return { id, agent, drill, testedSha: exactSha, result, evidence: Array.isArray(evidence) ? evidence : [], rootCause, lesson, review, repeatPasses, regressionTest, scope, status: 'CANDIDATE' };
+  const experience = buildExperienceObject({
+    experienceId: id,
+    agentId,
+    taskId,
+    testedSha: exactSha,
+    objective,
+    actionSummary,
+    result,
+    evidence: Array.isArray(evidence) ? evidence : [],
+    failure,
+    rca: rootCause,
+    lesson,
+    counterexample,
+    nextAction,
+  });
+  validateExperience(experience);
+  return {
+    ...experience,
+    id,
+    agent,
+    drill,
+    testedSha: exactSha,
+    rootCause,
+    repeatPasses,
+    regressionTest,
+    review,
+    scope,
+    status: 'CANDIDATE',
+  };
 }
 
 export function evaluateLessonPromotion(candidate, currentSha) {

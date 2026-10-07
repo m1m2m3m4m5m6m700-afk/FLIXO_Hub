@@ -7,6 +7,33 @@ export const MEMORY_STATUSES = Object.freeze([
   'CANDIDATE', 'VALIDATED', 'PROMOTED', 'DISPUTED', 'STALE_EVIDENCE', 'REVOKED', 'SUPERSEDED',
 ]);
 
+export function preflightMemoryRetrieval({ currentSha, memories = [] } = {}) {
+  const current = assertExactSha(currentSha, 'currentSha');
+  if (!Array.isArray(memories)) throw new Error('memory retrieval result must be an array');
+  const classified = memories.map(memory => classifyKnowledgeForSha(memory, current));
+  const executable = classified.filter(memory => memory.usable === true);
+  const warnings = classified.filter(memory => memory.usable !== true).map(memory => ({
+    ...memory,
+    retrieval_blocked: true,
+    warning: memory.sha_freshness === 'STALE_EVIDENCE'
+      ? 'stale evidence; excluded from execution context'
+      : 'memory is not PROMOTED; excluded from execution context',
+  }));
+  return {
+    currentSha: current,
+    retrievalCount: classified.length,
+    executableMemory: executable,
+    warnings,
+    blockedCount: warnings.length,
+  };
+}
+
+export async function searchSharedMemoryForContext({ query, currentSha, limit = 8 } = {}, env = process.env) {
+  const rows = await searchSharedMemory({ query, currentSha, limit, includeCandidates: true }, env);
+  if (!Array.isArray(rows)) throw new Error('MEMORY_RETRIEVAL_INVALID_RESPONSE');
+  return preflightMemoryRetrieval({ currentSha, memories: rows });
+}
+
 export function assertExactSha(value, field = 'sha') {
   if (!SHA_RE.test(value ?? '')) throw new Error(field + ' must be an exact 40-character git SHA');
   return String(value).toLowerCase();

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { appendFileSync, existsSync, readFileSync, statSync } from "node:fs";
+import { validateExperienceLifecycle, EXPERIENCE_LIFECYCLE } from "./agent-learning/experience-runtime.mjs";
 import { resolve, join, relative } from "node:path";
 
 const ROOT = process.cwd();
@@ -102,6 +103,12 @@ function findAgent(id) {
 
 function assertSha(value, label) {
   if (!/^[0-9a-f]{40}$/u.test(String(value ?? ""))) throw new Error(label + " must be an exact 40-char SHA");
+}
+
+export const EXPERIENCE_EVENT_TYPES = EXPERIENCE_LIFECYCLE;
+
+export function validateExperienceEventSequence(events) {
+  return validateExperienceLifecycle(events);
 }
 
 export function appendActivityEvent({ agentId, eventType, taskId = "UNBOUND", shaBefore, summary, scope = "task-scope", action = "not-specified", files = "none", outcome = "RECORDED", evidence = "none", shaAfter = "UNCHANGED", blocker = "none", next = "none", timestamp = new Date().toISOString(), root = ROOT }) {
