@@ -10,7 +10,7 @@ const root = process.cwd();
 const REPORT_DIR = 'الوكلاء/المستكشف AI/تقارير المستكشف';
 
 export function sh(command, args = []) {
-  return execFileSync(command, args, { cwd: root, encoding: 'utf8' }).trim();
+  return execFileSync(command, args, { cwd: root, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 }).trim();
 }
 
 export function sha256(buffer) {
