@@ -110,3 +110,5 @@ export * from "./call-policy";
 export * from "./call-gate-a";
 
 export * from "./call-self-development";
+
+export * from "./call-workspace";
