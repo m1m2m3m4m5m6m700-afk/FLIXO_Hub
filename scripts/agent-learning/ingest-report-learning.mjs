@@ -38,9 +38,9 @@ function canonicalReportFiles(root = REPORT_CENTER) {
   return files.sort((a, b) => a.path.localeCompare(b.path, 'en'));
 }
 
-function parseStrictCandidate(path) {
+function parseRawProposal(path) {
   const text = readFileSync(path, 'utf8');
-  if (!text.includes('status: candidate')) throw new Error(path + ': candidate lifecycle required');
+  if (!/(?:^|\\n)status: (?:inbox|triaged|queued)(?:\\n|$)/.test(text)) throw new Error(path + ': raw proposal lifecycle required');
   const json = execFileSync('python3', [
     '.agent-intelligence/scripts/parse-strict-proposal.py',
     path,
@@ -59,7 +59,7 @@ async function main() {
 
   const results = [];
   for (const item of files) {
-    const proposal = parseStrictCandidate(item.path);
+    const proposal = parseRawProposal(item.path);
     const rel = relative(process.cwd(), item.path).replaceAll('\\', '/');
     const expectedAgentId = item.agent.id;
     results.push(await submitMemoryProposal({
