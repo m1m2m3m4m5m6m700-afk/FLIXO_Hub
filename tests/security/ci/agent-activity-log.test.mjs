@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import { auditActivityLogs } from "../../../scripts/agent-activity-ledger.mjs";
 
@@ -11,7 +12,6 @@ test("all registered agents have fail-closed append-only activity logs", () => {
 });
 
 test("activity log protocol forbids untracked completion semantics", async () => {
-  const { readFileSync } = await import("node:fs");
   const registry = readFileSync("الوكلاء.md", "utf8");
   assert.match(registry, /## 26\. بروتوكول التتبع الإلزامي/u);
   assert.match(registry, /TRACE-BLOCKED/u);
@@ -20,8 +20,6 @@ test("activity log protocol forbids untracked completion semantics", async () =>
 
 
 test("scout activity logs live inside their agent packages, never the research inbox", () => {
-  const registry = JSON.parse(readFileSync("package.json", "utf8")); // package.json only anchors local fs access in this test
-  void registry;
   const source = readFileSync("الوكلاء.md", "utf8");
   assert.match(source, /"id": "AGENT-08"[\s\S]*?"activityLog": "الوكلاء AI\/المستكشفين\/Architecture Scout\/سجل النشاط\.md"/u);
   assert.match(source, /"id": "AGENT-09"[\s\S]*?"activityLog": "الوكلاء AI\/المستكشفين\/Technology Scout\/سجل النشاط\.md"/u);
