@@ -323,12 +323,12 @@ test('context compiler treats SHA-less failures as warnings', async () => {
 
 
 test('external knowledge snapshot suite remains candidate-only and passes its security contract', async () => {
-  const { execFileSync } = await import('node:child_process');
-  const output = execFileSync('python3', ['-m', 'unittest', 'tests/agent-intelligence/test_discovery.py'], {
+  const { spawnSync } = await import('node:child_process');
+  const result = spawnSync('python3', ['-m', 'unittest', 'tests/agent-intelligence/test_discovery.py'], {
     cwd: process.cwd(),
     encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe'],
+    stdio: 'pipe',
   });
-  assert.match(output, /OK/);
-  assert.doesNotMatch(output, /candidate.*PROMOTED|status.*PROMOTED/i);
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.doesNotMatch((result.stdout || '') + (result.stderr || ''), /candidate.*PROMOTED|status.*PROMOTED/i);
 });
