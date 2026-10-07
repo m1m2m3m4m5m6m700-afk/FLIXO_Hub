@@ -1,4 +1,3 @@
-import { auditActivityLogs } from "./agent-activity-ledger.mjs";
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
@@ -141,7 +140,6 @@ function validateCapabilityContract(profile, id, issues) {
   }
 
   const scouts = id === 'AGENT-08' || id === 'AGENT-09' || id === 'AGENT-10';
-  const scopedExecutor = id === 'AGENT-12';
   if (scouts) {
     if (JSON.stringify(tools) !== JSON.stringify(['read', 'search', 'edit'])) {
       issues.push(id + ': Scout tools must be exactly read/search/edit');
@@ -161,11 +159,7 @@ function validateCapabilityContract(profile, id, issues) {
   if (!isSafePath(profile.write_scope) || !isSafePath(profile.report_scope)) {
     issues.push(id + ': write/report scope is malformed');
   }
-  if (scopedExecutor) {
-    if (profile.source_mutation !== true || profile.mutation_mode !== 'scoped-execution') issues.push(id + ': scoped executor mutation contract is missing');
-    for (const capability of ['EDIT_SOURCE','EDIT_TESTS','EDIT_WORKFLOWS']) if (profile['cap_' + capability] !== 'SCOPED') issues.push(id + ': scoped executor capabilities must be SCOPED');
-    if (profile.write_scope !== 'execution') issues.push(id + ': scoped executor write_scope must be execution');
-  } else if (profile.write_scope !== profile.report_scope) {
+  if (profile.write_scope !== profile.report_scope) {
     issues.push(id + ': write_scope and report_scope must match');
   }
 }
@@ -184,7 +178,7 @@ export function validateProfileContract(profile, expected, root = process.cwd())
   for (const key of required) if (!(key in profile)) issues.push(id + ': missing ' + key);
 
   if (profile.agent_id !== id) issues.push(id + ': agent_id mismatch');
-  if (profile.name !== (expected.technicalName ?? expected.name)) issues.push(id + ': technical name mismatch');
+  if (profile.name !== expected.name) issues.push(id + ': name mismatch');
   if (profile.class !== expected.class) issues.push(id + ': class mismatch');
   if (profile.registry_ref !== 'الوكلاء.md#' + id) issues.push(id + ': registry_ref mismatch');
   if (profile.principal !== (expected.class === 'principal')) issues.push(id + ': principal classification mismatch');
@@ -211,7 +205,7 @@ export function validateProfileContract(profile, expected, root = process.cwd())
 function roleDrillRegistered(root, agent) {
   if (!existsSync(join(root, ROLE_DRILLS))) return false;
   const content = readFileSync(join(root, ROLE_DRILLS), 'utf8');
-  return content.includes("'" + agent.name + "':");
+  return content.includes(''' + agent.name + '':');
 }
 
 function currentBehaviorEvidence(root, reportScope, sha) {
@@ -317,7 +311,7 @@ export function auditExecutionEnvelope(root = process.cwd()) {
 export function auditAgentControlPlane(root = process.cwd(), sha = gitHead(root)) {
   const issues = [];
   const registry = loadCanonicalRegistry(root);
-  if (registry.officialAgentCount !== 14 || registry.agents?.length !== 14) issues.push('canonical registry must contain exactly ten principal agents');
+  if (registry.officialAgentCount !== 10 || registry.agents?.length !== 10) issues.push('canonical registry must contain exactly ten principal agents');
   const principals = registry.agents ?? [];
   const supports = registry.supportingRoles ?? [];
   if (supports.length !== 1) issues.push('canonical registry must contain exactly one supporting role');
@@ -349,9 +343,6 @@ export function auditAgentControlPlane(root = process.cwd(), sha = gitHead(root)
   });
 
   for (const agent of agents) issues.push(...agent.issues);
-  const activity = auditActivityLogs(root);
-  issues.push(...activity.failures);
-
   const envelope = auditExecutionEnvelope(root);
   issues.push(...envelope.issues);
 

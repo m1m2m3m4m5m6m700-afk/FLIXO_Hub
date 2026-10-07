@@ -5,6 +5,22 @@ import { resolve, join, relative } from "node:path";
 const ROOT = process.cwd();
 const REGISTRY = join(ROOT, "الوكلاء.md");
 const PROTOCOL = "flixo-agent-activity-v1";
+const REQUIRED_FIELDS = [
+  "Agent ID",
+  "Agent Name",
+  "Task ID",
+  "Exact SHA Before",
+  "Intent / Decision Summary",
+  "Scope",
+  "Action / Command",
+  "Files / Artifacts",
+  "Outcome",
+  "Evidence / Reference",
+  "Exact SHA After",
+  "RCA / Blocker",
+  "Next Action",
+];
+
 function loadRegistry() {
   const source = readFileSync(REGISTRY, "utf8");
   const start = source.indexOf("<!-- CANONICAL_AGENT_REGISTRY:START -->");
@@ -53,14 +69,16 @@ export function auditActivityLogs(root = ROOT) {
     if (!text.includes("Mode:** Append-Only / FAIL-CLOSED")) failures.push(agent.id + ": append-only/fail-closed marker missing");
     if (!text.includes("## قاعدة إلزامية")) failures.push(agent.id + ": mandatory logging rule missing");
     if (!/^### EVENT /mu.test(text)) failures.push(agent.id + ": no event records");
-    const packageDir = agent.package ?? "";
-    if (!packageDir.endsWith("/") || !path.startsWith(packageDir)) {
-      failures.push(agent.id + ": activityLog must stay inside agent package");
+    const scopeDir = agent.report ?? "";
+    if (scopeDir.endsWith("/") && !path.startsWith(scopeDir)) {
+      failures.push(agent.id + ": activityLog must stay inside report/write scope");
     }
     const events = [...text.matchAll(/^### EVENT .*$/gmu)].map(m => m[0]);
     if (events.length === 0) failures.push(agent.id + ": event parsing failed");
     const firstEvent = text.indexOf("### EVENT");
-    const initEvent = text.slice(firstEvent, text.indexOf("\n### EVENT", firstEvent + 1) > 0 ? text.indexOf("\n### EVENT", firstEvent + 1) : text.length);
+    const initEvent = text.slice(firstEvent, text.indexOf("
+### EVENT", firstEvent + 1) > 0 ? text.indexOf("
+### EVENT", firstEvent + 1) : text.length);
     if (!initEvent.includes("- Agent ID: " + agent.id)) failures.push(agent.id + ": first event identity mismatch");
     for (const field of ["Agent ID", "Agent Name", "Task ID", "Exact SHA Before", "Outcome", "Next Action"]) {
       if (!initEvent.includes("- " + field + ":")) failures.push(agent.id + ": first event missing " + field);

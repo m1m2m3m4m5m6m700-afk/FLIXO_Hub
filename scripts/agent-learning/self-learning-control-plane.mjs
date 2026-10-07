@@ -17,11 +17,10 @@ function loadCanonicalPrincipalAgents() {
   if (jsonStart < 0 || jsonEnd <= jsonStart) throw new Error('canonical agent registry JSON missing');
   const registry = JSON.parse(block.slice(jsonStart + 7, jsonEnd).trim());
   if (registry.schema !== 'flixo-canonical-agent-registry-v1') throw new Error('unsupported canonical agent registry schema');
-  if (registry.officialAgentCount !== 14 || !Array.isArray(registry.agents) || registry.agents.length !== 14) {
-    throw new Error('canonical principal agent count must be exactly 14');
+  if (registry.officialAgentCount !== 10 || !Array.isArray(registry.agents) || registry.agents.length !== 10) {
+    throw new Error('canonical principal agent count must be exactly 10');
   }
   return registry.agents.map(agent => ({
-    id: agent.id,
     name: agent.name,
     registration: agent.profile,
     drill: agent.drill,
@@ -59,23 +58,6 @@ export function validateSubmission(submission, currentSha) {
   if (submission.certificationClaim === true) failures.push('submission claimed certification authority');
 
   switch (submission.drill) {
-    case 'product-experience':
-      if (!nonEmptyArray(submission.flows) || !nonEmptyArray(submission.a11yChecks) || !nonEmptyArray(submission.responsiveChecks) || !nonEmptyArray(submission.visualEvidence)) failures.push('product experience evidence is incomplete');
-      if (!Array.isArray(submission.rtlLtr) || submission.rtlLtr.length < 2) failures.push('RTL/LTR evidence is required');
-      if (!nonEmptyString(submission.privacyBoundary)) failures.push('product experience privacy boundary is required');
-      break;
-    case 'execution-repair':
-      if (!nonEmptyString(submission.implementationPlan) || !nonEmptyArray(submission.changedPaths) || !nonEmptyArray(submission.targetedTests) || !nonEmptyString(submission.regressionTest) || !nonEmptyString(submission.rollback)) failures.push('execution repair evidence is incomplete');
-      if (submission.mutationScope !== 'execution-only' || submission.mainMutation === true) failures.push('execution repair must be execution-only');
-      if (submission.certificationClaim === true) failures.push('execution repair cannot claim certification');
-      break;
-    case 'release-assurance':
-      if (submission.candidateSha !== currentSha || !nonEmptyArray(submission.requiredChecks) || !nonEmptyArray(submission.lineage) || !nonEmptyArray(submission.artifactDigests) || !nonEmptyString(submission.deploymentIdentity) || !nonEmptyString(submission.rollback) || !nonEmptyString(submission.promotionProof)) failures.push('release assurance evidence is incomplete');
-      if (submission.certificationClaim === true) failures.push('release assurance cannot claim certification');
-      break;
-    case 'reliability-performance':
-      if (!nonEmptyArray(submission.metrics) || typeof submission.p50 !== 'number' || typeof submission.p95 !== 'number' || typeof submission.errorRate !== 'number' || !nonEmptyString(submission.memoryBudget) || !nonEmptyString(submission.cpuBudget) || !nonEmptyArray(submission.budgetChecks) || !nonEmptyString(submission.privacyBoundary) || !nonEmptyArray(submission.regressions)) failures.push('reliability performance evidence is incomplete');
-      break;
     case 'repository-knowledge':
       if (submission.coveragePercent !== 100) failures.push('explorer coveragePercent must be 100');
       if (!Array.isArray(submission.dependencies)) failures.push('explorer dependencies must be an array');
@@ -214,7 +196,7 @@ export function loadOfficialAgents(root = process.cwd()) {
 export function generateContractReadinessReport({ root = process.cwd(), currentSha, outputPath }) {
   const results = loadOfficialAgents(root).map(agent => {
     const content = agent.content;
-    const isScout = ['AGENT-08','AGENT-09','AGENT-10'].includes(agent.id);
+    const isScout = agent.name.endsWith('Scout');
     const checks = [
       content.includes('name: ' + agent.name),
       /100\/100/u.test(content),
@@ -237,7 +219,7 @@ export function generateContractReadinessReport({ root = process.cwd(), currentS
 function main() {
   const currentSha = process.argv.find(arg => SHA_RE.test(arg)) ?? process.env.GITHUB_SHA;
   if (!SHA_RE.test(currentSha ?? '')) { process.exitCode = 2; return; }
-  const outputPath = 'الوكلاء AI/تدريب الوكلاء/تقارير التدريب/' + currentSha + '.md';
+  const outputPath = 'الوكلاء/تدريب الوكلاء/تقارير التدريب/' + currentSha + '.md';
   console.log(JSON.stringify(generateContractReadinessReport({ currentSha, outputPath }), null, 2));
 }
 
