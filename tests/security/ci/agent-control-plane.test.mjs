@@ -85,3 +85,10 @@ test('execution envelope is derived from the canonical task ledger without becom
     assert.ok(['BOUND', 'PENDING_CLAIM'].includes(envelope.bindingStatus));
   }
 });
+
+test('declared lifecycle cannot outrun derived lifecycle', async () => {
+  const audit = auditAgentControlPlane(ROOT, 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+  for (const agent of audit.agents) {
+    assert.equal(agent.issues.some(issue => /declared lifecycle must equal/u.test(issue)), false, agent.id);
+  }
+});
