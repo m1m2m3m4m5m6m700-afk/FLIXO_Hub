@@ -48,7 +48,7 @@ def build_proposal(root,manifest,source,snapshot):
     suffix=int(now.strftime("%H%M%S%f")[:8])
     proposal_id=f"{PREFIX[manifest['role']]}-{suffix:08d}"
     proposal={
-      "id":proposal_id,"category":CATEGORIES[manifest["role"]],"title":source["title"],"status":"candidate","entity_key":entity,
+      "id":proposal_id,"category":CATEGORIES[manifest["role"]],"title":source["title"],"status":"inbox","entity_key":entity,
       "lifecycle":{"created_at":now.strftime("%Y-%m-%dT%H:%M:%SZ"),"expires_at":(now+timedelta(days=int(manifest.get("ttl_days",14)))).strftime("%Y-%m-%dT%H:%M:%SZ"),"last_viewed_by_human":now.strftime("%Y-%m-%dT%H:%M:%SZ")},
       "source":{"snapshot_id":snapshot.snapshot_id,"vendor_affiliated":bool(source.get("vendor_affiliated",False))},
       "evidence":{"quote":quote_unique(Path(snapshot.text_path).read_text(encoding="utf-8"))},
@@ -60,7 +60,7 @@ def build_proposal(root,manifest,source,snapshot):
 
 def validate_proposal(p,root,snapshot):
     required={"id","category","title","status","entity_key","lifecycle","source","evidence","inference","triage"}
-    if set(p)!=required or p["status"]!="candidate": raise ValueError("discovery emits candidate reports only with exact top-level schema")
+    if set(p)!=required or p["status"]!="inbox": raise ValueError("discovery emits inbox reports only with exact top-level schema")
     if not re.fullmatch(r"^[A-Z][A-Z0-9_-]{1,31}-[0-9]{2,8}$",p["id"]): raise ValueError("invalid proposal id")
     if not re.fullmatch(r"^[a-z][a-z0-9._-]{1,63}$",p["category"]): raise ValueError("invalid category")
     if not re.fullmatch(r"^[a-z0-9][a-z0-9._:/-]{1,127}$",p["entity_key"]): raise ValueError("invalid entity_key")
