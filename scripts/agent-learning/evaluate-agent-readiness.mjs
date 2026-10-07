@@ -52,19 +52,19 @@ const ROLE_RULES = {
     required:['counterexample','false positives','false negatives','REFUTED']
   },
   'FLIXO Architecture Scout': {
-    contract:'.github/agents/flixo-scout-architecture.agent.md',
+    contract:'الوكلاء/المستكشفين/Architecture Scout/المستكشف.md',
     report:'.agent-intelligence/inbox/',
     anchors:['.agent-intelligence/scouts/architecture.yaml','src/config/registry.ts','src/lib/execution/canonical-executor.ts'],
     required:['tools: ["read", "search", "edit"]','inbox','Proposal Schema v4','rollback','provenance']
   },
   'FLIXO Technology Scout': {
-    contract:'.github/agents/flixo-scout-technology.agent.md',
+    contract:'الوكلاء/المستكشفين/Technology Scout/المستكشف.md',
     report:'.agent-intelligence/inbox/',
     anchors:['.agent-intelligence/scouts/technology.yaml','package.json','src/lib/execution/canonical-executor.ts'],
     required:['tools: ["read", "search", "edit"]','inbox','Proposal Schema v4','licensing','compatibility']
   },
   'FLIXO Ecosystem Scout': {
-    contract:'.github/agents/flixo-scout-ecosystem.agent.md',
+    contract:'الوكلاء/المستكشفين/Ecosystem Scout/المستكشف.md',
     report:'.agent-intelligence/inbox/',
     anchors:['.agent-intelligence/scouts/ecosystem.yaml','package.json','src/config/registry.ts'],
     required:['tools: ["read", "search", "edit"]','inbox','Proposal Schema v4','provenance','maturity']
