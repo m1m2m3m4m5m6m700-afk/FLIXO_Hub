@@ -15,7 +15,6 @@ import {
 
 export type CallAgentId =
   | "master"
-  | "master-opponent"
   | "builder"
   | "opponent"
   | "adversary-builder"
@@ -31,7 +30,6 @@ export type CallAgentId =
 
 export type CallTaskKind =
   | "plan"
-  | "oppose-master"
   | "build"
   | "oppose"
   | "red-team"
@@ -65,9 +63,8 @@ export type CallAgentAssignment = Readonly<{
 
 const AGENT_ROLE: Readonly<Record<CallAgentId, CallModelRole>> = Object.freeze({
   master: "master",
-  "master-opponent": "opponent",
-  builder: "builder",
   opponent: "opponent",
+  builder: "builder",
   "adversary-builder": "red_team",
   "adversary-explorer": "opponent",
   explorer: "explorer",
@@ -82,7 +79,6 @@ const AGENT_ROLE: Readonly<Record<CallAgentId, CallModelRole>> = Object.freeze({
 
 const TASK_AGENT: Readonly<Record<CallTaskKind, CallAgentId>> = Object.freeze({
   plan: "master",
-  "oppose-master": "master-opponent",
   build: "builder",
   oppose: "opponent",
   "red-team": "adversary-builder",
