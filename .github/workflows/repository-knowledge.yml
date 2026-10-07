@@ -4,7 +4,7 @@ on:
   push:
     branches: [execution]
     paths-ignore:
-      - 'الوكلاء/المستكشف AI/تقارير المستكشف/**'
+      - 'الوكلاء AI/المستكشف AI/تقارير المستكشف/**'
   workflow_dispatch:
 
 permissions:
@@ -55,7 +55,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          REPORT="الوكلاء/المستكشف AI/تقارير المستكشف/${GITHUB_SHA}.md"
+          REPORT="الوكلاء AI/المستكشف AI/تقارير المستكشف/${GITHUB_SHA}.md"
           test -s "$REPORT"
           grep -Fq -- "- Exact SHA: ${GITHUB_SHA}" "$REPORT"
           grep -Fq -- "- Uncovered repository-authored text lines: 0" "$REPORT"
@@ -94,7 +94,7 @@ jobs:
           git config user.name "المستكشف AI"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          REPORT="الوكلاء/المستكشف AI/تقارير المستكشف/${GITHUB_SHA}.md"
+          REPORT="الوكلاء AI/المستكشف AI/تقارير المستكشف/${GITHUB_SHA}.md"
           test -s "$REPORT"
           REPORT_COPY="${RUNNER_TEMP}/flixo-knowledge-${GITHUB_SHA}.md"
           cp "$REPORT" "$REPORT_COPY"
@@ -107,11 +107,11 @@ jobs:
             git rm -rf . >/dev/null 2>&1 || true
           fi
 
-          rm -rf 'الوكلاء/المستكشف AI/تقارير المستكشف'
-          mkdir -p 'الوكلاء/المستكشف AI/تقارير المستكشف'
+          rm -rf 'الوكلاء AI/المستكشف AI/تقارير المستكشف'
+          mkdir -p 'الوكلاء AI/المستكشف AI/تقارير المستكشف'
           cp "$REPORT_COPY" "$REPORT"
 
-          git add 'الوكلاء/المستكشف AI/تقارير المستكشف/'
+          git add 'الوكلاء AI/المستكشف AI/تقارير المستكشف/'
           git diff --cached --name-only
           test -n "$(git diff --cached --name-only)"
           git commit -m "docs(knowledge): publish execution SHA ${GITHUB_SHA}"
