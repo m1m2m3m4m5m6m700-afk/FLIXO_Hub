@@ -7,6 +7,7 @@ import {
   rankAgentsForTask,
   scoreAgentForTask,
   selectAssignmentQuartet,
+  selectAssignmentTeam,
   spawnSubtask,
   validateTypedHandoff,
   type AssignmentAgentProfile,
@@ -260,4 +261,20 @@ test("progress observations drive reassignment and replanning", () => {
   assert.equal(decideProgressAction("SLOW", 0), "REASSIGN");
   assert.equal(decideProgressAction("STALLED", 1), "REASSIGN");
   assert.equal(decideProgressAction("STALLED", 2), "REPLAN");
+});
+
+test("assignment team pairs solver with an independent opponent", () => {
+  const solverRanked = rankAgentsForTask(agents, task);
+  const opponentRanked = [...solverRanked].reverse();
+  const team = selectAssignmentTeam({
+    assignmentId: "team-1",
+    solverRanked,
+    opponentRanked,
+    verifierCandidates: ["agent-c"],
+    escalationCandidates: ["agent-d"],
+    requireIndependentVerifier: true,
+  });
+  assert.equal(team.solverAgentId, "agent-a");
+  assert.notEqual(team.opponentAgentId, team.solverAgentId);
+  assert.ok(team.verifierAgentId !== team.solverAgentId);
 });
