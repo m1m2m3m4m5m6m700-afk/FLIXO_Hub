@@ -96,4 +96,16 @@ class DiscoveryTests(unittest.TestCase):
         with self.assertRaises(SnapshotError): SnapshotStore(self.snaps,opener=lambda *a,**k: (_ for _ in ()).throw(OSError("network down"))).fetch_and_store("https://example.invalid")
     def test_bad_url_rejected(self):
         with self.assertRaises(SnapshotError): SnapshotStore(self.snaps,opener=lambda *a,**k:resp(b"x")).fetch_and_store("file:///etc/passwd")
+
+    def test_source_credentials_and_unsupported_scheme_are_rejected(self):
+        for url in ["https://user:pass@example.invalid/docs", "ftp://example.invalid/docs", "http://"]:
+            with self.assertRaises(SnapshotError):
+                SnapshotStore(self.snaps,opener=lambda *a,**k:resp(b"x")).fetch_and_store(url)
+
+    def test_snapshot_record_is_self_describing_and_timestamped(self):
+        s=SnapshotStore(self.snaps,opener=lambda *a,**k:resp(b"Immutable evidence")).fetch_and_store("https://example.invalid")
+        data=json.loads(Path(s.json_path).read_text(encoding="utf-8"))
+        for key in ["snapshot_id","captured_at","url","source_type","stability","evidence_kind","content"]:
+            self.assertIn(key,data)
+        datetime.fromisoformat(data["captured_at"].replace("Z","+00:00"))
 if __name__=="__main__":unittest.main()

@@ -7,6 +7,7 @@ import {
   isPromotableMemory,
   validateMemoryProposal,
   createSupabaseRpcClient,
+  preflightMemoryRetrieval,
 } from '../../../scripts/agent-learning/shared-memory.mjs';
 
 const SHA = '0000000000000000000000000000000000000001';
@@ -85,4 +86,20 @@ test('RPC client uses service-only authorization without embedding secrets in pa
   assert.equal(calls[0].options.headers.apikey, 'secret');
   assert.equal(calls[0].options.headers.Authorization, 'Bearer secret');
   assert.equal(JSON.stringify(calls[0].options.body).includes('secret'), false);
+});
+
+  
+test('memory preflight allows only PROMOTED current-SHA memory to execute', () => {
+  const result = preflightMemoryRetrieval({
+    currentSha: SHA,
+    memories: [
+      { memory_id: 'current', status: 'PROMOTED', tested_sha: SHA },
+      { memory_id: 'validated', status: 'VALIDATED', tested_sha: SHA },
+      { memory_id: 'stale', status: 'PROMOTED', tested_sha: OTHER_SHA },
+      { memory_id: 'disputed', status: 'DISPUTED', tested_sha: SHA },
+    ],
+  });
+  assert.deepEqual(result.executableMemory.map(item => item.memory_id), ['current']);
+  assert.equal(result.blockedCount, 3);
+  assert.ok(result.warnings.some(item => item.memory_id === 'stale' && item.sha_freshness === 'STALE_EVIDENCE'));
 });

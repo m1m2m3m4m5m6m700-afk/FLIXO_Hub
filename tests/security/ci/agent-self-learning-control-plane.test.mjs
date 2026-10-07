@@ -161,3 +161,35 @@ test('role submissions reject cross-agent drill identity and unknown agents', as
   }, SHA);
   assert.ok(unknownFailures.includes('agent is not a registered principal agent'));
 });
+
+  
+test('learning metrics are bounded and deterministic', async () => {
+  const { computeLearningMetrics, validateLearningMetrics } = await import('../../../scripts/agent-learning/learning-metrics.mjs');
+  const metrics = computeLearningMetrics({
+    retrievals: [
+      { sha_freshness: 'CURRENT_SHA', tested_sha: SHA, current_sha: SHA },
+      { sha_freshness: 'STALE_EVIDENCE', tested_sha: OTHER_SHA, current_sha: SHA },
+    ],
+    usage: [
+      { outcome: 'HELPFUL', memory_status: 'PROMOTED' },
+      { outcome: 'HARMFUL', memory_status: 'PROMOTED' },
+      { outcome: 'NEUTRAL', memory_status: 'VALIDATED' },
+    ],
+    memories: [
+      { status: 'PROMOTED', regression_evidence: true, independent_confirmations: 2, contradiction_count: 0 },
+      { status: 'DISPUTED', regression_evidence: false, independent_confirmations: 1, contradiction_count: 1 },
+    ],
+    validationDurationsMs: [100, 300],
+    promotionDurationsMs: [500],
+  });
+  validateLearningMetrics(metrics);
+  assert.equal(metrics.retrieval_count, 2);
+  assert.equal(metrics.helpful_usage, 1);
+  assert.equal(metrics.harmful_usage, 1);
+  assert.equal(metrics.reuse_success_rate, 0.5);
+  assert.equal(metrics.regression_survival, 1);
+  assert.equal(metrics.contradiction_rate, 0.5);
+  assert.equal(metrics.staleness_rate, 0.5);
+  assert.equal(metrics.time_to_validation, 200);
+  assert.equal(metrics.time_to_promotion, 500);
+});
