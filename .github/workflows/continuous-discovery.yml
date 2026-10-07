@@ -39,6 +39,23 @@ jobs:
     permissions:
       contents: read
     steps:
+      - name: Fail-closed invocation boundary
+        env:
+          REPOSITORY: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          ACTOR: ${{ github.actor }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$REPOSITORY" = "m1m2m3m4m5m6m700-afk/FLIXO_Hub"
+          case "$EVENT_NAME" in
+            push) test "$REF" = "refs/heads/execution" ;;
+            workflow_dispatch) test "$REF" = "refs/heads/execution"; test "$ACTOR" = "m1m2m3m4m5m6m700-afk" ;;
+            schedule) ;;
+            *) echo "FAIL_CLOSED: unsupported discovery event"; exit 1 ;;
+          esac
+
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
         with:
           ref: ${{ github.event.pull_request.head.sha }}
@@ -71,9 +88,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git fetch origin execution --no-tags
-          EXECUTION_SHA="$(git rev-parse origin/execution)"
+          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            EXECUTION_SHA="$GITHUB_SHA"
+          else
+            git fetch origin execution --no-tags
+            EXECUTION_SHA="$(git rev-parse origin/execution)"
+          fi
+          test "$EXECUTION_SHA" =~ ^[0-9a-f]{40}$
+          git fetch origin "$EXECUTION_SHA" --depth=1
           git switch --detach "$EXECUTION_SHA"
+          test "$(git rev-parse HEAD)" = "$EXECUTION_SHA" 
           git switch --create "scout/discovery-$GITHUB_RUN_ID"
           echo "EXECUTION_SHA=$EXECUTION_SHA" >> "$GITHUB_ENV"
       - name: Run infinite Scouts and snapshots

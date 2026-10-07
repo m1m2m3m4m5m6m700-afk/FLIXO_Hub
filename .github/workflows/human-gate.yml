@@ -41,13 +41,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          case "$GITHUB_ACTOR" in
-            *"[bot]"|"github-actions"|"dependabot")
-              echo "FAIL_CLOSED: automated actor cannot approve/reject/defer"
-              exit 1
-              ;;
-          esac
-          test -n "$GITHUB_ACTOR"
+          test "$GITHUB_REPOSITORY" = "m1m2m3m4m5m6m700-afk/FLIXO_Hub"
+          test "$GITHUB_REF_NAME" = "execution"
+          test "$GITHUB_ACTOR" = "m1m2m3m4m5m6m700-afk" 
 
       - name: Checkout exact execution branch
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09

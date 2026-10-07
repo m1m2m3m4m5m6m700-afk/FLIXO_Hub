@@ -31,7 +31,16 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
         with:
           fetch-depth: 0
+          persist-credentials: false
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Verify exact candidate SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXPECTED_SHA="$(jq -r '.pull_request.head.sha // .after // empty' "$GITHUB_EVENT_PATH")"
+          test -n "$EXPECTED_SHA" || EXPECTED_SHA="$GITHUB_SHA"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
 
       - name: Verify Scout profiles and ledger
         run: node scripts/verify-scout-boundary.mjs

@@ -24,3 +24,6 @@
 /src/server/admin/** @m1m2m3m4m5m6m700-afk
 /src/config/registry.ts @m1m2m3m4m5m6m700-afk
 /scripts/ci/** @m1m2m3m4m5m6m700-afk
+
+/watchdog/ @m1m2m3m4m5m6m700-afk
+/scripts/agent/ @m1m2m3m4m5m6m700-afk

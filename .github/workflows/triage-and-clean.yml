@@ -25,6 +25,7 @@ concurrency:
 
 jobs:
   pipeline:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
     name: Agent-3 mandatory triage pipeline
     permissions:
       contents: read
@@ -33,6 +34,19 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
+      - name: Validate invocation boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "m1m2m3m4m5m6m700-afk/FLIXO_Hub"
+          case "$GITHUB_EVENT_NAME" in
+            push) test "$GITHUB_REF" = "refs/heads/execution" ;;
+            pull_request) test "$(jq -r '.pull_request.head.repo.full_name' "$GITHUB_EVENT_PATH")" = "$GITHUB_REPOSITORY"; test "$(jq -r '.pull_request.base.ref' "$GITHUB_EVENT_PATH")" = "execution" ;;
+            schedule) ;;
+            workflow_dispatch) test "$GITHUB_REF" = "refs/heads/execution"; test "$GITHUB_ACTOR" = "m1m2m3m4m5m6m700-afk" ;;
+            *) echo "FAIL_CLOSED: unsupported triage event"; exit 1 ;;
+          esac
+
       - name: Checkout exact candidate
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
         with:
@@ -166,6 +180,18 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - name: Validate publication boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "m1m2m3m4m5m6m700-afk/FLIXO_Hub"
+          case "$GITHUB_EVENT_NAME" in
+            push) test "$GITHUB_REF" = "refs/heads/execution" ;;
+            schedule) ;;
+            workflow_dispatch) test "$GITHUB_REF" = "refs/heads/execution"; test "$GITHUB_ACTOR" = "m1m2m3m4m5m6m700-afk" ;;
+            *) echo "FAIL_CLOSED: publication event is not allowed"; exit 1 ;;
+          esac
+
       - name: Checkout current execution head
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
         with:

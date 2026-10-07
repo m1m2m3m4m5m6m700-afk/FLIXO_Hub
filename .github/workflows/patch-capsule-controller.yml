@@ -17,9 +17,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-      SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY || secrets.SUPABASE_SERVICE_ROLE_KEY }}
       FLIXO_CANONICAL_CONTROLLER: assistantController
       FLIXO_TARGET_BRANCH: execution
     steps:
@@ -36,6 +33,10 @@ jobs:
           cache: npm
 
       - name: Validate controller credentials
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY || secrets.SUPABASE_SERVICE_ROLE_KEY }}
         shell: bash
         run: |
           set -euo pipefail
@@ -45,6 +46,9 @@ jobs:
 
       - name: Select durable Patch Capsule
         id: capsule
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY || secrets.SUPABASE_SERVICE_ROLE_KEY }}
         shell: bash
         run: |
           set -euo pipefail
@@ -61,6 +65,9 @@ jobs:
         if: steps.capsule.outputs.QUEUE_EMPTY != 'true'
         env:
           QUEUE_ID: ${{ steps.capsule.outputs.queue_id }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY || secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           set -euo pipefail
           node scripts/ci/controller-reconcile-and-publish.mjs --queue-id "$QUEUE_ID" --out controller-patch-capsule-evidence.json
