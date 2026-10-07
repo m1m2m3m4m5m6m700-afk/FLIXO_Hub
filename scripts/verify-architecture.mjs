@@ -122,6 +122,10 @@ for (const check of authorityChecks) {
   }
 }
 
+if (!existsSync('src/lib/cell/index.ts') || !existsSync('src/lib/cell/hard-control.ts') || !existsSync('src/lib/cell/types.ts')) {
+  authorityViolations.push('CELL control-plane modules are incomplete');
+}
+
 if (existsSync('src/lib/media/media-safety.ts')) {
   authorityViolations.push('src/lib/media/media-safety.ts -> duplicate media safety authority must remain removed');
 }
