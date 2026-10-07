@@ -68,7 +68,7 @@ const scoreMatch = (query: string, tool: ToolDefinition): number => {
 
 export const findToolIntent = (query: string, tools: readonly ToolDefinition[]): IntentMatch[] =>
   tools
-    .filter((tool) => tool.isReady)
+    .filter((tool) => tool.isReady && tool.capability.state === 'EXECUTABLE')
     .map((tool) => ({ tool, score: scoreMatch(query, tool) }))
     .filter(({ score }) => score >= 25)
     .sort((a, b) => b.score - a.score)
