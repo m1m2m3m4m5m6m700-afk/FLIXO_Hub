@@ -395,7 +395,7 @@ export class CellRuntime {
 
     const sequence = ++this.opponentStartSequence;
     const proof = Object.freeze({
-      eventId: \`OPPONENT-START-\${input.taskId}-\${sequence}\`,
+      eventId: `OPPONENT-START-${input.taskId}-${sequence}`,
       sequence,
       taskId: input.taskId,
       assignmentId: input.assignmentId,
@@ -435,7 +435,7 @@ export class CellRuntime {
 
     const sequence = ++this.opponentStartSequence;
     const proof = Object.freeze({
-      eventId: \`SOLVER-DISCLOSURE-\${input.taskId}-\${sequence}\`,
+      eventId: `SOLVER-DISCLOSURE-${input.taskId}-${sequence}`,
       sequence,
       taskId: input.taskId,
       assignmentId: input.assignmentId,
