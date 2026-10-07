@@ -148,6 +148,7 @@ export class CellRuntime {
   private readonly opponentIndependentStarts = new Map<string, OpponentIndependentStartProof>();
   private readonly solverDisclosures = new Map<string, SolverResultDisclosureProof>();\n  private readonly authorityContexts = new Map<string, AuthorityContextArtifact>();
   private readonly selfDevelopmentObjectives = new Map<string, SelfDevelopmentObjective>();
+  private readonly selfDevelopmentTaskLinks = new Map<string, string>();
   private readonly cellLifecycle: CellLifecycleRuntime;
 
   constructor(clock: () => number = () => Date.now()) {
@@ -166,6 +167,20 @@ export class CellRuntime {
     });
     this.tasks.set(taskId, task);
     return task;
+  }
+
+  registerSelfDevelopmentTask(objectiveId: string): RuntimeTask {
+    const objective = this.getSelfDevelopmentTask(objectiveId);
+    if (this.selfDevelopmentTaskLinks.has(objectiveId)) throw new Error("SELF_DEVELOPMENT_TASK_ALREADY_REGISTERED");
+    const task = this.registerTask(objective.objectiveId);
+    this.selfDevelopmentTaskLinks.set(objectiveId, task.taskId);
+    return task;
+  }
+
+  getSelfDevelopmentTaskForTask(taskId: string): SelfDevelopmentObjective {
+    const objectiveId = [...this.selfDevelopmentTaskLinks.entries()].find(([, linkedTaskId]) => linkedTaskId === taskId)?.[0];
+    if (!objectiveId) throw new Error("SELF_DEVELOPMENT_TASK_LINK_NOT_FOUND");
+    return this.getSelfDevelopmentTask(objectiveId);
   }
 
   getTask(taskId: string): RuntimeTask {
