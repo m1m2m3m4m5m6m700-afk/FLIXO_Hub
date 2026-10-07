@@ -25,7 +25,8 @@ set +e; scripts/loop_guard.sh "${args[@]}"; rc=$?; set -e
 out="$(mktemp)"; trap 'rm -f "$out"' EXIT
 set +e; bash -lc "$SANDBOX_CMD" >"$out" 2>&1; rc=$?; set -e
 if (( rc!=0 )); then [[ -n "$ERROR_LOG" ]] && cp "$out" "$ERROR_LOG" || cat "$out" >&2; exit "$rc"; fi
-if jq -e . >/dev/null 2>&1 <"$out" && [[ "$(jq -r '.success//true' "$out")" == "false" ]]; then
+if command -v jq >/dev/null 2>&1 && jq -e . >/dev/null 2>&1 <"$out" && [[ "$(jq -r '.success//true' "$out")" == "false" ]]; then
  [[ -n "$ERROR_LOG" ]] && jq -r '.output//.error//.message//.' "$out" >"$ERROR_LOG"; exit 1
 fi
+[[ -z "$ERROR_LOG" ]] || rm -f "$ERROR_LOG"
 cat "$out"
