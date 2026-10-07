@@ -1,0 +1,67 @@
+name: FLIXO Agent Shared Memory Ingestion
+
+on:
+  push:
+    branches: [execution]
+    paths:
+      - 'الوكلاء/التقارير/AGENT-08 — Architecture Scout/اقتراح-*.yaml'
+      - 'الوكلاء/التقارير/AGENT-09 — Technology Scout/اقتراح-*.yaml'
+      - 'الوكلاء/التقارير/AGENT-10 — Ecosystem Scout/اقتراح-*.yaml'
+      - 'scripts/agent-learning/ingest-report-learning.mjs'
+      - 'scripts/agent-learning/shared-memory.mjs'
+      - '.agent-intelligence/scripts/parse-strict-proposal.py'
+      - '.agent-intelligence/scripts/validate.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flixo-agent-shared-memory-ingestion
+  cancel-in-progress: true
+
+jobs:
+  ingest:
+    name: Ingest evidence-backed scout proposals into shared memory
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact triggering SHA
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify exact execution SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+
+      - name: Require shared-memory credentials when candidate reports exist
+        shell: bash
+        run: |
+          set -euo pipefail
+          CANDIDATES=$(find 'الوكلاء/التقارير' -type f -name 'اقتراح-*.yaml' | wc -l)
+          if [ "${CANDIDATES}" -gt 0 ]; then
+            test -n "${SUPABASE_URL:-}"
+            test -n "${SUPABASE_SERVICE_ROLE_KEY:-}"
+          fi
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+      - name: Ingest canonical scout reports
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/agent-learning/ingest-report-learning.mjs
+
+      - name: Reconcile execution SHA after ingestion
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin execution --no-tags
+          test "$(git rev-parse origin/execution)" = "${GITHUB_SHA}"
