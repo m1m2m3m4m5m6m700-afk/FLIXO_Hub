@@ -332,6 +332,9 @@ export function auditAgentControlPlane(root = process.cwd(), sha = gitHead(root)
       if (profile.lifecycle === 'BEHAVIORAL-OBSERVED' && effectiveLifecycle !== 'BEHAVIORAL-OBSERVED') {
         localIssues.push(agent.id + ': lifecycle overclaim');
       }
+      if (profile.lifecycle !== effectiveLifecycle) {
+        localIssues.push(agent.id + ': declared lifecycle must equal the validator-derived lifecycle');
+      }
       return { id: agent.id, name: agent.name, class: agent.class, declaredLifecycle: profile.lifecycle, effectiveLifecycle, issues: localIssues };
     } catch (error) {
       localIssues.push(agent.id + ': ' + error.message);
