@@ -130,7 +130,7 @@ test("reference runtime carries assignment, typed handoff and progress decisions
     assignmentId: "as-1",
     agentId: "agent-a",
     observedAtMs: 1000,
-    progressPercent: 0,
+    progressPercent: 1,
     usefulOutputCount: 0,
     lastEvidenceAtMs: null,
     state: "ON_TRACK",
