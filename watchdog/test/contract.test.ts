@@ -77,15 +77,16 @@ class FakeNamespace {
   }
 }
 
-const baseEnv = (): Env => ({
+const baseEnv = (overrides: Partial<Env> = {}): Env => ({
   AGENT_STATE: new FakeNamespace(),
   AGENT_TOKEN: 'agent-secret',
   AGENT_TOKEN_PREV: 'old-secret',
   ADMIN_TOKEN: 'admin-secret',
   WATCHDOG_AGENTS: 'alpha,beta',
+  ...overrides,
 });
 
-const envFor = (overrides: Partial<Env> = {}): Env => ({ ...baseEnv(), ...overrides });
+const envFor = (overrides: Partial<Env> = {}): Env => baseEnv(overrides);
 const newState = () => new AgentState({ id: { name: 'alpha' }, storage: new MemoryStorage() });
 
 test('LINEARIZABLE_CHECKPOINT=PASS', async () => {
