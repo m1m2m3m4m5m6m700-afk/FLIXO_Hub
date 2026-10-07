@@ -44,7 +44,7 @@ export class AgentState {
   private async readState(): Promise<AgentStateRecord | null> {
     const raw = await this.storage.get<unknown>('state:v1');
     if (raw === undefined) return null;
-    if (!isRecord(raw)) fail('CORRUPT_DO_STATE');
+    if (raw === null || !isRecord(raw)) fail('CORRUPT_DO_STATE');
     if (
       raw.agentId !== this.agentId
       || !Number.isSafeInteger(raw.checkpointSeq) || Number(raw.checkpointSeq) < 0
