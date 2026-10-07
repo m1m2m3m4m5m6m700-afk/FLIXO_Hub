@@ -240,6 +240,8 @@ export type CellLifecycleSnapshot = Readonly<{
   promotion: CellPromotionRecord | null;
   learning: KnowledgeRecord | null;
   frontier: CellFrontierProposal | null;
+  opponentStartSequence: number | null;
+  solverDisclosureSequence: number | null;
 }>;
 
 const SHA_PATTERN = /^[0-9a-f]{40}$/iu;
@@ -417,6 +419,8 @@ export class CellLifecycleRuntime {
       promotion: this.promotion,
       learning: this.learning,
       frontier: this.frontier,
+      opponentStartSequence: this.opponentStartSequence,
+      solverDisclosureSequence: this.solverDisclosureSequence,
     });
   }
 
