@@ -252,7 +252,7 @@ export function classifyExternalSnapshot(snapshotPath) {
   try {
     snapshot = JSON.parse(text);
   } catch (error) {
-    throw new Error('EXTERNAL_SNAPSHOT_INVALID_JSON:' + (error instanceof Error ? error.message : String(error)));
+    throw new Error('EXTERNAL_SNAPSHOT_INVALID_JSON:' + (error instanceof Error ? error.message : String(error)), { cause: error });
   }
 
   const snapshotId = nonEmpty(snapshot?.snapshot_id, 'snapshot_id');
