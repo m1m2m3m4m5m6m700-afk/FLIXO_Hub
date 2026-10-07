@@ -376,7 +376,7 @@ test("CELL replan recovery resets stale downstream state and preserves task/miss
     arbiterId: "arbiter-100",
     claimId: "claim-replan-old",
     counterclaimId: "counter-replan-old",
-    evidenceIds: ["e-claim", "e-counter-old"],
+    evidenceIds: ["e-old", "e-counter-old"],
     disposition: "REPLAN",
     rationale: "material conflict requires a fresh assignment",
     candidateSha: SHA,
