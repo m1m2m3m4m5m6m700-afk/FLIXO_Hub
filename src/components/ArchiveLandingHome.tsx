@@ -59,17 +59,24 @@ export function ArchiveLandingHome() {
   const [requestText, setRequestText] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [dark, setDark] = useState(true);
+  const [dark, setDark] = useState(() => {
+    try {
+      return localStorage.getItem('flixo-archive-theme') !== 'light';
+    } catch {
+      return true;
+    }
+  });
   const navigate = useNavigate();
   const translator = TOOL_CATALOG.ready.find((t) => t.id === 'translator') ?? TOOL_CATALOG.ready[0];
   const translatorPath = translator ? toolRoute(translator) : '/';
 
   useEffect(() => {
-    try { setDark(localStorage.getItem('flixo-archive-theme') !== 'light'); } catch { setDark(true); }
-  }, []);
-  useEffect(() => {
     document.documentElement.classList.toggle('dark', dark);
-    try { localStorage.setItem('flixo-archive-theme', dark ? 'dark' : 'light'); } catch {}
+    try {
+      localStorage.setItem('flixo-archive-theme', dark ? 'dark' : 'light');
+    } catch {
+      return;
+    }
   }, [dark]);
 
   const openRequest = (text = prompt) => {
