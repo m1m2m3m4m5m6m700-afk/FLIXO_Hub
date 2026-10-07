@@ -639,12 +639,14 @@ test('RPC_APPEND_DISPATCH route preserves cancellation records', async () => {
   const state = newState();
   (env.AGENT_STATE as FakeNamespace).setState('alpha', state);
   await rpc(await stub(env, 'alpha'), 'appendDispatch', {
-    timestamp: Date.now(),
-    agentId: 'alpha',
-    workflow: 'dispatch.yml',
-    runIdentity: '42',
-    result: 'cancelled',
-    reason: 'cancellation',
+    record: {
+      timestamp: Date.now(),
+      agentId: 'alpha',
+      workflow: 'dispatch.yml',
+      runIdentity: '42',
+      result: 'cancelled',
+      reason: 'cancellation',
+    },
   });
   const log = await state.getDispatchLog();
   assert.equal(log.at(-1)?.result, 'cancelled');
