@@ -75,6 +75,21 @@ Worker branches may be created, rebased, abandoned, and replaced freely. Their e
 - Agent packages are under `الوكلاء/`; all reports, suggestions, recommendations, findings, and result handoffs are under `الوكلاء/التقارير/<agent>/`.
 - `AGENTS.md` remains repository-wide execution/security policy; `المهام.md` remains dispatch authority.
 - Any identity, count, or profile drift against `الوكلاء.md` is a fail-closed governance error.
+## Shared Agent Intelligence
+
+FLIXO uses a governed collective-learning mesh.
+
+- Before a relevant exploration or execution task, the agent performs MEMORY-PREFLIGHT on the current Exact-SHA.
+- Only shared-memory records with status=PROMOTED, sha_freshness=CURRENT_SHA, and usable=true are actionable knowledge.
+- CANDIDATE, VALIDATED, DISPUTED, STALE_EVIDENCE, REVOKED, and SUPERSEDED records are not authoritative; they require revalidation or are historical evidence.
+- Every useful lesson, anti-lesson, heuristic, pattern, warning, or fact must be captured in the agent's canonical report directory before entering the shared-learning pipeline.
+- The source agent cannot self-promote or count its own usage as independent evidence.
+- Promotion requires independent confirmation, independent helpful usage on the tested SHA, regression evidence, and zero harmful usage.
+- A new candidate revision never invalidates a previous validated/promoted revision until the replacement itself is promoted.
+- SHA drift turns prior evidence into STALE_EVIDENCE; it must not silently influence current execution.
+- Raw chain-of-thought, secrets, and credentials are never shared.
+
+Live shared-memory state is in Supabase; Git/CI remains the source of truth for code, policy, and SHA; الوكلاء/التقارير/ remains the human-trace surface. Shared memory never replaces registry, executor, verifier, governance, merge, or certification authority.
 ## Research Scout Security Override
 
 The three FLIXO research scouts are role-restricted advisory agents. This section overrides the broad Open Agent Execution Mode for those three profiles only.
