@@ -16,10 +16,10 @@ import {
 } from '../../../scripts/repository-knowledge-scan.mjs';
 
 const repoRoot = process.cwd();
-const profilePath = 'الوكلاء/المستكشف AI/المستكشف.md';
+const profilePath = 'الوكلاء AI/المستكشف AI/المستكشف.md';
 const scannerPath = 'scripts/repository-knowledge-scan.mjs';
 const workflowPath = '.github/workflows/repository-knowledge.yml';
-const reportDir = 'الوكلاء/المستكشف AI/تقارير المستكشف';
+const reportDir = 'الوكلاء AI/المستكشف AI/تقارير المستكشف';
 
 test('knowledge agent profile declares bounded read-only mission', () => {
   const profile = readFileSync(profilePath, 'utf8');
@@ -76,9 +76,9 @@ test('import extraction and local resolution produce dependency edges', () => {
 });
 
 test('generated reports are inventoried but excluded from recursive semantic analysis', () => {
-  assert.equal(isGeneratedKnowledgeArtifact('الوكلاء/المستكشف AI/تقارير المستكشف/abc.md'), true);
+  assert.equal(isGeneratedKnowledgeArtifact('الوكلاء AI/المستكشف AI/تقارير المستكشف/abc.md'), true);
   assert.equal(isGeneratedKnowledgeArtifact('src/example.ts'), false);
-  assert.equal(classifyPath('الوكلاء/المستكشف AI/تقارير المستكشف/abc.md'), 'generated-knowledge-artifact');
+  assert.equal(classifyPath('الوكلاء AI/المستكشف AI/تقارير المستكشف/abc.md'), 'generated-knowledge-artifact');
   assert.equal(classifyPath('src/example.ts'), 'runtime');
 });
 
