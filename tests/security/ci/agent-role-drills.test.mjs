@@ -45,3 +45,11 @@ test('Scout drills require research-only schema and fail closed on authority esc
     assert.equal(positive.executionClaim, false, name);
   }
 });
+
+test('AGENTS and ROLE_DRILLS stay one-to-one for all ten principal agents', async () => {
+  const { ROLE_DRILLS } = await import('../../../scripts/agent-learning/run-role-drills.mjs');
+  for (const agent of AGENTS) {
+    assert.ok(ROLE_DRILLS[agent.name], agent.name);
+    assert.equal(ROLE_DRILLS[agent.name].drill, agent.drill, agent.name);
+  }
+});
