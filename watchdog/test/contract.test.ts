@@ -733,7 +733,6 @@ test('CONSERVATIVE_CANCEL refuses every ambiguous identity and allows only one e
 
   for (const scenario of scenarios) {
     const env = makeEnv();
-    const namespace = env.AGENT_STATE as FakeNamespace;
     const state = new AgentState({ id: { name: 'alpha' }, storage: new MemoryStorage() });
         (env.AGENT_STATE as FakeNamespace).setState('alpha', state);
 
