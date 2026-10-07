@@ -114,9 +114,9 @@ test("reference runtime carries assignment, typed handoff and progress decisions
     progressPercent: 0,
     usefulOutputCount: 0,
     lastEvidenceAtMs: null,
-    state: "NOT_STARTED",
+    state: "ON_TRACK",
     blocker: null,
     nextAction: "begin",
   });
-  assert.equal(decision, "REASSIGN");
+  assert.equal(decision, "CONTINUE");
 });
