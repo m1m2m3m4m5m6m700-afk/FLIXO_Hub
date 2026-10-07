@@ -24,6 +24,7 @@ import {
   type ExecutionIdentityProbe,
   type ProgressMetrics,
 } from "./cell-hard-control";
+import { CellLifecycleRuntime, type CellAdmissionEnvelope, type CellArbitrationRecord, type CellCandidateHandoff, type CellCertificationRecord, type CellClaim, type CellCounterclaim, type CellEvidence, type CellFrontierProposal, type CellLearningInput, type CellPromotionRecord, type CellRedTeamRecord, type CellReconciliationRecord, type CellVerificationRecord } from "./cell-lifecycle";
 import {
   decideProgressAction,
   delegateHandoff,
@@ -133,9 +134,11 @@ export class CellRuntime {
   private opponentStartSequence = 0;
   private readonly opponentIndependentStarts = new Map<string, OpponentIndependentStartProof>();
   private readonly solverDisclosures = new Map<string, SolverResultDisclosureProof>();
+  private readonly cellLifecycle: CellLifecycleRuntime;
 
   constructor(clock: () => number = () => Date.now()) {
     this.clock = clock;
+    this.cellLifecycle = new CellLifecycleRuntime(this.clock);
   }
 
   registerTask(taskId: string): RuntimeTask {
@@ -621,4 +624,81 @@ export class CellRuntime {
     this.candidates.set(candidateId, next);
     return next;
   }
+  // Canonical CELL lifecycle is hosted by this runtime; it does not create a second authority.
+  admitCell(envelope: CellAdmissionEnvelope) {
+    return this.cellLifecycle.admit(envelope);
+  }
+
+  lockCellPair(): void {
+    this.cellLifecycle.lockPair();
+  }
+
+  startCellOpponent(opponentId: string, candidateSha: string, sequence?: number): void {
+    this.cellLifecycle.recordOpponentIndependentStart(opponentId, candidateSha, sequence);
+  }
+
+  discloseCellSolverResult(candidateSha: string): void {
+    this.cellLifecycle.discloseSolverResult(candidateSha);
+  }
+
+  beginCellFalsification(): void {
+    this.cellLifecycle.startFalsification();
+  }
+
+  recordCellClaim(input: Omit<CellClaim, "sequence" | "taskId">): CellClaim {
+    return this.cellLifecycle.recordClaim(input);
+  }
+
+  recordCellCounterclaim(input: Omit<CellCounterclaim, "sequence" | "taskId">): CellCounterclaim {
+    return this.cellLifecycle.recordCounterclaim(input);
+  }
+
+  recordCellEvidence(input: Omit<CellEvidence, "sequence" | "taskId" | "assignmentId">): CellEvidence {
+    return this.cellLifecycle.recordEvidence(input);
+  }
+
+  reconcileCell(conflicts: readonly string[], candidateSha: string): CellReconciliationRecord {
+    return this.cellLifecycle.reconcile(conflicts, candidateSha);
+  }
+
+  arbitrateCell(input: Omit<CellArbitrationRecord, "sequence" | "taskId" | "assignmentId">): CellArbitrationRecord {
+    return this.cellLifecycle.arbitrate(input);
+  }
+
+  createCellCandidate(input: Omit<CellCandidateHandoff, "taskId" | "missionId" | "assignmentId" | "createdAtSequence">): CellCandidateHandoff {
+    return this.cellLifecycle.createCandidate(input);
+  }
+
+  redTeamCell(input: Omit<CellRedTeamRecord, "taskId" | "candidateId" | "candidateSha" | "sequence">): CellRedTeamRecord {
+    return this.cellLifecycle.redTeamReview(input);
+  }
+
+  verifyCell(input: Omit<CellVerificationRecord, "candidateId" | "taskId" | "candidateSha" | "sequence">): CellVerificationRecord {
+    return this.cellLifecycle.independentlyVerify(input);
+  }
+
+  certifyCell(input: Omit<CellCertificationRecord, "candidateId" | "taskId" | "certifiedSha" | "verifiedSha" | "sequence">): CellCertificationRecord {
+    return this.cellLifecycle.certify(input);
+  }
+
+  promoteCell(input: Readonly<{
+    gate: PromotionGate;
+    currentRuntimeSha: string;
+    promotionRef: string;
+  }>): CellPromotionRecord {
+    return this.cellLifecycle.promote(input);
+  }
+
+  learnCell(input: CellLearningInput) {
+    return this.cellLifecycle.learn(input);
+  }
+
+  openCellFrontier(input: Omit<CellFrontierProposal, "sourceTaskId" | "sourceCandidateId" | "sourceSha" | "sequence">): CellFrontierProposal {
+    return this.cellLifecycle.openFrontier(input);
+  }
+
+  getCellLifecycleSnapshot() {
+    return this.cellLifecycle.snapshot();
+  }
+
 }
