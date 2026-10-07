@@ -23,6 +23,7 @@ function loadCanonicalPrincipalAgents() {
   return registry.agents.map(agent => ({
     name: agent.name,
     registration: agent.profile,
+    report: agent.report,
     drill: agent.drill,
     class: agent.class
   }));

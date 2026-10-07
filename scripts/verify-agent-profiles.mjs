@@ -47,6 +47,10 @@ for (const id of ["AGENT-08", "AGENT-09", "AGENT-10"]) {
   const agent = registry.agents.find(a => a.id === id);
   const content = readFileSync(join(agentsDir, agent.profile.split("/").pop()), "utf8");
   if (!content.includes('tools: ["read", "search", "edit"]')) throw new Error(id + ": Scout tool boundary drift");
-  if (!content.includes("only writable repository path is .agent-intelligence/inbox/")) throw new Error(id + ": Scout write boundary drift");
+  if (!content.includes("write_scope: " + agent.report)) throw new Error(id + ": Scout write scope drift");
+  if (!content.includes("report_scope: " + agent.report)) throw new Error(id + ": Scout report scope drift");
+  if (!content.includes("cap_WRITE_REPORTS: SCOPED")) throw new Error(id + ": Scout report capability drift");
+  if (!content.includes("cap_WRITE_INBOX: DENY")) throw new Error(id + ": Scout inbox capability drift");
+  if (content.includes(".agent-intelligence/inbox/")) throw new Error(id + ": Scout inbox boundary drift");
 }
 console.log("CANONICAL_AGENT_REGISTRY_OK=10 SUPPORTING=1 PROFILES=11");
