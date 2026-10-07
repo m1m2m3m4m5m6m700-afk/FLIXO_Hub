@@ -7,7 +7,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]; BASE=ROOT/".agent-intelligence"; QUEUE=BASE/"review-queue"; GRAVE=BASE/"graveyard"; HANDOFF=BASE/"handoffs"
 SCHEMA="flixo.review-card/v1"; TTL_DAYS=14; SUPPRESSION_DAYS=30; HUMAN_LIMIT=10
 START,END="<!-- FLIXO_TRIAGE_VIEW:START -->","<!-- FLIXO_TRIAGE_VIEW:END -->"
-VALIDATED={"PASS","PASSED","SUCCESS","VALIDATED","VALID"}; DIRS=("inbox","validated","triaged","queued","approved","rejected","deferred")
+VALIDATED={"PASS","PASSED","SUCCESS","VALIDATED","VALID"}; DIRS=("validated","triaged","queued","approved","rejected","deferred")
 ALIASES={"redis":"cache","caching":"cache","cache-aside":"cache","cachelayer":"cache","metrics":"observability","logging":"observability","tracing":"observability","auth":"authentication","oauth":"authentication","login":"authentication","xss":"security","csrf":"security","injection":"security","hardening":"security","perf":"performance","latency":"performance","optimization":"performance","webgpu":"acceleration","gpu":"acceleration","wasm":"acceleration"}
 STOP=set("""the a an and or to of for in on with from by is are this that new use using system feature support implement add fix improve proposal flixo current repository repo و في من على مع عن الى إلى هذا هذه نظام تحسين إضافة مقترح المستودع يجب يمكن""".split())
 GENERIC={"gap","current","repository","measurable","proposal","engineering","system"}
@@ -67,22 +67,22 @@ def read_records(path):
     if isinstance(data,dict):return [data]
     raise ValueError(f"{path}: unsupported shape")
 def load_validated(root):
-    base=root/".agent-intelligence"; results_path=base/"validated"/"validator-results.json"; inbox=base/"inbox"; out=[]; refs={}; seen=set()
+    base=root/".agent-intelligence"; results_path=base/"validated"/"validator-results.json"; report_root=root/"الوكلاء"/"التقارير"; out=[]; refs={}; seen=set()
     if results_path.exists():
         try: results=json.loads(results_path.read_text(encoding="utf-8"))
         except json.JSONDecodeError as e: raise ValueError("corrupted validator-results.json") from e
         if not isinstance(results,list): raise ValueError("validator-results.json must be a list")
-        if not inbox.exists() or not inbox.is_dir(): raise ValueError("validator inbox missing")
+        if not report_root.exists() or not report_root.is_dir(): raise ValueError("canonical agent report center missing")
         yaml_by_id={}; validator_dir=base/"scripts"; sys.path.insert(0,str(validator_dir))
         try:
             import validate as agent2_validator
-            for path in sorted(inbox.iterdir()):
-                if not path.is_file() or path.suffix.lower() not in {".yml",".yaml"}: continue
+            for path in sorted(report_root.rglob("*")):
+                if path.is_symlink() or not path.is_file() or path.suffix.lower() not in {".yml",".yaml"}: continue
                 try: parsed=agent2_validator.StrictYaml(path.read_text(encoding="utf-8")).parse()
                 except Exception as e: raise ValueError(f"cannot parse validator input {path.name}") from e
                 pid=parsed.get("id") if isinstance(parsed,dict) else None
                 if pid:
-                    if pid in yaml_by_id: raise ValueError(f"duplicate validator inbox proposal id: {pid}")
+                    if pid in yaml_by_id: raise ValueError(f"duplicate canonical report proposal id: {pid}")
                     parsed=dict(parsed); parsed["proposal_id"]=pid; yaml_by_id[pid]=parsed; refs[pid]=path.relative_to(root).as_posix()
         finally:
             if sys.path and sys.path[0]==str(validator_dir): sys.path.pop(0)
@@ -90,7 +90,7 @@ def load_validated(root):
             if not isinstance(result,dict): raise ValueError("validator result entry must be an object")
             pid=result.get("proposal_id")
             if not result.get("valid") or result.get("status")!="valid": raise ValueError(f"validator admission failed for {pid or 'UNKNOWN'}")
-            if not isinstance(pid,str) or pid not in yaml_by_id: raise ValueError(f"validator result has no matching inbox proposal: {pid}")
+            if not isinstance(pid,str) or pid not in yaml_by_id: raise ValueError(f"validator result has no matching canonical report proposal: {pid}")
             p=yaml_by_id[pid]; p["_validator_result"]=result
             if pid in seen: raise ValueError(f"duplicate proposal_id: {pid}")
             seen.add(pid); out.append(p)
@@ -272,7 +272,7 @@ def run(root):
         return {"status":"PASS","validated_input_count":0,"admitted_count":0,"suppressed_count":0,"triaged_card_count":len(old),"human_view_count":min(HUMAN_LIMIT,len(old)),"dynamic_threshold":threshold(1)}
     terminal={pid for _,_,c in load_cards(root,{"approved","rejected","deferred"}) for pid in c.get("merged_proposal_ids",[])};sup=load_suppression(root);admitted=[];suppressed=0
     for p in proposals:
-        pid=p["proposal_id"];put(queue/"inbox"/f"{pid}.json",p);ok,reason=allowed_by_suppression(p,sup,n)
+        pid=p["proposal_id"];ok,reason=allowed_by_suppression(p,sup,n)
         if pid in terminal:continue
         if not ok:append_jsonl(grave/"dropped.jsonl",{"entity_key":entity_key(p),"proposal_id":pid,"expired_at":None,"reason":reason,"timestamp":iso(n)});suppressed+=1
         else:put(queue/"validated"/f"{pid}.json",p);admitted.append(p)
