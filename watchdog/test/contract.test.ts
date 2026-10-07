@@ -19,6 +19,8 @@ import {
   readBody,
   readJson,
   runUrl,
+  rpc,
+  stub,
 } from '../src/lib/runtime.ts';
 
 class MemoryStorage implements DurableObjectStorageLike {
@@ -630,6 +632,23 @@ test('RATE_LIMIT_DETERMINISTIC race separates identity and buckets, honors windo
     new AgentState({ id: { name: 'alpha' }, storage: corrupt }).consumeRateLimit('heartbeat', fpA, t, 60_000, 3),
     /CORRUPT_RATE_STATE/,
   );
+});
+
+test('RPC_APPEND_DISPATCH route preserves cancellation records', async () => {
+  const env = baseEnv({ WATCHDOG_AGENTS: 'alpha' });
+  const state = newState();
+  (env.AGENT_STATE as FakeNamespace).setState('alpha', state);
+  await rpc(await stub(env, 'alpha'), 'appendDispatch', {
+    timestamp: Date.now(),
+    agentId: 'alpha',
+    workflow: 'dispatch.yml',
+    runIdentity: '42',
+    result: 'cancelled',
+    reason: 'cancellation',
+  });
+  const log = await state.getDispatchLog();
+  assert.equal(log.at(-1)?.result, 'cancelled');
+  assert.equal(log.at(-1)?.reason, 'cancellation');
 });
 
 test('FORGET/PURGE removes state, heartbeat, dispatch log, breaker and rate state', async () => {
