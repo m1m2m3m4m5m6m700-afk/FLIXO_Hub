@@ -338,3 +338,20 @@ test('generated SVG integrity rejects active or external content', () => {
   assert.match(svg, /external SVG references are not permitted/u);
   assert.match(svg, /<!DOCTYPE\|<!ENTITY/u);
 });
+
+
+test('CELL lifecycle is orchestration-only and cannot become a second execution authority', () => {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+  const lifecycle = readFileSync(resolve(root, 'packages/contracts/src/cell-lifecycle.ts'), 'utf8');
+  const runtime = readFileSync(resolve(root, 'packages/contracts/src/cell-runtime.ts'), 'utf8');
+  const canonical = readFileSync(resolve(root, 'src/lib/execution/canonical-executor.ts'), 'utf8');
+  const registry = readFileSync(resolve(root, 'src/config/registry.ts'), 'utf8');
+
+  assert.doesNotMatch(lifecycle, /src\\/(?:tools|config\\/registry)|canonical-executor/u);
+  assert.match(runtime, /CellLifecycleRuntime/u);
+  assert.match(canonical, /getToolById\\(toolId\\)/u);
+  assert.match(canonical, /getToolOutputContract/u);
+  assert.match(canonical, /assertToolOutputContract/u);
+  assert.match(registry, /export const TOOL_REGISTRY/u);
+  assert.match(registry, /export const TOOL_CATALOG/u);
+});
