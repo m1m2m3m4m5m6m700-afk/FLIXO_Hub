@@ -263,11 +263,11 @@ No CELL stage bypasses admission, output contracts, capability verification, exa
 | Canonical executor | CURRENT |
 | Verifier | CURRENT |
 | Governance / branch protection | CURRENT |
-| Native Solver/Opponent assignment | TARGET |
-| Opposition Plan | PROPOSED |
-| Arbitration | PROPOSED/TARGET |
-| Red Team handoff | TARGET |
-| Frontier loop | TARGET |
+| Native Solver/Opponent assignment | CURRENT / EXECUTABLE |
+| Opposition Plan | CURRENT / EXECUTABLE |
+| Arbitration | CURRENT / EXECUTABLE |
+| Red Team handoff | CURRENT / EXECUTABLE |
+| Frontier loop | CURRENT / EXECUTABLE |
 
 ## 19. Implementation handoff
 
@@ -290,10 +290,10 @@ No implementation may add another registry, dispatcher, executor, verifier, or c
 ## 20. CURRENT vs TARGET vs HISTORICAL
 
 CURRENT:
-deterministic Control Plane, canonical capability registry/catalog, canonical executor, output contracts, capability verifier, exact-SHA evidence discipline, existing Governance/branch protection.
+deterministic Control Plane, canonical capability registry/catalog, canonical executor, output contracts, capability verifier, exact-SHA evidence discipline, existing Governance/branch protection, executable CELL lifecycle, explicit Replan reset, replay guards, admission-bound verifier identity, Opponent context hash/timestamp proof, downstream-only Frontier boundary.
 
 TARGET/PROPOSED:
-native Solver/Opponent admission, Opposition Plan enforcement, independent-start proof, arbitration, Candidate→Red Team closure, CELL certification mapping, learning/frontier lifecycle.
+only remaining integration and external-governance work required to bind repository-wide runtime evidence to the executable CELL lifecycle. No target item may be called CURRENT without exact-SHA executable evidence.
 
 HISTORICAL/SUPERSEDED:
 legacy multi-agent pools, competing registries/executors, provider-controlled execution architectures, historical certification assertions without current exact-SHA proof.
@@ -321,16 +321,16 @@ The current execution branch now contains executable Assignment/Delegation infra
 
 ## 24. Executable lifecycle closure
 
-The target stages are now represented by an executable `CellLifecycleRuntime` hosted inside the existing `CellRuntime`. This is an orchestration contract, not a second authority.
+The target stages are now represented by an executable `CellLifecycleRuntime` hosted inside the existing `CellRuntime`. This is an orchestration contract, not a second authority. The lifecycle now records an admission-bound verifier identity and an immutable Opponent shared-context hash plus start timestamp before Solver disclosure.
 
 Executable gates now cover:
 - fail-closed task admission with complete Solver/Opponent envelope and exact starting/current SHA;
-- Pair Lock and independently ordered Opponent start before Solver disclosure;
+- Pair Lock and independently ordered Opponent start before Solver disclosure, with duplicate-start rejection and immutable context/timestamp proof;
 - CLAIM → COUNTERCLAIM → EVIDENCE → RECONCILIATION;
 - bounded ARBITRATION with self-adjudication denied and explicit recovery dispositions;
 - Candidate handoff requiring completed exchange, dispositioned conflicts, recorded evidence, and exact candidate SHA;
 - separate Red Team stage;
-- independent verification and certification mapped through an explicit governance reference;
+- independent verification bound to the admission verifier identity and Opponent independence proof, plus certification mapped through an explicit governance reference;
 - promotion only through the existing exact-SHA `PromotionGate`;
 - learning only after promotion and with independent confirmation/regression evidence;
 - Frontier only after promoted learning, producing a bounded next-task proposal.
@@ -340,4 +340,4 @@ Implementation:
 - `packages/contracts/src/cell-runtime.ts`
 - `tests/security/ci/cell-lifecycle-contract.test.ts`
 
-This closes the CELL orchestration contract at runtime level. Repository release certification, live governance administration, external QA, production deployment, and promotion to `main` remain governed by their existing P0/P1 release tasks and are not fabricated as complete by this runtime implementation.
+This closes the CELL orchestration contract at runtime level, including the reviewed P0 hardening surfaces. Architecture evidence also verifies that CELL remains orchestration-only while canonical media execution stays behind the existing canonical executor boundary. Repository release certification, live governance administration, external QA, production deployment, and promotion to `main` remain governed by their existing P0/P1 release tasks and are not fabricated as complete by this runtime implementation.
