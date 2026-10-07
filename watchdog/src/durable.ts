@@ -45,7 +45,7 @@ export class AgentState {
     const stored = await this.storage.get<unknown>('state:v1');
     if (stored === undefined || stored === null) return null;
     if (!isRecord(stored)) fail('CORRUPT_DO_STATE');
-    const raw: Record<string, unknown> = stored;
+    const raw = stored as unknown as Record<string, unknown>;
     if (
       raw.agentId !== this.agentId
       || !Number.isSafeInteger(raw.checkpointSeq) || Number(raw.checkpointSeq) < 0
@@ -57,10 +57,10 @@ export class AgentState {
       || (raw.checkpoint !== undefined && (typeof raw.checkpoint !== 'string' || bytes(raw.checkpoint) > CORE_LIMITS.maxCheckpointBytes))) {
       fail('CORRUPT_DO_STATE');
     }
-    if (raw.dispatches.length > CORE_LIMITS.maxDispatchLogEntries) fail('CORRUPT_DO_LOG');
     const dispatches = raw.dispatches as unknown[];
+    if (dispatches.length > CORE_LIMITS.maxDispatchLogEntries) fail('CORRUPT_DO_LOG');
     for (const item of dispatches) this.assertDispatch(item);
-    return raw as AgentStateRecord;
+    return raw as unknown as AgentStateRecord;
   }
 
   private assertDispatch(value: unknown): asserts value is DispatchRecord {
