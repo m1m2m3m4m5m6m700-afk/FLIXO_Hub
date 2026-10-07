@@ -20,7 +20,6 @@ export function startCellWatchdog(timeoutMs: number, parentSignal?: AbortSignal)
     stop() {
       clearTimeout(timer);
       parentSignal?.removeEventListener("abort", onParentAbort);
-      controller.abort();
     },
     timedOut: () => timedOut,
   });
