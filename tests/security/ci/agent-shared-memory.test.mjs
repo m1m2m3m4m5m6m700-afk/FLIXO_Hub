@@ -43,7 +43,7 @@ test('raw inbox routing is rejected and canonical reports are required', () => {
   assert.ok(failures.includes('inbox path is forbidden'));
   assert.ok(failures.includes('reportPath must match the registered report scope for this agent'));
   assert.equal(failures.includes('reportPath contains forbidden traversal segments'), false);
-  const traversal = validateMemoryProposal({ ...base, reportPath: 'الوكلاء/التقارير/AGENT-08 — Architecture Scout/../AGENT-09 — Technology Scout/a.md' }, SHA);
+  const traversal = validateMemoryProposal({ agent: 'FLIXO Architecture Scout', agentId: 'AGENT-08', role: 'architecture-research', exactSha: SHA, kind: 'LESSON', claim: 'test claim', content: 'test content', evidenceRefs: ['report:L1'], reportPath: 'الوكلاء/التقارير/AGENT-08 — Architecture Scout/../AGENT-09 — Technology Scout/a.md' }, SHA);
   assert.ok(traversal.includes('reportPath contains forbidden traversal segments'));
 });
 
