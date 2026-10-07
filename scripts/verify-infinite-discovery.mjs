@@ -73,6 +73,8 @@ if(!workflow.includes("الوكلاء/التقارير/AGENT-09 — Technology S
 if(!workflow.includes("الوكلاء/التقارير/AGENT-10 — Ecosystem Scout/*.yaml")) fail("Ecosystem report publication path missing");
 if(!workflow.includes('git -c core.quotePath=false diff --name-only')) fail("publication mutation gate must preserve raw unicode paths");
 if(!workflow.includes('git -c core.quotePath=false diff --cached --name-only')) fail("publication staging gate must preserve raw unicode paths");
+if(!workflow.includes("GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}")) fail("publication must bind the workflow token explicitly");
+if(!workflow.includes("https://x-access-token:$GITHUB_TOKEN@github.com/$GITHUB_REPOSITORY.git")) fail("publication must authenticate through workflow token");
 if(workflow.match(/\.agent-intelligence\/inbox\/\*\.ya?ml/)) fail("forbidden inbox proposal publication remains");
 if(workflow.match(/git add \.agent-intelligence\/inbox\b/)) fail("forbidden inbox staging remains");
 if(workflow.match(/git push origin (main|execution)\b/)) fail("forbidden main/execution push path");
