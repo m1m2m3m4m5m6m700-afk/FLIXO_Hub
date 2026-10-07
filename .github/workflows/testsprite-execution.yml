@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: testsprite-execution-${{ github.ref }}
+  group: testsprite-execution-${{ github.ref }}-${{ github.sha }}
   cancel-in-progress: true
 
 permissions:
