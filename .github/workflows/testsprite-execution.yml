@@ -3,10 +3,21 @@ on:
   push:
     branches:
       - execution
+    paths:
+      - 'src/routes/**'
+      - 'src/components/**'
+      - 'src/lib/**'
+      - 'src/config/**'
+      - 'src/tools/**'
+      - 'tests/e2e/**'
+      - 'playwright.config.*'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/testsprite-execution.yml'
   workflow_dispatch:
 
 concurrency:
-  group: testsprite-execution-${{ github.ref }}-${{ github.sha }}
+  group: testsprite-execution-${{ github.ref_name }}
   cancel-in-progress: true
 
 permissions:
