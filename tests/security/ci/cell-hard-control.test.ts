@@ -16,12 +16,16 @@ import {
 } from "../../packages/contracts/src/cell-hard-control.ts";
 import { CellRuntime } from "../../packages/contracts/src/cell-runtime.ts";
 
+const START_SHA = "a".repeat(40);
+const LIVE_SHA = "b".repeat(40);
+const OLD_SHA = "c".repeat(40);
+
 const envelope: ExecutionEnvelope = Object.freeze({
   taskId: "TASK-1",
   agentId: "AGENT-1",
   sessionId: "SESSION-1",
   missionId: "MISSION-1",
-  startSha: "sha-start",
+  startSha: START_SHA,
   allowedCapabilities: Object.freeze(["edit-source", "test"]),
   readScope: Object.freeze(["src/lib/video/**", "tests/**"]),
   writeScope: Object.freeze(["src/lib/video/**", "tests/**"]),
@@ -44,8 +48,8 @@ const action = (overrides: Partial<ExecutionAction> = {}): ExecutionAction => ({
   sessionId: "SESSION-1",
   missionId: "MISSION-1",
   branch: "execution",
-  startSha: "sha-start",
-  currentSha: "sha-live",
+  startSha: START_SHA,
+  currentSha: LIVE_SHA,
   operation: "WRITE",
   path: "src/lib/video/fixture.ts",
   capability: "edit-source",
@@ -109,8 +113,8 @@ test("identity and objective anchors fail closed", () => {
       sessionId: "SESSION-1",
       missionId: "MISSION-1",
       branch: "execution",
-      startSha: "sha-start",
-      currentSha: "sha-live",
+      startSha: START_SHA,
+      currentSha: LIVE_SHA,
       capability: "edit-source",
       objectiveId: "OBJ-VIDEO",
       acceptanceDigest: "accept-1",
@@ -153,7 +157,7 @@ test("reference runtime rejects every execution action outside RUNNING state", (
 
 test("live SHA mismatch blocks mutation even when the envelope is otherwise valid", () => {
   const rt = new CellRuntime(() => 1000);
-  const denied = rt.authorizeAction(envelope, action({ currentSha: "sha-old" }), "sha-live");
+  const denied = rt.authorizeAction(envelope, action({ currentSha: OLD_SHA }), "sha-live");
   assert.equal(denied.allowed, false);
   assert.equal(denied.drift?.type, "D6_EVIDENCE_DRIFT");
   assert.equal(rt.listActionRecords().length, 1);
