@@ -138,3 +138,13 @@ test('official cognitive memory adapter exposes retrieval, usage, proposal, revi
   assert.deepEqual(Object.keys(adapter).sort(), ['preflight', 'propose', 'reconcile', 'retrieve', 'review', 'usage']);
   assert.deepEqual(adapter.preflight(SHA, [{ memory_id: 'usable', status: 'PROMOTED', tested_sha: SHA }, { memory_id: 'stale', status: 'PROMOTED', tested_sha: OTHER_SHA }]).executableMemory.map(item => item.memory_id), ['usable']);
 });
+
+
+test('shared-memory retrieval rejects unbounded result limits', async () => {
+  const { searchSharedMemory, MAX_MEMORY_RESULTS } = await import('../../../scripts/agent-learning/shared-memory.mjs');
+  assert.equal(MAX_MEMORY_RESULTS, 50);
+  await assert.rejects(
+    searchSharedMemory({ query: 'x', currentSha: SHA, limit: 51 }, { SUPABASE_URL: 'https://example.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'placeholder' }),
+    /MEMORY_RETRIEVAL_LIMIT_INVALID/,
+  );
+});
