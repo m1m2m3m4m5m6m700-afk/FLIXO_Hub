@@ -6,6 +6,7 @@ import { rmSync, writeFileSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { existsSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
+import { join } from 'node:path';
 
 const REPOSITORY = 'm1m2m3m4m5m6m700-afk/FLIXO_Hub';
 const BRANCH = 'execution';
