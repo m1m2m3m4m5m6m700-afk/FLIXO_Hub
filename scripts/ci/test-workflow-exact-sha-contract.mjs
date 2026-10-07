@@ -125,7 +125,8 @@ test('final Red Team security wait is promotion-only after execution security de
     block,
     /if:\s*github\.event_name == 'pull_request' && github\.event\.pull_request\.base\.ref == 'main'/u,
   );
-  assert.match(block, /event=push/u);
+  assert.match(block, /event=pull_request/u);
+  assert.doesNotMatch(block, /event=push/u);
   assert.match(block, /FLIXO CodeQL/u);
   assert.match(block, /FLIXO Secret Scan/u);
 });
@@ -143,7 +144,7 @@ test('promotion lineage checkout retains full history for merge-base verificatio
 
 test('all candidate-sensitive CI checkouts explicitly disable credential persistence', async () => {
   const workflow = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
-  const blocks = workflow.split('      - uses: actions/checkout@').slice(1);
+  const blocks = workflow.split(/\n      - (?:(?:name:[^\n]+\n        )?uses: actions\/checkout@/u).slice(1);
   const candidateBlocks = blocks.filter((block) => block.includes('ref: ' + EXACT_HEAD_EXPRESSION));
   assert.equal(candidateBlocks.length, 6, 'all six candidate-sensitive CI checkouts must remain identifiable');
   for (const block of candidateBlocks) {
