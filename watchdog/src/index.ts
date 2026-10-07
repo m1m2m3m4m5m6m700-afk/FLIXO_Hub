@@ -1,5 +1,4 @@
 import {
-  DEFAULT_CONFIG,
   Metrics,
   allowRate,
   authAdmin,
