@@ -120,7 +120,7 @@ test('Scout submissions fail closed outside the canonical report center and on c
     evidence: ['source'],
     unknowns: [],
     nextActions: ['review'],
-    status: 'central-report',
+    status: 'inbox',
     proposalSchema: 'v4',
     repoRefs: ['package.json'],
     sources: ['source'],

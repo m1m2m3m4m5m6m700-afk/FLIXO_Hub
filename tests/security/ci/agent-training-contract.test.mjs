@@ -88,7 +88,7 @@ test('all three Scout contracts preserve research-only role requirements', () =>
     '.github/agents/flixo-scout-ecosystem.agent.md',
   ]) {
     const content = readFileSync(path, 'utf8');
-    assert.match(content, /tools: ["read", "search", "edit"]/u);
+    assert.match(content, /tools:\s*\["read",\s*"search",\s*"edit"\]/u);
     assert.match(content, /Proposal Schema v4/u);
     assert.match(content, /Your only writable repository path is الوكلاء\/التقارير\//u);
     assert.doesNotMatch(content, /only writable repository path is \.agent-intelligence\/inbox\//u);
