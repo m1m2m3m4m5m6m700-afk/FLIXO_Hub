@@ -402,6 +402,24 @@ export function buildKnowledgeModel(entries) {
   return { sourceEntries, dependencyEdges, symbolIndex, signalMap };
 }
 
+
+export function detectAuthorityCollisions(entries) {
+  const bySymbol = new Map();
+  for (const entry of entries) {
+    if (!entry?.signals?.canonicalAuthority) continue;
+    for (const symbol of entry.symbols || []) {
+      if (!symbol?.exported || typeof symbol.name !== 'string' || symbol.name.length === 0) continue;
+      const paths = bySymbol.get(symbol.name) || new Set();
+      paths.add(entry.path);
+      bySymbol.set(symbol.name, paths);
+    }
+  }
+  return Array.from(bySymbol.entries())
+    .filter(([, paths]) => paths.size > 1)
+    .map(([symbol, paths]) => ({ symbol, paths: Array.from(paths).sort() }))
+    .sort((a, b) => a.symbol.localeCompare(b.symbol));
+}
+
 export function buildAuthorityGraph(entries, dependencyEdges) {
   const authorityNodes = entries
     .filter(entry => entry.ast || entry.signals?.canonicalAuthority || entry.signals?.securityBoundary)

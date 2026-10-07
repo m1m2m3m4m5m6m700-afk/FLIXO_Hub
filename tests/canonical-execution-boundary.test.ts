@@ -196,7 +196,7 @@ test('video renderer cleans active media resources on every terminal path', () =
   assert.match(executor, /if \(recorder && recorder\.state !== 'inactive'\)[\s\S]*recorder\.stop\(\)/u);
   assert.match(executor, /canvasStream\?\.getTracks\(\)\.forEach\(\(track\) => track\.stop\(\)\)/u);
   assert.match(executor, /if \(frameInterval\) clearInterval\(frameInterval\)/u);
-  assert.match(executor, /frameInterval = setInterval\(draw, 33\)/u);
+  assert.match(executor, /frameInterval = setInterval\(draw, Math\.max\(4, Math\.round\(1000 \/ fps\)\)\)/u);
 });
 
 test('video result Blob URLs are lifecycle-managed instead of being created during render', () => {
