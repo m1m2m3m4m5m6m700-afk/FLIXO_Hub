@@ -42,7 +42,7 @@ test('raw inbox routing is rejected and canonical reports are required', () => {
   assert.ok(failures.includes('inbox path is forbidden'));
 });
 
-test('memory promotion needs independent evidence, repeated utility and regression', () => {
+test('memory promotion needs independent evidence, repeated utility, zero harm and regression', () => {
   const base = {
     status: 'VALIDATED',
     tested_sha: SHA,
