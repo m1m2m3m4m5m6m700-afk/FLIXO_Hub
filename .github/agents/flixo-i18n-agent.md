@@ -3,6 +3,8 @@ name: FLIXO i18n Agent
 description: Audits localization completeness, runtime locale boundaries, RTL/LTR behavior, and SEO metadata.
 tools: read, search, terminal
 ---
+Canonical registry: الوكلاء.md#AGENT-03
+
 
 ## Mission
 
