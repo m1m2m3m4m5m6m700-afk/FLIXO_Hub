@@ -78,7 +78,7 @@ test('execution-only assurance lanes deduplicate by branch while promotion lanes
 
   assert.match(redTeam, /group:\s*flixo-final-red-team-\$\{\{ github\.event_name \}\}-\$\{\{ github\.event\.pull_request\.number \|\| github\.ref_name \}\}/u);
   assert.match(video, /group:\s*flixo-video-assurance-\$\{\{ github\.event_name \}\}-\$\{\{ github\.ref_name \}\}/u);
-  assert.match(redTeam, /cancel-in-progress:\s*true/u);
+  assert.match(redTeam, /cancel-in-progress:\s*\$\{\{ github\.event_name == 'push' && github\.ref == 'refs\/heads\/execution' \}\}/u);
   assert.match(video, /cancel-in-progress: true/u);
 });
 
@@ -240,7 +240,7 @@ test('specialized execution gates are path-gated and TestSprite concurrency is c
   const discovery = await readFile(new URL('../../.github/workflows/continuous-discovery.yml', import.meta.url), 'utf8');
 
   assert.match(testsprite, /push:\s*\n\s*branches:\s*\n\s*- execution\s*\n\s*paths:/u);
-  assert.match(testsprite, /group:\s*testsprite-execution-\$\{\{ github\.ref_name \}\}/u);
+  assert.match(testsprite, /group:\s*testsprite-fallback-\$\{\{ github\.ref_name \}\}/u);
   assert.doesNotMatch(testsprite, /group:[^\n]*\$\{\{ github\.sha \}\}/u);
   assert.match(video, /push:\s*\n\s*branches:\s*\[execution\]\s*\n\s*paths:/u);
   assert.match(learning, /paths:\s*\n(?:\s+- .+\n){4,}/u);
