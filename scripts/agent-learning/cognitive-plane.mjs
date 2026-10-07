@@ -139,11 +139,12 @@ export function reconcileCandidateLesson(candidate, currentSha) {
 
   return {
     ...candidate,
-    status: 'PROMOTED',
-    promotable: true,
+    status: 'VALIDATED',
+    promotable: false,
     independent_confirmations: independentConfirmations,
     independent_usage_count: independentUsageCount,
-    reason: 'current-SHA evidence + independent review + independent usage + regression survival',
+    ready_for_canonical_reconcile: true,
+    reason: 'validated; canonical reconciliation is required before any promotion',
   };
 }
 

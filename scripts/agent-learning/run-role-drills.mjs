@@ -24,7 +24,7 @@ const scoutBase = (agent, drill, sha) => ({
   evidence: ['manifest:role-signal', 'registry:repo-ref'],
   unknowns: ['runtime behavior still requires a real agent run'],
   nextActions: ['recheck', 'independent-review'],
-  status: 'inbox',
+  status: 'central-report',
   proposalSchema: 'v4',
   repoRefs: ['src/config/registry.ts'],
   sources: ['official:manifest'],

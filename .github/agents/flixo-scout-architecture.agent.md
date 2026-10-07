@@ -16,6 +16,7 @@ execution_scope: execution-research-only
 forbidden_actions: source-mutation;test-mutation;workflow-mutation;governance-mutation;task-ledger-mutation;agent-profile-mutation;merge;deploy;certify;self-certification;main-mutation;out-of-scope-write
 report_scope: الوكلاء/التقارير/AGENT-08 — Architecture Scout/
 evidence_contract: exact-sha;command-or-action;result;artifact-reference;negative-case
+proposal_schema: Proposal Schema v4
 lifecycle: READY-TEST
 delegation_policy: DENY_ALL
 certification_authority: false

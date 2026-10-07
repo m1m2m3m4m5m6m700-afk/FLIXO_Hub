@@ -40,7 +40,7 @@ test('Scout drills require research-only schema and fail closed on authority esc
   for (const name of ['FLIXO Architecture Scout', 'FLIXO Technology Scout', 'FLIXO Ecosystem Scout']) {
     const role = ROLE_DRILLS[name];
     const positive = role.valid('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
-    assert.equal(positive.status, 'inbox', name);
+    assert.equal(positive.status, 'central-report', name);
     assert.equal(positive.proposalSchema, 'v4', name);
     assert.equal(positive.executionClaim, false, name);
   }
