@@ -4,7 +4,7 @@ import { applyBasicImageEffect, cropResizeImage, flipImage, imageInfo, rasterToS
 import { executeCanonicalTool } from '../../lib/execution/canonical-executor';
 import { recognizeWithOcrWorker } from './ocr-worker-client';
 import { assertImageCropperOutputIntegrity } from '../image-cropper/output-integrity';
-import { assertRasterOutput, readRasterHeaderDimensions, validateFileSafety } from '../../lib/contracts/file-safety';
+import { assertImageDimensions, assertRasterOutput, readRasterHeaderDimensions, validateFileSafety } from '../../lib/contracts/file-safety';
 import { assertToolOutputContract } from '../../lib/contracts/tool-output';
 import { getToolOutputContract } from '../../lib/contracts/tool-output-contracts';
 import { AI_IMAGE_GENERATOR_OUTPUT_CONTRACT } from '../../lib/contracts/external-output-contracts';
@@ -15,7 +15,7 @@ import { getAuthoritativeToolSeoName } from '../../config/tool-seo-name-resolver
 import type { LocalToolId } from './engine';
 
 const DEFINITIONS: Record<SharedImageToolId, { title: string; description: string; accept: string }> = {
-  'background-remover': { title: 'Background Remover', description: 'Remove connected, uniform backgrounds locally in your browser with edge-aware flood fill.', accept: 'image/png,image/jpeg,image/webp,image/svg+xml' },
+  'background-remover': { title: 'Background Remover', description: 'Remove connected, uniform backgrounds locally in your browser with edge-aware flood fill.', accept: 'image/png,image/jpeg,image/webp' },
   'image-upscaler': { title: 'Image Upscaler', description: 'Increase image dimensions with high-quality browser resampling and controlled sharpening.', accept: 'image/png,image/jpeg,image/webp' },
   'image-converter': { title: 'Image Converter', description: 'Convert images between PNG, JPG, and WebP without uploading them.', accept: 'image/png,image/jpeg,image/webp' },
   'image-to-text': { title: 'Image to Text OCR', description: 'Extract visible text from an image in your browser with OCR preprocessing.', accept: 'image/png,image/jpeg,image/webp' },
@@ -172,8 +172,16 @@ export function ImageToolPage({ toolId }: Props) {
         const blob = await response.blob();
         if (!blob.type.startsWith('image/')) throw new Error('AI endpoint did not return an image.');
         await assertRasterOutput(blob, blob.type);
-        const header = new Uint8Array(await blob.slice(0, 64).arrayBuffer());
+        const variant = AI_IMAGE_GENERATOR_OUTPUT_CONTRACT.variants.find((candidate) => candidate.outputMimeTypes.includes(blob.type));
+        if (!variant?.maxPixels) throw new Error('AI output contract is missing a pixel budget.');
+        const headerDimensions = await readRasterHeaderDimensions(blob, blob.type);
+        if (!headerDimensions) throw new Error('AI output dimensions could not be determined from the bounded header.');
+        assertImageDimensions(headerDimensions.width, headerDimensions.height, variant.maxPixels);
         const info = await imageInfo(blob);
+        if (info.width !== headerDimensions.width || info.height !== headerDimensions.height) {
+          throw new Error('AI output decoded dimensions do not match the bounded header dimensions.');
+        }
+        const header = new Uint8Array(await blob.slice(0, 64).arrayBuffer());
         const aiFileName = `flixo-ai-${info.width}x${info.height}.${outputExtension(blob.type)}`;
         assertToolOutputContract(AI_IMAGE_GENERATOR_OUTPUT_CONTRACT, { mimeType: blob.type, byteLength: blob.size, bytes: header, filename: aiFileName, dimensions: info });
         replaceResult(await createResult(blob, aiFileName, info));
