@@ -21,7 +21,12 @@ test("lease acquisition is exclusive and release requires ownership", () => {
   assert.equal(rt.releaseTaskLease("t1", lease.ownerId, lease.token).lease, null);
 });
 
-test("checkpoint cannot be created before task execution", () => {\n  const rt = new CellRuntime(() => 1000);\n  rt.registerTask("t1");\n  assert.throws(() => rt.checkpointTask("t1", "cp-before-run"), /CHECKPOINT_NOT_ALLOWED/);\n});\n\ntest("checkpoint is persisted before verification transition", () => {
+test("checkpoint cannot be created before task execution", () => {
+  const rt = new CellRuntime(() => 1000);
+  rt.registerTask("t1");
+  assert.throws(() => rt.checkpointTask("t1", "cp-before-run"), /CHECKPOINT_NOT_ALLOWED/);
+});
+\ntest("checkpoint is persisted before verification transition", () => {
   const rt = new CellRuntime(() => 1000);
   rt.registerTask("t1");
   rt.transitionTask("t1", "READY");
