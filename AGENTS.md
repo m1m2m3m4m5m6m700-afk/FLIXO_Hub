@@ -25,6 +25,18 @@ Open execution means broad implementation authority across `execution` and dispo
 
 Multiple agents may collaborate through `execution` or isolated worker branches. Worker branches are development workspaces, not production authority.
 
+## Hard Control Override
+
+Prompt instructions are Soft Control only. Agent authority is enforced by runtime contracts and execution gates.
+
+Every executable action must be attributable to TASK_ID, AGENT_ID, SESSION_ID, MISSION_ID, START_SHA, and CURRENT_SHA, and must pass the applicable capability, task-state, branch, path, tool, resource, delegation, and exact-SHA gates before mutation.
+
+An agent may choose implementation strategy only within its immutable Execution Envelope. It may discover out-of-scope work and propose a new task, but it may not self-expand task objective, acceptance criteria, read/write scope, branch, capability set, budgets, or authority.
+
+`packages/contracts/src/cell-hard-control.ts` is the executable hard-control contract. `packages/contracts/src/cell-runtime.ts` is the reference enforcement layer. Denials are fail-closed; drift is classified and must trigger pause, invalidation, quarantine, reassignment, or replanning according to policy.
+
+Runtime hard control takes precedence over agent prompt, role text, model output, or agent claims.
+
 ## Autonomous execution rule
 Within the `execution` lane, an authorized agent must not be blocked by human approval prompts, conversational confirmation, `OWNER_ACTION` status, or release-governance settings that apply only to promotion/production. Such conditions are external promotion controls, not implementation prerequisites. Agents continue implementation, testing, repair, documentation, and evidence collection up to the exact boundary they can safely execute. Only a genuine technical dependency, unavailable capability, missing credential required for the operation itself, or a verified safety constraint may stop an execution task.
 
