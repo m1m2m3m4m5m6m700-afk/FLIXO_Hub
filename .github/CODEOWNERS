@@ -14,6 +14,8 @@
 /api/ @m1m2m3m4m5m6m700-afk
 /src/lib/contracts/ @m1m2m3m4m5m6m700-afk
 /src/lib/execution/ @m1m2m3m4m5m6m700-afk
+/packages/contracts/src/cell- @m1m2m3m4m5m6m700-afk
+/packages/contracts/src/cell-** @m1m2m3m4m5m6m700-afk
 /src/worker.ts @m1m2m3m4m5m6m700-afk
 /wrangler.jsonc @m1m2m3m4m5m6m700-afk
 /vercel.json @m1m2m3m4m5m6m700-afk
