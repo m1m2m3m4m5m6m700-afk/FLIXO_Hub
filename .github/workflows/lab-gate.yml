@@ -6,7 +6,7 @@ on:
       - 'packages/contracts/src/call-*.ts'
       - 'tests/call/**'
   push:
-    branches: [lab, base]
+    branches: [lab, base, 'call/**']
 permissions:
   contents: read
 jobs:
