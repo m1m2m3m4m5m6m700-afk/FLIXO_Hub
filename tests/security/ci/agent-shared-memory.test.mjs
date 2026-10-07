@@ -103,3 +103,30 @@ test('memory preflight allows only PROMOTED current-SHA memory to execute', () =
   assert.equal(result.blockedCount, 3);
   assert.ok(result.warnings.some(item => item.memory_id === 'stale' && item.sha_freshness === 'STALE_EVIDENCE'));
 });
+
+
+test('context retrieval adapter preflights RPC results before executable use', async () => {
+  const { searchSharedMemoryForContext } = await import('../../../scripts/agent-learning/shared-memory.mjs');
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => ({
+    ok: true,
+    status: 200,
+    async text() {
+      return JSON.stringify([
+        { memory_id: 'current', status: 'PROMOTED', tested_sha: SHA },
+        { memory_id: 'candidate', status: 'CANDIDATE', tested_sha: SHA },
+        { memory_id: 'stale', status: 'PROMOTED', tested_sha: OTHER_SHA },
+      ]);
+    },
+  });
+  try {
+    const result = await searchSharedMemoryForContext(
+      { query: 'current lesson', currentSha: SHA, limit: 5 },
+      { SUPABASE_URL: 'https://example.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'placeholder' },
+    );
+    assert.deepEqual(result.executableMemory.map(item => item.memory_id), ['current']);
+    assert.equal(result.blockedCount, 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
