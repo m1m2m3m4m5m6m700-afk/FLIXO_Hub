@@ -1,4 +1,5 @@
 import { readFileSync, readdirSync } from "node:fs";
+import { auditAgentControlPlane } from "./agent-control-plane.mjs";
 import { join } from "node:path";
 const root = process.cwd();
 const registryPath = join(root, "الوكلاء.md");
@@ -17,6 +18,8 @@ function loadRegistry() {
   return JSON.parse(block.slice(jsonStart + 7, jsonEnd).trim());
 }
 const registry = loadRegistry();
+const controlPlane = auditAgentControlPlane(root);
+if (controlPlane.status !== "PASS") throw new Error("agent control-plane validation failed: " + controlPlane.issues.join("; "));
 if (registry.schema !== "flixo-canonical-agent-registry-v1") throw new Error("unsupported canonical agent registry schema");
 if (registry.officialAgentCount !== 10) throw new Error("canonical official agent count must be 10");
 if (!Array.isArray(registry.agents) || registry.agents.length !== 10) throw new Error("canonical registry must contain exactly 10 principal agents");
