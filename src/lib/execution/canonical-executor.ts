@@ -7,6 +7,7 @@ import { convertImage, cropResizeImage, removeBackground, resizeImage } from '@/
 import { compressImage } from '@/tools/image-compressor/engine.ts';
 import { renderVideoToWebm } from '@/lib/video/video-executor.ts';
 import { attachVideoBlobSource, getBoundedVideoDuration } from '@/lib/video/blob-video-source.ts';
+import { admitExecution, getCellPolicyFingerprint } from '@/lib/cell/index.ts';
 
 const IMAGE_MIME = ['image/png', 'image/jpeg', 'image/webp'] as const;
 const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp'] as const;
@@ -454,6 +455,22 @@ export async function executeCanonicalTool(
 ): Promise<CanonicalExecutionOutput> {
   const { capability } = resolveCanonicalTool(toolId);
   assertNotAborted(signal);
+  const requestId = `canonical:${toolId}:${Date.now()}:${Math.random().toString(36).slice(2, 10)}`;
+  const admission = admitExecution({
+    requestId,
+    taskId: requestId,
+    capabilityId: toolId,
+    scope: 'media:local',
+    maxAttempts: capability.recovery.maxAttempts,
+    signal,
+  });
+  if (admission.decision !== 'ALLOW') {
+    throw new Error(`CELL execution denied [${admission.code}]: ${admission.reason}`);
+  }
+  const admittedPolicyFingerprint = admission.policyFingerprint;
+  if (admittedPolicyFingerprint !== getCellPolicyFingerprint()) {
+    throw new Error('CELL execution denied: policy fingerprint drift detected at admission.');
+  }
   const parameters = validateCapabilityParameters(toolId, rawParameters);
 
   // Preflight is intentionally outside the retry loop: it is the canonical admission
@@ -467,6 +484,10 @@ export async function executeCanonicalTool(
     capability.safetyLimits.timeoutMs,
     signal,
   );
+
+  if (admittedPolicyFingerprint !== getCellPolicyFingerprint()) {
+    throw new Error('CELL execution denied: policy fingerprint drift detected before execution.');
+  }
 
   return runBoundedExecutionAttempts(
     capability.recovery.maxAttempts,
