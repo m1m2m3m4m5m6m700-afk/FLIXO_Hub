@@ -9,6 +9,10 @@ for x in a b c d e f g h; do printf "patch-$x\n" >"patch-$x"; done
 printf 'error-a\n' > error-a; printf 'error-b\n' > error-b
 g(){ STATE_FILE="$t/state.json" MAX_ATTEMPTS=10 COOLDOWN_SECONDS=0 "$GUARD" "$@"; }
 
+# Corrupted task-state schema is fail-closed, even when the JSON itself is valid.
+printf '{"B":{"attempts":"not-a-number"}}\n' > "$t/bad-state.json"
+if STATE_FILE="$t/bad-state.json" COOLDOWN_SECONDS=0 "$GUARD" --task-id=B --patch-file="$t/patch-a" >/dev/null 2>&1; then exit 1; fi
+
 # First acceptance and exact duplicate-patch rejection.
 g --task-id=P --patch-file="$t/patch-a" >/dev/null
 if g --task-id=P --patch-file="$t/patch-a" >/dev/null 2>&1; then exit 1; fi
