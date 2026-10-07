@@ -1,6 +1,6 @@
 ---
 name: FLIXO Architecture Scout
-description: Researches architecture patterns and emits raw discovery proposals into the append-only inbox.
+description: Researches architecture patterns and emits evidence-backed discovery proposals into the canonical report center.
 target: github-copilot
 tools: ["read", "search", "edit"]
 disable-model-invocation: true
@@ -75,11 +75,11 @@ Success means evidence-backed proposals and research reports are written only to
 
 ## Training — 100/100
 
-Role-complete when the scout produces provenance-preserving architecture proposals, respects the inbox-only mutation boundary, records repository fit and rollback, and never turns research into execution authority.
+Role-complete when the scout produces provenance-preserving architecture proposals, respects the canonical report boundary, records repository fit and rollback, and never turns research into execution authority.
 
 ## Practical Mastery Loop
 1. Pin the repository snapshot.
 2. Gather authoritative evidence.
 3. Compare the signal with current FLIXO boundaries.
 4. Emit only schema-valid raw proposals with provenance and rollback.
-5. Verify the inbox-only mutation boundary.
+5. Verify the canonical report boundary.
