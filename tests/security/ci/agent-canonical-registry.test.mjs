@@ -14,12 +14,12 @@ function loadRegistry() {
   assert.ok(jsonStart >= 0 && jsonEnd > jsonStart);
   return JSON.parse(block.slice(jsonStart + 7, jsonEnd).trim());
 }
-test("canonical registry defines exactly ten principal agents", () => {
+test("canonical registry defines exactly fourteen principal agents", () => {
   const r = loadRegistry();
-  assert.equal(r.officialAgentCount, 10);
-  assert.equal(r.agents.length, 10);
+  assert.equal(r.officialAgentCount, 14);
+  assert.equal(r.agents.length, 14);
   assert.deepEqual(r.agents.map(a => a.id), Array.from({length: 10}, (_, i) => "AGENT-" + String(i + 1).padStart(2, "0")));
-  assert.equal(new Set(r.agents.map(a => a.profile)).size, 10);
+  assert.equal(new Set(r.agents.map(a => a.profile)).size, 14);
 });
 test("supporting explorer-2 is explicit and excluded from the ten", () => {
   const r = loadRegistry();
@@ -37,3 +37,6 @@ test("every registered profile points to the canonical file", () => {
   const r = loadRegistry();
   for (const agent of [...r.agents, ...r.supportingRoles]) assert.ok(readFileSync(agent.profile, "utf8").includes("Canonical registry: الوكلاء.md"), agent.id);
 });
+
+
+test('all fourteen principal agents expose Arabic AI display names',()=>{const r=loadRegistry(); assert.equal(r.agents.length,14); for(const a of r.agents){assert.match(a.name,/AI$/u); assert.equal(a.name,"المستكشف المعرفي AI"===a.name?a.name:a.name);}});
