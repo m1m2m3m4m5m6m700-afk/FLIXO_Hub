@@ -15,8 +15,8 @@ test('B CONTROL ASSURANCE: all blocking gates pass on the current exact executio
   const sha = head();
   const report = evaluateControlAssuranceB({ currentSha:sha, expectedSha:sha });
   assert.equal(report.passed, true, JSON.stringify(report, null, 2));
-  assert.equal(report.totalGateCount, 15);
-  assert.equal(report.verifiedGateCount, 15);
+  assert.equal(report.totalGateCount, 17);
+  assert.equal(report.verifiedGateCount, 17);
   assert.deepEqual(report.gates.map(g => g.gate), [...CONTROL_ASSURANCE_B_GATES]);
 });
 
@@ -79,4 +79,26 @@ test('B12 wrong workflow trigger coverage is fail-closed', () => {
   assert.match(workflow, /test "\$EVENT_NAME" = "pull_request"/u);
   assert.match(workflow, /BASE_BRANCH/u);
   assert.match(workflow, /github\.event_name != 'pull_request'/u);
+});
+
+test('B2 falsification network is independently bound and non-authoritative', () => {
+  const report = evaluateControlAssuranceB();
+  const gate = report.gates.find(g => g.gate === 'FALSIFICATION-NETWORK');
+  assert.equal(gate?.status, 'VERIFIED', JSON.stringify(gate));
+  for (const path of ['.github/agents/red-team-1.md','.github/agents/red-team-2.md','.github/agents/المستكشف-2.md']) {
+    const profile = show(path);
+    assert.match(profile, /independent_review:\s*true/u);
+    assert.match(profile, /cap_WRITE_INBOX:\s*DENY/u);
+    assert.match(profile, /cap_CERTIFY:\s*DENY/u);
+  }
+});
+
+test('B6 scheduled Scout loop is canonical and validator-gated', () => {
+  const report = evaluateControlAssuranceB();
+  const gate = report.gates.find(g => g.gate === 'EXPLORATION-SCHEDULER');
+  assert.equal(gate?.status, 'VERIFIED', JSON.stringify(gate));
+  const workflow = show('.github/workflows/continuous-discovery.yml');
+  assert.match(workflow, /schedule:\s*\n\s*- cron: "17 2 \* \* \*"/u);
+  assert.match(workflow, /python3 \.agent-intelligence\/scripts\/run_scouts\.py/u);
+  assert.match(workflow, /python3 \.agent-intelligence\/scripts\/validate\.py --all/u);
 });
