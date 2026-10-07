@@ -54,11 +54,20 @@ jobs:
           cache: npm
       - run: npm ci --no-audit --no-fund
       - name: Hard-control contract
-        run: npm run test:cell-hard-control
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run test:cell-hard-control 2>&1 | tee cell-redteam-output.txt
       - name: Runtime contract
         run: npm run test:cell-runtime
       - name: Assignment and delegation contract
         run: npm run test:cell-assignment
+      - name: Upload red-team evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: cell-redteam-evidence-${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          path: cell-redteam-output.txt
       - name: Exact SHA fence
         run: test "$(git rev-parse HEAD)" = "${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}"
 
