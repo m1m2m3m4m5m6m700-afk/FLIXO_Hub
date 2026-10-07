@@ -10,6 +10,8 @@ const required=[
   ".agent-intelligence/scouts/architecture.yaml",
   ".agent-intelligence/scouts/technology.yaml",
   ".agent-intelligence/scouts/ecosystem.yaml",
+  ".agent-intelligence/scouts/public-repositories.yaml",
+  ".agent-intelligence/scripts/discover_public_repositories.py",
   ".agent-intelligence/inbox",
   "الوكلاء/التقارير/AGENT-08 — Architecture Scout",
   "الوكلاء/التقارير/AGENT-09 — Technology Scout",
@@ -21,6 +23,21 @@ function fail(m){console.error("INFINITE_DISCOVERY_FAIL: "+m);process.exit(1);}
 function exists(p){try{statSync(join(root,p));return true;}catch{return false;}}
 for(const p of required) if(!exists(p)) fail("missing: "+p);
 
+const publicManifestPath=".agent-intelligence/scouts/public-repositories.yaml";
+let publicManifest;
+try{publicManifest=JSON.parse(readFileSync(join(root,publicManifestPath),"utf8"));}catch{fail("public repository manifest is not valid YAML/JSON-subset");}
+if(publicManifest.format!=="flixo-public-repo-discovery-v1"||publicManifest.version!==1) fail("invalid public repository manifest");
+if(!Array.isArray(publicManifest.queries)||publicManifest.queries.length===0) fail("public repository queries missing");
+if(!Number.isInteger(publicManifest.max_selected_repositories)||publicManifest.max_selected_repositories<1||publicManifest.max_selected_repositories>6) fail("public repository selection bound invalid");
+for(const q of publicManifest.queries){
+  if(!["ARCHITECTURE","TECHNOLOGY","ECOSYSTEM"].includes(q.role)) fail("invalid public repository role");
+  if(typeof q.query!=="string"||!q.query.trim()) fail("public repository query missing");
+  if(!Array.isArray(q.repo_refs)||q.repo_refs.length===0) fail("public repository repo_refs missing");
+  for(const ref of q.repo_refs){
+    const target=join(root,ref.split(":",1)[0]);
+    if(!exists(ref)||statSync(target).isSymbolicLink()) fail("invalid public repository target ref "+ref);
+  }
+}
 for(const p of [
   ".agent-intelligence/scouts/architecture.yaml",
   ".agent-intelligence/scouts/technology.yaml",
@@ -67,6 +84,8 @@ if(!workflow.includes("schedule:")||!workflow.includes("workflow_dispatch:")||!w
 if(!workflow.includes("permissions:\n  contents: read")) fail("workflow default permission must be read");
 if(!workflow.includes("contents: write")) fail("publish job write permission missing");
 if(!workflow.includes("scout/discovery-")) fail("publication must target scout/discovery-*");
+if(!workflow.includes("discover_public_repositories.py")) fail("public repository acquisition step missing");
+if(!workflow.includes(".agent-intelligence/public-repositories")) fail("public repository output boundary missing");
 if(!workflow.includes("الوكلاء/التقارير/AGENT-08 — Architecture Scout/*.yaml")) fail("Architecture report publication path missing");
 if(!workflow.includes("الوكلاء/التقارير/AGENT-09 — Technology Scout/*.yaml")) fail("Technology report publication path missing");
 if(!workflow.includes("الوكلاء/التقارير/AGENT-10 — Ecosystem Scout/*.yaml")) fail("Ecosystem report publication path missing");
