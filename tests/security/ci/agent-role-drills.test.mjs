@@ -12,7 +12,10 @@ test('every principal agent has a role-specific intensive drill', () => {
   for (const result of results) {
     assert.equal(result.validScore, 100, result.name);
     assert.equal(result.validPassed, true, result.name);
+    assert.equal(result.positiveRepeatPasses, 3, result.name);
+    assert.equal(result.deterministic, true, result.name);
     assert.equal(result.negativeRejected, true, result.name);
+    assert.ok(result.negativeCases >= 3, result.name);
     assert.equal(result.passed, true, result.name);
   }
 });
