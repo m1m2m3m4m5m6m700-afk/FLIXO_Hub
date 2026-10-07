@@ -56,6 +56,18 @@ jobs:
       - name: Build runtime
         run: npm run build:runtime
 
+      - name: Stamp exact preview identity
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          mkdir -p dist/__flixo "dist/__flixo/identity/$EXPECTED_SHA"
+          printf '%s\n' "$EXPECTED_SHA" > dist/flixo-head-sha.txt
+          printf '%s\n' "$EXPECTED_SHA" > "dist/__flixo-identity-$EXPECTED_SHA.txt"
+          printf '%s\n' "$EXPECTED_SHA" > dist/__flixo-identity.txt
+          printf '%s\n' "$EXPECTED_SHA" > "dist/__flixo/identity/$EXPECTED_SHA/index.txt"
       - name: Validate preview credentials
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
