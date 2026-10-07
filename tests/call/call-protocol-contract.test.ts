@@ -7,6 +7,7 @@ import { classifyObjectiveComparison } from "../../packages/contracts/src/call-o
 import { validateCandidateBundle } from "../../packages/contracts/src/call-candidate-bundle.ts";
 import { detectCapabilityGaps, generateSelfDevelopmentObjective, validateSelfDevelopmentObjective } from "../../packages/contracts/src/call-self-development.ts";
 import { CellRuntime } from "../../packages/contracts/src/cell-runtime.ts";
+import { assertWorkspaceIsolation, canWorkspacePush, validateCellWorkspace } from "../../packages/contracts/src/call-workspace.ts";
 
 const SHA = "0123456789abcdef0123456789abcdef01234567";
 
@@ -85,5 +86,41 @@ test("self-development does not create work when there is no validated gap", () 
       [{ capabilityId: "routing", maturity: 0.90, referenceId: "baseline", evidenceRefs: ["reference"] }],
     ),
     /SELF_DEVELOPMENT_NO_GAP/,
+  );
+});
+
+
+test("workspace isolation forbids cross-cell writes and main pushes", () => {
+  const solver = {
+    workspaceId: "ws-solver",
+    agentId: "solver",
+    role: "SOLVER" as const,
+    baseSha: SHA,
+    filesystemRoot: "/work/solver/",
+    network: "DENY" as const,
+    pushTargets: [],
+    capabilities: ["build"],
+  };
+  const opponent = {
+    workspaceId: "ws-opponent",
+    agentId: "opponent",
+    role: "OPPONENT" as const,
+    baseSha: SHA,
+    filesystemRoot: "/work/opponent/",
+    network: "ALLOWLIST" as const,
+    pushTargets: ["execution"],
+    capabilities: ["falsification"],
+  };
+  validateCellWorkspace(solver);
+  validateCellWorkspace(opponent);
+  assert.throws(
+    () => assertWorkspaceIsolation(solver, opponent, "/work/opponent/report.json"),
+    /CROSS_WORKSPACE_WRITE_FORBIDDEN/,
+  );
+  assert.equal(canWorkspacePush(opponent, "execution"), true);
+  assert.equal(canWorkspacePush(opponent, "main"), false);
+  assert.throws(
+    () => validateCellWorkspace({ ...solver, pushTargets: ["main"] }),
+    /WORKSPACE_MAIN_PUSH_FORBIDDEN/,
   );
 });
