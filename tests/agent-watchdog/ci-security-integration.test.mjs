@@ -96,7 +96,7 @@ test('PRIVILEGE_REGRESSIONS_AND_DEPLOYMENT: workflow enable is absent and execut
 test('RUNNER_WATCHDOG_CONTRACT: current watchdog surfaces are present after integration', () => {
   const required = [
     ['watchdog/package.json', /@flixo\/agent-watchdog/u],
-    ['watchdog/src/lib/runtime.ts', /loadConfig[\\s\\S]*authAgent/u],
+    ['watchdog/src/lib/runtime.ts', /loadConfig[\s\S]*authAgent/u],
     ['watchdog/test/contract.test.ts', /AUTH_FAIL_CLOSED=PASS/u],
     ['src/lib/cell/watchdog.ts', /startCellWatchdog[\\s\\S]*timedOut/u],
   ];
