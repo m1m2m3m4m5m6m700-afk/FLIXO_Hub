@@ -445,6 +445,33 @@ export class CellLifecycleRuntime {
     this.stage = "PAIR_LOCKED";
   }
 
+  replan(envelope: CellAdmissionEnvelope): CellAdmissionRecord {
+    this.requireStage("ADMITTED");
+    if (!this.admission) throw new Error("CELL_ADMISSION_REQUIRED");
+    if (envelope.taskId !== this.admission.taskId) throw new Error("CELL_REPLAN_TASK_MISMATCH");
+    if (envelope.missionId !== this.admission.missionId) throw new Error("CELL_REPLAN_MISSION_MISMATCH");
+    validateCellAdmission(envelope);
+
+    const record = createCellAdmissionRecord(envelope, this.next(), this.clock());
+    this.admission = record;
+    this.claim = null;
+    this.counterclaim = null;
+    this.evidence = [];
+    this.reconciliation = null;
+    this.arbitration = null;
+    this.candidate = null;
+    this.redTeam = null;
+    this.verification = null;
+    this.certification = null;
+    this.promotion = null;
+    this.learning = null;
+    this.frontier = null;
+    this.opponentStartSequence = null;
+    this.solverDisclosureSequence = null;
+    this.stage = "ADMITTED";
+    return record;
+  }
+
   recordOpponentIndependentStart(opponentId: string, candidateSha: string, sequence?: number): void {
     this.requireStage("PAIR_LOCKED");
     required(opponentId, "CELL_OPPONENT_ID_REQUIRED");
