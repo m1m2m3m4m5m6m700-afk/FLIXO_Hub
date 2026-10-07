@@ -106,11 +106,6 @@ jobs:
         run: python3 .agent-intelligence/scripts/run_scouts.py
       - name: Validate generated proposals with Agent-2 validator
         run: python3 .agent-intelligence/scripts/validate.py --all
-      - name: Validate discovery shell syntax
-        shell: bash
-        run: |
-          set -euo pipefail
-          bash -n "$GITHUB_WORKSPACE/.github/workflows/continuous-discovery.yml"
       - name: Verify mutation boundary
         shell: bash
         run: |
