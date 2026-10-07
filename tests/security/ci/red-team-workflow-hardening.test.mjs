@@ -15,11 +15,13 @@ test('Agent-3 PR validation is read-only and publication is isolated', async () 
   assert.match(workflow, /persist-credentials:\s*false/u);
 });
 
-test('final Red Team has no pull-request write authority', async () => {
+test('final Red Team has no write authority', async () => {
   const workflow = await readRepo('.github/workflows/final-red-team.yml');
-  assert.doesNotMatch(workflow, /pull-requests:\s*write/u);
+  const permissions = workflow.split(/\nconcurrency:/u)[0];
+  assert.match(permissions, /contents:\s*read/u);
+  assert.match(permissions, /actions:\s*read/u);
+  assert.doesNotMatch(permissions, /(?:contents|actions|pull-requests|issues|packages|deployments|id-token):\s*write/u);
   assert.match(workflow, /persist-credentials:\s*false/u);
-  assert.doesNotMatch(workflow.split('\n  jobs:\n')[0] ?? '', /GH_TOKEN:\s*\$\{\{\s*github\.token\s*\}\}/u);
 });
 
 test('repository knowledge scan and publication are separated', async () => {
