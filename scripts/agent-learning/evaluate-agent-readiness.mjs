@@ -55,19 +55,19 @@ const ROLE_RULES = {
     contract:'.github/agents/flixo-scout-architecture.agent.md',
     report:'التطوير.md#Architecture Radar',
     anchors:['.agent-intelligence/scouts/architecture.yaml','src/config/registry.ts','src/lib/execution/canonical-executor.ts'],
-    required:['read/search/edit','inbox','Proposal Schema v4','rollback','provenance']
+    required:['tools: ["read", "search", "edit"]','inbox','Proposal Schema v4','rollback','provenance']
   },
   'FLIXO Technology Scout': {
     contract:'.github/agents/flixo-scout-technology.agent.md',
     report:'التطوير.md#Technology Radar',
     anchors:['.agent-intelligence/scouts/technology.yaml','package.json','src/lib/execution/canonical-executor.ts'],
-    required:['read/search/edit','inbox','Proposal Schema v4','licensing','compatibility']
+    required:['tools: ["read", "search", "edit"]','inbox','Proposal Schema v4','licensing','compatibility']
   },
   'FLIXO Ecosystem Scout': {
     contract:'.github/agents/flixo-scout-ecosystem.agent.md',
     report:'التطوير.md#Ecosystem Radar',
     anchors:['.agent-intelligence/scouts/ecosystem.yaml','package.json','src/config/registry.ts'],
-    required:['read/search/edit','inbox','Proposal Schema v4','provenance','maturity']
+    required:['tools: ["read", "search", "edit"]','inbox','Proposal Schema v4','provenance','maturity']
   }
 };
 
@@ -82,7 +82,7 @@ export function scoreAgent(agent, sha){
   const profile=read(agent.registration);
   const contract=read(rule.contract);
   const checks=[];
-  checks.push(check(/^[A-Za-z0-9_-]+$/u.test(agent.registration.replace(/.*\//,'')) || agent.registration.endsWith('.md'),'registration is a concrete profile','restore the official profile'));
+  checks.push(check(exists(agent.registration),'official profile exists','restore the official profile'));
   checks.push(check(/100\/100/u.test(profile),'100/100 contract is explicit','complete the role training contract'));
   checks.push(check(/Practical Mastery Loop/u.test(profile),'practical mastery loop is explicit','complete the mastery loop'));
   checks.push(check(sha===gitHead(),'training target equals repository HEAD','re-read the live execution SHA'));
