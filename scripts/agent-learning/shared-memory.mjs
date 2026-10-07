@@ -202,7 +202,8 @@ export async function searchSharedMemory({ query, currentSha, limit = 8, include
 }
 
 export async function submitMemoryProposal(payload, env = process.env) {
-  const failures = validateMemoryProposal(payload, payload?.exactSha);
+  const currentSha = assertExactSha(payload?.currentSha ?? env.GITHUB_SHA, 'currentSha');
+  const failures = validateMemoryProposal(payload, currentSha);
   if (failures.length) throw new Error('MEMORY_PROPOSAL_INVALID:' + failures.join('|'));
   const rpc = loadRpcClient(env);
   return rpc.call('flixo_submit_agent_memory', {
