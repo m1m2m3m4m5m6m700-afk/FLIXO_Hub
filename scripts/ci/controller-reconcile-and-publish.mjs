@@ -75,6 +75,7 @@ async function getQueue(queueId) {
     patchSha256: row.patch_sha256,
     patchText: row.patch_text ?? '',
     paths: Array.isArray(row.paths) ? row.paths : [],
+    taskId: row.task_id ?? '',
   });
   return row;
 }
