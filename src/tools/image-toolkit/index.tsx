@@ -83,6 +83,9 @@ const UI_COPY: Record<string, UiCopy> = {
   vi: { imageTools:'FLIXO · CÔNG CỤ HÌNH ẢNH', prompt:'Lời nhắc', promptRequired:'Trước tiên hãy nhập lời nhắc.', chooseImage:'Chọn ảnh', chooseImageFirst:'Trước tiên hãy chọn một ảnh.', imageInput:'ĐẦU VÀO HÌNH ẢNH', outputFormat:'Định dạng đầu ra', scale:'Tỷ lệ', backgroundTolerance:'Dung sai nền', svgColumns:'Cột SVG', x:'X', y:'Y', width:'Chiều rộng', height:'Chiều cao', outputWidth:'Chiều rộng đầu ra', outputHeight:'Chiều cao đầu ra', run:'Chạy công cụ', processing:'Đang xử lý…', generate:'Tạo ảnh', result:'KẾT QUẢ', download:'Tải xuống', downloadNow:'Tải xuống ngay', noResult:'Chưa có kết quả.', toolResult:'Kết quả công cụ', privacyOcr:'Ảnh đã chọn được xử lý trước cục bộ, sau đó Tesseract.js nhận dạng văn bản trong Web Worker chuyên dụng.' },
 };
 
+const AI_PROMPT_MAX_CHARS = 4000;
+const AI_REQUEST_TIMEOUT_MS = 60_000;
+
 function baseName(name: string) { return name.replace(/\.[^.]+$/, '') || 'flixo-image'; }
 function outputExtension(mime: string): 'png' | 'jpg' | 'webp' { return mime === 'image/jpeg' ? 'jpg' : mime === 'image/webp' ? 'webp' : 'png'; }
 
@@ -163,11 +166,27 @@ export function ImageToolPage({ toolId }: Props) {
     setBusy(true); setError(''); replaceResult(null);
     try {
       if (toolId === 'ai-image-generator') {
-        if (!prompt.trim()) throw new Error(ui.promptRequired);
+        const normalizedPrompt = prompt.trim();
+        if (!normalizedPrompt) throw new Error(ui.promptRequired);
+        if (normalizedPrompt.length > AI_PROMPT_MAX_CHARS) throw new Error(`Prompt exceeds the maximum length of ${AI_PROMPT_MAX_CHARS} characters.`);
         const body = new FormData();
         body.append('capability', 'generate-image');
-        body.append('prompt', prompt.trim());
-        const response = await fetch(import.meta.env.VITE_FLIXO_AI_IMAGE_ENDPOINT || '/api/ai/image', { method: 'POST', body });
+        body.append('prompt', normalizedPrompt);
+        const requestController = new AbortController();
+        const requestTimer = setTimeout(() => requestController.abort(), AI_REQUEST_TIMEOUT_MS);
+        let response: Response;
+        try {
+          response = await fetch(import.meta.env.VITE_FLIXO_AI_IMAGE_ENDPOINT || '/api/ai/image', {
+            method: 'POST',
+            body,
+            signal: requestController.signal,
+          });
+        } catch (error) {
+          if (requestController.signal.aborted) throw new Error('AI image request timed out.');
+          throw error;
+        } finally {
+          clearTimeout(requestTimer);
+        }
         if (!response.ok) throw new Error('AI image endpoint is not configured or returned an error.');
         const blob = await response.blob();
         if (!blob.type.startsWith('image/')) throw new Error('AI endpoint did not return an image.');
@@ -216,12 +235,23 @@ export function ImageToolPage({ toolId }: Props) {
       }
       else { blob = await rasterToSvg(file, Number(columns) || 48); fileName += '.svg'; }
       if (blob.type.startsWith('image/')) {
-        if (!info) info = await imageInfo(blob);
         const contractId = toolId === 'crop-resize' ? 'image-cropper' : toolId;
         const contract = getToolOutputContract(contractId);
         if (contract) {
+          const variant = contract.variants.find((candidate) => candidate.outputMimeTypes.includes(blob.type));
+          const headerDimensions = variant?.maxPixels ? await readRasterHeaderDimensions(blob, blob.type) : null;
+          if (variant?.maxPixels) {
+            if (!headerDimensions) throw new Error('Output dimensions could not be determined from the bounded header.');
+            assertImageDimensions(headerDimensions.width, headerDimensions.height, variant.maxPixels);
+          }
+          if (!info) info = await imageInfo(blob);
+          if (headerDimensions && (info.width !== headerDimensions.width || info.height !== headerDimensions.height)) {
+            throw new Error('Output decoded dimensions do not match the bounded header dimensions.');
+          }
           const header = new Uint8Array(await blob.slice(0, 64).arrayBuffer());
           assertToolOutputContract(contract, { mimeType: blob.type, byteLength: blob.size, bytes: header, filename: fileName, dimensions: info });
+        } else if (!info) {
+          info = await imageInfo(blob);
         }
       }
       replaceResult(await createResult(blob, fileName, info));
