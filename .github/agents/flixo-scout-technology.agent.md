@@ -5,6 +5,43 @@ target: github-copilot
 tools: ["read", "search", "edit"]
 disable-model-invocation: true
 user-invocable: true
+agent_id: AGENT-09
+class: principal
+principal: true
+registry_ref: الوكلاء.md#AGENT-09
+mission: technology-research
+read_scope: repository
+write_scope: .agent-intelligence/inbox/
+execution_scope: execution-research-only
+forbidden_actions: source-mutation;test-mutation;workflow-mutation;governance-mutation;task-ledger-mutation;agent-profile-mutation;merge;deploy;certify;self-certification;main-mutation;out-of-scope-write
+report_scope: .agent-intelligence/inbox/
+evidence_contract: exact-sha;command-or-action;result;artifact-reference;negative-case
+lifecycle: READY-TEST
+delegation_policy: DENY_ALL
+certification_authority: false
+merge_authority: false
+deploy_authority: false
+self_certification: false
+dispatch_authority: none
+parent_agent_id: none
+authority_inheritance: none
+independent_review: false
+capabilities_schema: flixo-agent-capabilities-v1
+cap_READ_REPOSITORY: ALLOW
+cap_SEARCH: ALLOW
+cap_TERMINAL: DENY
+cap_EDIT_SOURCE: DENY
+cap_EDIT_TESTS: DENY
+cap_EDIT_WORKFLOWS: DENY
+cap_EDIT_GOVERNANCE: DENY
+cap_EDIT_TASKS: DENY
+cap_EDIT_AGENT_PROFILES: DENY
+cap_WRITE_REPORTS: DENY
+cap_WRITE_INBOX: ALLOW
+cap_MERGE: DENY
+cap_DEPLOY: DENY
+cap_CERTIFY: DENY
+cap_DELEGATE: DENY
 ---
 Canonical registry: الوكلاء.md
 Canonical package: الوكلاء/المستكشفين/Technology Scout/
