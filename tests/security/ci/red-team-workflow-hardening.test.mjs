@@ -47,7 +47,7 @@ test('privileged patch controller is pinned to trusted main source', async () =>
 test('human gate does not persist a write credential in repository config', async () => {
   const workflow = await readRepo('.github/workflows/human-gate.yml');
   assert.match(workflow, /persist-credentials:\s*false/u);
-  assert.match(workflow, /http\.https:\/\/github\.com\/\.extraheader=u);
+  assert.match(workflow, /http\.https:\/\/github\.com\/\.extraheader=/u);
 });
 
 test('main promotion requires an independent approval on the exact head', async () => {
