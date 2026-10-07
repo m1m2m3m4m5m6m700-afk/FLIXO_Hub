@@ -36,7 +36,7 @@ REQUIRED_TOP = {
     "triage",
 }
 
-ALLOWED_STATUS = {"inbox", "triaged", "queued", "approved", "rejected", "expired"}
+ALLOWED_STATUS = {"candidate", "triaged", "queued", "approved", "rejected", "expired"}
 ALLOWED_LANE = {
     "architecture",
     "technology",
@@ -470,17 +470,14 @@ def validate_proposal(proposal_path: Path, repo_root: Path | None = None, now: d
     proposal_path = proposal_path.resolve(strict=True)
     if not proposal_path.is_file():
         return _result({}, "rejected", {"V-01": "FAIL"}, ["proposal must be an existing regular file"])
-    inbox_dir = root / ".agent-intelligence" / "inbox"
-    if inbox_dir.is_symlink() or not inbox_dir.is_dir():
-        return _result({}, "rejected", {"V-01": "FAIL"}, ["proposal inbox boundary is missing or unsafe"])
+    report_root = root / "الوكلاء" / "التقارير"
+    if report_root.is_symlink() or not report_root.is_dir():
+        return _result({}, "rejected", {"V-01": "FAIL"}, ["canonical agent report center is missing or unsafe"])
     try:
-        inbox_root = inbox_dir.resolve(strict=True)
-    except (FileNotFoundError, OSError):
-        return _result({}, "rejected", {"V-01": "FAIL"}, ["proposal inbox boundary is missing or unsafe"])
-    try:
-        proposal_path.relative_to(inbox_root)
-    except ValueError:
-        return _result({}, "rejected", {"V-01": "FAIL"}, ["proposal must reside under .agent-intelligence/inbox"])
+        report_root = report_root.resolve(strict=True)
+        proposal_path.relative_to(report_root)
+    except (FileNotFoundError, OSError, ValueError):
+        return _result({}, "rejected", {"V-01": "FAIL"}, ["proposal must reside under canonical agent report center"])
     if proposal_path.stat().st_size > MAX_PROPOSAL_BYTES:
         return _result({}, "rejected", {"V-01": "FAIL"}, ["proposal exceeds 64 KiB"])
     try:
@@ -566,22 +563,18 @@ def validate_proposal(proposal_path: Path, repo_root: Path | None = None, now: d
 
 def validate_all(repo_root: Path | None = None) -> list[dict[str, Any]]:
     root = (repo_root or Path(__file__).resolve().parents[2]).resolve(strict=True)
-    inbox = root / ".agent-intelligence" / "inbox"
-    if not inbox.exists():
-        raise ValidationError("inbox directory is missing")
-    if inbox.is_symlink() or not inbox.is_dir():
-        raise ValidationError("inbox boundary is invalid")
+    report_root = root / "الوكلاء" / "التقارير"
+    if not report_root.exists() or report_root.is_symlink() or not report_root.is_dir():
+        raise ValidationError("canonical agent report center is missing or unsafe")
 
     results: list[dict[str, Any]] = []
-    for path in sorted(inbox.iterdir(), key=lambda item: item.name):
+    for path in sorted(report_root.rglob("*"), key=lambda item: item.as_posix()):
         if path.is_symlink():
-            raise ValidationError("symbolic links are forbidden in inbox")
-        if path.is_dir():
-            continue
-        if path.name in {".gitkeep", "README.md"}:
+            raise ValidationError("symbolic links are forbidden in canonical agent reports")
+        if not path.is_file() or path.name in {"README.md", ".gitkeep"}:
             continue
         if path.suffix.lower() not in {".yml", ".yaml"}:
-            raise ValidationError("unsupported file in inbox: " + path.name)
+            continue
         results.append(validate_proposal(path, root))
     return results
 
