@@ -127,3 +127,20 @@ test("reference runtime carries assignment, typed handoff and progress decisions
   });
   assert.equal(decision, "CONTINUE");
 });
+
+test("runtime preserves native solver-opponent assignment lineage", () => {
+  const rt = new CellRuntime(() => 1000);
+  const created = rt.registerTask("t-team");
+  const ready = rt.transitionTask("t-team", "READY", created.version);
+  assert.equal(ready.state, "READY");
+  const team = {
+    assignmentId: "team-1",
+    solverAgentId: "agent-a",
+    backupSolverAgentId: "agent-b",
+    opponentAgentId: "agent-c",
+    backupOpponentAgentId: null,
+    verifierAgentId: "agent-d",
+    escalationTargetAgentId: null,
+  };
+  assert.equal(rt.assignTaskTeam("t-team", team).team.opponentAgentId, "agent-c");
+});
