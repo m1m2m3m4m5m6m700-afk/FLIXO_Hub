@@ -28,6 +28,7 @@ function makeEnvelope(): CellAdmissionEnvelope {
   } as const;
   const verificationPolicy = {
     verifierRequirement: "independent verifier",
+    independentVerifierRequired: true as const,
     evidenceRequirement: "exact-SHA reproducible evidence",
     exactShaBinding: true,
   } as const;
