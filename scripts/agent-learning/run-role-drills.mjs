@@ -36,6 +36,11 @@ const scoutBase = (agent, drill, sha) => ({
 });
 
 export const ROLE_DRILLS = {
+  'المستكشف 2': {
+    drill: 'falsification',
+    valid: sha => ({ agent:'المستكشف 2', drill:'falsification', exactSha:sha, evidence:['explorer-report:L1'], unknowns:[], nextActions:['recheck'], targetClaim:'Explorer authority claim', alternatives:['alternative authority path'], alternativeEvidence:['path-search'], conclusion:'CONFIRMED' }),
+    invalids: [s => ({ agent:'المستكشف 2', drill:'falsification', exactSha:s, evidence:['e'], unknowns:[], nextActions:['n'], targetClaim:'claim', alternatives:[], alternativeEvidence:[], conclusion:'UNKNOWN' })],
+  },
   'المستكشف AI': {
     drill: 'repository-knowledge',
     valid: sha => ({ agent:'المستكشف AI', drill:'repository-knowledge', exactSha:sha, evidence:['registry:L1','workflow:L1'], unknowns:[], nextActions:['recheck'], coveragePercent:100, dependencies:['route->registry->gate->executor->verifier'], semanticDiff:['added symbol'], authorityChain:['registry','gate','executor','verifier'], mainSha:currentMainSha() }),
