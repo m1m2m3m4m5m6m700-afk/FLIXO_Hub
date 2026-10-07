@@ -11,7 +11,7 @@ import {
   Sun,
   X,
 } from 'lucide-react';
-import { TOOL_CATALOG } from '../config/registry';
+import { EXECUTABLE_TOOL_CATALOG } from '../config/registry';
 import { ROADMAP_CATEGORIES } from '../data/roadmap-categories';
 import { classifyHomeIntent, type AssistantResult } from '../lib/home-intent-classifier';
 
@@ -96,12 +96,12 @@ const FEATURED_COPY: Readonly<Record<string, { name: string; description: string
   },
 };
 
-function routeForTool(tool: (typeof TOOL_CATALOG.ready)[number]): string {
+function routeForTool(tool: (typeof EXECUTABLE_TOOL_CATALOG)[number]): string {
   return tool.routes.ar ?? tool.routes.en ?? tool.path;
 }
 
 function readyCountForCategory(categoryId: string): number {
-  return TOOL_CATALOG.ready.filter((tool) => {
+  return EXECUTABLE_TOOL_CATALOG.filter((tool) => {
     const mapped = CATEGORY_FAMILY_MAP[tool.family ?? ''];
     return mapped === categoryId;
   }).length;
@@ -155,7 +155,7 @@ export function OfficialHome() {
 
   const filteredReadyTools = useMemo(() => {
     const normalized = toolQuery.trim().toLocaleLowerCase();
-    return TOOL_CATALOG.ready.filter((tool) => {
+    return EXECUTABLE_TOOL_CATALOG.filter((tool) => {
       const familyMatch = toolFamily === 'all' || tool.family === toolFamily;
       if (!familyMatch) return false;
       if (!normalized) return true;
@@ -334,7 +334,7 @@ export function OfficialHome() {
                   <small>اكتشف أسرع</small>
                   <h2>ابحث عن الأداة قبل أن تتصفح الكتالوج.</h2>
                 </div>
-                <span>{TOOL_CATALOG.ready.length} أداة جاهزة</span>
+                <span>{EXECUTABLE_TOOL_CATALOG.length} أداة جاهزة</span>
               </div>
               <div className="official-discovery-input">
                 <Search size={19} aria-hidden="true" />
