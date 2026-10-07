@@ -422,6 +422,68 @@ test("CELL replan recovery resets stale downstream state and preserves task/miss
   assert.equal(snapshot.admission?.assignmentId, "team-101");
 });
 
+test("CELL replan quarantines every prior artifact identity from replay", () => {
+  const lifecycle = new CellLifecycleRuntime(() => 5000);
+  const first = makeEnvelope();
+  lifecycle.admit(first);
+  lifecycle.lockPair();
+  lifecycle.recordOpponentIndependentStart("opponent-100", SHA, "c".repeat(64));
+  lifecycle.discloseSolverResult(SHA);
+  lifecycle.startFalsification();
+  lifecycle.recordClaim({
+    claimId: "claim-replay-old",
+    assignmentId: "team-100",
+    solverId: "solver-100",
+    statement: "old claim",
+    candidateSha: SHA,
+    evidenceIds: ["e-replay-old"],
+  });
+  lifecycle.recordEvidence({
+    evidenceId: "e-replay-old",
+    sourceSha: SHA,
+    candidateSha: SHA,
+    kind: "CLAIM_SUPPORT",
+    summary: "old evidence",
+    independent: false,
+  });
+
+  lifecycle.replan({
+    ...first,
+    assignmentId: "team-101",
+    assignment: Object.freeze({
+      ...first.assignment,
+      assignmentId: "team-101",
+      solverId: "solver-101",
+      opponentId: "opponent-101",
+      backupSolverId: "solver-backup-101",
+      backupOpponentId: "opponent-backup-101",
+    }),
+  });
+
+  lifecycle.lockPair();
+  lifecycle.recordOpponentIndependentStart("opponent-101", SHA, "d".repeat(64));
+  lifecycle.discloseSolverResult(SHA);
+  lifecycle.startFalsification();
+
+  assert.throws(() => lifecycle.recordClaim({
+    claimId: "claim-replay-old",
+    assignmentId: "team-101",
+    solverId: "solver-101",
+    statement: "replayed old identity",
+    candidateSha: SHA,
+    evidenceIds: ["e-new"],
+  }), /CELL_CLAIM_ID_RETIRED/);
+
+  assert.throws(() => lifecycle.recordEvidence({
+    evidenceId: "e-replay-old",
+    sourceSha: SHA,
+    candidateSha: SHA,
+    kind: "DISPROOF",
+    summary: "replayed old evidence",
+    independent: true,
+  }), /CELL_EVIDENCE_ID_RETIRED/);
+});
+
 test("CELL replan retires old artifact identities and forbids cross-attempt replay", () => {
   const lifecycle = new CellLifecycleRuntime(() => 4000);
   const first = makeEnvelope();
