@@ -4,7 +4,6 @@ export type CollaborationSeverity = "STANDARD" | "HARD" | "CRITICAL";
 
 export type CollaborationAgent =
   | "master"
-  | "master-opponent"
   | "builder"
   | "opponent"
   | "adversary-builder"
@@ -118,7 +117,7 @@ export function createCollaborationSession(input: Readonly<{
   if (!participants.includes("master")) {
     throw new Error("COLLABORATION_REQUIRES_MASTER_COORDINATION");
   }
-  if (input.protocol !== "PAIR_DEBUG" && !participants.includes("opponent") && !participants.includes("master-opponent")) {
+  if (input.protocol !== "PAIR_DEBUG" && !participants.includes("opponent")) {
     throw new Error("HARD_COLLABORATION_REQUIRES_OPPOSITION");
   }
   if (input.protocol === "VERIFICATION_COUNCIL" && !participants.includes("verifier")) {
