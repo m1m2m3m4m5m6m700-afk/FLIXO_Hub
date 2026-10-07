@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
+import { analyzeWorkflowAuthority } from './verify-branch-policy.mjs';
 
 const EXACT_HEAD_SELECTOR = "github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha";
 const EXACT_HEAD_EXPRESSION = '${{ ' + EXACT_HEAD_SELECTOR + ' }}';
@@ -138,6 +139,36 @@ test('promotion lineage checkout retains full history for merge-base verificatio
   assert.ok(checkoutIndex >= 0, 'promotion lineage checkout must exist');
   const checkoutBlock = workflow.slice(checkoutIndex, markerIndex);
   assert.match(checkoutBlock, /fetch-depth: 0/u);
+});
+
+test('all candidate-sensitive CI checkouts explicitly disable credential persistence', async () => {
+  const workflow = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
+  const blocks = workflow.split('      - uses: actions/checkout@').slice(1);
+  const candidateBlocks = blocks.filter((block) => block.includes('ref: ' + EXACT_HEAD_EXPRESSION));
+  assert.equal(candidateBlocks.length, 6, 'all six candidate-sensitive CI checkouts must remain identifiable');
+  for (const block of candidateBlocks) {
+    assert.match(block, /persist-credentials:\s*false\b/u);
+    assert.doesNotMatch(block, /persist-credentials:\s*true\b/u);
+  }
+});
+
+test('branch policy rejects implicit checkout credential persistence on execution-triggered workflows', () => {
+  const vulnerable = [
+    'name: vulnerable',
+    'on:',
+    '  push:',
+    '    branches: [execution]',
+    'permissions:',
+    '  contents: read',
+    'jobs:',
+    '  build:',
+    '    steps:',
+    '      - uses: actions/checkout@v5',
+    '      - run: npm test',
+  ].join('\n');
+  const safe = vulnerable.replace('      - uses: actions/checkout@v5', '      - uses: actions/checkout@v5\n        with:\n          persist-credentials: false');
+  assert.equal(analyzeWorkflowAuthority('.github/workflows/vulnerable.yml', vulnerable).pass, false);
+  assert.equal(analyzeWorkflowAuthority('.github/workflows/safe.yml', safe).pass, true);
 });
 
 test('execution push branch-policy checkout never persists Git credentials', async () => {
