@@ -51,7 +51,7 @@ test('training program defines evidence-based 100 score and adjudication', () =>
 
 test('package exposes the all-agent training contract as a test gate', () => {
   const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
-  assert.equal(pkg.scripts['test:agent-training'], 'node --test tests/security/ci/agent-training-contract.test.mjs tests/security/ci/agent-canonical-registry.test.mjs');
+  assert.equal(pkg.scripts['test:agent-training'], 'node --test tests/security/ci/agent-training-contract.test.mjs tests/security/ci/agent-canonical-registry.test.mjs tests/security/ci/agent-self-learning-control-plane.test.mjs tests/security/ci/agent-role-drills.test.mjs tests/security/ci/agent-readiness-evaluator.test.mjs');
   assert.match(pkg.scripts.test, /test:agent-training/u);
 });
 
