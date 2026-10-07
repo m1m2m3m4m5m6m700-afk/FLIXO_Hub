@@ -33,7 +33,7 @@ test('all registered profiles expose the unified machine contract and capability
   assert.deepEqual(AGENT_CAPABILITIES.length, 15);
 });
 
-test('Scout profiles are inbox-only and cannot expose source-edit authority', () => {
+test('Scout profiles are report-only and cannot expose source-edit authority', () => {
   for (const file of [
     '.github/agents/flixo-scout-architecture.agent.md',
     '.github/agents/flixo-scout-technology.agent.md',
@@ -41,9 +41,10 @@ test('Scout profiles are inbox-only and cannot expose source-edit authority', ()
   ]) {
     const p = parseProfileFrontmatter(readFileSync(file, 'utf8'));
     assert.deepEqual(p.tools, ['read', 'search', 'edit']);
-    assert.equal(p.write_scope, '.agent-intelligence/inbox/');
-    assert.equal(p.cap_WRITE_INBOX, 'ALLOW');
-    assert.equal(p.cap_WRITE_REPORTS, 'DENY');
+    assert.match(p.write_scope, /^الوكلاء\/التقارير\/AGENT-0[89] — .+\/$/u);
+    assert.equal(p.write_scope, p.report_scope);
+    assert.equal(p.cap_WRITE_INBOX, 'DENY');
+    assert.equal(p.cap_WRITE_REPORTS, 'SCOPED');
     for (const capability of ['EDIT_SOURCE', 'EDIT_TESTS', 'EDIT_WORKFLOWS', 'EDIT_GOVERNANCE', 'EDIT_TASKS', 'EDIT_AGENT_PROFILES']) {
       assert.equal(p['cap_' + capability], 'DENY', file + ': ' + capability);
     }

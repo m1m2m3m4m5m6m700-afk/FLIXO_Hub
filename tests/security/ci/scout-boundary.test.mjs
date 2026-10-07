@@ -8,11 +8,14 @@ const scouts=[
   ".github/agents/flixo-scout-ecosystem.agent.md",
 ];
 
-test("Scout profiles are read/search/edit only and write to inbox",()=>{
+test("Scout profiles are read/search/edit only and write to canonical reports",()=>{
   for(const file of scouts){
     const c=readFileSync(file,"utf8");
     assert.match(c,/tools: \["read", "search", "edit"\]/);
-    assert.match(c,/Your only writable repository path is \.agent-intelligence\/inbox\//);
+    assert.match(c,/write_scope: الوكلاء\/التقارير\/AGENT-0[89] — .+\//u);
+    assert.match(c,/report_scope: الوكلاء\/التقارير\/AGENT-0[89] — .+\//u);
+    assert.match(c,/cap_WRITE_REPORTS: SCOPED/u);
+    assert.match(c,/cap_WRITE_INBOX: DENY/u);
     assert.match(c,/Never edit .*review-queue, .*التطوير\.md/u);
   }
 });
