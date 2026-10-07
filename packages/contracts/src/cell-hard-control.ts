@@ -135,7 +135,7 @@ export function createExecutionEnvelope(input: ExecutionEnvelope): ExecutionEnve
 export type ExecutionIdentityProbe = Readonly<{
   taskId: string; agentId: string; sessionId: string; missionId: string;
   branch: string; startSha: string; currentSha: string; capability: string;
-  objectiveId: string; expectedOutput: string;
+  objectiveId: string; acceptanceDigest: string; expectedOutput: string;
 }>;
 
 export function verifyExecutionIdentity(envelope: ExecutionEnvelope, probe: ExecutionIdentityProbe): string | null {
@@ -148,6 +148,7 @@ export function verifyExecutionIdentity(envelope: ExecutionEnvelope, probe: Exec
     [probe.startSha === envelope.startSha, "START_SHA_MISMATCH"],
     [envelope.allowedCapabilities.includes(probe.capability), "CAPABILITY_NOT_ALLOWED"],
     [probe.objectiveId === envelope.normalizedObjectiveId, "OBJECTIVE_DRIFT"],
+    [probe.acceptanceDigest === envelope.acceptanceDigest, "ACCEPTANCE_DRIFT"],
     [probe.expectedOutput === envelope.expectedOutput, "EXPECTED_OUTPUT_MISMATCH"],
     [Boolean(probe.currentSha), "CURRENT_SHA_MISSING"],
   ];
@@ -157,8 +158,8 @@ export function verifyExecutionIdentity(envelope: ExecutionEnvelope, probe: Exec
 
 export type ExecutionAction = Readonly<{
   actionId: string; taskId: string; agentId: string; sessionId: string; missionId: string;
-  branch: string; startSha: string; currentSha: string; operation: "READ" | "WRITE" | "TEST" | "DELEGATE";
-  path: string | null; capability: string; toolId: string | null;
+  branch: string; startSha: string; currentSha: string; operation: "READ" | "WRITE" | "TEST" | "DELEGATE" | "COMMIT" | "BRANCH";
+  path: string | null; objectiveId: string; acceptanceDigest: string; capability: string; toolId: string | null;
   estimatedCost: number; expectedDurationMs: number; delegationDepth: number;
 }>;
 
@@ -172,6 +173,8 @@ export function authorizeExecutionAction(envelope: ExecutionEnvelope, action: Ex
     [action.sessionId === envelope.sessionId, "D7_AUTHORITY_DRIFT", "identity-gate", "session identity mismatch"],
     [action.missionId === envelope.missionId, "D7_AUTHORITY_DRIFT", "identity-gate", "mission identity mismatch"],
     [action.startSha === envelope.startSha, "D7_AUTHORITY_DRIFT", "identity-gate", "starting SHA mismatch"],
+    [action.objectiveId === envelope.normalizedObjectiveId, "D2_OBJECTIVE_DRIFT", "objective-anchor", "objective mismatch"],
+    [action.acceptanceDigest === envelope.acceptanceDigest, "D2_OBJECTIVE_DRIFT", "acceptance-anchor", "acceptance digest mismatch"],
   ];
   for (const [ok, type, detector, reason] of identityReasons) if (!ok) return { allowed: false, drift: finding(type, detector, reason) };
 
