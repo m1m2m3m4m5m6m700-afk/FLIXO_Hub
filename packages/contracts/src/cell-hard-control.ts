@@ -195,7 +195,7 @@ export type ExecutionAction = Readonly<{
   actionId: string; taskId: string; agentId: string; sessionId: string; missionId: string;
   branch: string; startSha: string; currentSha: string; operation: "READ" | "WRITE" | "TEST" | "DELEGATE" | "COMMIT" | "BRANCH";
   path: string | null; objectiveId: string; acceptanceDigest: string; capability: string; toolId: string | null;
-  estimatedCost: number; expectedDurationMs: number; delegationDepth: number;
+  estimatedCost: number; expectedDurationMs: number; delegationDepth: number; delegatedAuthority?: CellAuthority;
 }>;
 
 export type BudgetUsage = Readonly<{ spentCost: number; spentDurationMs: number }>;
