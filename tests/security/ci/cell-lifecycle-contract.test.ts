@@ -72,6 +72,7 @@ function makeEnvelope(): CellAdmissionEnvelope {
     falsificationPolicy,
     verificationPolicy,
     independencePolicy,
+    verifierId: "verifier-100",
   };
 }
 
@@ -83,6 +84,7 @@ test("CELL admission fails closed and records a complete immutable envelope", ()
   assert.equal(record.taskId, envelope.taskId);
   assert.equal(record.assignmentId, envelope.assignmentId);
   assert.deepEqual(record.acceptanceCriteria, envelope.acceptanceCriteria);
+  assert.equal(record.verifierId, "verifier-100");
 
   assert.throws(
     () => validateCellAdmission({ ...envelope, acceptanceCriteria: [] }),
@@ -92,6 +94,7 @@ test("CELL admission fails closed and records a complete immutable envelope", ()
     () => validateCellAdmission({ ...envelope, assignmentId: "wrong-team" }),
     /CELL_ADMISSION_ASSIGNMENT_MISMATCH/,
   );
+  assert.throws(() => validateCellAdmission({ ...envelope, verifierId: "" }), /CELL_ADMISSION_VERIFIER_REQUIRED/);
 });
 
 test("CELL runtime executes one canonical flow from admission through frontier", () => {
@@ -111,6 +114,8 @@ test("CELL runtime executes one canonical flow from admission through frontier",
   let snapshot = rt.getCellLifecycleSnapshot();
   assert.equal(snapshot.stage, "SOLVING");
   assert.ok(snapshot.opponentStartSequence! < snapshot.solverDisclosureSequence!);
+  assert.equal(snapshot.opponentContextHash, "c".repeat(64));
+  assert.equal(snapshot.opponentStartedAtMs, 1000);
 
   rt.beginCellFalsification();
   rt.recordCellClaim({
@@ -235,7 +240,7 @@ test("CELL arbitration prevents self-adjudication and requires recorded evidence
   const envelope = makeEnvelope();
   lifecycle.admit(envelope);
   lifecycle.lockPair();
-  lifecycle.recordOpponentIndependentStart("opponent-100", SHA);
+  lifecycle.recordOpponentIndependentStart("opponent-100", SHA, "c".repeat(64));
   lifecycle.discloseSolverResult(SHA);
   lifecycle.startFalsification();
   lifecycle.recordClaim({
@@ -310,6 +315,7 @@ test("CELL lifecycle stays exact-SHA and fail-closed across promotion and learni
   assert.throws(() => rt.discloseCellSolverResult("b".repeat(40)), /CELL_SOLVER_DISCLOSURE_SHA_DRIFT/);
 
   rt.discloseCellSolverResult(SHA);
+  assert.throws(() => rt.discloseCellSolverResult(SHA), /CELL_SOLVER_DISCLOSURE_ALREADY_RECORDED/);
   assert.throws(
     () => rt.promoteCell({
       gate: {
@@ -334,7 +340,7 @@ test("CELL replan recovery resets stale downstream state and preserves task/miss
   const first = makeEnvelope();
   lifecycle.admit(first);
   lifecycle.lockPair();
-  lifecycle.recordOpponentIndependentStart("opponent-100", SHA);
+  lifecycle.recordOpponentIndependentStart("opponent-100", SHA, "c".repeat(64));
   lifecycle.discloseSolverResult(SHA);
   lifecycle.startFalsification();
   lifecycle.recordClaim({
@@ -411,4 +417,34 @@ test("CELL replan recovery resets stale downstream state and preserves task/miss
   assert.equal(snapshot.opponentStartSequence, null);
   assert.equal(snapshot.solverDisclosureSequence, null);
   assert.equal(snapshot.admission?.assignmentId, "team-101");
+});
+
+
+test("CELL opponent independence proof is immutable, timestamped, and verifier-bound", () => {
+  const lifecycle = new CellLifecycleRuntime(() => 4321);
+  const envelope = makeEnvelope();
+  lifecycle.admit(envelope);
+  lifecycle.lockPair();
+  lifecycle.recordOpponentIndependentStart("opponent-100", SHA, "d".repeat(64));
+  assert.throws(() => lifecycle.recordOpponentIndependentStart("opponent-100", SHA, "e".repeat(64)), /CELL_OPPONENT_START_ALREADY_RECORDED/);
+  lifecycle.discloseSolverResult(SHA);
+  lifecycle.startFalsification();
+  lifecycle.recordClaim({ claimId: "claim-proof", assignmentId: "team-100", solverId: "solver-100", statement: "claim", candidateSha: SHA, evidenceIds: ["e-proof-claim"] });
+  lifecycle.recordEvidence({ evidenceId: "e-proof-claim", sourceSha: SHA, candidateSha: SHA, kind: "CLAIM_SUPPORT", summary: "claim proof", independent: false });
+  lifecycle.recordCounterclaim({ counterclaimId: "counter-proof", assignmentId: "team-100", opponentId: "opponent-100", claimId: "claim-proof", statement: "counter", candidateSha: SHA, evidenceIds: ["e-proof-counter"] });
+  lifecycle.recordEvidence({ evidenceId: "e-proof-counter", sourceSha: SHA, candidateSha: SHA, kind: "DISPROOF", summary: "counter proof", independent: true });
+  lifecycle.reconcile([], SHA);
+  lifecycle.createCandidate({ candidateId: "candidate-proof", candidateSha: SHA, solverResult: "result", opponentChallenge: "challenge", exchangeComplete: true, conflictsDispositioned: true, evidenceIds: ["e-proof-claim", "e-proof-counter"], handoffRefs: ["handoff:proof"] });
+  lifecycle.redTeamReview({ redTeamId: "red-proof", redTeamAgentId: "red-proof-agent", attackSurfaceChecks: ["independence"], findings: [], passed: true });
+  assert.throws(() => lifecycle.independentlyVerify({ verificationId: "verify-proof-bad", verifierId: "other-verifier", evidenceIds: ["e-proof-claim"], checks: ["context"], passed: true }), /CELL_VERIFIER_ADMISSION_MISMATCH/);
+  const verification = lifecycle.independentlyVerify({ verificationId: "verify-proof", verifierId: "verifier-100", evidenceIds: ["e-proof-claim", "e-proof-counter"], checks: ["context", "ordering", "sha"], passed: true });
+  assert.equal(verification.opponentContextHash, "d".repeat(64));
+  assert.equal(verification.opponentStartedAtMs, 4321);
+});
+
+test("CELL frontier is downstream-only and cannot mutate promotion state", () => {
+  const lifecycle = new CellLifecycleRuntime();
+  lifecycle.admit(makeEnvelope());
+  assert.throws(() => lifecycle.openFrontier({ frontierId: "frontier-before", proposerId: "research", hypothesis: "premature", expectedImprovement: 0.1, informationGain: 0.1, risk: 0.1, reversible: true, nextTaskProposal: "next" }), /CELL_STAGE_INVALID:ADMITTED/);
+  assert.equal(lifecycle.snapshot().promotion, null);
 });
