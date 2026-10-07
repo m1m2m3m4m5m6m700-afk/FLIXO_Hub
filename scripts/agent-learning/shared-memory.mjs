@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 
 export const SHA_RE = /^[0-9a-f]{40}$/i;
+export const MAX_MEMORY_RESULTS = 50;
 export const MEMORY_STATUSES = Object.freeze([
   'CANDIDATE', 'VALIDATED', 'PROMOTED', 'DISPUTED', 'STALE_EVIDENCE', 'REVOKED', 'SUPERSEDED',
 ]);
@@ -189,6 +190,9 @@ export function loadRpcClient(env = process.env) {
 
 export async function searchSharedMemory({ query, currentSha, limit = 8, includeCandidates = false }, env = process.env) {
   assertExactSha(currentSha, 'currentSha');
+  if (!Number.isInteger(limit) || limit < 1 || limit > MAX_MEMORY_RESULTS) {
+    throw new Error('MEMORY_RETRIEVAL_LIMIT_INVALID');
+  }
   return loadRpcClient(env).call('flixo_search_agent_memory', {
     p_query: String(query ?? ''),
     p_current_sha: currentSha,
