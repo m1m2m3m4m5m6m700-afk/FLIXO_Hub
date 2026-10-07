@@ -203,6 +203,29 @@ export class CellRuntime {
   ): ActionAuthorization {
     const usage = this.budgets.get(envelope.taskId) ?? { spentCost: 0, spentDurationMs: 0 };
 
+    const task = this.getTask(envelope.taskId);
+    if (task.state !== "RUNNING") {
+      const denied: ActionAuthorization = {
+        allowed: false,
+        drift: {
+          type: "D7_AUTHORITY_DRIFT",
+          severity: "QUARANTINE",
+          detector: "task-state-gate",
+          response: "QUARANTINE",
+          reason: "execution action requested while task is not RUNNING",
+        },
+      };
+      this.actions.push(
+        Object.freeze({
+          ...action,
+          allowed: false,
+          recordedAtMs: this.clock(),
+          driftType: denied.drift?.type ?? null,
+        }),
+      );
+      return denied;
+    }
+
     if (action.currentSha !== liveSha) {
       const denied: ActionAuthorization = {
         allowed: false,
