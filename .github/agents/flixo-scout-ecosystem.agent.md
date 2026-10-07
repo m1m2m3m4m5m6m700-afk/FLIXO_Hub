@@ -1,6 +1,6 @@
 ---
 name: FLIXO Ecosystem Scout
-description: Researches ecosystem changes and emits raw discovery proposals into the append-only inbox.
+description: Researches ecosystem changes and emits evidence-backed discovery proposals into the canonical report center.
 target: github-copilot
 tools: ["read", "search", "edit"]
 disable-model-invocation: true
@@ -84,4 +84,4 @@ Role-complete when the scout distinguishes isolated releases from durable ecosys
 2. Gather authoritative evidence.
 3. Compare the signal with current FLIXO boundaries.
 4. Emit only schema-valid raw proposals with provenance and rollback.
-5. Verify the inbox-only mutation boundary.
+5. Verify the canonical report boundary.
