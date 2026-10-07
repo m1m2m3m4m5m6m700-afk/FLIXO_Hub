@@ -59,6 +59,9 @@
 - QA Agent: الاختبار والتحقق والأدلة.
 - Red Team 1: اختبار هجومي أمني مستقل.
 - Red Team 2: هجوم مضاد/تفنيد هجومي مستقل.
+- Architecture Scout: بحث معماري raw إلى `.agent-intelligence/inbox/` فقط.
+- Technology Scout: بحث تقني raw إلى `.agent-intelligence/inbox/` فقط.
+- Ecosystem Scout: بحث منظومي مع provenance إلى `.agent-intelligence/inbox/` فقط.
 
 لكل دور عقد خاص واختبارات خاصة. لا يوجد وكيل يقرر لنفسه أنه 100/100.
 
