@@ -60,7 +60,7 @@ export type CellEntity = "TASK" | "AGENT" | "CANDIDATE";
 export function canTransition(entity: CellEntity, from: string, to: string): boolean {
   const table = entity === "TASK" ? TASK_TRANSITIONS : entity === "AGENT" ? AGENT_TRANSITIONS : CANDIDATE_TRANSITIONS;
   const next = table[from as keyof typeof table];
-  return Array.isArray(next) && next.includes(to as never);
+  return Array.isArray(next) && (next as readonly string[]).includes(to);
 }
 
 export function assertTransition(entity: CellEntity, from: string, to: string): void {
