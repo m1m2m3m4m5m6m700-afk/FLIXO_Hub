@@ -132,7 +132,7 @@ export function createProductionCognitiveLearning({env=process.env,fetchImpl=glo
     },
     consumer(agentId,taskId){
       const key=agentId+'|'+taskId;
-      if(!consumers.has(key))consumers.set(key,new CognitiveConsumer(agentId,{checkpointStore}));
+      if(!consumers.has(key))consumers.set(key,new CognitiveConsumer(agentId,{checkpointStore,checkpointKey:key}));
       return consumers.get(key);
     },
     async catchUp(agentId,taskId){
