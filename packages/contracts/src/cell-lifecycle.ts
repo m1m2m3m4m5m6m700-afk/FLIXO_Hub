@@ -42,6 +42,7 @@ export type CellAdmissionEnvelope = Readonly<{
   missionId: string;
   objective: string;
   assignment: CanonicalCellAssignment;
+  assignmentId: string;
   constraints: readonly string[];
   acceptanceCriteria: readonly string[];
   relevantEvidence: readonly string[];
@@ -263,6 +264,7 @@ export function validateCellAdmission(envelope: CellAdmissionEnvelope): void {
   requiredList(envelope.acceptanceCriteria, "CELL_ADMISSION_ACCEPTANCE_REQUIRED");
   requiredList(envelope.relevantEvidence, "CELL_ADMISSION_EVIDENCE_REQUIRED");
   validateCanonicalCellAssignment(envelope.assignment);
+  required(envelope.assignmentId, "CELL_ADMISSION_ASSIGNMENT_REQUIRED");
 
   if (envelope.assignment.taskId !== envelope.taskId) {
     throw new Error("CELL_ADMISSION_TASK_MISMATCH");
@@ -454,7 +456,7 @@ export class CellLifecycleRuntime {
     this.requireStage("SOLVING", "FALSIFYING");
     if (!this.admission) throw new Error("CELL_ADMISSION_REQUIRED");
     const taskId = this.admission.taskId;
-    const assignmentId = this.admission.assignment.teamAssignmentId ?? "";
+    const assignmentId = this.admission.assignmentId;
     return this.claim ?? (() => {
       validateClaim(
         taskId,
@@ -523,7 +525,7 @@ export class CellLifecycleRuntime {
     const record = Object.freeze({
       ...input,
       taskId: this.admission.taskId,
-      assignmentId: this.admission.assignment.teamAssignmentId ?? "",
+      assignmentId: this.admission.assignmentId,
       sequence: this.next(),
     });
     this.evidence.push(record);
@@ -662,7 +664,6 @@ export class CellLifecycleRuntime {
     }
     requiredList(input.checks, "CELL_VERIFICATION_CHECKS_REQUIRED");
     requiredList(input.evidenceIds, "CELL_VERIFICATION_EVIDENCE_REQUIRED");
-    if (input.verifiedSha !== undefined) throw new Error("CELL_VERIFICATION_FORBIDDEN_FIELD");
     const record = Object.freeze({
       ...input,
       candidateId: this.candidate.candidateId,
