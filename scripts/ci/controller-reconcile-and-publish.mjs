@@ -232,6 +232,7 @@ function createCandidateCommit(worktree, targetSha, message, allowedPaths) {
     if (isSensitiveRepositoryPath(path)) throw new Error(`CONTROLLER_SENSITIVE_PATH_FORBIDDEN:${path}`);
     if (isSensitiveRepositoryPath(path)) throw new Error(`CONTROLLER_SENSITIVE_PATH_FORBIDDEN:${path}`);
     if (isSensitiveRepositoryPath(path)) throw new Error(`CONTROLLER_SENSITIVE_PATH_FORBIDDEN:${path}`);
+    if (isSensitiveRepositoryPath(path)) throw new Error(`CONTROLLER_SENSITIVE_PATH_FORBIDDEN:${path}`);
     if (!allowed.has(path)) throw new Error(`CONTROLLER_OUT_OF_SCOPE_CHANGE:${path}`);
   }
 
