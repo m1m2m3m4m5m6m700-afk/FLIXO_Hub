@@ -133,3 +133,15 @@ Evidence = Factual Authority
 Certification/Governance = Promotion Authority
 
 لا Supervisor ولا Registry ولا Task Ledger ثانٍ يحصل على سلطة مستقلة.
+
+## 14. Canonical CELL assignment envelope — TARGET
+
+The canonical orchestration contract now names the active roles explicitly as exactly one primary Solver and exactly one primary Opponent, with backupSolverId and backupOpponentId reserved for recovery. Admission/assignment policy is represented by oppositionPlan, falsificationPolicy, verificationPolicy, and independencePolicy.
+
+The assignment validator requires all Opposition Plan fields, non-colliding primary/backup identities, mandatory falsification, private Solver-context exclusion, and pre-result Opponent start. Exact-SHA enforcement remains a runtime/verification invariant and never becomes a second registry.
+
+## 15. Opponent independent-start proof — TARGET
+
+The reference runtime records an immutable eventId plus monotonic sequence for the Opponent initial challenge position. Solver-result disclosure is rejected until that proof exists and is bound to the same assignment and current SHA.
+
+This API accepts only shared context references and an initial challenge position; it has no parameter for Solver private reasoning. Duplicate starts and SHA drift fail closed.
