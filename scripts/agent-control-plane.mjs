@@ -663,6 +663,11 @@ export class HardControlRuntime {
     if (task.state !== "ADMITTED") throw hardError("DENY_BEFORE_MUTATION","SESSION_TASK_STATE");
     const sessionId = required(input.sessionId ?? ("session-" + (++this.sequence)),"SESSION_ID_MISMATCH");
     const ownerId = required(input.ownerId ?? assignment.solverId,"AGENT_ID_MISMATCH");
+    const existing = this.sessions.get(sessionId);
+    if (existing) {
+      if (existing.assignmentId !== assignmentId || existing.ownerId !== ownerId) throw hardError("SESSION_ID_MISMATCH");
+      if (this.clock() < existing.lease.expiresAt) return existing;
+      throw hardError("LEASE_EXPIRED");
     if (ownerId !== assignment.solverId) throw hardError("AGENT_ID_MISMATCH");
     const now = this.clock();
     const ttlMs = input.ttlMs ?? 10_000;
@@ -819,9 +824,11 @@ export class HardControlRuntime {
   }
 
   redTeamGate(taskId, input) {
-    if (!this.tasks.has(taskId)) throw hardError("TASK_ID_MISMATCH");
+    const task = this.tasks.get(taskId);
+    if (!task) throw hardError("TASK_ID_MISMATCH");
     this.metrics.redTeamRuns += 1;
-    const requiredGate = input?.required !== false;
+    const riskRequiresGate = ["HIGH","CRITICAL"].includes(task.riskClass);
+    const requiredGate = riskRequiresGate || input?.required !== false;
     const findings = Number(input?.findings ?? 0);
     const remediated = input?.remediated === true;
     const retested = input?.retested === true;
