@@ -118,6 +118,47 @@ function hasMainOnlyPushTrigger(workflow) {
   return triggerCount === 1 && mainPush;
 }
 
+function hasExecutionPushTrigger(workflow) {
+  const lines = workflow.split('\n');
+  let inOn = false;
+  let inPush = false;
+  let inPushBranches = false;
+
+  for (const line of lines) {
+    if (/^on:\s*$/u.test(line)) {
+      inOn = true;
+      continue;
+    }
+    if (inOn && /^\S/u.test(line)) break;
+    if (!inOn) continue;
+
+    const triggerMatch = /^\x20{2}([A-Za-z0-9_-]+):\s*$/u.exec(line);
+    if (triggerMatch) {
+      inPush = triggerMatch[1] === 'push';
+      inPushBranches = false;
+      continue;
+    }
+    if (!inPush) continue;
+
+    const inlineBranches = /^\x20{4}branches:\s*\[([^\]]*)\]\s*$/u.exec(line);
+    if (inlineBranches) {
+      if (inlineBranches[1].split(",").some((item) => item.trim() === "execution")) return true;
+      continue;
+    }
+    if (/^\x20{4}branches:\s*$/u.test(line)) {
+      inPushBranches = true;
+      continue;
+    }
+    if (inPushBranches) {
+      const branchItem = /^\x20{6}-\s*([^\s#]+)\s*$/u.exec(line);
+      if (branchItem?.[1] === "execution") return true;
+      if (/^\x20{4}\S/u.test(line)) inPushBranches = false;
+    }
+  }
+
+  return false;
+}
+
 function hasExecutionPushGate(jobText) {
   const compact = jobText.replace(/\s+/gu, ' ');
   return /github\.event_name\s*==\s*['"]push['"]/u.test(compact) && /github\.ref\s*==\s*['"]refs\/heads\/execution['"]/u.test(compact);
@@ -137,6 +178,7 @@ export function analyzeWorkflowAuthority(path, workflow) {
   const jobs = jobBlocks(workflow);
   const workflowContentsWrite = hasTopLevelContentsWrite(workflow);
   const workflowMainOnlyPush = hasMainOnlyPushTrigger(workflow);
+  const workflowExecutionPush = hasExecutionPushTrigger(workflow);
 
   if (workflowContentsWrite && jobs.length === 0) {
     findings.push(`${path}: top-level contents:write has no job boundary to constrain mutation authority.`);
@@ -144,7 +186,13 @@ export function analyzeWorkflowAuthority(path, workflow) {
 
   for (const job of jobs) {
     const jobText = job.lines.join('\n');
-    const mainPushGate = hasMainPushGate(jobText);
+    if (
+      workflowExecutionPush &&
+      /uses:\s*actions\/checkout@/u.test(jobText) &&
+      !/persist-credentials:\s*false\b/iu.test(jobText)
+    ) {
+      findings.push(`${path}#${job.id}: execution-triggered workflow checkout must set persist-credentials:false explicitly.`);
+    }    const mainPushGate = hasMainPushGate(jobText);
     const executionTarget =
       /FLIXO_TARGET_BRANCH:\s*execution\b/u.test(jobText) &&
       (/\bref:\s*execution\b/u.test(jobText) || /git\s+push\s+(?:origin|https?:[^\s]+)\s+["']?HEAD:refs\/heads\/execution["']?/u.test(jobText));
