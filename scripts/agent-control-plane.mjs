@@ -144,10 +144,12 @@ function validateCapabilityContract(profile, id, issues) {
     if (JSON.stringify(tools) !== JSON.stringify(['read', 'search', 'edit'])) {
       issues.push(id + ': Scout tools must be exactly read/search/edit');
     }
-    if (profile.write_scope !== '.agent-intelligence/inbox/' || profile.cap_WRITE_INBOX !== 'ALLOW') {
-      issues.push(id + ': Scout write boundary must be inbox-only');
+    if (profile.cap_WRITE_REPORTS !== 'SCOPED' || profile.cap_WRITE_INBOX !== 'DENY') {
+      issues.push(id + ': Scout output boundary must be canonical reports-only');
     }
-    if (profile.cap_WRITE_REPORTS !== 'DENY') issues.push(id + ': Scout WRITE_REPORTS must be DENY');
+    if (profile.write_scope !== expected.report || profile.report_scope !== expected.report) {
+      issues.push(id + ': Scout report boundary must match canonical report directory');
+    }
     for (const capability of ['EDIT_SOURCE', 'EDIT_TESTS', 'EDIT_WORKFLOWS', 'EDIT_GOVERNANCE', 'EDIT_TASKS', 'EDIT_AGENT_PROFILES']) {
       if (profile['cap_' + capability] !== 'DENY') issues.push(id + ': Scout ' + capability + ' must be DENY');
     }
