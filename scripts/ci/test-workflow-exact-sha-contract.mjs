@@ -140,6 +140,21 @@ test('promotion lineage checkout retains full history for merge-base verificatio
   assert.match(checkoutBlock, /fetch-depth: 0/u);
 });
 
+test('execution push branch-policy checkout never persists Git credentials', async () => {
+  const workflow = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
+
+  const marker = '      - name: Validate branch policy for the current ref';
+  const markerIndex = workflow.indexOf(marker);
+  assert.ok(markerIndex >= 0, 'branch-policy validation step must exist');
+
+  const checkoutStart = workflow.lastIndexOf('      - uses: actions/checkout@', markerIndex);
+  assert.ok(checkoutStart >= 0, 'branch-policy checkout must exist');
+
+  const checkoutBlock = workflow.slice(checkoutStart, markerIndex);
+  assert.match(checkoutBlock, /persist-credentials:\s*false\b/u);
+  assert.doesNotMatch(checkoutBlock, /persist-credentials:\s*true\b/u);
+});
+
 test('promotion and production gates remain fail-closed and exact-SHA bound', async () => {
   const workflow = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
 
