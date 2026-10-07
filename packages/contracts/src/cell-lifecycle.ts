@@ -52,6 +52,7 @@ export type CellAdmissionEnvelope = Readonly<{
   falsificationPolicy: CellFalsificationPolicy;
   verificationPolicy: CellVerificationPolicy;
   independencePolicy: CellIndependencePolicy;
+  verifierId: string;
 }>;
 
 export type CellAdmissionRecord = Readonly<{
@@ -68,6 +69,7 @@ export type CellAdmissionRecord = Readonly<{
   constraints: readonly string[];
   acceptanceCriteria: readonly string[];
   relevantEvidence: readonly string[];
+  verifierId: string;
 }>;
 
 export type CellClaim = Readonly<{
@@ -170,6 +172,8 @@ export type CellVerificationRecord = Readonly<{
   candidateId: string;
   taskId: string;
   verifierId: string;
+  opponentContextHash: string;
+  opponentStartedAtMs: number;
   candidateSha: string;
   evidenceIds: readonly string[];
   checks: readonly string[];
@@ -241,6 +245,8 @@ export type CellLifecycleSnapshot = Readonly<{
   frontier: CellFrontierProposal | null;
   opponentStartSequence: number | null;
   solverDisclosureSequence: number | null;
+  opponentContextHash: string | null;
+  opponentStartedAtMs: number | null;
 }>;
 
 const SHA_PATTERN = /^[0-9a-f]{40}$/iu;
@@ -257,6 +263,12 @@ function requiredList(values: readonly string[], code: string): void {
 
 function sha(value: string, code: string): void {
   if (!SHA_PATTERN.test(value)) throw new Error(code);
+}
+
+const CONTEXT_HASH_PATTERN = /^[0-9a-f]{64}$/iu;
+
+function contextHash(value: string, code: string): void {
+  if (!CONTEXT_HASH_PATTERN.test(value)) throw new Error(code);
 }
 
 function unique(values: readonly string[], code: string): void {
@@ -302,6 +314,7 @@ export function validateCellAdmission(envelope: CellAdmissionEnvelope): void {
   if (!sameJson(envelope.assignment.independencePolicy, envelope.independencePolicy)) {
     throw new Error("CELL_ADMISSION_INDEPENDENCE_POLICY_MISMATCH");
   }
+  required(envelope.verifierId, "CELL_ADMISSION_VERIFIER_REQUIRED");
 }
 
 export function createCellAdmissionRecord(
@@ -327,6 +340,7 @@ export function createCellAdmissionRecord(
     constraints: Object.freeze([...envelope.constraints]),
     acceptanceCriteria: Object.freeze([...envelope.acceptanceCriteria]),
     relevantEvidence: Object.freeze([...envelope.relevantEvidence]),
+    verifierId: envelope.verifierId,
   });
 }
 
@@ -390,6 +404,8 @@ export class CellLifecycleRuntime {
   private frontier: CellFrontierProposal | null = null;
   private opponentStartSequence: number | null = null;
   private solverDisclosureSequence: number | null = null;
+  private opponentContextHash: string | null = null;
+  private opponentStartedAtMs: number | null = null;
   private readonly clock: () => number;
 
   constructor(clock: () => number = () => Date.now()) {
@@ -428,6 +444,8 @@ export class CellLifecycleRuntime {
       frontier: this.frontier,
       opponentStartSequence: this.opponentStartSequence,
       solverDisclosureSequence: this.solverDisclosureSequence,
+      opponentContextHash: this.opponentContextHash,
+      opponentStartedAtMs: this.opponentStartedAtMs,
     });
   }
 
@@ -468,20 +486,26 @@ export class CellLifecycleRuntime {
     this.frontier = null;
     this.opponentStartSequence = null;
     this.solverDisclosureSequence = null;
+    this.opponentContextHash = null;
+    this.opponentStartedAtMs = null;
     this.stage = "ADMITTED";
     return record;
   }
 
-  recordOpponentIndependentStart(opponentId: string, candidateSha: string, sequence?: number): void {
+  recordOpponentIndependentStart(opponentId: string, candidateSha: string, sharedContextHash: string, sequence?: number): void {
     this.requireStage("PAIR_LOCKED");
     required(opponentId, "CELL_OPPONENT_ID_REQUIRED");
     sha(candidateSha, "CELL_OPPONENT_SHA_INVALID");
+    contextHash(sharedContextHash, "CELL_OPPONENT_CONTEXT_HASH_INVALID");
     if (!this.admission || opponentId !== this.admission.assignment.opponentId) {
       throw new Error("CELL_OPPONENT_ID_MISMATCH");
     }
     if (candidateSha !== this.admission.currentSha) {
       throw new Error("CELL_OPPONENT_SHA_DRIFT");
     }
+    if (this.opponentContextHash !== null) throw new Error("CELL_OPPONENT_START_ALREADY_RECORDED");
+    const startedAtMs = this.clock();
+    if (!Number.isFinite(startedAtMs)) throw new Error("CELL_OPPONENT_START_TIME_INVALID");
     if (sequence !== undefined) {
       if (!Number.isInteger(sequence) || sequence <= this.sequence) throw new Error("CELL_OPPONENT_SEQUENCE_INVALID");
       this.sequence = sequence;
@@ -489,6 +513,8 @@ export class CellLifecycleRuntime {
     } else {
       this.opponentStartSequence = this.next();
     }
+    this.opponentContextHash = sharedContextHash;
+    this.opponentStartedAtMs = startedAtMs;
     this.stage = "OPPONENT_STARTED";
   }
 
@@ -497,7 +523,7 @@ export class CellLifecycleRuntime {
     sha(candidateSha, "CELL_SOLVER_DISCLOSURE_SHA_INVALID");
     if (!this.admission || candidateSha !== this.admission.currentSha) throw new Error("CELL_SOLVER_DISCLOSURE_SHA_DRIFT");
     if (this.solverDisclosureSequence !== null) throw new Error("CELL_SOLVER_DISCLOSURE_ALREADY_RECORDED");
-    if (this.opponentStartSequence === null) throw new Error("CELL_OPPONENT_INDEPENDENCE_REQUIRED");
+    if (this.opponentStartSequence === null || this.opponentContextHash === null || this.opponentStartedAtMs === null) throw new Error("CELL_OPPONENT_INDEPENDENCE_REQUIRED");
     this.solverDisclosureSequence = this.next();
     if (this.solverDisclosureSequence <= this.opponentStartSequence) {
       throw new Error("CELL_OPPONENT_ORDERING_INVALID");
@@ -713,6 +739,8 @@ export class CellLifecycleRuntime {
     sha(this.candidate.candidateSha, "CELL_RED_TEAM_SHA_INVALID");
     this.redTeam = Object.freeze({
       ...input,
+      opponentContextHash: this.opponentContextHash,
+      opponentStartedAtMs: this.opponentStartedAtMs,
       candidateId: this.candidate.candidateId,
       taskId: this.candidate.taskId,
       candidateSha: this.candidate.candidateSha,
@@ -731,6 +759,8 @@ export class CellLifecycleRuntime {
     if (!this.candidate || !this.redTeam || !this.admission) throw new Error("CELL_VERIFICATION_CONTEXT_INCOMPLETE");
     required(input.verificationId, "CELL_VERIFICATION_ID_REQUIRED");
     required(input.verifierId, "CELL_VERIFIER_REQUIRED");
+    if (input.verifierId !== this.admission.verifierId) throw new Error("CELL_VERIFIER_ADMISSION_MISMATCH");
+    if (!this.opponentContextHash || this.opponentStartedAtMs === null) throw new Error("CELL_OPPONENT_CONTEXT_PROOF_REQUIRED");
     if ([this.admission.assignment.solverId, this.admission.assignment.opponentId, this.redTeam.redTeamAgentId].includes(input.verifierId)) {
       throw new Error("CELL_VERIFIER_IDENTITY_COLLISION");
     }
