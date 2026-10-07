@@ -43,5 +43,5 @@ export const arIndexRoute = createRoute({
       },
     ],
   }),
-  component: ArchiveLandingHome,
+  component: function ArabicArchiveHome() { return <ArchiveLandingHome locale="ar" />; },
 });

@@ -52,7 +52,7 @@ function assistantCopy(r: AssistantResult) {
   return r.toolTitle ? `Looks like ${r.category.name} — try ${r.toolTitle}.` : `Looks like ${r.category.name}.`;
 }
 
-export function ArchiveLandingHome() {
+export function ArchiveLandingHome({ locale = 'en' }: { locale?: 'en' | 'ar' }) {
   const [prompt, setPrompt] = useState('');
   const [assistant, setAssistant] = useState<AssistantResult | null>(null);
   const [loading, setLoading] = useState(false);
@@ -105,7 +105,7 @@ export function ArchiveLandingHome() {
             <span className="font-display text-lg font-bold tracking-tight">Flixo</span>
           </Link>
           <nav className="ms-4 hidden items-center gap-1 md:flex">
-            <button onClick={() => scrollTo('categories')} className="rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-surface hover:text-foreground">Tools</button>
+            <button onClick={() => scrollTo('categories')} className="rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-surface hover:text-foreground">{locale === 'ar' ? 'الأدوات' : 'Tools'}</button>
             <button onClick={() => scrollTo('why')} className="rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-surface hover:text-foreground">Why Flixo</button>
             <button onClick={() => scrollTo('faq')} className="rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-surface hover:text-foreground">FAQ</button>
           </nav>
@@ -126,7 +126,7 @@ export function ArchiveLandingHome() {
         {menuOpen && (
           <nav className="border-t border-border/60 px-5 py-3 md:hidden">
             <div className="mx-auto flex max-w-6xl flex-col gap-1">
-              <button onClick={() => scrollTo('categories')} className="rounded-lg px-3 py-2 text-start text-sm text-muted-foreground hover:bg-surface hover:text-foreground">Tools</button>
+              <button onClick={() => scrollTo('categories')} className="rounded-lg px-3 py-2 text-start text-sm text-muted-foreground hover:bg-surface hover:text-foreground">{locale === 'ar' ? 'الأدوات' : 'Tools'}</button>
               <button onClick={() => scrollTo('why')} className="rounded-lg px-3 py-2 text-start text-sm text-muted-foreground hover:bg-surface hover:text-foreground">Why Flixo</button>
               <button onClick={() => scrollTo('faq')} className="rounded-lg px-3 py-2 text-start text-sm text-muted-foreground hover:bg-surface hover:text-foreground">FAQ</button>
               <Link to={translatorPath} onClick={() => setMenuOpen(false)} className="mt-2 rounded-xl bg-primary px-4 py-2 text-center text-sm font-semibold text-primary-foreground">Open translator</Link>
