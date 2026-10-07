@@ -46,7 +46,7 @@ test("45-minute worker expiry automatically wakes the next worker and preserves 
 });
 
 test("fresh runtime reloads persisted open task state without marking it failed/abandoned", () => {
-  let now = 0;
+  const now = 0;
   const store = new InMemoryCellLivenessStore();
   const first = new CellLivenessRuntime({ clock: () => now, store, onWake: (_r, g) => "worker-" + g });
   first.observeTask({ taskId: "recover", state: "CHECKPOINTED", version: 12, checkpointId: "cp-12", currentSha: "b".repeat(40) });
