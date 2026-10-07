@@ -1,0 +1,81 @@
+name: FLIXO Human Gate Trusted Publication
+
+on:
+  workflow_run:
+    workflows: ["FLIXO Agent-3 Human Gate"]
+    types: [completed]
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: flixo-human-gate-trusted-publication
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: >-
+      ${{ github.event.workflow_run.conclusion == 'success'
+        && github.event.workflow_run.head_branch == 'execution'
+        && github.event.workflow_run.head_repository.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      RUN_ID: ${{ github.event.workflow_run.id }}
+      EXPECTED_SHA: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      - name: Checkout trusted publisher source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Download exact-run gate artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download "$RUN_ID" -R "$GITHUB_REPOSITORY" -n "flixo-agent3-human-gate-$RUN_ID" -D human-gate-artifact
+
+      - name: Verify exact lineage and scope
+        run: |
+          set -euo pipefail
+          test "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$
+          test "$(cat human-gate-artifact/human-gate-publication-sha.txt)" = "$EXPECTED_SHA"
+          git fetch origin execution --no-tags
+          CURRENT_SHA="$(git rev-parse refs/remotes/origin/execution)"
+          test "$CURRENT_SHA" = "$EXPECTED_SHA"
+          test -s human-gate-artifact/human-gate-publication.patch
+          cp human-gate-artifact/human-gate-publication.patch /tmp/human-gate-publication.patch
+          git apply --check /tmp/human-gate-publication.patch
+          git apply /tmp/human-gate-publication.patch
+          git diff --name-only > /tmp/human-gate-applied-files.txt
+          while IFS= read -r path; do
+            [ -z "$path" ] && continue
+            case "$path" in
+              .agent-intelligence/review-queue/*|.agent-intelligence/handoffs/*|التطوير.md) ;;
+              *) echo "FAIL_CLOSED: unexpected human-gate mutation: $path"; exit 1 ;;
+            esac
+          done < /tmp/human-gate-applied-files.txt
+
+      - name: Publish human decision mutation
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git add .agent-intelligence/review-queue .agent-intelligence/handoffs التطوير.md
+          git diff --cached --quiet && echo "NO_HUMAN_GATE_MUTATION=PASS" && exit 0
+          git config user.name "FLIXO human gate"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "governance(agent3): record human gate decision"
+          git fetch origin execution --no-tags
+          test "$(git rev-parse refs/remotes/origin/execution)" = "$(git rev-parse HEAD^)"
+          git -c "http.extraheader=AUTHORIZATION: bearer $GITHUB_TOKEN" push origin "HEAD:execution"
+
+      - name: Verify resulting exact SHA
+        run: |
+          set -euo pipefail
+          git fetch origin execution --no-tags
+          test "$(git rev-parse refs/remotes/origin/execution)" = "$(git rev-parse HEAD)
