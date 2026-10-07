@@ -106,3 +106,5 @@ export * from "./call-rollback";
 export * from "./call-reputation";
 
 export * from "./call-policy";
+
+export * from "./call-gate-a";
