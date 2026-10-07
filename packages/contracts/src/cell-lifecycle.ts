@@ -281,7 +281,7 @@ export function validateCellAdmission(envelope: CellAdmissionEnvelope): void {
   requiredList(envelope.relevantEvidence, "CELL_ADMISSION_EVIDENCE_REQUIRED");
   validateCanonicalCellAssignment(envelope.assignment);
   required(envelope.assignmentId, "CELL_ADMISSION_ASSIGNMENT_REQUIRED");
-  if (envelope.assignmentId !== envelope.assignment.solverId + ":" + envelope.assignment.opponentId + ":" + envelope.assignment.backupSolverId + ":" + envelope.assignment.backupOpponentId && envelope.assignmentId.trim() === "") {
+  if (envelope.assignmentId !== envelope.assignment.assignmentId) {
     throw new Error("CELL_ADMISSION_ASSIGNMENT_MISMATCH");
   }
 
