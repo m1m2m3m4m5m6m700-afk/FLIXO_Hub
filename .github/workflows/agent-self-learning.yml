@@ -3,8 +3,18 @@ name: FLIXO Agent Self-Learning Control Plane
 on:
   push:
     branches: [execution]
-    paths-ignore:
-      - 'الوكلاء/تدريب الوكلاء/تقارير التدريب/**'
+    paths:
+      - 'الوكلاء.md'
+      - '.github/agents/**'
+      - 'الوكلاء/**'
+      - 'scripts/agent-learning/**'
+      - 'tests/security/ci/agent-*.mjs'
+      - 'tests/security/ci/agent-*.py'
+      - 'docs/AGENT-SHARED-MEMORY-ARCHITECTURE.md'
+      - '.github/workflows/agent-self-learning.yml'
+      - 'package.json'
+      - '!الوكلاء/التقارير/**'
+      - '!الوكلاء/تدريب الوكلاء/تقارير التدريب/**'
   workflow_dispatch:
 
 permissions:

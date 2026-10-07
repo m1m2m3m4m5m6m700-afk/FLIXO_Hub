@@ -2,8 +2,21 @@ name: FLIXO المستكشف AI Wake
 on:
   push:
     branches: [execution]
-    paths-ignore:
-      - 'الوكلاء AI/المستكشف AI/تقارير المستكشف/**'
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'scripts/**'
+      - '.github/agents/**'
+      - '.github/workflows/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'vite.config.ts'
+      - 'tsconfig.json'
+      - 'wrangler.jsonc'
+      - 'AGENTS.md'
+      - 'الوكلاء.md'
+      - 'الأدوات.md'
+      - 'المهام.md'
   workflow_dispatch:
 
 permissions:
