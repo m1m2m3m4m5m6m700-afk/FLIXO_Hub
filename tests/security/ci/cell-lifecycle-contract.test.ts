@@ -107,7 +107,7 @@ test("CELL runtime executes one canonical flow from admission through frontier",
   rt.lockCellPair();
   assert.equal(rt.getCellLifecycleSnapshot().stage, "PAIR_LOCKED");
 
-  rt.startCellOpponent("opponent-100", SHA);
+  rt.startCellOpponent("opponent-100", SHA, "c".repeat(64));
   assert.equal(rt.getCellLifecycleSnapshot().stage, "OPPONENT_STARTED");
 
   rt.discloseCellSolverResult(SHA);
@@ -311,7 +311,7 @@ test("CELL lifecycle stays exact-SHA and fail-closed across promotion and learni
   const envelope = makeEnvelope();
   rt.admitCell(envelope);
   rt.lockCellPair();
-  rt.startCellOpponent("opponent-100", SHA);
+  rt.startCellOpponent("opponent-100", SHA, "c".repeat(64));
   assert.throws(() => rt.discloseCellSolverResult("b".repeat(40)), /CELL_SOLVER_DISCLOSURE_SHA_DRIFT/);
 
   rt.discloseCellSolverResult(SHA);
