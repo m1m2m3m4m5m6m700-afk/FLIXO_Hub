@@ -821,7 +821,7 @@ export class CellLifecycleRuntime {
     required(input.hypothesis, "CELL_FRONTIER_HYPOTHESIS_REQUIRED");
     required(input.nextTaskProposal, "CELL_FRONTIER_TASK_REQUIRED");
     if (!input.reversible) throw new Error("CELL_FRONTIER_REVERSIBILITY_REQUIRED");
-    if (!Number.isFinite(input.expectedImprovement) || !Number.isFinite(input.informationGain) || !Number.isFinite(input.risk)) {
+    if (![input.expectedImprovement, input.informationGain, input.risk].every((value) => Number.isFinite(value) && value >= 0 && value <= 1)) {
       throw new Error("CELL_FRONTIER_METRICS_INVALID");
     }
     const record = Object.freeze({
