@@ -43,6 +43,7 @@ const action = (overrides: Partial<ExecutionAction> = {}): ExecutionAction => ({
   sessionId: "SESSION-1",
   missionId: "MISSION-1",
   branch: "execution",
+  startSha: "sha-start",
   currentSha: "sha-live",
   operation: "WRITE",
   path: "src/lib/video/fixture.ts",
