@@ -1,3 +1,4 @@
+import { auditActivityLogs } from "./agent-activity-ledger.mjs";
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
@@ -202,6 +203,7 @@ export function validateProfileContract(profile, expected, root = process.cwd())
     issues.push(id + ': report target does not exist');
   }
   if (profile.write_scope !== expected.report) issues.push(id + ': write/report scope drifts from registry');
+  if (profile.activity_log !== expected.activityLog) issues.push(id + ': activity_log must match registry');
   validateCapabilityContract(profile, id, issues);
 
   return issues;
@@ -348,6 +350,9 @@ export function auditAgentControlPlane(root = process.cwd(), sha = gitHead(root)
   });
 
   for (const agent of agents) issues.push(...agent.issues);
+  const activity = auditActivityLogs(root);
+  issues.push(...activity.failures);
+
   const envelope = auditExecutionEnvelope(root);
   issues.push(...envelope.issues);
 
