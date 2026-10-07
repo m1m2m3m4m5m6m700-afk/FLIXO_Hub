@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 import { executeCanonicalChain, executeCanonicalTool, runBoundedExecutionAttempts } from '../src/lib/execution/canonical-executor.ts';
 import { MVP_EXECUTABLE_TOOL_IDS } from '../src/config/manual-capability-definition.ts';
+import { readRasterHeaderDimensions } from '../src/lib/contracts/file-safety.ts';
 
 test('every current MVP capability resolves through the canonical executor boundary', async () => {
   assert.equal(MVP_EXECUTABLE_TOOL_IDS.length, 10);
@@ -281,4 +282,59 @@ test('image-effects worker uses the canonical file-safety authority and MVP scop
   assert.match(safety, /export async function assertSafeRasterInput/u);
   assert.match(safety, /export async function assertRasterOutput/u);
   assert.equal((mvpScope.match(/export function assertMvpScope\(/gu) ?? []).length, 1);
+});
+
+
+test('raster dimension admission is decoder-free and detects oversized PNG headers', async () => {
+  const bytes = new Uint8Array(24);
+  bytes.set([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a], 0);
+  bytes.set([0x00,0x00,0x00,0x0d], 8);
+  bytes.set([0x49,0x48,0x44,0x52], 12);
+  const view = new DataView(bytes.buffer);
+  view.setUint32(16, 100_000, false);
+  view.setUint32(20, 100_000, false);
+  const dimensions = await readRasterHeaderDimensions(new Blob([bytes], { type: 'image/png' }), 'image/png');
+  assert.deepEqual(dimensions, { width: 100_000, height: 100_000 });
+  assert.ok((dimensions!.width * dimensions!.height) > 100_000_000);
+});
+
+test('image-effects is fail-closed when the worker boundary is unavailable', () => {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+  const executor = readFileSync(resolve(root, 'src/lib/execution/canonical-executor.ts'), 'utf8');
+  assert.match(executor, /IMAGE_EFFECTS_WORKER_UNAVAILABLE/u);
+  assert.doesNotMatch(executor, /executeImageEffectsFallback/u);
+  assert.doesNotMatch(executor, /catch\(async \(error\) =>[\s\S]*executeImageEffectsFallback/u);
+});
+
+
+test('privileged CI publication is separated from candidate analysis', () => {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+  const triage = readFileSync(resolve(root, '.github/workflows/triage-and-clean.yml'), 'utf8');
+  const publish = triage.slice(triage.indexOf('  publish:'));
+  assert.match(triage, /permissions:\s+contents: read/iu);
+  assert.match(triage, /persist-credentials: false/u);
+  assert.match(triage, /  publish:[\s\S]*permissions:\s+contents: write/iu);
+  assert.doesNotMatch(publish, /\.agent-intelligence\/scripts\/(?:triage|reaper|validate)\.py/u);
+});
+
+test('hosted CSRF configuration is fail-closed', () => {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+  const csrf = readFileSync(resolve(root, 'src/lib/server/security/csrf.ts'), 'utf8');
+  assert.match(csrf, /process\.env\.NODE_ENV === 'production' \|\| process\.env\.VERCEL === '1'/u);
+  assert.match(csrf, /CSRF secret is required in hosted\/production environments/u);
+});
+
+test('privileged patch controller executes from trusted main source', () => {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+  const workflow = readFileSync(resolve(root, '.github/workflows/patch-capsule-controller.yml'), 'utf8');
+  assert.match(workflow, /ref: main/u);
+  assert.match(workflow, /persist-credentials: false/u);
+});
+
+test('generated SVG integrity rejects active or external content', () => {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+  const svg = readFileSync(resolve(root, 'src/tools/image-to-svg/output-integrity.ts'), 'utf8');
+  assert.match(svg, /script\|foreignObject/u);
+  assert.match(svg, /external SVG references are not permitted/u);
+  assert.match(svg, /<!DOCTYPE\|<!ENTITY/u);
 });
