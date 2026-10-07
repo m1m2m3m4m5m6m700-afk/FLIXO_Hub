@@ -53,7 +53,7 @@ export class AgentState {
       || typeof raw.breakerTripped !== 'boolean'
       || !Array.isArray(raw.dispatches)
       || !Number.isSafeInteger(raw.updatedAt) || Number(raw.updatedAt) <= 0
-      || (raw.checkpoint !== undefined && (typeof raw.checkpoint !== 'string' || bytes(raw.checkpoint) > CORE_LIMITS.maxCheckpointBytes)))) {
+      || (raw.checkpoint !== undefined && (typeof raw.checkpoint !== 'string' || bytes(raw.checkpoint) > CORE_LIMITS.maxCheckpointBytes))) {
       fail('CORRUPT_DO_STATE');
     }
     if (raw.dispatches.length > CORE_LIMITS.maxDispatchLogEntries) fail('CORRUPT_DO_LOG');
