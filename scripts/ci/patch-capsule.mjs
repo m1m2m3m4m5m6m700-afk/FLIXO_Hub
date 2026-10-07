@@ -13,6 +13,8 @@ const PROTOCOL = 'FLIXO-PATCH-CAPSULE-v1';
 const SHA_RE = /^[0-9a-f]{40}$/;
 const HASH_RE = /^[0-9a-f]{64}$/;
 const MAX_PATCH_BYTES = 2_000_000;
+const MAX_PATCH_PATHS = 512;
+const MAX_PATCH_PATH_BYTES = 4096;
 
 function runGit(args, cwd = process.cwd(), input = undefined, preserveOutput = false) {
   const output = execFileSync('git', args, {
@@ -80,8 +82,20 @@ function verify(capsule) {
   if (Buffer.byteLength(capsule.patchText, 'utf8') > MAX_PATCH_BYTES) throw new Error('PATCH_CAPSULE_PATCH_TOO_LARGE');
   if (!HASH_RE.test(capsule.patchSha256 ?? '')) throw new Error('PATCH_CAPSULE_PATCH_HASH_INVALID');
   if (sha256(capsule.patchText) !== capsule.patchSha256) throw new Error('PATCH_CAPSULE_PATCH_HASH_MISMATCH');
-  if (!Array.isArray(capsule.paths) || capsule.paths.some((value) => typeof value !== 'string' || !value)) {
+  if (!Array.isArray(capsule.paths) || capsule.paths.length > MAX_PATCH_PATHS) {
     throw new Error('PATCH_CAPSULE_PATHS_INVALID');
+  }
+  for (const value of capsule.paths) {
+    if (
+      typeof value !== 'string' ||
+      !value ||
+      value.includes('\0') ||
+      value.startsWith('/') ||
+      value.includes('..') ||
+      Buffer.byteLength(value, 'utf8') > MAX_PATCH_PATH_BYTES
+    ) {
+      throw new Error('PATCH_CAPSULE_PATHS_INVALID');
+    }
   }
   return true;
 }
