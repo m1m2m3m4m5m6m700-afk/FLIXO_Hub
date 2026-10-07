@@ -30,7 +30,7 @@ export type SelfDevelopmentObjective = Readonly<{
   referenceIds: readonly string[];
   acceptanceCriteria: readonly string[];
   generatedAtMs: number;
-  status: "PROPOSED";
+  status: "PROPOSED" | "ADMITTED" | "ASSIGNED" | "COMPLETED" | "REJECTED";
 }>;
 
 function finiteUnit(value: number, code: string): void {
@@ -122,7 +122,7 @@ export function validateSelfDevelopmentObjective(
 ): void {
   required(objective.objectiveId, "SELF_DEVELOPMENT_OBJECTIVE_ID_REQUIRED");
   required(objective.objective, "SELF_DEVELOPMENT_OBJECTIVE_REQUIRED");
-  if (objective.status !== "PROPOSED") throw new Error("SELF_DEVELOPMENT_OBJECTIVE_STATUS_INVALID");
+  if (!["PROPOSED", "ADMITTED", "ASSIGNED", "COMPLETED", "REJECTED"].includes(objective.status)) throw new Error("SELF_DEVELOPMENT_OBJECTIVE_STATUS_INVALID");
   if (objective.sourceGapIds.length === 0 || objective.referenceIds.length === 0) {
     throw new Error("SELF_DEVELOPMENT_PROVENANCE_REQUIRED");
   }
