@@ -88,3 +88,30 @@ test('production cognitive facade shares durable events and shared memory withou
   assert.equal(facade.memory.preflight(SHA,[{memory_id:'candidate',status:'VALIDATED',tested_sha:SHA},{memory_id:'usable',status:'PROMOTED',tested_sha:SHA}]).executableMemory[0].memory_id,'usable');
   assert.ok(calls.some(x=>x.url.includes('/rpc/flixo_append_agent_task_event')));
 });
+
+test('production projections rebuild from durable cognitive events after process restart',async()=>{
+  const projectionEvent=createCognitiveEvent({
+    eventId:'projection-1',
+    missionId:'m',
+    taskId:'task-1',
+    agentId:'AGENT-01',
+    sequence:3,
+    epoch:4,
+    eventType:'RESULT',
+    causationId:null,
+    correlationId:'projection-1',
+    sourceSha:SHA,
+    confidence:1,
+    knowledgeStatus:'VALIDATED',
+    createdAt:'2026-10-07T00:00:00Z',
+    payload:{projection:{type:'XP_REWARD',agentId:'AGENT-01',input:{reason:'BUG_DISCOVERY',amount:16,taskId:'TASK-P',evidenceId:'E-P',verified:true,meaningfulImpact:.9,novelty:1,difficulty:.5}}},
+  });
+  const row={event_id:'db-id',task_id:'task-1',sequence:3,payload:{_cognitive:projectionEvent},previous_hash:null,hash:'hash-3'};
+  const facade=createProductionCognitiveLearning({
+    env:{SUPABASE_URL:'https://example.supabase.co',SUPABASE_SECRET_KEY:'secret'},
+    fetchImpl:async()=>({ok:true,async text(){return JSON.stringify([row]);}}),
+  });
+  const rebuilt=await facade.rebuildProjections();
+  assert.equal(rebuilt.eventCount,1);
+  assert.equal(facade.excellence.snapshot('AGENT-01').xp,16);
+});
