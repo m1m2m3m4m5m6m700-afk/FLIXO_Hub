@@ -97,10 +97,12 @@ async function validateSharedImageInput(file: File, toolId: SharedImageToolId) {
     const boundary = validateUploadBoundary({ name: file.name, mime: file.type, bytes }, { ...basePolicy, allowedExtensions: rasterPolicy.extensions, signatures: rasterPolicy.signatures });
     if (!boundary.safe) throw new Error(`Input rejected by Upload Security Boundary: ${boundary.failures.join('; ')}`);
   }
-  const headerDimensions = await readRasterHeaderDimensions(file, file.type);
-  if (!headerDimensions) throw new Error('Input rejected by File Safety: raster dimensions could not be determined before decode.');
-  const dimensionCheck = validateFileSafety({ name: file.name, mime: file.type, bytes: file.size, width: headerDimensions.width, height: headerDimensions.height }, basePolicy);
-  if (!dimensionCheck.safe) throw new Error(`Input rejected by File Safety: ${dimensionCheck.failures.join('; ')}`);
+  if (rasterPolicy) {
+    const headerDimensions = await readRasterHeaderDimensions(file, file.type);
+    if (!headerDimensions) throw new Error('Input rejected by File Safety: raster dimensions could not be determined before decode.');
+    const dimensionCheck = validateFileSafety({ name: file.name, mime: file.type, bytes: file.size, width: headerDimensions.width, height: headerDimensions.height }, basePolicy);
+    if (!dimensionCheck.safe) throw new Error(`Input rejected by File Safety: ${dimensionCheck.failures.join('; ')}`);
+  }
 }
 
 async function preprocessForOcr(file: File): Promise<Blob> {
