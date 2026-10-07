@@ -16,6 +16,7 @@ import {
 } from "../../packages/contracts/src/cell-hard-control.ts";
 import { CellRuntime } from "../../packages/contracts/src/cell-runtime.ts";
 import { decideRetry } from "../../packages/contracts/src/cell-control-plane.ts";
+import { authorizeDelegation } from "../../packages/contracts/src/cell-assignment.ts";
 // Load the behavioral CELL harness into the same hard-control test gate.
 import "./cell-hard-control-e2e.test.mjs";
 
@@ -349,7 +350,6 @@ test("CELL delegation rules reject authority escalation at the handoff boundary"
     estimatedCost: 1,
     estimatedDurationMs: 100,
   };
-  const { authorizeDelegation } = await import("../../packages/contracts/src/cell-assignment.ts");
   assert.equal(authorizeDelegation([rule], request), false);
   assert.equal(
     authorizeDelegation(
