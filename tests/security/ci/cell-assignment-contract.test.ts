@@ -337,7 +337,7 @@ test("solver/opponent shared independence is rejected", () => {
       assignmentId: "team-collision",
       solverRanked: ranked,
       opponentRanked: ranked.map((candidate) =>
-        candidate.agentId === "agent-c"
+        candidate.agentId === "agent-d"
           ? { ...candidate, independenceKey: "agent-a" }
           : candidate,
       ),
