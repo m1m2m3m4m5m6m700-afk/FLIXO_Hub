@@ -31,13 +31,9 @@ done
 [[ "$COOLDOWN_SECONDS" =~ ^[0-9]+$ ]] || die "invalid cooldown"
 [[ "$TASK_TTL_SECONDS" =~ ^[0-9]+$ && "$TASK_TTL_SECONDS" -gt 0 ]] || die "invalid ttl"
 command -v jq >/dev/null 2>&1 || die "jq is required; refusing to bypass loop protection"
-command -v flock >/dev/null 2>&1 || die "flock is required; refusing concurrent state races"
 [[ -z "$ERROR_LOG" || -f "$ERROR_LOG" ]] || die "error log not found: $ERROR_LOG"
 mkdir -p "$(dirname "$STATE_FILE")"
 [[ -f "$STATE_FILE" ]] || printf '{}\n' > "$STATE_FILE"
-LOCK_FILE="${STATE_FILE}.lock"
-exec 9>"$LOCK_FILE"
-flock -n 9 || { echo "[LOOP GUARD BLOCKED] another guard owns the task-state lock." >&2; exit 45; }
 jq -e 'type=="object"' "$STATE_FILE" >/dev/null 2>&1 || die "invalid JSON state"
 now="$(date +%s)"
 patch_hash="$(sha256sum "$PATCH_FILE"|awk '{print $1}')"

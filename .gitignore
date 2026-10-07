@@ -55,4 +55,3 @@ PROJECT_STATUS.md
 .flixo/cache/
 
 .agent_state.json
-.agent_state.json.lock

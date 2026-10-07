@@ -62,7 +62,6 @@ function seed(options = {}) {
     objectiveId: "OBJ-1",
     acceptanceDigest: "ACC-1",
     startingSha: options.taskSha ?? SHA,
-    valid: options.taskValid !== false,
     scope,
   });
 
