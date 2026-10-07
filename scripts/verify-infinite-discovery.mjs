@@ -83,6 +83,8 @@ const workflow=readFileSync(join(root,".github/workflows/continuous-discovery.ym
 if(!workflow.includes("schedule:")||!workflow.includes("workflow_dispatch:")||!workflow.includes("pull_request:")) fail("workflow triggers incomplete");
 if(!workflow.includes("permissions:\n  contents: read")) fail("workflow default permission must be read");
 if(!workflow.includes("contents: write")) fail("publish job write permission missing");
+if(!workflow.includes("pull-requests: write")) fail("execution intake PR permission missing");
+if(!workflow.includes("gh pr create")) fail("execution intake PR publication missing");
 if(!workflow.includes("scout/discovery-")) fail("publication must target scout/discovery-*");
 if(!workflow.includes("discover_public_repositories.py")) fail("public repository acquisition step missing");
 if(!workflow.includes(".agent-intelligence/public-repositories")) fail("public repository output boundary missing");
