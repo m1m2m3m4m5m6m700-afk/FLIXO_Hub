@@ -61,6 +61,7 @@ class Agent3Triage(unittest.TestCase):
   def test_workflow_contracts(self):
     wf=(ROOT/".github/workflows/triage-and-clean.yml").read_text(encoding="utf-8");hg=(ROOT/".github/workflows/human-gate.yml").read_text(encoding="utf-8")
     for s in ("branches: [execution]","ValidatorAdmission","TriageDedupPriorityQueue","ReaperTTLSuppression","GeneratedViewAndStateAudit","FAIL_CLOSED","git push origin \"HEAD:execution\""):self.assertIn(s,wf)
+    self.assertIn('[[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]' ,wf)
     self.assertNotIn("pull_request_target",wf);self.assertIn("workflow_dispatch",hg);self.assertIn("Reject bot actors",hg);self.assertNotIn("HEAD:main",hg)
   def test_validator_result_adapter(self):
     results=self.r/".agent-intelligence/validated/validator-results.json"; inbox=self.r/".agent-intelligence/inbox"; inbox.mkdir(parents=True,exist_ok=True)
