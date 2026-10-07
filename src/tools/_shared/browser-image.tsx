@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
-import { validateFileSafety } from '../../lib/contracts/file-safety';
+import { validateFileSafety, readRasterHeaderDimensions } from '../../lib/contracts/file-safety';
+import { getToolOutputContract } from '../../lib/contracts/tool-output-contracts';
+import { assertToolOutputContract } from '../../lib/contracts/tool-output';
 import { assertExifCleanerOutputIntegrity } from '../exif-cleaner/output-integrity';
 import { validateSvgOutput } from '../image-to-svg/output-integrity';
 import { getToolUiCopy } from '../../data/tool-ui-i18n';

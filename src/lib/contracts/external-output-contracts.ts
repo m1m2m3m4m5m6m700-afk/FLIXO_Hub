@@ -4,7 +4,7 @@ export const AI_IMAGE_GENERATOR_OUTPUT_CONTRACT: ToolOutputContract = Object.fre
   toolId: 'ai-image-generator',
   variants: [
     {
-      kind: 'image',
+      kind: 'image' as const,
       outputMimeTypes: ['image/png', 'image/jpeg', 'image/webp'],
       allowedExtensions: ['png', 'jpg', 'jpeg', 'webp'],
       signatures: ['89504e470d0a1a0a', 'ffd8ff', '52494646'],
