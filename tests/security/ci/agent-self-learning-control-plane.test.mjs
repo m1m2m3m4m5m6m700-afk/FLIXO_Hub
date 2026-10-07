@@ -193,3 +193,93 @@ test('learning metrics are bounded and deterministic', async () => {
   assert.equal(metrics.time_to_validation, 200);
   assert.equal(metrics.time_to_promotion, 500);
 });
+
+
+test('normalized experience object carries required fields without private reasoning', async () => {
+  const { buildExperienceObject, validateExperience, EXPERIENCE_LIFECYCLE } =
+    await import('../../../scripts/agent-learning/experience-runtime.mjs');
+  const experience = buildExperienceObject({
+    experienceId: 'exp-contract-001',
+    agentId: 'AGENT-01',
+    taskId: 'TASK-001',
+    testedSha: SHA,
+    objective: 'inspect world model',
+    actionSummary: 'compare snapshot layers and verify exact SHA',
+    result: 'PASS',
+    evidence: ['world-model.json', 'test-evidence'],
+    lesson: 'always bind context to current execution SHA',
+    nextAction: 'repeat after next mutation',
+  });
+  assert.equal(validateExperience(experience), true);
+  assert.equal(experience.experience_id, 'exp-contract-001');
+  assert.equal(experience.agent_id, 'AGENT-01');
+  assert.equal(experience.tested_sha, SHA);
+  assert.deepEqual(experience.lifecycle, EXPERIENCE_LIFECYCLE);
+  assert.throws(
+    () => validateExperience({ ...experience, chainOfThought: 'must not persist' }),
+    /forbidden private reasoning field/,
+  );
+});
+
+test('context compiler keeps only current-SHA promoted memory executable', async () => {
+  const { compileContext } = await import('../../../scripts/agent-learning/context-compiler.mjs');
+  const worldModel = {
+    model_version: 'flixo-world-model-v1',
+    snapshot_id: 'flixo-world-model-v1:' + SHA,
+    exact_sha: SHA,
+    generated_at: new Date(0).toISOString(),
+    repository_state: { execution_sha: SHA },
+    file_index: [
+      { path: 'src/feature.ts', category: 'runtime', bytes: 10, sha256: 'a', binary: false, generated: false, language: 'javascript-family', lineCount: 1 },
+      { path: 'docs/other.md', category: 'documentation', bytes: 10, sha256: 'b', binary: false, generated: false, language: 'prose', lineCount: 1 },
+    ],
+    symbol_index: [{ path: 'src/feature.ts', name: 'runFeature', kind: 'function', line: 1, exported: true }],
+    dependency_graph: [{ from: 'src/feature.ts', target: 'src/registry.ts' }],
+    call_graph: [],
+    control_flow_graph: [],
+    authority_graph: { nodes: [{ id: 'src/feature.ts', category: 'runtime', authoritySignals: [] }], edges: [], collisions: [] },
+    task_graph: { nodes: [], edges: [] },
+    semantic_diff: {},
+    unknowns: { unresolved_local_imports: 0 },
+    evidence_catalog: { static_analysis: { available: true } },
+    integrity: {
+      immutable_by_identity: true,
+      authority_collisions: [],
+      required_layers: ['file_index','symbol_index','dependency_graph','call_graph','control_flow_graph','authority_graph','task_graph','semantic_diff'],
+    },
+    constraints: { mutation_authority: false },
+  };
+  const context = compileContext({
+    task: { task_id: 'TASK-001', title: 'feature run', repo_refs: ['src/feature.ts'] },
+    worldModel,
+    promotedMemory: [
+      { memory_id: 'current', status: 'PROMOTED', tested_sha: SHA },
+      { memory_id: 'stale', status: 'PROMOTED', tested_sha: OTHER_SHA },
+      { memory_id: 'validated', status: 'VALIDATED', tested_sha: SHA },
+    ],
+    recentExperiences: [
+      { experience_id: 'current-exp', tested_sha: SHA },
+      { experience_id: 'stale-exp', tested_sha: OTHER_SHA },
+    ],
+    knownFailures: [
+      { id: 'current-failure', tested_sha: SHA },
+      { id: 'stale-failure', tested_sha: OTHER_SHA },
+      { id: 'unknown-sha-failure' },
+    ],
+    currentSha: SHA,
+    agentContract: { name: 'AGENT-01', scope: 'read/verify' },
+    evidenceRequirements: ['exact SHA'],
+  });
+  assert.deepEqual(context.executable_memory.map(item => item.memory_id), ['current']);
+  assert.equal(context.memory_warnings.length, 2);
+  assert.equal(context.experience_warnings.length, 1);
+  assert.equal(context.failure_warnings.length, 2);
+  assert.equal(context.relevant_files[0].path, 'src/feature.ts');
+  assert.equal(context.constraints.mutation_authority, false);
+  assert.equal(typeof context.context_hash, 'string');
+  assert.equal(context.context_hash.length, 64);
+  assert.throws(
+    () => compileContext({ task: {}, worldModel: { ...worldModel, exact_sha: OTHER_SHA, snapshot_id: 'flixo-world-model-v1:' + OTHER_SHA }, currentSha: SHA }),
+    /WORLD_MODEL_SHA_MISMATCH/,
+  );
+});
