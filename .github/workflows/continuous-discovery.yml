@@ -8,6 +8,9 @@ on:
     branches: [execution]
     paths:
       - '.agent-intelligence/scouts/**'
+      - '.agent-intelligence/scripts/**'
+      - '.agent-intelligence/schemas/**'
+      - 'tests/agent-intelligence/**'
       - '.github/agents/flixo-scout-*.agent.md'
       - 'الوكلاء/المستكشفين/**'
       - 'scripts/verify-scout-boundary.mjs'
