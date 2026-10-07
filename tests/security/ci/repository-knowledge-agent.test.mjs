@@ -28,7 +28,7 @@ const reportDir = 'الوكلاء AI/المستكشف AI/تقارير المست
 test('knowledge agent profile declares bounded read-only mission', () => {
   const profile = readFileSync(profilePath, 'utf8');
 
-  assert.match(profile, /report_path: الوكلاء\/المستكشف AI\/تقارير المستكشف\//);
+  assert.match(profile, /report_path: الوكلاء\/التقارير\/AGENT-01 — المستكشف AI\//);
   assert.match(profile, /READ-ONLY reconnaissance and knowledge agent/);
   assert.match(profile, /must never invent missing information/);
   assert.match(profile, /CAN_COMPLETE/);
@@ -80,9 +80,9 @@ test('import extraction and local resolution produce dependency edges', () => {
 });
 
 test('generated reports are inventoried but excluded from recursive semantic analysis', () => {
-  assert.equal(isGeneratedKnowledgeArtifact('الوكلاء/المستكشف AI/تقارير المستكشف/abc.md'), true);
+  assert.equal(isGeneratedKnowledgeArtifact('الوكلاء AI/المستكشف AI/تقارير المستكشف/abc.md'), true);
   assert.equal(isGeneratedKnowledgeArtifact('src/example.ts'), false);
-  assert.equal(classifyPath('الوكلاء/المستكشف AI/تقارير المستكشف/abc.md'), 'generated-knowledge-artifact');
+  assert.equal(classifyPath('الوكلاء AI/المستكشف AI/تقارير المستكشف/abc.md'), 'generated-knowledge-artifact');
   assert.equal(classifyPath('src/example.ts'), 'runtime');
 });
 
@@ -230,7 +230,7 @@ test('scanner produces an exact-SHA report with zero uncovered authored lines', 
 test('workflow wakes on execution changes and publishes evidence without mutation authority', () => {
   const workflow = readFileSync(workflowPath, 'utf8');
   assert.match(workflow, /branches: \[execution\]/);
-  assert.match(workflow, /الوكلاء AI\/المستكشف AI\/تقارير المستكشف\/\*\*/);
+  assert.match(workflow, /الوكلاء AI\/المستكشف AI\/تقارير المستكشف\/\$\{GITHUB_SHA\}\.md/);
   assert.match(workflow, /persist-credentials: false/);
   assert.match(workflow, /contents: read/);
   assert.match(workflow, /Upload SHA-bound knowledge artifact/);
@@ -241,5 +241,5 @@ test('workflow wakes on execution changes and publishes evidence without mutatio
 test('scanner does not re-ingest legacy English report directory', () => {
   const scanner = readFileSync(scannerPath, 'utf8');
   assert.doesNotMatch(scanner, /reports\/repository-knowledge/);
-  assert.match(scanner, /الوكلاء\/المستكشف AI\/تقارير المستكشف/);
+  assert.match(scanner, /الوكلاء AI\/المستكشف AI\/تقارير المستكشف/);
 });
