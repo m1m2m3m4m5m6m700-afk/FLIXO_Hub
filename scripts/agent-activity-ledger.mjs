@@ -60,8 +60,7 @@ export function auditActivityLogs(root = ROOT) {
     const events = [...text.matchAll(/^### EVENT .*$/gmu)].map(m => m[0]);
     if (events.length === 0) failures.push(agent.id + ": event parsing failed");
     const firstEvent = text.indexOf("### EVENT");
-    const initEvent = text.slice(firstEvent, text.indexOf("\n### EVENT", firstEvent + 1) > 0 ? text.indexOf("
-### EVENT", firstEvent + 1) : text.length);
+    const initEvent = text.slice(firstEvent, text.indexOf("\n### EVENT", firstEvent + 1) > 0 ? text.indexOf("\n### EVENT", firstEvent + 1) : text.length);
     if (!initEvent.includes("- Agent ID: " + agent.id)) failures.push(agent.id + ": first event identity mismatch");
     for (const field of ["Agent ID", "Agent Name", "Task ID", "Exact SHA Before", "Outcome", "Next Action"]) {
       if (!initEvent.includes("- " + field + ":")) failures.push(agent.id + ": first event missing " + field);
