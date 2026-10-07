@@ -92,8 +92,8 @@ export function scoreAgent(agent, sha){
   for(const required of rule.required) checks.push(check(profile.toLowerCase().includes(required.toLowerCase()) || contract.toLowerCase().includes(required.toLowerCase()),'training rule present: '+required,'add the missing role-specific training rule'));
   const drill=evaluateAgentDrill(agent.name,sha);
   checks.push(check(drill.validScore===100 && drill.validPassed,'positive role drill passes','repair the role drill or the role contract'));
-  checks.push(check(drill.positiveRepeatPasses===3 && drill.deterministic,'positive drill is deterministic across three repetitions','remove nondeterminism from the role drill'));
-  checks.push(check(drill.negativeRejected===true && drill.negativeCases>=3,'adversarial negative matrix is fully rejected','add a counterexample and fail-closed assertions'));
+  checks.push(check(drill.positiveRepeatPasses===5 && drill.deterministic,'positive drill is deterministic across five repetitions','remove nondeterminism from the role drill'));
+  checks.push(check(drill.negativeRejected===true && drill.negativeCases>=7,'adversarial negative matrix of seven-plus cases is fully rejected','add a counterexample and fail-closed assertions'));
   const passed=checks.every(item=>item.ok);
   return {name:agent.name,score:passed?100:Math.round((checks.filter(item=>item.ok).length/checks.length)*100),passed,behavioralEvidence:'UNPROVEN',checks,drill};
 }
