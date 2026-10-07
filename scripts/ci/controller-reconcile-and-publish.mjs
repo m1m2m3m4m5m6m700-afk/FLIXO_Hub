@@ -89,6 +89,30 @@ function stablePatchHash(patchText) {
   return createHash('sha256').update(patchText, 'utf8').digest('hex');
 }
 
+const SAFE_WORKTREE_ENV_KEYS = new Set([
+  'PATH',
+  'HOME',
+  'CI',
+  'NODE_ENV',
+  'RUNNER_TEMP',
+  'TMPDIR',
+  'LANG',
+  'LC_ALL',
+  'GITHUB_ACTIONS',
+  'GITHUB_REPOSITORY',
+  'GITHUB_SHA',
+  'GITHUB_REF',
+  'GITHUB_REF_NAME',
+  'GITHUB_WORKFLOW',
+  'GITHUB_RUN_ID',
+]);
+
+function sanitizedWorktreeEnv() {
+  return Object.fromEntries(
+    Object.entries(process.env).filter(([key]) => SAFE_WORKTREE_ENV_KEYS.has(key) || key.startsWith('VITE_')),
+  );
+}
+
 function assertControllerContext() {
   if (process.env.FLIXO_CANONICAL_CONTROLLER !== CONTROLLER) {
     throw new Error('CONTROLLER_CANONICAL_IDENTITY_REQUIRED');
@@ -98,6 +122,15 @@ function assertControllerContext() {
   }
   if ((process.env.FLIXO_TARGET_BRANCH ?? '') !== BRANCH) {
     throw new Error('CONTROLLER_EXECUTION_TARGET_REQUIRED');
+  }
+  if ((process.env.FLIXO_TRUSTED_SOURCE_REF ?? '') !== 'main') {
+    throw new Error('CONTROLLER_TRUSTED_SOURCE_REF_REQUIRED');
+  }
+  const trustedSourceSha = process.env.FLIXO_TRUSTED_SOURCE_SHA ?? '';
+  assertSha(trustedSourceSha, 'trusted_source');
+  const checkedOutSha = git(['rev-parse', 'HEAD']);
+  if (checkedOutSha !== trustedSourceSha) {
+    throw new Error(`CONTROLLER_TRUSTED_SOURCE_SHA_MISMATCH:${checkedOutSha}!=${trustedSourceSha}`);
   }
 }
 
@@ -193,9 +226,11 @@ async function persistReconciliation(queueId, row, current, result, candidateSha
 
 function verifyWorktree(worktree) {
   git(['diff', '--check'], worktree);
-  execFileSync('npm', ['ci', '--no-audit', '--no-fund'], { cwd: worktree, encoding: 'utf8', stdio: 'inherit' });
-  execFileSync('npm', ['test'], { cwd: worktree, encoding: 'utf8', stdio: 'inherit' });
-  execFileSync('npm', ['run', 'build'], { cwd: worktree, encoding: 'utf8', stdio: 'inherit' });
+  const env = sanitizedWorktreeEnv();
+  env.NPM_CONFIG_USERCONFIG = '/dev/null';
+  execFileSync('npm', ['ci', '--ignore-scripts', '--no-audit', '--no-fund'], { cwd: worktree, env, encoding: 'utf8', stdio: 'inherit' });
+  execFileSync('npm', ['test'], { cwd: worktree, env, encoding: 'utf8', stdio: 'inherit' });
+  execFileSync('npm', ['run', 'build'], { cwd: worktree, env, encoding: 'utf8', stdio: 'inherit' });
 }
 
 function createCandidateCommit(worktree, targetSha, message, allowedPaths) {
@@ -248,8 +283,16 @@ async function publish(queueId, worktree, targetSha, candidateSha) {
   }
 
   try {
+    const { token } = config();
+    const pushEnv = {
+      ...process.env,
+      GIT_CONFIG_COUNT: '1',
+      GIT_CONFIG_KEY_0: 'http.https://github.com/.extraheader',
+      GIT_CONFIG_VALUE_0: `AUTHORIZATION: bearer ${token}`,
+    };
     execFileSync('git', ['push', '--porcelain', 'origin', `HEAD:refs/heads/${BRANCH}`], {
       cwd: worktree,
+      env: pushEnv,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
     });
