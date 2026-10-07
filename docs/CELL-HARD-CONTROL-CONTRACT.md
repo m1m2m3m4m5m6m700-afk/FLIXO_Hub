@@ -75,6 +75,8 @@ ACCEPTANCE_DIGEST
 9. Correct Expected Output
 10. Current SHA present and live
 
+كل من START_SHA وCURRENT_SHA يجب أن يكون SHA كاملًا من 40 خانة hex؛ لا تُقبل قيم placeholder أو معرفات نصية. START_SHA يجب أن يطابق SHA القبول/assignment، وCURRENT_SHA يجب أن يطابق live execution SHA عند الـRuntime.
+
 فشل أي عنصر = BLOCK / QUARANTINE وفق نوع الانحراف.
 
 ## Action firewall
