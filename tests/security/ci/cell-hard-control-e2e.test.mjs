@@ -470,6 +470,7 @@ test("self-evolution can propose only through a canonical task/review/verificati
 
   s.session();
   s.rt.reconcile("TASK-1", { solverOutcome: "SUCCESS", opponentOutcome: "PASS" });
+  s.rt.redTeamGate("TASK-1", { required: true, findings: 0, remediated: true, retested: true });
   s.rt.prepareVerification("TASK-1");
   s.rt.recordVerification("TASK-1", { verifierId: "verifier", pass: true, certificationPass: true, reviewId: "REVIEW-1" });
   recordEvidenceThrough(s.rt, "certification");
