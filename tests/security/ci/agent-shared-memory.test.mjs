@@ -40,6 +40,7 @@ test('raw inbox routing is rejected and canonical reports are required', () => {
   }, SHA);
   assert.ok(failures.includes('reportPath must be inside the canonical agent report center'));
   assert.ok(failures.includes('inbox path is forbidden'));
+  assert.ok(failures.includes('reportPath must match the registered report scope for this agent'));
 });
 
 test('memory promotion needs independent evidence, repeated utility, zero harm and regression', () => {
