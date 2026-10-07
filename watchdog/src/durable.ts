@@ -1,5 +1,5 @@
-import { readJson } from './lib/runtime';
-import { CORE_LIMITS } from './lib/config';
+import { readJson } from './lib/runtime.ts';
+import { CORE_LIMITS } from './lib/config.ts';
 import type {
   AgentStateRecord,
   CheckpointRecord,
