@@ -320,3 +320,15 @@ test('context compiler treats SHA-less failures as warnings', async () => {
   assert.equal(context.known_failures.length, 0);
   assert.equal(context.failure_warnings.length, 1);
 });
+
+
+test('external knowledge snapshot suite remains candidate-only and passes its security contract', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const output = execFileSync('python3', ['-m', 'unittest', 'tests/agent-intelligence/test_discovery.py'], {
+    cwd: process.cwd(),
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  assert.match(output, /OK/);
+  assert.doesNotMatch(output, /candidate.*PROMOTED|status.*PROMOTED/i);
+});
