@@ -27,7 +27,7 @@ export function ToolsPage({ locale = 'en' as Locale }: { locale?: Locale }) {
   const [filter, setFilter] = useState('all');
   const ar = locale === 'ar';
 
-  const tools = useMemo(() => TOOL_CATALOG.ready.filter((tool) => tool.capability.state === 'EXECUTABLE').map((tool) => {
+  const tools = useMemo(() => EXECUTABLE_TOOL_CATALOG.map((tool) => {
     const title = getAuthoritativeToolSeoName(tool, locale) ?? tool.title;
     return { ...tool, title, description: localizeToolDescription(locale, title, tool.category), path: tool.path.replace(/^\/en\//, locale === 'ar' ? '/ar/' : '/en/') };
   }).filter((tool) => {
