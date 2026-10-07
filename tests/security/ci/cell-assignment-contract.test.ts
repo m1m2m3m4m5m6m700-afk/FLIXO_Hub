@@ -11,7 +11,6 @@ import {
   spawnSubtask,
   delegateHandoff,
   validateAssignmentForTask,
-  validateAssignmentTeamForTask,
   validateTypedHandoff,
   type AssignmentAgentProfile,
   type AssignmentRequirements,
