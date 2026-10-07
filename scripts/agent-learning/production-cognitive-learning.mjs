@@ -51,6 +51,7 @@ export function createSupabaseCognitiveTransport({env=process.env,fetchImpl=glob
     const rows=await get('/rest/v1/flixo_agent_task_events?'+params.toString());
     if(!Array.isArray(rows))throw new Error('COGNITIVE_REPLAY_INVALID_RESPONSE');
     let previousHash=null;
+    let expectedSequence=afterSequence+1;
     const events=[];
     for(const row of rows){
       const cognitive=row?.payload?._cognitive;
@@ -58,8 +59,10 @@ export function createSupabaseCognitiveTransport({env=process.env,fetchImpl=glob
       const event=Object.freeze({...cognitive,sequence:Number(row.sequence),taskId:row.task_id});
       if(!SHA.test(event.sourceSha))throw new Error('COGNITIVE_REPLAY_SHA_INVALID');
       if(!Number.isInteger(event.sequence)||event.sequence<1)throw new Error('COGNITIVE_REPLAY_SEQUENCE_INVALID');
+      if(event.sequence!==expectedSequence)throw new Error('COGNITIVE_REPLAY_SEQUENCE_GAP');
       if(previousHash!==null && row.previous_hash!==previousHash)throw new Error('COGNITIVE_REPLAY_HASH_CHAIN_BROKEN');
       previousHash=row.hash;
+      expectedSequence+=1;
       events.push(event);
     }
     return events;
