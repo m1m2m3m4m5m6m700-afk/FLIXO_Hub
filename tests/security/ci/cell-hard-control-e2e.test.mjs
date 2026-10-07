@@ -235,7 +235,7 @@ test("hard mutation authorization denies every requested adversarial path before
     ["wrong agent", { agentId: "intruder" }, "AGENT_ID_MISMATCH"],
     ["wrong task", { taskId: "TASK-2" }, "DENY_BEFORE_MUTATION"],
     ["wrong branch", { branch: "main" }, "BRANCH_DENIED"],
-    ["wrong scope", { path: "src/forbidden.ts" }, "SCOPE_DENIED"],
+    ["wrong scope", { path: "outside/forbidden.ts" }, "SCOPE_DENIED"],
     ["wrong capability", { capability: "ADMIN" }, "CAPABILITY_DENIED"],
     ["wrong SHA", { currentSha: SHA2 }, "SHA_STALE"],
     ["objective drift", { objectiveId: "OBJ-DRIFT" }, "OBJECTIVE_DRIFT"],
