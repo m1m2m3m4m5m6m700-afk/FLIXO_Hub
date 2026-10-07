@@ -12,6 +12,28 @@ export function assertExactSha(value, field = 'sha') {
   return String(value).toLowerCase();
 }
 
+
+function loadCanonicalReportScopes() {
+  const content = readFileSync('الوكلاء.md', 'utf8');
+  const start = content.indexOf('<!-- CANONICAL_AGENT_REGISTRY:START -->');
+  const end = content.indexOf('<!-- CANONICAL_AGENT_REGISTRY:END -->');
+  if (start < 0 || end <= start) throw new Error('canonical agent registry markers missing');
+  const block = content.slice(start, end);
+  const jsonStart = block.indexOf('```json');
+  const jsonEnd = block.indexOf('```', jsonStart + 7);
+  if (jsonStart < 0 || jsonEnd <= jsonStart) throw new Error('canonical agent registry JSON missing');
+  const registry = JSON.parse(block.slice(jsonStart + 7, jsonEnd).trim());
+  return [...(registry.agents ?? []), ...(registry.supportingRoles ?? [])]
+    .map(agent => ({ id: agent.id, name: agent.name, report: agent.report }))
+    .filter(agent => agent.id && agent.name && agent.report)
+    .sort((a, b) => b.name.length - a.name.length);
+}
+
+function expectedReportScope(agent) {
+  const match = loadCanonicalReportScopes().find(item => item.id === agent || item.name === agent);
+  return match?.report ?? null;
+}
+
 function nonEmptyString(value) {
   return typeof value === 'string' && value.trim().length > 0;
 }
@@ -39,8 +61,10 @@ export function validateMemoryProposal(proposal, currentSha) {
   if (!nonEmptyString(proposal.reportPath)) failures.push('reportPath is required');
   else {
     const normalized = proposal.reportPath.replaceAll('\\', '/');
+    const canonicalReport = expectedReportScope(proposal.agent);
     if (!normalized.startsWith('الوكلاء/التقارير/')) failures.push('reportPath must be inside the canonical agent report center');
     if (normalized.includes('.agent-intelligence/inbox/')) failures.push('inbox path is forbidden');
+    if (!canonicalReport || !normalized.startsWith(canonicalReport)) failures.push('reportPath must match the registered report scope for this agent');
   }
   if (proposal.kind && !['LESSON','ANTI_LESSON','HEURISTIC','PATTERN','WARNING','FACT'].includes(String(proposal.kind).toUpperCase())) {
     failures.push('kind is invalid');
