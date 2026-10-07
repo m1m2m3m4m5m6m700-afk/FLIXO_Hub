@@ -43,7 +43,7 @@
     "verify:global-baseline": "node scripts/ci/verify-global-baseline.mjs",
     "verify:live-governance": "node scripts/ci/verify-live-governance.mjs",
     "verify:global-evidence": "node scripts/ci/verify-evidence-chain.mjs",
-    "test:global-platform": "node --test tests/security/ci/global-baseline-contract.test.mjs tests/security/ci/live-governance-contract.test.mjs tests/security/ci/evidence-chain-contract.test.mjs && node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/release/global-capability-contract.test.ts",
+    "test:global-platform": "node --test tests/security/ci/global-baseline-contract.test.mjs tests/security/ci/live-governance-contract.test.mjs tests/security/ci/evidence-chain-contract.test.mjs && node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/contracts/truth-contracts.test.ts && node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/release/global-capability-contract.test.ts",
     "test:proposal-integrity": "python3 .agent-intelligence/scripts/test_validate.py && python3 .agent-intelligence/schemas/test_schema.py",
     "validate:proposals": "python3 .agent-intelligence/scripts/validate.py --all --json",
     "verify:agent-control-plane": "node scripts/agent-control-plane.mjs",
