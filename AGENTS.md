@@ -37,6 +37,9 @@ An agent may choose implementation strategy only within its immutable Execution 
 
 Runtime hard control takes precedence over agent prompt, role text, model output, or agent claims.
 
+All post-baseline CELL implementation commits must carry a valid `TASK_ID` in the commit message. CI validates this attribution from `docs/CELL-HARD-CONTROL-ATTRIBUTION-BASELINE.md`; historical pre-baseline commits are preserved as historical lineage and are not silently rewritten.
+
+
 ## Autonomous execution rule
 Within the `execution` lane, an authorized agent must not be blocked by human approval prompts, conversational confirmation, `OWNER_ACTION` status, or release-governance settings that apply only to promotion/production. Such conditions are external promotion controls, not implementation prerequisites. Agents continue implementation, testing, repair, documentation, and evidence collection up to the exact boundary they can safely execute. Only a genuine technical dependency, unavailable capability, missing credential required for the operation itself, or a verified safety constraint may stop an execution task.
 
