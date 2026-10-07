@@ -1,4 +1,5 @@
 import type { AgentState } from "./cell-control-plane";
+import { CELL_AUTHORITY_RANK, type CellAuthority } from "./cell-hard-control";
 
 export const ASSIGNMENT_CONTRACT_VERSION = "1.1.0" as const;
 
@@ -376,6 +377,8 @@ export type DelegationRule = Readonly<{
   maxActiveSubtasks: number;
   maxCost: number;
   maxDurationMs: number;
+  sourceAuthority?: CellAuthority;
+  targetAuthority?: CellAuthority;
 }>;
 
 export type DelegationRequest = Readonly<{
@@ -397,6 +400,8 @@ export function authorizeDelegation(rules: readonly DelegationRule[],request: De
   if(!validRequest(request)) return false;
   const rule=rules.find((candidate)=>validRule(candidate)&&candidate.sourceAgentId===request.sourceAgentId&&candidate.targetAgentId===request.targetAgentId&&candidate.taskTypes.includes(request.taskType)&&candidate.riskClasses.includes(request.riskClass));
   if(!rule) return false;
+  if ((rule.sourceAuthority === undefined) !== (rule.targetAuthority === undefined)) return false;
+  if (rule.sourceAuthority && rule.targetAuthority && CELL_AUTHORITY_RANK[rule.targetAuthority] > CELL_AUTHORITY_RANK[rule.sourceAuthority]) return false;
   return request.depth<=rule.maxDepth&&request.activeSubtasks<=rule.maxActiveSubtasks&&request.estimatedCost<=rule.maxCost&&request.estimatedDurationMs<=rule.maxDurationMs;
 }
 
