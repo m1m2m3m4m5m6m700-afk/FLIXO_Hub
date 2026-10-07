@@ -5,7 +5,7 @@ on:
     - cron: "*/10 * * * *"
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: flixo-patch-capsule-controller
@@ -13,6 +13,7 @@ concurrency:
 
 jobs:
   reconcile-and-publish:
+    if: ${{ github.ref == 'refs/heads/main' }}
     name: Reconcile durable patch capsule onto live execution
     runs-on: ubuntu-latest
     timeout-minutes: 45
