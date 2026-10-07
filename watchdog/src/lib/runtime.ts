@@ -15,7 +15,15 @@ async function ct(a:string,b:string){const [x,y]=await Promise.all([digest(a),di
 function token(req:Request){const v=req.headers.get('Authorization')?.trim()??'';const m=/^Bearer ([\x21-\x7E]+)$/u.exec(v);return m?.[1]??null;}
 export async function authAgent(req:Request,env:Env,metrics:Metrics){const t=token(req);const current=env.AGENT_TOKEN;if(!t||!current){metrics.inc('auth_denied');throw new HttpError(401,'UNAUTHORIZED');}if(!(await ct(t,current))){metrics.inc('auth_denied');throw new HttpError(401,'UNAUTHORIZED');}return await digest(t).then(x=>Array.from(x).map(b=>b.toString(16).padStart(2,'0')).join(''));}
 export async function authAdmin(req:Request,env:Env,metrics:Metrics){const t=token(req);if(!t||!env.ADMIN_TOKEN||!(await ct(t,env.ADMIN_TOKEN))){metrics.inc('auth_denied');throw new HttpError(401,'UNAUTHORIZED');}}
-export class HttpError extends Error { constructor(public readonly status:number,public readonly code:string){super(code);} }
+export class HttpError extends Error {
+  readonly status: number;
+  readonly code: string;
+  constructor(status: number, code: string) {
+    super(code);
+    this.status = status;
+    this.code = code;
+  }
+}
 export async function readBody(req:Request,max:number){const cl=req.headers.get('Content-Length');if(cl&&Number.isFinite(Number(cl))&&Number(cl)>max)throw new HttpError(413,'BODY_TOO_LARGE');const r=req.body?.getReader();if(!r)return '';const parts:Uint8Array[]=[];let total=0;try{for(;;){const x=await r.read();if(x.done)break;total+=x.value.byteLength;if(total>max){await r.cancel();throw new HttpError(413,'BODY_TOO_LARGE');}parts.push(x.value);}}finally{r.releaseLock();}const out=new Uint8Array(total);let o=0;for(const p of parts){out.set(p,o);o+=p.byteLength;}try{return new TextDecoder('utf-8',{fatal:true}).decode(out);}catch{throw new HttpError(400,'INVALID_UTF8');}}
 export async function readJson(req:Request,max:number){const s=await readBody(req,max);if(!s.trim())throw new HttpError(400,'INVALID_JSON');try{const v=JSON.parse(s);if(!v||typeof v!=='object'||Array.isArray(v))throw new Error();return v as Record<string,unknown>;}catch{throw new HttpError(400,'INVALID_JSON');}}
 const bytes=(s:string)=>new TextEncoder().encode(s).byteLength;
