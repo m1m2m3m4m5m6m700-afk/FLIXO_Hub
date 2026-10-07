@@ -68,6 +68,7 @@ async function getQueue(queueId) {
     patchText: row.patch_text ?? '',
     paths: Array.isArray(row.paths) ? row.paths : [],
   });
+  assertAutoPublishablePaths(Array.isArray(row.paths) ? row.paths : []);
   return row;
 }
 
@@ -233,14 +234,33 @@ function verifyWorktree(worktree) {
   execFileSync('npm', ['run', 'build'], { cwd: worktree, env, encoding: 'utf8', stdio: 'inherit' });
 }
 
+const AUTO_PUBLISH_ALLOWED_ROOTS = Object.freeze(['src/', 'tests/', 'docs/']);
+
+function isAutoPublishablePath(path) {
+  if (typeof path !== 'string' || !path || path.startsWith('/') || path.includes('..')) return false;
+  return AUTO_PUBLISH_ALLOWED_ROOTS.some((root) => path.startsWith(root));
+}
+
+function assertAutoPublishablePaths(paths) {
+  if (!Array.isArray(paths) || paths.length === 0) {
+    throw new Error('CONTROLLER_AUTOPUBLISH_PATHS_EMPTY');
+  }
+  for (const path of paths) {
+    if (!isAutoPublishablePath(path)) {
+      throw new Error(`CONTROLLER_AUTOPUBLISH_PATH_FORBIDDEN:${path}`);
+    }
+  }
+}
+
 function createCandidateCommit(worktree, targetSha, message, allowedPaths) {
   const statusLines = git(['status', '--short'], worktree).split('\n').filter(Boolean);
   if (statusLines.length === 0) throw new Error('CONTROLLER_NO_RECONCILED_CHANGES');
+  assertAutoPublishablePaths(allowedPaths);
   const allowed = new Set(allowedPaths);
-  if (!allowed.size) throw new Error('CONTROLLER_ALLOWED_PATHS_EMPTY');
   for (const line of statusLines) {
     const path = line.slice(3).trim().replace(/^"|"$/g, '');
     if (!allowed.has(path)) throw new Error(`CONTROLLER_OUT_OF_SCOPE_CHANGE:${path}`);
+    if (!isAutoPublishablePath(path)) throw new Error(`CONTROLLER_AUTOPUBLISH_PATH_FORBIDDEN:${path}`);
   }
 
   git(['add', '--', ...[...allowed]], worktree);
@@ -394,4 +414,4 @@ if (import.meta.url === new URL(`file://${process.argv[1] ?? ''}`).href) {
   });
 }
 
-export { getQueue, liveHead, reconcileQueue, persistReconciliation, publish, assertControllerContext };
+export { getQueue, liveHead, reconcileQueue, persistReconciliation, publish, assertControllerContext, isAutoPublishablePath, assertAutoPublishablePaths };
