@@ -11,7 +11,7 @@ import type {
   RateBucket,
   RateResult,
   ReserveResult,
-} from './lib/types';
+} from './lib/types.ts';
 
 const bytes = (value: string) => new TextEncoder().encode(value).byteLength;
 const isRecord = (value: unknown): value is Record<string, unknown> => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
