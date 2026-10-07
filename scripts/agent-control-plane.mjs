@@ -824,9 +824,18 @@ export class HardControlRuntime {
     return result;
   }
 
-  redTeamGate(taskId, input) {
+  redTeamGate(taskId, input = {}) {
     const task = this.tasks.get(taskId);
-    if (!task) throw hardError("TASK_ID_MISMATCH");
+    const assignment = task ? [...this.assignments.values()].find((candidate) => candidate.taskId === taskId) : null;
+    if (!task || !assignment) throw hardError("DENY_BEFORE_MUTATION","RED_TEAM_CONTEXT");
+    const actorId = required(input.actorId,"AUTHORITY_BYPASS:RED_TEAM_REQUIRED");
+    if (actorId !== assignment.opponentId || input.actorRole !== "OPPONENT") {
+      throw hardError("AUTHORITY_BYPASS","RED_TEAM_INDEPENDENCE");
+    }
+    const actor = this.agents.get(actorId);
+    if (!actor || !["READY","WORKING"].includes(actor.state)) {
+      throw hardError("AUTHORITY_BYPASS","RED_TEAM_AGENT_NOT_AVAILABLE");
+    }
     this.metrics.redTeamRuns += 1;
     const riskRequiresGate = ["HIGH","CRITICAL"].includes(task.riskClass);
     const requiredGate = riskRequiresGate || input?.required !== false;
@@ -845,7 +854,9 @@ export class HardControlRuntime {
     if (!task || task.state !== "VERIFYING") throw hardError("DENY_BEFORE_MUTATION","VERIFICATION_STATE");
     const assignment = [...this.assignments.values()].find((candidate) => candidate.taskId === taskId);
     const verifierId = required(input.verifierId,"AUTHORITY_BYPASS:VERIFIER_REQUIRED");
-    if (!assignment || verifierId !== assignment.verifierId) throw hardError("AUTHORITY_BYPASS","VERIFIER_ID");
+    if (!assignment || verifierId !== assignment.verifierId || input.actorRole !== "VERIFIER") throw hardError("AUTHORITY_BYPASS","VERIFIER_ID");
+    const verifier = this.agents.get(verifierId);
+    if (!verifier || !["READY","WORKING"].includes(verifier.state)) throw hardError("AUTHORITY_BYPASS","VERIFIER_AGENT_NOT_AVAILABLE");
     const result = Object.freeze({
       taskId, verifierId, pass:input.pass === true, certificationPass:input.certificationPass === true,
       reviewedAt:this.clock(), reviewId:required(input.reviewId ?? "REVIEW-1","AUTHORITY_BYPASS:REVIEW_REQUIRED"),
@@ -861,7 +872,7 @@ export class HardControlRuntime {
     return this.transitionTask(taskId,"VERIFYING");
   }
 
-  markReadyToClose(taskId, input) {
+  markReadyToClose(taskId) {
     const task = this.tasks.get(taskId);
     if (!task) throw hardError("TASK_ID_MISMATCH");
     if (task.state !== "VERIFYING") throw hardError("DENY_BEFORE_MUTATION","READY_TO_CLOSE_STATE");
