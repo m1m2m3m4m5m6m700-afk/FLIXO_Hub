@@ -122,6 +122,15 @@ function hasExecutionPushGate(jobText) {
   return /github\.event_name\s*==\s*['"]push['"]/u.test(compact) && /github\.ref\s*==\s*['"]refs\/heads\/execution['"]/u.test(compact);
 }
 
+function hasExecutionOnlyMutationTarget(jobText) {
+  const compact = jobText.replace(/\s+/gu, ' ');
+  const executionPush = /git\s+push\s+origin\s+["']?HEAD:execution["']?/u.test(compact);
+  const executionRef = /ref:\s*execution\b/u.test(compact) ||
+    /GITHUB_REF_NAME["']?\s*[=:\s]+["']?execution["']?/u.test(compact) ||
+    /github\.ref\s*==\s*['"]refs\/heads\/execution['"]/u.test(compact);
+  return executionPush && executionRef;
+}
+
 export function analyzeWorkflowAuthority(path, workflow) {
   const findings = [];
   const jobs = jobBlocks(workflow);
@@ -168,7 +177,7 @@ export function analyzeWorkflowAuthority(path, workflow) {
     const jobContentsWrite = /contents:\s*write\b/iu.test(jobText);
     if (jobContentsWrite || workflowContentsWrite) {
       const safeMainWrite = mainPushGate || workflowMainOnlyPush;
-      const safeExecutionWrite = executionTarget || isolatedKnowledgeTarget || isolatedDiscoveryTarget;
+      const safeExecutionWrite = executionTarget || isolatedKnowledgeTarget || isolatedDiscoveryTarget || hasExecutionOnlyMutationTarget(jobText);
       if (!safeMainWrite && !safeExecutionWrite) {
         findings.push(
           `${path}#${job.id}: contents:write has neither an explicit main-push gate nor an execution-only mutation target.`,
