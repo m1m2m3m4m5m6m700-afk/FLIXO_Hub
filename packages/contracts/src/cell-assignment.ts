@@ -18,6 +18,7 @@ export type AssignmentAgentProfile = Readonly<{
   availability: number;
   costRate: number;
   state: AgentState;
+  independenceKey?: string;
 }>;
 
 export type AssignmentRequirements = Readonly<{
@@ -163,6 +164,44 @@ export function selectAssignmentQuartet(
   });
 }
 
+export type AssignmentTeam = Readonly<{
+  assignmentId: string;
+  solverAgentId: string;
+  backupSolverAgentId: string;
+  opponentAgentId: string;
+  backupOpponentAgentId: string | null;
+  verifierAgentId: string | null;
+  escalationTargetAgentId: string | null;
+}>;
+
+export function selectAssignmentTeam(input: Readonly<{
+  assignmentId: string;
+  solverRanked: readonly RankedAgent[];
+  opponentRanked: readonly RankedAgent[];
+  verifierCandidates: readonly string[];
+  escalationCandidates: readonly string[];
+  requireIndependentVerifier: boolean;
+}>): AssignmentTeam {
+  if (input.solverRanked.length < 2) throw new Error("ASSIGNMENT_REQUIRES_PRIMARY_AND_BACKUP");
+  const solver = input.solverRanked[0];
+  const backupSolver = input.solverRanked.find((candidate) => candidate.agentId !== solver.agentId);
+  if (!backupSolver) throw new Error("ASSIGNMENT_REQUIRES_BACKUP");
+  const opponent = input.opponentRanked.find((candidate) => candidate.agentId !== solver.agentId && candidate.agentId !== backupSolver.agentId);
+  if (!opponent) throw new Error("ASSIGNMENT_REQUIRES_INDEPENDENT_OPPONENT");
+  const backupOpponent = input.opponentRanked.find((candidate) => candidate.agentId !== solver.agentId && candidate.agentId !== backupSolver.agentId && candidate.agentId !== opponent.agentId) ?? null;
+  const verifier = input.verifierCandidates.find((agentId) => ![solver.agentId, backupSolver.agentId, opponent.agentId, backupOpponent?.agentId].includes(agentId)) ?? null;
+  if (input.requireIndependentVerifier && !verifier) throw new Error("INDEPENDENT_VERIFIER_REQUIRED");
+  const escalation = input.escalationCandidates.find((agentId) => ![solver.agentId, backupSolver.agentId, opponent.agentId, backupOpponent?.agentId, verifier].includes(agentId)) ?? null;
+  return Object.freeze({
+    assignmentId: input.assignmentId,
+    solverAgentId: solver.agentId,
+    backupSolverAgentId: backupSolver.agentId,
+    opponentAgentId: opponent.agentId,
+    backupOpponentAgentId: backupOpponent,
+    verifierAgentId: verifier,
+    escalationTargetAgentId: escalation,
+  });
+}
 export type DelegationRule = Readonly<{
   sourceAgentId: string;
   targetAgentId: string;
