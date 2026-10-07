@@ -74,7 +74,7 @@ GitHub ruleset `FLIXO-MAIN-PROTECTION` (ID 23854302) is active for `main` but do
 - review-thread resolution = false; required = true
 - strict required status checks = false; required = true
 
-PR #1002 has no independent human APPROVE. The connected execution tool surface exposes ruleset administration as read-only, so this cannot be legitimately repaired through the current interface.
+PR #1214 has no independent human APPROVE. The connected execution tool surface exposes ruleset administration as read-only, so this cannot be legitimately repaired through the current interface.
 
 ## Exact-SHA rule
 
