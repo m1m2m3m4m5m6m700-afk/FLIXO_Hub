@@ -191,9 +191,9 @@ export function authorizeExecutionAction(envelope: ExecutionEnvelope, action: Ex
   if (!Number.isFinite(action.estimatedCost) || !Number.isFinite(action.expectedDurationMs) || action.estimatedCost < 0 || action.expectedDurationMs < 0) return { allowed: false, drift: finding("D4_RESOURCE_DRIFT", "resource-gate", "invalid resource request") };
   if (usage.spentCost + action.estimatedCost > envelope.costBudget || usage.spentDurationMs + action.expectedDurationMs > envelope.timeBudgetMs) return { allowed: false, drift: finding("D4_RESOURCE_DRIFT", "resource-gate", "budget exceeded") };
   if (action.delegationDepth > envelope.maxDelegationDepth) return { allowed: false, drift: finding("D9_DELEGATION_DRIFT", "delegation-gate", "delegation depth exceeded") };
+  if (!action.currentSha) return { allowed: false, drift: finding("D6_EVIDENCE_DRIFT", "sha-gate", "action has no current SHA") };
   if (action.operation === "WRITE" && (!action.path || !matchesScope(action.path, envelope.writeScope))) return { allowed: false, drift: finding("D1_SCOPE_DRIFT", "write-scope-firewall", "write path outside task scope") };
   if (action.operation === "READ" && (!action.path || !matchesScope(action.path, envelope.readScope))) return { allowed: false, drift: finding("D1_SCOPE_DRIFT", "read-scope-firewall", "read path outside task scope") };
-  if ((action.operation === "WRITE" || action.operation === "DELEGATE") && !action.currentSha) return { allowed: false, drift: finding("D6_EVIDENCE_DRIFT", "sha-gate", "mutation/delegation has no current SHA") };
   return { allowed: true, drift: null };
 }
 
