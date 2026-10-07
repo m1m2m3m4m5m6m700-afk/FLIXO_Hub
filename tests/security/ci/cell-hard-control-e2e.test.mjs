@@ -162,6 +162,20 @@ test("admission gate blocks missing task, agent, solver, capability, scope, SHA,
   assert.throws(() => invalidTask.admit(), /ADMISSION_BLOCK:TASK_INVALID/);
 });
 
+test("admission gate rejects absent role agents and capability/risk/scope policy gaps", () => {
+  const missingAgent = seed();
+  assert.throws(() => missingAgent.admit({ opponentId: "unknown-opponent" }), /ADMISSION_BLOCK:AGENT_NOT_READY/);
+
+  const missingCapability = seed();
+  assert.throws(() => missingCapability.admit({ requiredCapability: "ADMIN" }), /ADMISSION_BLOCK:CAPABILITY_MISMATCH/);
+
+  const missingRiskPolicy = seed();
+  assert.throws(() => missingRiskPolicy.admit({ riskClass: "" }), /ADMISSION_BLOCK:RISK_REQUIRED/);
+
+  const missingScope = seed();
+  assert.throws(() => missingScope.admit({ scope: { read: [], write: [], branches: [], tools: [], resources: [] } }), /ADMISSION_BLOCK:SCOPE_REQUIRED|ADMISSION_BLOCK:BRANCH_SCOPE_INVALID|ADMISSION_BLOCK:TOOL_RESOURCE_SCOPE_REQUIRED/);
+});
+
 test("agent lifecycle state machine is enforced and recoverable", () => {
   const s = seed();
   const rt = s.rt;
@@ -396,6 +410,37 @@ test("master, scheduler, reconciliation and promotion restart preserve task, ass
   assert.equal(restarted.getAssignment("ASSIGN-1").assignmentId, "ASSIGN-1");
   assert.equal(restarted.mutationEffectCount("KEY-1"), 1);
   assert.ok(restarted.evidence.has("E-source"));
+});
+
+test("restart preserves live reconciliation and READY_TO_CLOSE state before promotion", () => {
+  const s = seed({ riskClass: "HIGH" });
+  s.admit();
+  s.session();
+  s.rt.reconcile("TASK-1", { solverOutcome: "SUCCESS", opponentOutcome: "COUNTEREXAMPLE" });
+  const duringReconciliation = s.rt.restart("master");
+  assert.equal(duringReconciliation.getTask("TASK-1").state, "RECONCILING");
+  assert.equal(duringReconciliation.getTask("TASK-1").taskId, "TASK-1");
+
+  duringReconciliation.redTeamGate("TASK-1", {
+    actorId: "opponent", actorRole: "OPPONENT", required: true, findings: 0, remediated: true, retested: true,
+  });
+  duringReconciliation.prepareVerification("TASK-1");
+  duringReconciliation.recordVerification("TASK-1", {
+    verifierId: "verifier", actorRole: "VERIFIER", pass: true, certificationPass: true, reviewId: "REVIEW-1",
+  });
+  recordEvidenceThrough(duringReconciliation, "certification");
+  const ready = duringReconciliation.markReadyToClose("TASK-1", {
+    opponentResolved: true, redTeamPass: true, verifierPass: true, evidencePass: true,
+  });
+  assert.equal(ready.state, "READY_TO_CLOSE");
+
+  const duringPromotion = duringReconciliation.restart("promotion");
+  assert.equal(duringPromotion.getTask("TASK-1").state, "READY_TO_CLOSE");
+  recordEvidenceThrough(duringPromotion, "promotion");
+  assert.equal(duringPromotion.attemptPromotion("TASK-1", {
+    actorId: "verifier", actorRole: "VERIFIER",
+  }).code, "PROMOTED");
+  assert.equal(duringPromotion.getTask("TASK-1").state, "CLOSED");
 });
 
 test("duplicate scheduler wake is idempotent for the same session identity", () => {
