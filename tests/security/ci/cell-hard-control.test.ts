@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   authorizeExecutionAction,
+  createExecutionEnvelope,
   calculateProgressScore,
   classifyMemoryDrift,
   classifyObjectiveDrift,
@@ -182,4 +183,12 @@ test("acceptance digest drift is blocked", () => {
   );
   assert.equal(result.allowed, false);
   assert.equal(result.drift?.type, "D2_OBJECTIVE_DRIFT");
+});
+
+test("execution envelope is immutable and cannot be expanded by the agent", () => {
+  const created = createExecutionEnvelope(envelope);
+  assert.throws(() => {
+    (created as { allowedCapabilities: string[] }).allowedCapabilities.push("governance-admin");
+  }, TypeError);
+  assert.equal(created.allowedCapabilities.includes("governance-admin"), false);
 });
