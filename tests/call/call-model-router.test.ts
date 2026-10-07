@@ -38,10 +38,13 @@ test("routing fails closed when no model satisfies the contract", () => {
   }), /CALL_ROUTING_NO_CAPABLE_MODEL/);
 });
 
-test("agent roster is explicit", () => {
+test("agent roster is explicit and the second agent is the independent opponent", () => {
   const roster = listCallAgentAssignments();
-  assert.ok(roster.some((x) => x.agentId === "master" && x.preferredModel === "GLM-5.3"));
+  assert.equal(roster[0]?.agentId, "master");
+  assert.equal(roster[0]?.preferredModel, "GLM-5.3");
+  assert.equal(roster[1]?.agentId, "opponent");
+  assert.notEqual(roster[1]?.preferredModel, "GLM-5.3");
+  assert.equal(getCallAgentModel("opponent")?.roles.includes("master"), false);
   assert.ok(roster.some((x) => x.agentId === "builder"));
-  assert.ok(roster.some((x) => x.agentId === "opponent"));
   assert.ok(roster.some((x) => x.agentId === "verifier"));
 });
