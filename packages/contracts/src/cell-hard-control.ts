@@ -162,6 +162,8 @@ export function createExecutionEnvelope(input: ExecutionEnvelope): ExecutionEnve
     forbiddenActions: Object.freeze([...input.forbiddenActions]),
     acceptanceConditions: Object.freeze([...input.acceptanceConditions]),
     evidenceRequirements: Object.freeze([...input.evidenceRequirements]),
+    authority: input.authority ?? "SCOUT",
+    maxRetryAttempts: Math.min(3, Math.max(1, Math.floor(input.maxRetryAttempts ?? 3))),
   });
 }
 
