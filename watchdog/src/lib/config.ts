@@ -1,4 +1,4 @@
-import type { Config } from './types';
+import type { Config } from './types.ts';
 
 export const CORE_LIMITS: Config = Object.freeze({
   maxBodyBytes: 32 * 1024,
