@@ -110,6 +110,30 @@ test('TestSprite privileged execution is canonical-source-only', async () => {
   assert.ok(workflow.includes('test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"'));
 });
 
+test('execution TestSprite lane is unprivileged and exact-SHA', async () => {
+  const workflow = await readFile(path.join(ROOT, '.github/workflows/testsprite-execution.yml'), 'utf8');
+  assert.doesNotMatch(workflow, /TESTSPRITE_API_KEY|TESTSPRITE_PROJECT_ID|\$\{\{\s*secrets\./u);
+  assert.match(workflow, /persist-credentials: false/u);
+  assert.match(workflow, /npm ci --ignore-scripts/u);
+  assert.match(workflow, /testsprite-fallback\.mjs/u);
+});
+
+test('controller is schedule-only and main-anchored', async () => {
+  const workflow = await readFile(path.join(ROOT, '.github/workflows/patch-capsule-controller.yml'), 'utf8');
+  assert.doesNotMatch(workflow, /\n\s+push:\s*\n/u);
+  assert.match(workflow, /ref: main/u);
+  assert.match(workflow, /persist-credentials: false/u);
+  assert.match(workflow, /contents: write/u);
+});
+
+test('controller isolates mutable execution from privileged verification', async () => {
+  const script = await readFile(path.join(ROOT, 'scripts/ci/controller-reconcile-and-publish.mjs'), 'utf8');
+  assert.match(script, /sanitizeUntrustedEnv/u);
+  assert.match(script, /--ignore-scripts/u);
+  assert.match(script, /CONTROLLER_SENSITIVE_PATH_FORBIDDEN/u);
+  assert.match(script, /CANONICAL_GIT_REMOTE/u);
+});
+
 test('Secret Scan is exact-SHA, full-history, and does not mask findings', async () => {
   const workflow = await readFile(path.join(ROOT, '.github/workflows/secret-scan.yml'), 'utf8');
   assert.ok(workflow.includes('fetch-depth: 0'));
