@@ -110,7 +110,7 @@ test('the principal training matrix is exactly ten and excludes the supporting E
   ]);
 });
 
-test('Scout submissions fail closed on non-inbox status and certification escalation', async () => {
+test('Scout submissions fail closed outside the canonical report center and on certification escalation', async () => {
   const { validateSubmission } = await import('../../../scripts/agent-learning/self-learning-control-plane.mjs');
   const base = {
     agent: 'FLIXO Technology Scout',
@@ -120,7 +120,7 @@ test('Scout submissions fail closed on non-inbox status and certification escala
     evidence: ['source'],
     unknowns: [],
     nextActions: ['review'],
-    status: 'approved',
+    status: 'central-report',
     proposalSchema: 'v4',
     repoRefs: ['package.json'],
     sources: ['source'],
@@ -134,8 +134,8 @@ test('Scout submissions fail closed on non-inbox status and certification escala
     measurableImpact: 'measured',
     executionClaim: true,
   };
-  const failures = validateSubmission(base, SHA);
-  assert.ok(failures.includes('technology scout status must remain inbox'));
+  const failures = validateSubmission({ ...base, reportPath: 'الوكلاء/التقارير/AGENT-09 — Technology Scout/proposal.md' }, SHA);
+  assert.ok(failures.includes('technology scout status must remain central-report'));
   assert.ok(failures.includes('technology scout cannot claim execution'));
 });
 
