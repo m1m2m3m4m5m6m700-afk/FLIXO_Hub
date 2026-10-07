@@ -24,6 +24,8 @@ export interface DispatchRecord {
   reason: DispatchReason;
 }
 
+export type AgentState = AgentStateRecord;
+
 export interface AgentStateRecord {
   agentId: string;
   checkpointSeq: number;
