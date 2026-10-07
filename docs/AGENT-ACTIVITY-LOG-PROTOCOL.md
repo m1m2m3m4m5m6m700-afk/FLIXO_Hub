@@ -49,7 +49,14 @@
 
 ## 4. دورة الحدث الإلزامية
 
-`START → OBSERVE/THINK → ACT → VERIFY → HANDOFF/END`
+قبل العمل على مهمة ذات صلة معرفيًا يجب على الوكيل تنفيذ **Shared-Memory Preflight**:
+1. البحث في الذاكرة المشتركة بالسؤال/المهمة على Exact-SHA الحالي.
+2. التمييز بين `usable=true` و`STALE_EVIDENCE` و`CANDIDATE` وعدم خلطها.
+3. تسجيل معرفات المعرفة التي استُخدمت أو سبب عدم وجود نتيجة مناسبة.
+
+بعد العمل يجب تسجيل أي درس أو anti-lesson أو heuristic أو warning أو fact جديد كـLearning Proposal بعد وضع النتيجة في تقرير الوكيل المركزي.
+
+`START → MEMORY-PREFLIGHT → OBSERVE/THINK → ACT → VERIFY → LEARN-PROPOSE → HANDOFF/END`
 
 لا يجوز تسجيل `END` أو `PASS` بدون ربط النتيجة بالأدلة الحالية.
 
