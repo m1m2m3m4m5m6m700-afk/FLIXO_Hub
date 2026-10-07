@@ -86,6 +86,7 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: write
+      pull-requests: write
     steps:
       - name: Fail-closed non-PR invocation boundary
         if: ${{ github.event_name != 'pull_request' }}
@@ -175,3 +176,17 @@ jobs:
           git push origin "HEAD:scout/discovery-$GITHUB_RUN_ID"
       - name: Assert no main target
         run: test "scout/discovery-$GITHUB_RUN_ID" != "main"
+      - name: Open execution intake PR
+        if: ${{ success() }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DISCOVERY_BRANCH: scout/discovery-${{ github.run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh pr create \
+            --repo "$GITHUB_REPOSITORY" \
+            --base execution \
+            --head "$DISCOVERY_BRANCH" \
+            --title "chore(discovery): admit Scout findings [${GITHUB_RUN_ID}]" \
+            --body "Automated Scout intake. Public repository intelligence and external evidence are data-only inputs. Merge remains subject to execution branch protection and required gates."
