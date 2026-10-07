@@ -26,9 +26,9 @@ test("continuous discovery has isolated validation and publication surfaces",()=
   assert.match(c,/contents: read/u);
   assert.match(c,/contents: write/u);
   assert.match(c,/scout\/discovery-/u);
-  assert.match(c,/الوكلاء\/التقارير\/AGENT-08 — Architecture Scout\/\*\.yaml/u);
-  assert.match(c,/الوكلاء\/التقارير\/AGENT-09 — Technology Scout\/\*\.yaml/u);
-  assert.match(c,/الوكلاء\/التقارير\/AGENT-10 — Ecosystem Scout\/\*\.yaml/u);
+  assert.match(c,/الوكلاء\/التقارير\/AGENT-08 — Architecture Scout\/"?\*\.yaml/u);
+  assert.match(c,/الوكلاء\/التقارير\/AGENT-09 — Technology Scout\/"?\*\.yaml/u);
+  assert.match(c,/الوكلاء\/التقارير\/AGENT-10 — Ecosystem Scout\/"?\*\.yaml/u);
   assert.match(c,/.agent-intelligence\/snapshots\/\*\.json/u);
   assert.doesNotMatch(c,/.agent-intelligence\/inbox\/\*\.yaml/u);
   assert.doesNotMatch(c,/git push origin main|git push origin execution/u);
