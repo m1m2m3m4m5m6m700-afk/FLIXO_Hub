@@ -274,6 +274,29 @@ export class CellRuntime {
     return record;
   }
 
+  reassignTaskTeam(taskId: string, team: AssignmentTeam, reason: string, liveSha: string): RuntimeAssignmentTeam {
+    const task=this.getTask(taskId);
+    if(!["READY","FAILED","BLOCKED"].includes(task.state)) throw new Error("TASK_NOT_REASSIGNABLE");
+    if(!reason.trim()) throw new Error("REASSIGNMENT_REASON_REQUIRED");
+    if(this.hasAssignment(team.assignmentId)) throw new Error("ASSIGNMENT_ALREADY_EXISTS");
+    if(team.currentSha!==liveSha) throw new Error("ASSIGNMENT_SHA_DRIFT");
+    const history=this.assignmentHistory.get(taskId)??[];
+    const prevId=history[history.length-1]?.assignmentId??null;
+    const prev=prevId
+      ? this.assignments.get(prevId)?.assignment ?? this.assignmentTeams.get(prevId)?.team
+      : undefined;
+    if(prev && team.startingSha!==prev.startingSha) throw new Error("ASSIGNMENT_START_SHA_DRIFT");
+    const lineage=this.appendAssignmentLineage(taskId,team.assignmentId,reason.trim());
+    const record=Object.freeze({
+      taskId,team,version:0,
+      previousAssignmentId:lineage.previousAssignmentId,
+      attempt:lineage.attempt,
+      reason:reason.trim(),
+    });
+    this.assignmentTeams.set(team.assignmentId,record);
+    return record;
+  }
+
   getAssignmentHistory(taskId: string): readonly RuntimeAssignmentLineage[] {
     return Object.freeze([...(this.assignmentHistory.get(taskId)??[])]);
   }

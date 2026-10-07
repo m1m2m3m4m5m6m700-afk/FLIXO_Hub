@@ -261,10 +261,24 @@ export function selectAssignmentTeam(input: Readonly<{
   if (input.requireBackupOpponent && !backupOpponent) {
     throw new Error("BACKUP_OPPONENT_REQUIRED");
   }
-  const verifier = input.verifierCandidates.find(
-    (agentId) =>
-      ![solver.agentId, backupSolver.agentId, opponent.agentId, backupOpponent?.agentId].includes(agentId),
-  ) ?? null;
+  const rankedById = new Map(
+    [...input.solverRanked, ...input.opponentRanked].map((candidate) => [candidate.agentId, candidate]),
+  );
+  const solverKeys = [
+    solver.independenceKey,
+    backupSolver.independenceKey,
+    opponent.independenceKey,
+  ];
+  if (backupOpponent) solverKeys.push(backupOpponent.independenceKey);
+
+  const verifier = input.verifierCandidates.find((agentId) => {
+    if ([solver.agentId, backupSolver.agentId, opponent.agentId, backupOpponent?.agentId].includes(agentId)) {
+      return false;
+    }
+    const candidate = rankedById.get(agentId);
+    if (!candidate) return false;
+    return !solverKeys.filter(Boolean).includes(candidate.independenceKey);
+  }) ?? null;
   if (input.requireIndependentVerifier && !verifier) throw new Error("INDEPENDENT_VERIFIER_REQUIRED");
   const escalation = input.escalationCandidates.find(
     (agentId) =>
@@ -366,7 +380,7 @@ export type DelegationRequest = Readonly<{
 }>;
 
 const validRule=(r: DelegationRule)=>Boolean(r.sourceAgentId.trim()&&r.targetAgentId.trim()&&r.sourceAgentId!==r.targetAgentId&&r.taskTypes.length>0&&r.taskTypes.every((x)=>x.trim())&&r.riskClasses.length>0&&r.riskClasses.every((x)=>x.trim())&&Number.isInteger(r.maxDepth)&&r.maxDepth>=0&&Number.isInteger(r.maxActiveSubtasks)&&r.maxActiveSubtasks>=0&&Number.isFinite(r.maxCost)&&r.maxCost>=0&&Number.isFinite(r.maxDurationMs)&&r.maxDurationMs>0);
-const validRequest=(r: DelegationRequest)=>Boolean(r.taskId.trim()&&r.sourceAgentId.trim()&&r.targetAgentId.trim()&&r.sourceAgentId!==r.targetAgentId&&r.taskType.trim()&&r.riskClass.trim()&&Number.isInteger(r.depth)&&r.depth>=0&&Number.isInteger(r.activeSubtasks)&&r.activeSubtasks>=0&&Number.isFinite(r.estimatedCost)&&r.estimatedCost>=0&&Number.isFinite(r.estimatedDurationMs)&&r.estimatedDurationMs>=0);
+const validRequest=(r: DelegationRequest)=>Boolean(r.taskId.trim()&&r.sourceAgentId.trim()&&r.targetAgentId.trim()&&r.sourceAgentId!==r.targetAgentId&&r.taskType.trim()&&r.riskClass.trim()&&Number.isInteger(r.depth)&&r.depth>=0&&Number.isInteger(r.activeSubtasks)&&r.activeSubtasks>=0&&Number.isFinite(r.estimatedCost)&&r.estimatedCost>=0&&Number.isFinite(r.estimatedDurationMs)&&r.estimatedDurationMs>0);
 
 export function authorizeDelegation(rules: readonly DelegationRule[],request: DelegationRequest): boolean {
   if(!validRequest(request)) return false;

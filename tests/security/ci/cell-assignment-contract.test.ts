@@ -110,6 +110,21 @@ test("routing is task-specific and artifact-aware", () => {
   );
 });
 
+test("missing backup is rejected fail-closed", () => {
+  const ranked = rankAgentsForTask(agents, task);
+  assert.throws(
+    () => selectAssignmentQuartet(
+      "as-no-backup",
+      ranked.slice(0, 1),
+      ["agent-c"],
+      ["agent-d"],
+      true,
+      { startingSha: task.startingSha, currentSha: task.currentSha },
+    ),
+    /ASSIGNMENT_REQUIRES_PRIMARY_AND_BACKUP/,
+  );
+});
+
 test("high-risk assignment requires an independent verifier", () => {
   const ranked = rankAgentsForTask(agents, task);
   const quartet = selectAssignmentQuartet(
@@ -293,6 +308,69 @@ test("assignment team pairs solver with an independent opponent", () => {
   assert.ok(team.verifierAgentId !== team.solverAgentId);
 });
 
+test("independence-key collision is rejected", () => {
+  const ranked = rankAgentsForTask(
+    agents.map((agent) =>
+      agent.agentId === "agent-c"
+        ? { ...agent, independenceKey: "agent-a" }
+        : agent,
+    ),
+    task,
+  );
+  assert.throws(
+    () => selectAssignmentQuartet(
+      "as-collision",
+      ranked,
+      ["agent-c"],
+      ["agent-d"],
+      true,
+      { startingSha: task.startingSha, currentSha: task.currentSha },
+    ),
+    /INDEPENDENT_VERIFIER_COLLISION/,
+  );
+});
+
+test("solver/opponent shared independence is rejected", () => {
+  const ranked = rankAgentsForTask(agents, task);
+  assert.throws(
+    () => selectAssignmentTeam({
+      assignmentId: "team-collision",
+      solverRanked: ranked,
+      opponentRanked: ranked.map((candidate) =>
+        candidate.agentId === "agent-c"
+          ? { ...candidate, independenceKey: "agent-a" }
+          : candidate,
+      ),
+      verifierCandidates: ["agent-c"],
+      escalationCandidates: ["agent-d"],
+      requireIndependentVerifier: true,
+      lineage: { startingSha: task.startingSha, currentSha: task.currentSha },
+    }),
+    /ASSIGNMENT_REQUIRES_INDEPENDENT_OPPONENT/,
+  );
+});
+
+test("verifier/opponent shared independence is rejected", () => {
+  const collisionAgents = agents.map((agent) =>
+    agent.agentId === "agent-c"
+      ? { ...agent, independenceKey: "agent-a" }
+      : agent,
+  );
+  const ranked = rankAgentsForTask(collisionAgents, task);
+  assert.throws(
+    () => selectAssignmentTeam({
+      assignmentId: "team-verifier-collision",
+      solverRanked: ranked,
+      opponentRanked: ranked.filter((candidate) => candidate.agentId !== "agent-c"),
+      verifierCandidates: ["agent-c"],
+      escalationCandidates: ["agent-d"],
+      requireIndependentVerifier: true,
+      lineage: { startingSha: task.startingSha, currentSha: task.currentSha },
+    }),
+    /INDEPENDENT_VERIFIER_COLLISION|INDEPENDENT_VERIFIER_REQUIRED/,
+  );
+});
+
 test("wrong routing and SHA drift are fail-closed", () => {
   const ranked = rankAgentsForTask(agents, task);
   const good = selectAssignmentQuartet(
@@ -330,6 +408,31 @@ test("typed delegate enforces context and evidence contract", () => {
   assert.throws(() => delegateHandoff([], request, handoff), /DELEGATION_REJECTED/);
   assert.throws(() => delegateHandoff([rule], { ...request, depth: 2 }, handoff), /DELEGATION_REJECTED/);
   assert.throws(() => delegateHandoff([rule], { ...request, estimatedCost: 3 }, handoff), /DELEGATION_REJECTED/);
+});
+
+test("zero duration delegation request is rejected fail-closed", () => {
+  const rule = {
+    sourceAgentId: "agent-a",
+    targetAgentId: "agent-b",
+    taskTypes: ["VERIFY"],
+    riskClasses: ["HIGH"],
+    maxDepth: 1,
+    maxActiveSubtasks: 1,
+    maxCost: 2,
+    maxDurationMs: 500,
+  };
+  const request = {
+    taskId: "task-1",
+    sourceAgentId: "agent-a",
+    targetAgentId: "agent-b",
+    taskType: "VERIFY",
+    riskClass: "HIGH",
+    depth: 1,
+    activeSubtasks: 1,
+    estimatedCost: 1,
+    estimatedDurationMs: 0,
+  };
+  assert.equal(authorizeDelegation([rule], request), false);
 });
 
 test("subtask identity and incomplete handoff are fail-closed", () => {

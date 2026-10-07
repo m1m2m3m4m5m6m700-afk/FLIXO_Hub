@@ -228,6 +228,46 @@ test("reassignment preserves task lineage and assignment attempt", () => {
   assert.deepEqual(rt.getAssignmentHistory("t-swap").map((x) => [x.assignmentId, x.previousAssignmentId]), [["a1", null], ["a2", "a1"]]);
 });
 
+test("reassignment preserves team lineage", () => {
+  const rt = new CellRuntime(() => 1000);
+  rt.registerTask("t-team-swap");
+  rt.transitionTask("t-team-swap", "READY");
+  const first = {
+    assignmentId: "team-1",
+    solverAgentId: "agent-a",
+    backupSolverAgentId: "agent-b",
+    opponentAgentId: "agent-c",
+    backupOpponentAgentId: null,
+    verifierAgentId: null,
+    escalationTargetAgentId: "agent-d",
+    startingSha: SHA.start,
+    currentSha: SHA.current,
+  };
+  rt.assignTaskTeam("t-team-swap", first, SHA.current);
+  const second = {
+    ...first,
+    assignmentId: "team-2",
+    solverAgentId: "agent-b",
+    backupSolverAgentId: "agent-a",
+  };
+  const reassigned = rt.reassignTaskTeam(
+    "t-team-swap",
+    second,
+    "opponent workflow stalled",
+    SHA.current,
+  );
+  assert.equal(reassigned.previousAssignmentId, "team-1");
+  assert.equal(reassigned.attempt, 2);
+  assert.equal(reassigned.reason, "opponent workflow stalled");
+  assert.deepEqual(
+    rt.getAssignmentHistory("t-team-swap"),
+    [
+      { assignmentId: "team-1", taskId: "t-team-swap", previousAssignmentId: null, attempt: 1, reason: null },
+      { assignmentId: "team-2", taskId: "t-team-swap", previousAssignmentId: "team-1", attempt: 2, reason: "opponent workflow stalled" },
+    ],
+  );
+});
+
 test("assignment-linked lease is bound to assignment and exact SHA", () => {
   const rt = new CellRuntime(() => 1000);
   rt.registerTask("t-lease");
