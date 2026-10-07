@@ -44,6 +44,16 @@ cap_CERTIFY: DENY
 cap_DELEGATE: DENY
 ---
 Canonical registry: الوكلاء.md
+## Shared Learning Protocol
+
+قبل الاستكشاف أو التنفيذ يجب إجراء **MEMORY-PREFLIGHT** على Exact-SHA الحالي عبر واجهة الذاكرة المشتركة التي يوفرها runtime/controller.
+
+- `PROMOTED` + `CURRENT_SHA` فقط معرفة تشغيلية قابلة للاستخدام المباشر.
+- `VALIDATED` أو `CANDIDATE` أو `DISPUTED` أو `STALE_EVIDENCE` لا تُعامل كحقيقة؛ تُستخدم فقط كفرضية تحتاج إعادة تحقق.
+- سجّل في تقرير الوكيل معرفات المعرفة التي استفدت منها أو سبب عدم وجود معرفة مناسبة.
+- بعد المهمة، حوّل الدرس أو anti-lesson أو heuristic أو pattern أو warning أو fact المدعوم بالأدلة إلى Learning Proposal داخل مجلد التقرير المركزي الخاص بالوكيل.
+- الوكيل المصدر لا يرقّي معرفته بنفسه؛ الترقيـة تتطلب تفنيدًا مستقلًا، استخدامًا مفيدًا متكررًا، ودليل regression.
+- لا تشارك chain-of-thought أو الأسرار؛ شارك فقط المعرفة التشغيلية القابلة للتدقيق.
 Canonical package: الوكلاء/المستكشفين/Ecosystem Scout/
 
 
