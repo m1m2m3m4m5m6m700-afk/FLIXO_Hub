@@ -218,13 +218,13 @@ export function analyzeWorkflowAuthority(path, workflow) {
       path.endsWith('/ui-preview.yml') &&
       /PREVIEW_WORKER_NAME:/u.test(jobText) &&
       (hasExecutionPushGate(jobText) || hasManualExecutionGate(jobText));
-    const dryRunOnly = /--dry-run\b/iu.test(jobText) && !/\b(?:--prod|production|main)\b/iu.test(jobText);
+    const nonMutatingDryRun = /\b(?:wrangler|vercel|supabase|flyctl|kubectl|terraform)\s+(?:deploy|apply|push|publish)\b[^\n]*\b--dry-run\b/iu.test(jobText) && !/\b(?:--prod|--production)\b/iu.test(jobText);
 
     if (
       (PRODUCTION_DEPLOYMENT_COMMAND.test(jobText) || PRODUCTION_DEPLOYMENT_ACTION.test(jobText)) &&
       !mainPushGate &&
       !executionPreviewTarget &&
-      !dryRunOnly
+      !nonMutatingDryRun
     ) {
       findings.push(
         `${path}#${job.id}: production/deployment authority is not gated to a push of refs/heads/main.`,
