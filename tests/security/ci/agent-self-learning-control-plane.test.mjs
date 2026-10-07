@@ -366,3 +366,14 @@ test('shared memory adapter gates executable retrieval by PROMOTED + current SHA
     globalThis.fetch = originalFetch;
   }
 });
+
+
+test('memory lifecycle TTL and suppression suite is green', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const result = spawnSync('python3', ['-m', 'unittest', 'tests/security/ci/agent-3-triage.test.py'], {
+    cwd: process.cwd(),
+    encoding: 'utf8',
+    stdio: 'pipe',
+  });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+});
