@@ -332,3 +332,37 @@ test('external knowledge snapshot suite remains candidate-only and passes its se
   assert.equal(result.status, 0, result.stderr || result.stdout);
   assert.doesNotMatch((result.stdout || '') + (result.stderr || ''), /candidate.*PROMOTED|status.*PROMOTED/i);
 });
+
+
+test('shared memory adapter gates executable retrieval by PROMOTED + current SHA and rejects unbounded limits', async () => {
+  const { createCognitiveMemoryAdapter, MAX_MEMORY_RESULTS } =
+    await import('../../../scripts/agent-learning/shared-memory.mjs');
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => ({
+    ok: true,
+    status: 200,
+    async text() {
+      return JSON.stringify([
+        { memory_id: 'current', status: 'PROMOTED', tested_sha: SHA },
+        { memory_id: 'candidate', status: 'CANDIDATE', tested_sha: SHA },
+        { memory_id: 'stale', status: 'PROMOTED', tested_sha: OTHER_SHA },
+      ]);
+    },
+  });
+  try {
+    const adapter = createCognitiveMemoryAdapter({
+      SUPABASE_URL: 'https://example.supabase.co',
+      SUPABASE_SERVICE_ROLE_KEY: 'placeholder',
+    });
+    const result = await adapter.retrieve({ query: 'current lesson', currentSha: SHA, limit: 5 });
+    assert.deepEqual(result.executableMemory.map(item => item.memory_id), ['current']);
+    assert.equal(result.blockedCount, 2);
+    assert.equal(MAX_MEMORY_RESULTS, 50);
+    await assert.rejects(
+      adapter.retrieve({ query: 'too large', currentSha: SHA, limit: 51 }),
+      /MEMORY_RETRIEVAL_LIMIT_INVALID/,
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
