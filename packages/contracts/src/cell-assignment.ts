@@ -266,6 +266,7 @@ export function selectAssignmentTeam(input: Readonly<{
     input.opponentRanked.find(
       (candidate) =>
         ![solver.agentId, backupSolver.agentId, opponent.agentId].includes(candidate.agentId) &&
+        !verifierReserved.has(candidate.agentId) &&
         ![solver.independenceKey, backupSolver.independenceKey, opponent.independenceKey].includes(candidate.independenceKey),
     ) ?? null;
   if (input.requireBackupOpponent && !backupOpponent) {
