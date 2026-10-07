@@ -133,7 +133,7 @@ export class CellRuntime {
   private readonly clock: () => number;
   private opponentStartSequence = 0;
   private readonly opponentIndependentStarts = new Map<string, OpponentIndependentStartProof>();
-  private readonly solverDisclosures = new Map<string, SolverResultDisclosureProof>();
+  private readonly solverDisclosures = new Map<string, SolverResultDisclosureProof>();\n  private readonly authorityContexts = new Map<string, AuthorityContextArtifact>();
   private readonly cellLifecycle: CellLifecycleRuntime;
 
   constructor(clock: () => number = () => Date.now()) {
@@ -637,8 +637,27 @@ export class CellRuntime {
     this.cellLifecycle.lockPair();
   }
 
-  startCellOpponent(opponentId: string, candidateSha: string, sharedContextHash: string, sequence?: number): void {
-    this.cellLifecycle.recordOpponentIndependentStart(opponentId, candidateSha, sharedContextHash, sequence);
+  async startCellOpponent(
+    opponentId: string,
+    candidateSha: string,
+    context: CanonicalTaskContext,
+    policyVersion: string,
+    sequence?: number,
+  ): Promise<AuthorityContextArtifact> {
+    const artifact = await createAuthorityContextArtifact(context, policyVersion, this.clock);
+    if (artifact.taskId !== context.taskId) throw new Error("CALL_CONTEXT_TASK_MISMATCH");
+    const assignmentId = this.assignmentTaskId(context.taskId);
+    if (assignmentId === null) throw new Error("CALL_CONTEXT_ASSIGNMENT_REQUIRED");
+    if (candidateSha !== context.startingSha) throw new Error("CALL_CONTEXT_SHA_MISMATCH");
+    this.authorityContexts.set(context.taskId, artifact);
+    this.cellLifecycle.recordOpponentIndependentStart(opponentId, candidateSha, artifact.sharedContextHash, sequence);
+    return artifact;
+  }
+
+  getAuthorityContext(taskId: string): AuthorityContextArtifact {
+    const artifact = this.authorityContexts.get(taskId);
+    if (!artifact) throw new Error("CALL_CONTEXT_NOT_FOUND");
+    return artifact;
   }
 
   discloseCellSolverResult(candidateSha: string): void {
