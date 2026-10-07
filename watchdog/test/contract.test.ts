@@ -732,7 +732,6 @@ test('SSRF_GUARD rejects all non-canonical GitHub run URLs', () => {
 
 test('CONSERVATIVE_CANCEL refuses every ambiguous identity and allows only one exact match', async () => {
   const makeEnv = () => envFor({
-    WATCHDOG_AGENTS: 'alpha',
     GITHUB_TOKEN: 'github-secret',
     GITHUB_REPOSITORY: 'owner/repo',
     GITHUB_DISPATCH_WORKFLOW: 'dispatch.yml',
