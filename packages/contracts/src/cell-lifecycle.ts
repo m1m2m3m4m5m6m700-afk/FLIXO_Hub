@@ -322,6 +322,11 @@ export function validateClaim(taskId: string, assignmentId: string, solverId: st
   unique(evidenceIds, "CELL_CLAIM_EVIDENCE_DUPLICATE");
 }
 
+function ensureEvidenceRefs(known: readonly CellEvidence[], requiredIds: readonly string[], code: string): void {
+  const knownIds = new Set(known.map((entry) => entry.evidenceId));
+  if (requiredIds.some((id) => !knownIds.has(id))) throw new Error(code);
+}
+
 export function validateCounterclaim(
   taskId: string,
   assignmentId: string,
@@ -546,6 +551,8 @@ export class CellLifecycleRuntime {
     }
     requiredList(this.claim.evidenceIds, "CELL_CLAIM_EVIDENCE_REQUIRED");
     requiredList(this.counterclaim.evidenceIds, "CELL_COUNTERCLAIM_EVIDENCE_REQUIRED");
+    ensureEvidenceRefs(this.evidence, this.claim.evidenceIds, "CELL_CLAIM_EVIDENCE_UNRECORDED");
+    ensureEvidenceRefs(this.evidence, this.counterclaim.evidenceIds, "CELL_COUNTERCLAIM_EVIDENCE_UNRECORDED");
     this.reconciliation = Object.freeze({
       taskId: this.admission!.taskId,
       assignmentId: this.claim.assignmentId,
@@ -580,6 +587,7 @@ export class CellLifecycleRuntime {
     sha(input.candidateSha, "CELL_ARBITRATION_SHA_INVALID");
     if (input.candidateSha !== this.reconciliation.candidateSha) throw new Error("CELL_ARBITRATION_SHA_MISMATCH");
     if (input.evidenceIds.length === 0) throw new Error("CELL_ARBITRATION_EVIDENCE_REQUIRED");
+    ensureEvidenceRefs(this.evidence, input.evidenceIds, "CELL_ARBITRATION_EVIDENCE_UNRECORDED");
     this.arbitration = Object.freeze({
       ...input,
       taskId: this.admission.taskId,
@@ -619,6 +627,7 @@ export class CellLifecycleRuntime {
     required(input.opponentChallenge, "CELL_CANDIDATE_OPPONENT_CHALLENGE_REQUIRED");
     requiredList(input.evidenceIds, "CELL_CANDIDATE_EVIDENCE_REQUIRED");
     requiredList(input.handoffRefs, "CELL_CANDIDATE_HANDOFF_REQUIRED");
+    ensureEvidenceRefs(this.evidence, input.evidenceIds, "CELL_CANDIDATE_EVIDENCE_UNRECORDED");
     this.candidate = Object.freeze({
       ...input,
       taskId: this.admission.taskId,
@@ -669,6 +678,7 @@ export class CellLifecycleRuntime {
     }
     requiredList(input.checks, "CELL_VERIFICATION_CHECKS_REQUIRED");
     requiredList(input.evidenceIds, "CELL_VERIFICATION_EVIDENCE_REQUIRED");
+    ensureEvidenceRefs(this.evidence, input.evidenceIds, "CELL_VERIFICATION_EVIDENCE_UNRECORDED");
     const record = Object.freeze({
       ...input,
       candidateId: this.candidate.candidateId,
