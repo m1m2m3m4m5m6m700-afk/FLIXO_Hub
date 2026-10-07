@@ -8,6 +8,7 @@ import {
   CognitiveEventLog,
   CognitiveLearningEngine,
   CognitiveConsumer,
+  FileConsumerCheckpointStore,
   FileCognitiveEventStore,
   MemoryCognitiveStore,
   ClaimGraph,
@@ -39,10 +40,15 @@ test('durable propagation supports replay and duplicate suppression',()=>{
     assert.equal(store.append(log.replay(1)[0]).status,'DUPLICATE');
     const afterRestart=new CognitiveEventLog({store});
     assert.equal(afterRestart.snapshot().eventCount,2);
-    const consumer=new CognitiveConsumer('AGENT-B');
+    const checkpoints=new FileConsumerCheckpointStore(join(dir,'consumer-offsets.jsonl'));
+    const consumer=new CognitiveConsumer('AGENT-B',{checkpointStore:checkpoints});
     consumer.ingest(afterRestart.replay(0)[0]);
     consumer.catchUp(afterRestart);
     assert.equal(consumer.snapshot().consumerOffset,2);
+    const resumed=new CognitiveConsumer('AGENT-B',{checkpointStore:checkpoints});
+    assert.equal(resumed.snapshot().consumerOffset,2);
+    resumed.catchUp(afterRestart);
+    assert.equal(resumed.snapshot().consumerOffset,2);
     assert.equal(consumer.snapshot().lastSeenEpoch,1);
     assert.equal(consumer.snapshot().knowledgeVersion,2);
     assert.equal(consumer.snapshot().worldModelVersion,1);
@@ -96,6 +102,7 @@ test('conflicting claims remain independently represented without forced consens
   const state=graph.state('x');
   assert.equal(state.support[0].agentId,'AGENT-A');
   assert.equal(state.oppose[0].agentId,'AGENT-B');
+  assert.equal(state.contradictions[0].agentId,'AGENT-B');
   assert.equal(state.evidence[0].agentId,'AGENT-C');
 });
 
