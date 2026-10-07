@@ -10,7 +10,7 @@ const assertKey=v=>{if(typeof v!=='string'||!v.trim())throw new Error('SUPABASE_
 const rootUrl=v=>{if(typeof v!=='string'||!v.trim())throw new Error('SUPABASE_URL_REQUIRED');return v.replace(/\/+$/,'');};
 function storageUuid(seed){if(UUID_RE.test(seed))return seed;const h=createHash('sha256').update(seed).digest('hex');return h.slice(0,8)+'-'+h.slice(8,12)+'-5'+h.slice(13,16)+'-8'+h.slice(17,20)+'-'+h.slice(20,32);}
 function headers(key){return {apikey:key,...(String(key).startsWith('sb_secret_')?{}:{Authorization:'Bearer '+key}),'Content-Type':'application/json',Accept:'application/json'};}
-async function parse(response){const raw=await response.text();let body=null;try{body=raw?JSON.parse(raw):null;}catch{body=raw;}if(!response.ok)throw new Error('SUPABASE_REQUEST_FAILED:'+response.status+':'+(typeof body==='string'?body:JSON.stringify(body)));return body;}
+async function parse(response){const raw=await response.text();let body;try{body=raw?JSON.parse(raw):null;}catch{body=raw;}if(!response.ok)throw new Error('SUPABASE_REQUEST_FAILED:'+response.status+':'+(typeof body==='string'?body:JSON.stringify(body)));return body;}
 
 export function createSupabaseCognitiveTransport({env=process.env,fetchImpl=globalThis.fetch}={}){
   const root=rootUrl(env.SUPABASE_URL||env.SUPABASE_PROJECT_URL);
