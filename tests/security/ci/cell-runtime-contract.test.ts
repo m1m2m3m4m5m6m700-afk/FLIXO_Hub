@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { CellRuntime } from "../../packages/contracts/src/cell-runtime.ts";
+import { isLeaseLive } from "../../packages/contracts/src/cell-control-plane.ts";
 
 test("reference runtime prevents illegal task transitions and detects version conflicts", () => {
   const rt = new CellRuntime(() => 1000);
@@ -57,12 +58,9 @@ test("candidate promotion is impossible before exact certification lineage", () 
 });
 
 
-test("lease cannot be considered live before acquisition time", () => {
-  const rt = new CellRuntime(() => 1000);
-  rt.registerTask("t1");
-  rt.acquireTaskLease("t1", "a1", "l1", 100);
-  assert.throws(() => {
-    const contract = { ownerId: "a1", token: "l1", acquiredAtMs: 1000, expiresAtMs: 1100 };
-    if (!(1000 < contract.expiresAtMs && 1000 >= contract.acquiredAtMs)) throw new Error("EXPECTED_WINDOW");
-  }, /EXPECTED_WINDOW/);
+test("lease is not live before its acquisition instant", () => {
+  const lease = { ownerId: "a1", token: "l1", acquiredAtMs: 1000, expiresAtMs: 1100 };
+  assert.equal(isLeaseLive(lease, 999), false);
+  assert.equal(isLeaseLive(lease, 1000), true);
+  assert.equal(isLeaseLive(lease, 1100), false);
 });
