@@ -79,6 +79,12 @@ jobs:
       - name: Validate committed manual TestSprite plans offline
         run: testsprite test lint --plan-from-dir .testsprite/plans
 
+      - name: Verify exact execution SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+
       - name: Native exact-SHA canonical ten-tool E2E fallback
         env:
           EXPECTED_SHA: ${{ github.sha }}
