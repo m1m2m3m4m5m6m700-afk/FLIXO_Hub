@@ -1,0 +1,549 @@
+WebAssembly | MDN
+Skip to main content
+Skip to search
+MDN
+HTML
+HTML: Markup language
+HTML reference
+Elements
+Global attributes
+Attributes
+See all…
+HTML guides
+Responsive images
+HTML cheatsheet
+Date & time formats
+See all…
+Markup languages
+SVG
+MathML
+XML
+CSS
+CSS: Styling language
+CSS reference
+Properties
+Selectors
+At-rules
+Values
+See all…
+CSS guides
+Box model
+Animations
+Flexbox
+Colors
+See all…
+Layout cookbook
+Column layouts
+Centering an element
+Card component
+See all…
+JavaScript
+JS
+JavaScript: Scripting language
+JS reference
+Standard built-in objects
+Expressions & operators
+Statements & declarations
+Functions
+See all…
+JS guides
+Control flow & error handling
+Loops and iteration
+Working with objects
+Using classes
+See all…
+Web APIs
+Web APIs: Programming interfaces
+Web API reference
+File system API
+Fetch API
+Geolocation API
+HTML DOM API
+Push API
+Service worker API
+See all…
+Web API guides
+Using the Web animation API
+Using the Fetch API
+Working with the History API
+Using the Web speech API
+Using web workers
+All
+All web technology
+Technologies
+Accessibility
+HTTP
+URI
+Web extensions
+WebAssembly
+WebDriver
+See all…
+Topics
+Media
+Performance
+Privacy
+Security
+Progressive web apps
+Learn
+Learn web development
+Frontend developer course
+Getting started modules
+Core modules
+MDN Curriculum
+Check out the video course from Scrimba, our partner
+Learn HTML
+Structuring content with HTML module
+Learn CSS
+CSS styling basics module
+CSS layout module
+Learn JavaScript
+Dynamic scripting with JavaScript module
+Tools
+Discover our tools
+Playground
+HTTP Observatory
+Border-image generator
+Border-radius generator
+Box-shadow generator
+Color format converter
+Color mixer
+Shape generator
+About
+Get to know MDN better
+About MDN
+Advertise with us
+Community
+MDN on GitHub
+Blog
+WebAssembly
+WebAssembly
+WebAssembly (Wasm) is a low-level assembly-like language that brings near-native performance to the web. It serves as a compilation target for languages like C/C++, C#, and Rust, allowing high-performance code to run directly in the browser.
+WebAssembly is designed to complement and run alongside JavaScript. Using the WebAssembly JavaScript APIs, you can load WebAssembly modules into a JavaScript app and share functionality between the two. This allows you to take advantage of WebAssembly's performance and power and JavaScript's expressiveness and flexibility in the same app — without having to write low-level WebAssembly code yourself.
+In this article
+Guides
+API reference
+Examples
+See also
+Guides
+The
+WebAssembly guides
+cover topics such as high-level concepts, compiling from different languages, the textual representation of the Wasm binary format, and how to run WebAssembly.
+API reference
+The
+WebAssembly reference
+is split into the following sections:
+WebAssembly JavaScript API
+The WebAssembly JavaScript object acts as the namespace for all WebAssembly-related functionality.
+WebAssembly value types
+The different WebAssembly value types.
+WebAssembly definitions
+The top-level definitions available in Wasm for defining module features such as tables, types, memories, functions, etc.
+WebAssembly instructions
+The instructions available in Wasm for handling logic.
+Examples
+Our reference documentation has several live examples to demonstrate how the different features work. You can find additional examples in our
+webassembly-examples
+repo.
+See also
+webassembly.org
+WebAssembly browser feature support status
+on webassembly.org (2026)
+W3C WebAssembly Community Group
+Help improve MDN
+Learn how to contribute
+This page was last modified on
+Jul 28, 2026
+by
+MDN contributors
+.
+View this page on GitHub
+•
+Report a problem with this content
+WebAssembly
+Guides
+WebAssembly concepts
+Compiling WebAssembly
+Compiling a new C/C++ module to WebAssembly
+Compiling an existing C module to WebAssembly
+Compiling from Rust to WebAssembly
+WebAssembly language
+Understanding WebAssembly text format
+Converting WebAssembly text format to binary
+Exported WebAssembly functions
+JavaScript builtins
+Imported global string constants
+JavaScript API guide
+Using the WebAssembly JavaScript API
+Loading and running WebAssembly code
+Reference
+JavaScript interface
+WebAssembly
+WebAssembly
+.compile()
+WebAssembly
+.compileStreaming()
+WebAssembly
+.instantiate()
+WebAssembly
+.instantiateStreaming()
+WebAssembly
+.promising()
+WebAssembly
+.validate()
+WebAssembly
+.Global
+Global()
+value
+valueOf()
+WebAssembly
+.Instance
+WebAssembly
+.Instance
+.prototype
+.exports
+WebAssembly
+.Instance() constructor
+WebAssembly
+.Memory
+WebAssembly
+.Memory
+.prototype
+.buffer
+WebAssembly
+.Memory
+.prototype
+.grow()
+WebAssembly
+.Memory() constructor
+WebAssembly
+.Module
+WebAssembly
+.Module
+.customSections()
+WebAssembly
+.Module
+.exports()
+WebAssembly
+.Module
+.imports()
+WebAssembly
+.Module() constructor
+WebAssembly
+.Suspending
+WebAssembly
+.Suspending()
+WebAssembly
+.Table
+WebAssembly
+.Table
+.prototype
+.get()
+WebAssembly
+.Table
+.prototype
+.grow()
+WebAssembly
+.Table
+.prototype
+.length
+WebAssembly
+.Table
+.prototype
+.set()
+WebAssembly
+.Table() constructor
+WebAssembly
+.Tag
+WebAssembly
+.Tag
+.prototype
+.type()
+WebAssembly
+.Tag() constructor
+WebAssembly
+.Exception
+WebAssembly
+.Exception constructor
+WebAssembly
+.Exception
+.prototype
+.getArg()
+WebAssembly
+.Exception
+.prototype
+.is()
+WebAssembly
+.Exception
+.prototype
+.stack
+WebAssembly
+.CompileError
+WebAssembly
+.CompileError() constructor
+WebAssembly
+.LinkError
+WebAssembly
+.LinkError() constructor
+WebAssembly
+.RuntimeError
+WebAssembly
+.RuntimeError() constructor
+WebAssembly
+.SuspendError
+WebAssembly
+.SuspendError() constructor
+Value types
+i32
+i64
+f32
+f64
+v128
+funcref
+exnref
+externref
+Definitions
+Types
+func
+data
+elem
+global
+import
+memory
+table
+tag
+Instructions
+Control flow
+block
+br
+br_if
+br_table
+call
+drop
+end
+if...else
+loop
+nop
+return
+select
+unreachable
+Data
+drop
+Elem
+drop
+Exception handling
+throw
+throw_ref
+try_table
+catch
+catch_all
+catch_all_ref
+catch_ref
+Memory
+copy
+fill
+grow
+init
+load
+size
+store
+Numeric
+abs
+add
+add128
+and
+ceil
+clz
+const
+convert
+copysign
+ctz
+demote
+div
+eq
+eqz
+extend
+extend8_s
+extend16_s
+extend32_s
+floor
+ge
+ge_s
+ge_u
+gt
+gt_s
+gt_u
+le
+le_s
+le_u
+lt
+lt_s
+lt_u
+max
+min
+mul
+mul_wide_s
+mul_wide_u
+ne
+nearest
+neg
+or
+popcnt
+promote_32
+reinterpret
+rem
+rotl
+rotr
+shl
+shr_s
+shr_u
+sqrt
+sub
+sub128
+trunc
+trunc_f32_s
+trunc_f32_u
+trunc_f64_s
+trunc_f64_u
+wrap_i64
+xor
+SIMD
+Arithmetic
+add_sat_s
+add_sat_u
+avgr_u
+dot_i16x8_s
+extadd_pairwise_i8x16_s
+extadd_pairwise_i8x16_u
+extadd_pairwise_i16x8_s
+extadd_pairwise_i16x8_u
+extmul_high_i8x16_s
+extmul_high_i8x16_u
+extmul_high_i16x8_s
+extmul_high_i16x8_u
+extmul_high_i32x4_s
+extmul_high_i32x4_u
+extmul_low_i8x16_s
+extmul_low_i8x16_u
+extmul_low_i16x8_s
+extmul_low_i16x8_u
+extmul_low_i32x4_s
+extmul_low_i32x4_u
+max_s
+max_u
+min_s
+min_u
+pmax
+pmin
+q15mulr_sat_s
+sub_sat_s
+sub_sat_u
+Bitwise
+all_true
+andnot
+any_true
+bitmask
+bitselect
+not
+Conversion
+convert_i32x4_s
+convert_i32x4_u
+convert_low_i32x4_s
+convert_low_i32x4_u
+demote_f64x2_zero
+extend_high_i8x16_s
+extend_high_i8x16_u
+extend_high_i16x8_s
+extend_high_i16x8_u
+extend_high_i32x4_s
+extend_high_i32x4_u
+extend_low_i8x16_s
+extend_low_i8x16_u
+extend_low_i16x8_s
+extend_low_i16x8_u
+extend_low_i32x4_s
+extend_low_i32x4_u
+narrow_i16x8_s
+narrow_i16x8_u
+narrow_i32x4_s
+narrow_i32x4_u
+promote_low_f32x4
+replace_lane
+shuffle
+splat
+swizzle
+trunc_sat_f32x4_s
+trunc_sat_f32x4_u
+trunc_sat_f64x2_s_zero
+trunc_sat_f64x2_u_zero
+Extract
+extract_lane
+extract_lane_s
+extract_lane_u
+Load and store
+load
+load8_lane
+load8_splat
+load8x8_s
+load8x8_u
+load16_lane
+load16_splat
+load16x4_s
+load16x4_u
+load32_lane
+load32_splat
+load32_zero
+load32x2_s
+load32x2_u
+load64_lane
+load64_splat
+load64_zero
+store
+store8_lane
+store16_lane
+store32_lane
+store64_lane
+Table
+copy
+fill
+get
+grow
+init
+set
+size
+Variables
+global.get
+global.set
+local
+local.get
+local.set
+local.tee
+MDN
+Your blueprint for a better internet.
+MDN
+About
+Blog
+Mozilla careers
+Advertise with us
+MDN Plus
+Product help
+Contribute
+MDN Community
+Community resources
+Writing guidelines
+MDN Discord
+MDN on GitHub
+Developers
+Web technologies
+Learn web development
+Guides
+Tutorials
+Glossary
+Hacks blog
+Mozilla
+Website Privacy Notice
+Telemetry Settings
+Legal
+Community Participation Guidelines
+Portions of this content are ©1998–2026 by individual mozilla.org contributors. Content available under
+a Creative Commons license
+.
