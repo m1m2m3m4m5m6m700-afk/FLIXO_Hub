@@ -102,7 +102,7 @@ export function validateSubmission(submission, currentSha) {
       if (submission.alternativeHypothesis !== true) failures.push('red team 2 must test an alternative hypothesis');
       break;
     case 'architecture-research':
-      if (submission.status !== 'inbox') failures.push('architecture scout status must remain inbox');
+      if (submission.status !== 'central-report') failures.push('architecture scout status must remain central-report');
       if (submission.proposalSchema !== 'v4') failures.push('architecture scout must emit Proposal Schema v4');
       if (submission.snapshotSha !== currentSha) failures.push('architecture snapshotSha must equal currentSha');
       if (!nonEmptyArray(submission.repoRefs)) failures.push('architecture repoRefs are required');
@@ -116,7 +116,7 @@ export function validateSubmission(submission, currentSha) {
       if (submission.executionClaim === true) failures.push('architecture scout cannot claim execution');
       break;
     case 'technology-research':
-      if (submission.status !== 'inbox') failures.push('technology scout status must remain inbox');
+      if (submission.status !== 'central-report') failures.push('technology scout status must remain central-report');
       if (submission.proposalSchema !== 'v4') failures.push('technology scout must emit Proposal Schema v4');
       if (submission.snapshotSha !== currentSha) failures.push('technology snapshotSha must equal currentSha');
       if (!nonEmptyArray(submission.repoRefs)) failures.push('technology repoRefs are required');
@@ -132,7 +132,7 @@ export function validateSubmission(submission, currentSha) {
       if (submission.executionClaim === true) failures.push('technology scout cannot claim execution');
       break;
     case 'ecosystem-research':
-      if (submission.status !== 'inbox') failures.push('ecosystem scout status must remain inbox');
+      if (submission.status !== 'central-report') failures.push('ecosystem scout status must remain central-report');
       if (submission.proposalSchema !== 'v4') failures.push('ecosystem scout must emit Proposal Schema v4');
       if (submission.snapshotSha !== currentSha) failures.push('ecosystem snapshotSha must equal currentSha');
       if (!nonEmptyArray(submission.repoRefs)) failures.push('ecosystem repoRefs are required');
@@ -205,7 +205,7 @@ export function generateContractReadinessReport({ root = process.cwd(), currentS
       !/git push origin main|force[- ]push|write directly to main/iu.test(content),
       !/self-certif|declare PASS\/GREEN\/CERTIFIED/iu.test(content),
       isScout
-        ? content.includes('tools: ["read", "search", "edit"]') && content.includes('only writable repository path is .agent-intelligence/inbox/')
+        ? content.includes('tools: ["read", "search", "edit"]') && content.includes('only writable repository path is الوكلاء/التقارير/') && !content.includes('.agent-intelligence/inbox/')
         : content.includes('tools: read, search, terminal')
     ];
     const contractScore = Math.round((checks.filter(Boolean).length / checks.length) * 100);
