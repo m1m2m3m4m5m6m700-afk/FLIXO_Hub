@@ -5,22 +5,6 @@ import { resolve, join, relative } from "node:path";
 const ROOT = process.cwd();
 const REGISTRY = join(ROOT, "الوكلاء.md");
 const PROTOCOL = "flixo-agent-activity-v1";
-const REQUIRED_FIELDS = [
-  "Agent ID",
-  "Agent Name",
-  "Task ID",
-  "Exact SHA Before",
-  "Intent / Decision Summary",
-  "Scope",
-  "Action / Command",
-  "Files / Artifacts",
-  "Outcome",
-  "Evidence / Reference",
-  "Exact SHA After",
-  "RCA / Blocker",
-  "Next Action",
-];
-
 function loadRegistry() {
   const source = readFileSync(REGISTRY, "utf8");
   const start = source.indexOf("<!-- CANONICAL_AGENT_REGISTRY:START -->");
