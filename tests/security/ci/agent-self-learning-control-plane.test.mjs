@@ -138,3 +138,26 @@ test('Scout submissions fail closed on non-inbox status and certification escala
   assert.ok(failures.includes('technology scout status must remain inbox'));
   assert.ok(failures.includes('technology scout cannot claim execution'));
 });
+
+test('role submissions reject cross-agent drill identity and unknown agents', async () => {
+  const { validateSubmission } = await import('../../../scripts/agent-learning/self-learning-control-plane.mjs');
+  const crossAgent = {
+    agent: 'Red Team 1',
+    drill: 'maintenance',
+    exactSha: SHA,
+    evidence: ['e'],
+    unknowns: [],
+    nextActions: ['n'],
+    authorityChecks: ['single-registry'],
+    driftChecks: ['stale-sha'],
+    officialAgentCount: 10,
+  };
+  const crossFailures = validateSubmission(crossAgent, SHA);
+  assert.ok(crossFailures.includes('agent/drill identity binding mismatch'));
+
+  const unknownFailures = validateSubmission({
+    ...crossAgent,
+    agent: 'not-registered',
+  }, SHA);
+  assert.ok(unknownFailures.includes('agent is not a registered principal agent'));
+});
