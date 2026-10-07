@@ -289,7 +289,7 @@ test('GitHub client enforces explicit target and success statuses', async () => 
   const calls: string[] = [];
   globalThis.fetch = async (input: URL | RequestInfo) => {
     calls.push(String(input));
-    return new Response('', { status: 204 });
+    return new Response(null, { status: 204 });
   };
 
   try {
@@ -466,7 +466,7 @@ test('ATOMIC_FAILURE_COUNTER race is bounded and breaker transition is single-sh
 
 test('completion clears only consecutive failures and never clears the breaker', async () => {
   const state = new AgentState({ id: { name: 'alpha' }, storage: new MemoryStorage() });
-  await state.bumpFailure(DEFAULT_CONFIG.maxConsecutiveFails);
+  for (let i = 0; i < DEFAULT_CONFIG.maxConsecutiveFails; i += 1) await state.bumpFailure(DEFAULT_CONFIG.maxConsecutiveFails);
   const result = await state.recordHeartbeat({
     agentId: 'alpha',
     status: 'completed',
@@ -553,7 +553,8 @@ test('BODY_LIMIT rejects Content-Length lies, streaming overflow, malformed UTF-
     readBody(new Request('https://watchdog.test', {
       method: 'POST',
       body: stream,
-    }), DEFAULT_CONFIG.maxBodyBytes),
+      duplex: 'half',
+    } as RequestInit & { duplex: 'half' }), DEFAULT_CONFIG.maxBodyBytes),
     (error: unknown) => error instanceof HttpError && error.status === 413,
   );
 
