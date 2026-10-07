@@ -30,6 +30,8 @@ concurrency:
 jobs:
   gate:
     name: Human decision gate
+    env:
+      FLIXO_TARGET_BRANCH: execution
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

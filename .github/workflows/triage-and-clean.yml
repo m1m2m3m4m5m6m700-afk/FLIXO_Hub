@@ -26,6 +26,8 @@ concurrency:
 jobs:
   pipeline:
     name: Agent-3 mandatory triage pipeline
+    env:
+      FLIXO_TARGET_BRANCH: execution
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
