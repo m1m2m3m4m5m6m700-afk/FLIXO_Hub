@@ -416,6 +416,7 @@ export class CellLifecycleRuntime {
   private opponentContextHash: string | null = null;
   private opponentStartedAtMs: number | null = null;
   private readonly clock: () => number;
+  private readonly retiredArtifactIds = new Set<string>();
 
   constructor(clock: () => number = () => Date.now()) {
     this.clock = clock;
@@ -423,6 +424,27 @@ export class CellLifecycleRuntime {
 
   private next(): number {
     return ++this.sequence;
+  }
+
+  private rejectRetiredArtifact(id: string, code: string): void {
+    if (this.retiredArtifactIds.has(id)) throw new Error(code);
+  }
+
+  private archiveCurrentAttemptArtifacts(): void {
+    for (const id of [
+      this.claim?.claimId,
+      this.counterclaim?.counterclaimId,
+      ...this.evidence.map((entry) => entry.evidenceId),
+      this.arbitration?.arbitrationId,
+      this.candidate?.candidateId,
+      this.redTeam?.redTeamId,
+      this.verification?.verificationId,
+      this.certification?.certificationId,
+      this.learning?.knowledgeId,
+      this.frontier?.frontierId,
+    ]) {
+      if (id) this.retiredArtifactIds.add(id);
+    }
   }
 
   private requireStage(...allowed: readonly CellLifecycleStage[]): void {
@@ -479,6 +501,7 @@ export class CellLifecycleRuntime {
     if (envelope.missionId !== this.admission.missionId) throw new Error("CELL_REPLAN_MISSION_MISMATCH");
     validateCellAdmission(envelope);
 
+    this.archiveCurrentAttemptArtifacts();
     const record = createCellAdmissionRecord(envelope, this.next(), this.clock());
     this.admission = record;
     this.claim = null;
@@ -555,6 +578,7 @@ export class CellLifecycleRuntime {
     const assignmentId = this.admission.assignmentId;
     if (this.claim) throw new Error("CELL_CLAIM_ALREADY_EXISTS");
     return (() => {
+      this.rejectRetiredArtifact(input.claimId, "CELL_CLAIM_ID_RETIRED");
       validateClaim(
         taskId,
         input.assignmentId,
@@ -587,6 +611,8 @@ export class CellLifecycleRuntime {
   recordCounterclaim(input: Omit<CellCounterclaim, "sequence" | "taskId">): CellCounterclaim {
     this.requireStage("FALSIFYING");
     if (!this.admission || !this.claim) throw new Error("CELL_CLAIM_REQUIRED");
+    this.rejectRetiredArtifact(input.counterclaimId, "CELL_COUNTERCLAIM_ID_RETIRED");
+    this.rejectRetiredArtifact(input.claimId, "CELL_COUNTERCLAIM_CLAIM_ID_RETIRED");
     validateCounterclaim(
       this.admission.taskId,
       input.assignmentId,
@@ -621,6 +647,7 @@ export class CellLifecycleRuntime {
     sha(input.sourceSha, "CELL_EVIDENCE_SHA_INVALID");
     if (input.sourceSha !== this.admission.currentSha) throw new Error("CELL_EVIDENCE_SHA_DRIFT");
     required(input.evidenceId, "CELL_EVIDENCE_ID_REQUIRED");
+    this.rejectRetiredArtifact(input.evidenceId, "CELL_EVIDENCE_ID_RETIRED");
     required(input.summary, "CELL_EVIDENCE_SUMMARY_REQUIRED");
     if (this.evidence.some((entry) => entry.evidenceId === input.evidenceId)) {
       throw new Error("CELL_EVIDENCE_ALREADY_EXISTS");
@@ -666,6 +693,8 @@ export class CellLifecycleRuntime {
     if (!this.admission || !this.claim || !this.counterclaim || !this.reconciliation) {
       throw new Error("CELL_ARBITRATION_CONTEXT_INCOMPLETE");
     }
+    required(input.arbitrationId, "CELL_ARBITRATION_ID_REQUIRED");
+    this.rejectRetiredArtifact(input.arbitrationId, "CELL_ARBITRATION_ID_RETIRED");
     required(input.arbiterId, "CELL_ARBITER_REQUIRED");
     if ([this.admission.assignment.solverId, this.admission.assignment.opponentId].includes(input.arbiterId)) {
       throw new Error("CELL_SELF_ARBITRATION_FORBIDDEN");
@@ -716,6 +745,7 @@ export class CellLifecycleRuntime {
     }
     if (!input.exchangeComplete) throw new Error("CELL_CANDIDATE_EXCHANGE_INCOMPLETE");
     if (!input.conflictsDispositioned) throw new Error("CELL_CANDIDATE_CONFLICTS_NOT_DISPOSITIONED");
+    this.rejectRetiredArtifact(input.candidateId, "CELL_CANDIDATE_ID_RETIRED");
     required(input.solverResult, "CELL_CANDIDATE_SOLVER_RESULT_REQUIRED");
     required(input.opponentChallenge, "CELL_CANDIDATE_OPPONENT_CHALLENGE_REQUIRED");
     requiredList(input.evidenceIds, "CELL_CANDIDATE_EVIDENCE_REQUIRED");
@@ -768,6 +798,7 @@ export class CellLifecycleRuntime {
   ): CellVerificationRecord {
     this.requireStage("VERIFICATION_PENDING");
     if (!this.candidate || !this.redTeam || !this.admission) throw new Error("CELL_VERIFICATION_CONTEXT_INCOMPLETE");
+    this.rejectRetiredArtifact(input.verificationId, "CELL_VERIFICATION_ID_RETIRED");
     required(input.verificationId, "CELL_VERIFICATION_ID_REQUIRED");
     required(input.verifierId, "CELL_VERIFIER_REQUIRED");
     if (input.verifierId !== this.admission.verifierId) throw new Error("CELL_VERIFIER_ADMISSION_MISMATCH");
@@ -801,6 +832,7 @@ export class CellLifecycleRuntime {
     if (!this.candidate || !this.verification || !this.verification.passed) {
       throw new Error("CELL_VERIFICATION_REQUIRED");
     }
+    this.rejectRetiredArtifact(input.certificationId, "CELL_CERTIFICATION_ID_RETIRED");
     required(input.certificationId, "CELL_CERTIFICATION_ID_REQUIRED");
     required(input.certifierId, "CELL_CERTIFIER_REQUIRED");
     required(input.governanceRef, "CELL_GOVERNANCE_REF_REQUIRED");
@@ -855,6 +887,7 @@ export class CellLifecycleRuntime {
   learn(input: CellLearningInput): KnowledgeRecord {
     this.requireStage("PROMOTED");
     if (!this.candidate || !this.promotion || !this.admission) throw new Error("CELL_LEARNING_CONTEXT_REQUIRED");
+    this.rejectRetiredArtifact(input.knowledgeId, "CELL_KNOWLEDGE_ID_RETIRED");
     required(input.knowledgeId, "CELL_KNOWLEDGE_ID_REQUIRED");
     required(input.claim, "CELL_KNOWLEDGE_CLAIM_REQUIRED");
     sha(input.sourceSha, "CELL_KNOWLEDGE_SHA_INVALID");
@@ -887,6 +920,7 @@ export class CellLifecycleRuntime {
   openFrontier(input: Omit<CellFrontierProposal, "sourceTaskId" | "sourceCandidateId" | "sourceSha" | "sequence">): CellFrontierProposal {
     this.requireStage("LEARNED");
     if (!this.promotion || !this.candidate) throw new Error("CELL_FRONTIER_PROMOTION_REQUIRED");
+    this.rejectRetiredArtifact(input.frontierId, "CELL_FRONTIER_ID_RETIRED");
     required(input.frontierId, "CELL_FRONTIER_ID_REQUIRED");
     required(input.proposerId, "CELL_FRONTIER_PROPOSER_REQUIRED");
     required(input.hypothesis, "CELL_FRONTIER_HYPOTHESIS_REQUIRED");
