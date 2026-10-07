@@ -109,7 +109,7 @@ const SAFE_WORKTREE_ENV_KEYS = new Set([
 
 function sanitizedWorktreeEnv() {
   return Object.fromEntries(
-    Object.entries(process.env).filter(([key]) => SAFE_WORKTREE_ENV_KEYS.has(key) || key.startsWith('VITE_')),
+    Object.entries(process.env).filter(([key]) => SAFE_WORKTREE_ENV_KEYS.has(key) || (key.startsWith('VITE_') && !/(TOKEN|SECRET|KEY|PASSWORD|PRIVATE|CREDENTIAL)/iu.test(key))),
   );
 }
 
