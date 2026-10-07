@@ -1,3 +1,4 @@
+// Archive landing surface: UI-only layer over canonical FLIXO contracts.
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from '@tanstack/react-router';
 import {
