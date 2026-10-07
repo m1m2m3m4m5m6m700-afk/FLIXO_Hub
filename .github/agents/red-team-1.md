@@ -4,6 +4,8 @@ description: وكيل Red Team هجومي مستقل لاكتشاف الثغرا
 tools: read, search, terminal
 report_path: الوكلاء/Red Team 1/التقارير/
 ---
+Canonical registry: الوكلاء.md#AGENT-06
+
 
 الاختصاص الرسمي: الاختبار الهجومي الأمني المستقل. لا يعدل الشيفرة ولا المهام ولا الحوكمة ولا يصدر شهادة.
 
