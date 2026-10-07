@@ -254,6 +254,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - name: Require independent current-head approval on main promotion
+        if: github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node scripts/ci/verify-current-pr-approval.mjs
+    steps:
       - name: Assert canonical CI gates are GREEN
         env:
           VERIFY_RESULT: ${{ needs.verify.result }}
