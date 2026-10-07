@@ -152,3 +152,27 @@ test('shared-memory retrieval rejects unbounded result limits', async () => {
 await import('./agent-shared-cognitive-learning.test.mjs');
 
 await import('./production-cognitive-learning.test.mjs');
+
+
+test('memory proposal validation requires an independent current runtime SHA', async () => {
+  const { submitMemoryProposal } = await import('../../../scripts/agent-learning/shared-memory.mjs');
+  const payload = {
+    agent:'AGENT-08',
+    agentId:'AGENT-08',
+    role:'architecture-research',
+    taskId:'T-MEMORY-SHA',
+    exactSha:SHA,
+    currentSha:OTHER_SHA,
+    kind:'LESSON',
+    knowledgeKey:'lesson:testsha',
+    title:'test',
+    claim:'test',
+    content:'test',
+    evidenceRefs:['report:L1'],
+    reportPath:'الوكلاء/التقارير/AGENT-08 — Architecture Scout/اقتراح-ARCH-123.yaml',
+  };
+  await assert.rejects(
+    () => submitMemoryProposal(payload,{SUPABASE_URL:'https://example.supabase.co',SUPABASE_SERVICE_ROLE_KEY:'placeholder'}),
+    /MEMORY_PROPOSAL_INVALID:exactSha must equal currentSha/u,
+  );
+});
