@@ -317,7 +317,7 @@ async function executeMvpTool(
       return Object.freeze({ blob, fileName: baseName(input.fileName) + '-' + scale + 'x.png' });
     }
     case 'image-cropper': {
-      const source = await readImageDimensions(input.blob, signal);
+      const source = await readImageDimensionsFromHeader(input.blob);
       const x = numberOr(parameters.x, 0);
       const y = numberOr(parameters.y, 0);
       const cropWidth = numberOr(parameters.cropWidth, source.width);
@@ -414,7 +414,7 @@ async function verifyOutputContract(
         video.load();
       }
     } else {
-      dimensions = await withDeadline(readImageDimensions(output.blob, signal), Math.min(timeoutMs, 30_000), signal);
+      dimensions = await withDeadline(readImageDimensionsFromHeader(output.blob), Math.min(timeoutMs, 2_000), signal);
     }
   }
 
