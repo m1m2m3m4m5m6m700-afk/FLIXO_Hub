@@ -7,7 +7,7 @@ command -v flock >/dev/null 2>&1 || { echo "SKIP: flock unavailable"; exit 0; }
 t="$(mktemp -d)"; trap 'rm -rf "$t"' EXIT; cd "$t"
 for x in a b c d e f g h; do printf "patch-$x\n" >"patch-$x"; done
 printf 'error-a\n' > error-a; printf 'error-b\n' > error-b
-g(){ STATE_FILE="$t/state.json" COOLDOWN_SECONDS=0 "$GUARD" "$@"; }
+g(){ STATE_FILE="$t/state.json" MAX_ATTEMPTS=10 COOLDOWN_SECONDS=0 "$GUARD" "$@"; }
 
 # First acceptance and exact duplicate-patch rejection.
 g --task-id=P --patch-file="$t/patch-a" >/dev/null
