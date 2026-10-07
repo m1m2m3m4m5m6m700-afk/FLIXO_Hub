@@ -1,0 +1,71 @@
+name: FLIXO Trusted Knowledge Publication
+
+on:
+  workflow_run:
+    workflows: ["FLIXO المستكشف AI Wake"]
+    types: [completed]
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: flixo-trusted-knowledge-publication
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: >-
+      ${{ github.event.workflow_run.conclusion == 'success'
+        && github.event.workflow_run.head_branch == 'execution'
+        && github.event.workflow_run.head_repository.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      RUN_ID: ${{ github.event.workflow_run.id }}
+      EXPECTED_SHA: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      - name: Checkout trusted publisher source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Download exact-run knowledge artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download "$RUN_ID" -R "$GITHUB_REPOSITORY" -n "flixo-knowledge-$EXPECTED_SHA" -D knowledge-artifact
+
+      - name: Verify exact report lineage
+        run: |
+          set -euo pipefail
+          REPORT="knowledge-artifact/الوكلاء AI/المستكشف AI/تقارير المستكشف/$EXPECTED_SHA.md"
+          test "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$
+          test -s "$REPORT"
+          grep -Fq -- "- Exact SHA: $EXPECTED_SHA" "$REPORT"
+          grep -Fq -- "- Uncovered repository-authored text lines: 0" "$REPORT"
+
+      - name: Publish exact SHA-bound report
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git fetch origin knowledge --no-tags || true
+          if git show-ref --verify --quiet refs/remotes/origin/knowledge; then
+            git switch --create knowledge --track origin/knowledge
+          else
+            git switch --orphan knowledge
+            git rm -rf . >/dev/null 2>&1 || true
+          fi
+          rm -rf 'الوكلاء AI/المستكشف AI/تقارير المستكشف'
+          mkdir -p 'الوكلاء AI/المستكشف AI/تقارير المستكشف'
+          cp "knowledge-artifact/الوكلاء AI/المستكشف AI/تقارير المستكشف/$EXPECTED_SHA.md" "الوكلاء AI/المستكشف AI/تقارير المستكشف/$EXPECTED_SHA.md"
+          git add 'الوكلاء AI/المستكشف AI/تقارير المستكشف/'
+          git diff --cached --quiet && echo "NO_KNOWLEDGE_MUTATION=PASS" && exit 0
+          git config user.name "المستكشف AI"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "docs(knowledge): publish execution SHA $EXPECTED_SHA"
+          git -c "http.extraheader=AUTHORIZATION: bearer $GITHUB_TOKEN" push origin "HEAD:knowledge"
