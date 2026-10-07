@@ -74,6 +74,8 @@ jobs:
   runtime-agent:
     name: CELL Agent / Runtime Assurance
     runs-on: ubuntu-latest
+    env:
+      SITE_URL: https://flixoai.m1m2m3m4m5m6m700.workers.dev
     timeout-minutes: 15
     steps:
       - name: Checkout exact candidate
