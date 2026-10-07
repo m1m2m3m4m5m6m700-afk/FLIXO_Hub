@@ -19,6 +19,8 @@ export const AGENTS = [
   { name: 'FLIXO Ecosystem Scout', registration: '.github/agents/flixo-scout-ecosystem.agent.md', drill: 'ecosystem-research', class: 'principal' },
 ];
 
+export const ROLE_DRILL_OWNERS = Object.freeze(Object.fromEntries(AGENTS.map(agent => [agent.name, agent.drill])));
+
 export function assertSha(value, field = 'sha') {
   if (!SHA_RE.test(value ?? '')) throw new Error(field + ' must be an exact 40-character git SHA');
   return value.toLowerCase();
@@ -33,6 +35,8 @@ export function validateSubmission(submission, currentSha) {
   const failures = [];
   if (!submission || typeof submission !== 'object') return ['submission must be an object'];
   if (!submission.agent) failures.push('agent is required');
+  if (submission.agent && !Object.prototype.hasOwnProperty.call(ROLE_DRILL_OWNERS, submission.agent)) failures.push('agent is not a registered principal agent');
+  if (submission.agent && submission.drill && ROLE_DRILL_OWNERS[submission.agent] !== submission.drill) failures.push('agent/drill identity binding mismatch');
   if (submission.exactSha !== currentSha) failures.push('exactSha must equal currentSha');
   if (!nonEmptyArray(submission.evidence)) failures.push('at least one evidence item is required');
   if (!Array.isArray(submission.unknowns)) failures.push('unknowns must be an array');
