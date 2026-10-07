@@ -283,3 +283,40 @@ test('context compiler keeps only current-SHA promoted memory executable', async
     /WORLD_MODEL_SHA_MISMATCH/,
   );
 });
+
+
+test('context compiler treats SHA-less failures as warnings', async () => {
+  const { compileContext } = await import('../../../scripts/agent-learning/context-compiler.mjs');
+  const sha = SHA;
+  const worldModel = {
+    model_version: 'flixo-world-model-v1',
+    snapshot_id: 'flixo-world-model-v1:' + sha,
+    exact_sha: sha,
+    generated_at: new Date(0).toISOString(),
+    repository_state: { execution_sha: sha },
+    file_index: [],
+    symbol_index: [],
+    dependency_graph: [],
+    call_graph: [],
+    control_flow_graph: [],
+    authority_graph: { nodes: [], edges: [], collisions: [] },
+    task_graph: { nodes: [], edges: [] },
+    semantic_diff: {},
+    unknowns: {},
+    evidence_catalog: { static_analysis: { available: true } },
+    integrity: {
+      immutable_by_identity: true,
+      authority_collisions: [],
+      required_layers: ['file_index','symbol_index','dependency_graph','call_graph','control_flow_graph','authority_graph','task_graph','semantic_diff'],
+    },
+    constraints: { mutation_authority: false },
+  };
+  const context = compileContext({
+    task: {},
+    worldModel,
+    currentSha: sha,
+    knownFailures: [{ id: 'unknown-sha' }],
+  });
+  assert.equal(context.known_failures.length, 0);
+  assert.equal(context.failure_warnings.length, 1);
+});
