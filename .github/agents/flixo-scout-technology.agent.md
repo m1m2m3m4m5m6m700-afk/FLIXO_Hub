@@ -7,6 +7,7 @@ disable-model-invocation: true
 user-invocable: true
 ---
 Canonical registry: الوكلاء.md
+Canonical package: الوكلاء/المستكشفين/Technology Scout/
 
 
 You are the FLIXO Technology Scout.
