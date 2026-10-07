@@ -13,13 +13,20 @@ import { classifyHomeIntent, type AssistantResult } from '../lib/home-intent-cla
 type Tool = (typeof TOOL_CATALOG.all)[number];
 
 const reasons = [
-  ['speed', Gauge, '{locale === 'ar' ? 'سريع افتراضيًا' : 'Fast by default'}', '{locale === 'ar' ? 'تدفقات عمل عبر المتصفح تحافظ على المسار الشائع سريعًا ومباشرًا.' : 'Browser-first workflows that keep the common path quick and direct.'}'],
-  ['consistency', Layers, '{locale === 'ar' ? 'واجهة موحدة' : 'One consistent surface'}', '{locale === 'ar' ? 'تتبع كل أداة نموذج تفاعل هادئًا وموحدًا بدل أن تبدو كمنتج منفصل.' : 'Every tool follows the same calm interaction model instead of feeling like a separate product.'}'],
-  ['privacy', ShieldCheck, '{locale === 'ar' ? 'الخصوصية بالتصميم' : 'Private by design'}', '{locale === 'ar' ? 'المعالجة المباشرة عبر المتصفح تبقي الملفات والإجراءات تحت سيطرة المستخدم.' : 'Direct browser processing keeps the user in control of their files and actions.'}'],
-  ['access', KeyRound, '{locale === 'ar' ? 'مفتوح للجميع' : 'Open to everyone'}', '{locale === 'ar' ? 'لا توجد بوابة حساب للتجربة الأساسية. اختر أداة وابدأ العمل.' : 'No account wall for the core experience. Pick a tool and start working.'}'],
+  ['speed', Gauge, 'Fast by default', 'Browser-first workflows that keep the common path quick and direct.'],
+  ['consistency', Layers, 'One consistent surface', 'Every tool follows the same calm interaction model instead of feeling like a separate product.'],
+  ['privacy', ShieldCheck, 'Private by design', 'Direct browser processing keeps the user in control of their files and actions.'],
+  ['access', KeyRound, 'Open to everyone', 'No account wall for the core experience. Pick a tool and start working.'],
 ] as const;
 
 const examples = ['Translate a PDF to Arabic', 'Remove image background', 'Format messy JSON'];
+
+const AR_REASON_COPY = {
+  speed: ['سريع افتراضيًا', 'تدفقات عمل عبر المتصفح تحافظ على المسار الشائع سريعًا ومباشرًا.'],
+  consistency: ['واجهة موحدة', 'تتبع كل أداة نموذج تفاعل هادئًا وموحدًا بدل أن تبدو كمنتج منفصل.'],
+  privacy: ['الخصوصية بالتصميم', 'المعالجة المباشرة عبر المتصفح تبقي الملفات والإجراءات تحت سيطرة المستخدم.'],
+  access: ['مفتوح للجميع', 'لا توجد بوابة حساب للتجربة الأساسية. اختر أداة وابدأ العمل.'],
+} as const;
 const AR_CATEGORY_NAMES: Readonly<Record<string, string>> = { translation: 'مركز الترجمة', images: 'أدوات الصور', pdf: 'أدوات PDF', writing: 'الكتابة بالذكاء الاصطناعي', video: 'أدوات الفيديو', audio: 'أدوات الصوت', files: 'أدوات الملفات', utilities: 'أدوات مساعدة', converters: 'المحوّلات', calculators: 'الحاسبات', web: 'أدوات الويب', developer: 'أدوات المطورين', ai: 'أدوات الذكاء الاصطناعي', future: 'ميزات مستقبلية' };
 const AR_CATEGORY_DESCRIPTIONS: Readonly<Record<string, string>> = { translation: 'تدفقات ترجمة النصوص والمستندات والترجمة النصية.', images: 'تحرير ومعالجة الصور داخل المتصفح.', pdf: 'العمل مع ملفات PDF داخل المتصفح.', writing: 'صياغة النصوص وإعادة كتابتها وتلخيصها وتحسينها.', video: 'قص الفيديو وتغيير حجمه وضغطه محليًا.', audio: 'أدوات المتصفح للصوت والكلام.', files: 'أدوات عملية للملفات والأرشيفات والبيانات الوصفية.', utilities: 'أدوات صغيرة للمهام الرقمية اليومية.', converters: 'أدوات تغيير التنسيق والترميز والتحويل.', calculators: 'حاسبات مركزة لسير العمل الشائع.', web: 'أدوات الروابط والبيانات الوصفية وتشخيص الويب.', developer: 'أدوات تنسيق والتحقق وتحليل البرمجيات.', ai: 'تدفقات مدعومة بالذكاء الاصطناعي بعد إجراء المستخدم.', future: 'اتجاهات مطلوبة وتجريبية في خارطة الطريق.' };
 function categoryName(category: RoadmapCategory, locale: 'en' | 'ar') { return locale === 'ar' ? (AR_CATEGORY_NAMES[category.id] ?? category.name) : category.name; }
@@ -272,7 +279,7 @@ export function ArchiveLandingHome({ locale = 'en' }: { locale?: 'en' | 'ar' }) 
             <div className="grid gap-4 md:grid-cols-2">
               {reasons.map(([id, Icon, title, body]) => <div key={id} className="flex gap-4 rounded-2xl border border-border bg-card p-6">
                 <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-accent/15 text-accent-foreground"><Icon className="size-5" /></span>
-                <div><h3 className="text-base font-semibold">{title}</h3><p className="mt-2 text-sm leading-relaxed text-muted-foreground">{body}</p></div>
+                <div><h3 className="text-base font-semibold">{locale === 'ar' ? (AR_REASON_COPY[id as keyof typeof AR_REASON_COPY]?.[0] ?? title) : title}</h3><p className="mt-2 text-sm leading-relaxed text-muted-foreground">{locale === 'ar' ? (AR_REASON_COPY[id as keyof typeof AR_REASON_COPY]?.[1] ?? body) : body}</p></div>
               </div>)}
             </div>
           </div>
