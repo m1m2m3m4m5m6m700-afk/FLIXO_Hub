@@ -88,9 +88,9 @@ if(!workflow.includes("gh pr create")) fail("execution intake PR publication mis
 if(!workflow.includes("scout/discovery-")) fail("publication must target scout/discovery-*");
 if(!workflow.includes("discover_public_repositories.py")) fail("public repository acquisition step missing");
 if(!workflow.includes(".agent-intelligence/public-repositories")) fail("public repository output boundary missing");
-if(!workflow.includes("AGENT-08 — Architecture Scout/"*.yaml)) fail("Architecture report publication path missing");
-if(!workflow.includes("AGENT-09 — Technology Scout/"*.yaml)) fail("Technology report publication path missing");
-if(!workflow.includes("AGENT-10 — Ecosystem Scout/"*.yaml)) fail("Ecosystem report publication path missing");
+if(!workflow.includes('AGENT-08 — Architecture Scout/"*.yaml')) fail("Architecture report publication path missing");
+if(!workflow.includes('AGENT-09 — Technology Scout/"*.yaml')) fail("Technology report publication path missing");
+if(!workflow.includes('AGENT-10 — Ecosystem Scout/"*.yaml')) fail("Ecosystem report publication path missing");
 if(!workflow.includes('git -c core.quotePath=false diff --name-only')) fail("publication mutation gate must preserve raw unicode paths");
 if(!workflow.includes('git -c core.quotePath=false diff --cached --name-only')) fail("publication staging gate must preserve raw unicode paths");
 if(!workflow.includes("GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}")) fail("publication must bind the workflow token explicitly");
