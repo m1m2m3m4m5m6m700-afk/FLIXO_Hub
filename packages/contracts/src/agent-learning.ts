@@ -174,7 +174,7 @@ const EVENT_FIELD_SET = new Set([
 export function validateCognitiveEventContract(event: Partial<CognitiveEvent>): string[] {
   const failures: string[] = [];
   for (const field of EVENT_FIELD_SET) {
-    if (!(field in event)) failures.push(\`missing:\${field}\`);
+    if (!(field in event)) failures.push(`missing:${field}`);
   }
   if (typeof event.eventId !== "string" || event.eventId.trim() === "") failures.push("eventId:required");
   if (typeof event.missionId !== "string" || event.missionId.trim() === "") failures.push("missionId:required");
