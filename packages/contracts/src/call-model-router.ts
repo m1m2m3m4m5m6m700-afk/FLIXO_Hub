@@ -63,8 +63,8 @@ export type CallAgentAssignment = Readonly<{
 
 const AGENT_ROLE: Readonly<Record<CallAgentId, CallModelRole>> = Object.freeze({
   master: "master",
-  builder: "builder",
   opponent: "opponent",
+  builder: "builder",
   "adversary-builder": "red_team",
   "adversary-explorer": "opponent",
   explorer: "explorer",
@@ -93,7 +93,13 @@ const TASK_AGENT: Readonly<Record<CallTaskKind, CallAgentId>> = Object.freeze({
 });
 
 const score = (model: CallModelSpec, request: CallRoutingRequest): number => {
-  if (!model.roles.includes(AGENT_ROLE[TASK_AGENT[request.kind]])) return -1;
+  const agentId = TASK_AGENT[request.kind];
+  if (!model.roles.includes(AGENT_ROLE[agentId])) return -1;
+
+  // The second CALL agent is the independent Opponent. It must never reuse a
+  // model that carries Master authority, even if that model also advertises
+  // opponent capability.
+  if (agentId === "opponent" && model.roles.includes("master")) return -1;
   if (request.excludedModels?.includes(model.modelId)) return -1;
   if (request.contextClass && model.contextClass !== request.contextClass) return -1;
   if (request.latencyClass && model.latencyClass !== request.latencyClass) return -1;
