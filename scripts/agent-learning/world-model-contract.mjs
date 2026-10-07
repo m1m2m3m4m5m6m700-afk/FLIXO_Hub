@@ -53,7 +53,7 @@ export function writeImmutableFile(path, content) {
   } catch (error) {
     if (error?.code !== 'EEXIST') throw new Error('IMMUTABLE_KNOWLEDGE_SNAPSHOT_WRITE_FAILED:' + path, { cause: error });
     const existing = readFileSync(path, 'utf8');
-    if (existing !== content) throw new Error('IMMUTABLE_KNOWLEDGE_SNAPSHOT_COLLISION:' + path);
+    if (existing !== content) throw new Error('IMMUTABLE_KNOWLEDGE_SNAPSHOT_COLLISION:' + path, { cause: error });
     return { created: false, identical: true };
   }
 }
