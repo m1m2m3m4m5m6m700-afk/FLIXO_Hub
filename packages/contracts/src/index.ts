@@ -84,3 +84,5 @@ export function createContractFailure(
 ): NonNullable<ToolResult["error"]> {
   return Object.freeze({ code, message, retryable });
 }
+
+export * from "./cell-control-plane";
