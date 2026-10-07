@@ -10,6 +10,21 @@ import {
   type TaskState,
 } from "./cell-control-plane";
 import {
+  authorizeExecutionAction,
+  calculateProgressScore,
+  classifyObjectiveDrift,
+  classifyScopeDrift,
+  classifyStrategyDrift,
+  classifyTemporalDrift,
+  outOfScopeProposal,
+  verifyExecutionIdentity,
+  type ActionAuthorization,
+  type ExecutionAction,
+  type ExecutionEnvelope,
+  type ExecutionIdentityProbe,
+  type ProgressMetrics,
+} from "./cell-hard-control";
+import {
   decideProgressAction,
   evaluateProgress,
   validateTypedHandoff,
@@ -39,12 +54,22 @@ export type RuntimeAssignment = Readonly<{
   version: number;
 }>;
 
+export type RuntimeBudget = Readonly<{ spentCost: number; spentDurationMs: number }>;
+
+export type RuntimeActionRecord = Readonly<ExecutionAction & {
+  allowed: boolean;
+  recordedAtMs: number;
+  driftType: string | null;
+}>;
+
 export class CellRuntime {
   private readonly tasks = new Map<string, RuntimeTask>();
   private readonly candidates = new Map<string, RuntimeCandidate>();
   private readonly assignments = new Map<string, RuntimeAssignment>();
   private readonly handoffs = new Map<string, TypedHandoff>();
   private readonly progress = new Map<string, ProgressObservation[]>();
+  private readonly budgets = new Map<string, RuntimeBudget>();
+  private readonly actions: RuntimeActionRecord[] = [];
   private readonly claimedOperations = new Set<string>();
   private readonly clock: () => number;
 
@@ -164,6 +189,89 @@ export class CellRuntime {
     if (this.handoffs.has(handoff.handoffId)) throw new Error("HANDOFF_ALREADY_EXISTS");
     this.handoffs.set(handoff.handoffId, handoff);
     return handoff;
+  }
+
+  authorizeIdentity(envelope: ExecutionEnvelope, probe: ExecutionIdentityProbe): void {
+    const reason = verifyExecutionIdentity(envelope, probe);
+    if (reason) throw new Error(reason);
+  }
+
+  authorizeAction(
+    envelope: ExecutionEnvelope,
+    action: ExecutionAction,
+    liveSha: string,
+  ): ActionAuthorization {
+    const usage = this.budgets.get(envelope.taskId) ?? { spentCost: 0, spentDurationMs: 0 };
+
+    if (action.currentSha !== liveSha) {
+      const denied: ActionAuthorization = {
+        allowed: false,
+        drift: {
+          type: "D6_EVIDENCE_DRIFT",
+          severity: "HARD_BLOCK",
+          detector: "live-sha-gate",
+          response: "INVALIDATE",
+          reason: "action SHA does not match live execution SHA",
+        },
+      };
+      this.actions.push(Object.freeze({ ...action, allowed: false, recordedAtMs: this.clock(), driftType: denied.drift?.type ?? null }));
+      return denied;
+    }
+
+    const result = authorizeExecutionAction(envelope, action, usage);
+
+    this.actions.push(
+      Object.freeze({
+        ...action,
+        allowed: result.allowed,
+        recordedAtMs: this.clock(),
+        driftType: result.drift?.type ?? null,
+      }),
+    );
+
+    if (result.allowed) {
+      this.budgets.set(
+        envelope.taskId,
+        Object.freeze({
+          spentCost: usage.spentCost + action.estimatedCost,
+          spentDurationMs: usage.spentDurationMs + action.expectedDurationMs,
+        }),
+      );
+    }
+
+    return result;
+  }
+
+  getTaskBudget(taskId: string): RuntimeBudget {
+    return this.budgets.get(taskId) ?? { spentCost: 0, spentDurationMs: 0 };
+  }
+
+  listActionRecords(): readonly RuntimeActionRecord[] {
+    return Object.freeze([...this.actions]);
+  }
+
+  evaluateProgressScore(metrics: ProgressMetrics): number {
+    return calculateProgressScore(metrics);
+  }
+
+  detectStrategyDrift(progressScore: number, threshold: number): string | null {
+    return classifyStrategyDrift(progressScore, threshold)?.type ?? null;
+  }
+
+  detectObjectiveDrift(envelope: ExecutionEnvelope, observedObjectiveId: string): string | null {
+    return classifyObjectiveDrift(envelope, observedObjectiveId)?.type ?? null;
+  }
+
+  detectTemporalDrift(nowMs: number, deadlineAtMs: number | null): string | null {
+    return classifyTemporalDrift(nowMs, deadlineAtMs)?.type ?? null;
+  }
+
+  detectScopeDrift(envelope: ExecutionEnvelope, action: ExecutionAction): string | null {
+    return classifyScopeDrift(envelope, action)?.type ?? null;
+  }
+
+  proposeOutOfScopeTask(taskId: string, agentId: string, discoveredPath: string) {
+    return outOfScopeProposal(taskId, agentId, discoveredPath);
   }
 
   recordProgress(observation: ProgressObservation): ReplanDecision {
