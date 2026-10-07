@@ -19,6 +19,7 @@ export type CallModelFamily =
   | "general";
 
 export type CallModelRole =
+  | "master"
   | "planner"
   | "builder"
   | "opponent"
@@ -49,7 +50,7 @@ export type CallModelSpec = Readonly<{
 const rows: ReadonlyArray<Omit<CallModelSpec, "offlineDeclared" | "status">> = [
   // Reasoning / agentic
   ["MiMo-V2.6-Pro","reasoning",["planner","opponent","verifier"],["reasoning","planning","analysis"],"xlarge","slow","high"],
-  ["GLM-5.3","reasoning",["planner","builder","opponent","verifier"],["reasoning","coding","analysis"],"xlarge","slow","high"],
+  ["GLM-5.3","reasoning",["master","planner","builder","opponent","verifier"],["reasoning","coding","analysis"],"xlarge","slow","high"],
   ["GLM-5.3-Flash","reasoning",["planner","builder","opponent"],["reasoning","fast-analysis","coding"],"large","fast","medium"],
   ["GLM-5.2","reasoning",["planner","builder","verifier"],["reasoning","coding"],"large","balanced","medium"],
   ["Kimi K3","reasoning",["planner","explorer"],["long-context","research","synthesis"],"xlarge","slow","high"],
