@@ -184,8 +184,15 @@ export class CellRuntime {
     if (current.state !== "RUNNING" && current.state !== "CHECKPOINTED") {
       throw new Error("CHECKPOINT_NOT_ALLOWED");
     }
-    const nextState: TaskState = current.state === "RUNNING" ? "CHECKPOINTED" : current.state;
-    if (nextState !== current.state) return this.transitionTask(taskId, nextState);
+    if (current.state === "RUNNING") {
+      const transitioned = this.transitionTask(taskId, "CHECKPOINTED");
+      const checkpointed = Object.freeze({
+        ...transitioned,
+        checkpointId,
+      });
+      this.tasks.set(taskId, checkpointed);
+      return checkpointed;
+    }
     const next = Object.freeze({
       ...current,
       checkpointId,
