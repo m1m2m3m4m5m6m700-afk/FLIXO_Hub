@@ -323,3 +323,39 @@ test("CELL canonical retry gate forbids replanning and policy failures", () => {
   assert.equal(budget.allowed, false);
   assert.equal(budget.reason, "RETRY_BUDGET_EXHAUSTED");
 });
+
+
+test("CELL delegation rules reject authority escalation at the handoff boundary", () => {
+  const rule = {
+    sourceAgentId: "AGENT-1",
+    targetAgentId: "AGENT-2",
+    taskTypes: ["implementation"],
+    riskClasses: ["medium"],
+    maxDepth: 2,
+    maxActiveSubtasks: 2,
+    maxCost: 10,
+    maxDurationMs: 1000,
+    sourceAuthority: "IMPLEMENTER" as const,
+    targetAuthority: "CERTIFIER" as const,
+  };
+  const request = {
+    taskId: "TASK-1",
+    sourceAgentId: "AGENT-1",
+    targetAgentId: "AGENT-2",
+    taskType: "implementation",
+    riskClass: "medium",
+    depth: 1,
+    activeSubtasks: 1,
+    estimatedCost: 1,
+    estimatedDurationMs: 100,
+  };
+  const { authorizeDelegation } = await import("../../packages/contracts/src/cell-assignment.ts");
+  assert.equal(authorizeDelegation([rule], request), false);
+  assert.equal(
+    authorizeDelegation(
+      [{ ...rule, targetAuthority: "ANALYST" as const }],
+      request,
+    ),
+    true,
+  );
+});
