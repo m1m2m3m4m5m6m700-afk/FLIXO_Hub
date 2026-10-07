@@ -2,8 +2,8 @@
 import argparse, hashlib, hmac, json, os, pathlib, re, sys, time
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-CONFIG = ROOT / "config" / "lab.config.json"
-LEDGER = ROOT / "ledger" / "events.jsonl"
+CONFIG = ROOT / "agent-lab" / "config" / "lab.config.json"
+LEDGER = ROOT / "agent-lab" / "ledger" / "events.jsonl"
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 
 def die(message):
@@ -42,7 +42,7 @@ def sign(payload, key):
 def cmd_validate(args):
     config=load_config()
     if args.templates:
-        for path in (ROOT/"templates").glob("*.json"):
+        for path in (ROOT/"agent-lab"/"templates").glob("*.json"):
             json.loads(path.read_text())
     print(json.dumps({"ok": True, "configVersion": config["version"]}))
 
