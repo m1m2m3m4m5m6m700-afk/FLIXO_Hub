@@ -25,7 +25,7 @@ test('captures an exact candidate patch and rejects wrong parent', async () => {
     await writeFile(join(dir, 'file.txt'), 'base\nagent change\n');
     git(dir, 'commit', '-am', 'candidate');
     const candidate = git(dir, 'rev-parse', 'HEAD');
-    const capsule = capture({ sourceSha: source, candidateSha: candidate, cwd: dir, taskId: 't-1' });
+    const capsule = capture({ sourceSha: source, candidateSha: candidate, cwd: dir });
     verify(capsule);
     assert.equal(capsule.parentSha, source);
     assert.equal(capsule.candidateSha, candidate);
