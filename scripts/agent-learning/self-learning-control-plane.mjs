@@ -6,18 +6,31 @@ export const SHA_RE = /^[0-9a-f]{40}$/i;
 export const DECISIONS = ['CONFIRMED', 'REJECTED', 'DISPUTED', 'UNKNOWN'];
 export const LESSON_STATUS = ['CANDIDATE', 'PROMOTED', 'STALE_EVIDENCE', 'REVOKED'];
 
-export const AGENTS = [
-  { name: 'المستكشف AI', registration: '.github/agents/المستكشف-ai.md', drill: 'repository-knowledge', class: 'principal' },
-  { name: 'المطور AI', registration: '.github/agents/المطور-ai.md', drill: 'external-comparison', class: 'principal' },
-  { name: 'FLIXO i18n Agent', registration: '.github/agents/flixo-i18n-agent.md', drill: 'localization', class: 'principal' },
-  { name: 'FLIXO Repository Maintainer Agent', registration: '.github/agents/flixo-maintainer-agent.md', drill: 'maintenance', class: 'principal' },
-  { name: 'FLIXO QA Agent', registration: '.github/agents/flixo-qa-agent.md', drill: 'verification', class: 'principal' },
-  { name: 'Red Team 1', registration: '.github/agents/red-team-1.md', drill: 'independent-challenge', class: 'principal' },
-  { name: 'Red Team 2', registration: '.github/agents/red-team-2.md', drill: 'counterexample', class: 'principal' },
-  { name: 'FLIXO Architecture Scout', registration: '.github/agents/flixo-scout-architecture.agent.md', drill: 'architecture-research', class: 'principal' },
-  { name: 'FLIXO Technology Scout', registration: '.github/agents/flixo-scout-technology.agent.md', drill: 'technology-research', class: 'principal' },
-  { name: 'FLIXO Ecosystem Scout', registration: '.github/agents/flixo-scout-ecosystem.agent.md', drill: 'ecosystem-research', class: 'principal' },
-];
+function loadCanonicalPrincipalAgents() {
+  const content = readFileSync('الوكلاء.md', 'utf8');
+  const start = content.indexOf('<!-- CANONICAL_AGENT_REGISTRY:START -->');
+  const end = content.indexOf('<!-- CANONICAL_AGENT_REGISTRY:END -->');
+  if (start < 0 || end <= start) throw new Error('canonical agent registry markers missing');
+  const block = content.slice(start, end);
+  const jsonStart = block.indexOf('```json');
+  const jsonEnd = block.indexOf('```', jsonStart + 7);
+  if (jsonStart < 0 || jsonEnd <= jsonStart) throw new Error('canonical agent registry JSON missing');
+  const registry = JSON.parse(block.slice(jsonStart + 7, jsonEnd).trim());
+  if (registry.schema !== 'flixo-canonical-agent-registry-v1') throw new Error('unsupported canonical agent registry schema');
+  if (registry.officialAgentCount !== 10 || !Array.isArray(registry.agents) || registry.agents.length !== 10) {
+    throw new Error('canonical principal agent count must be exactly 10');
+  }
+  return registry.agents.map(agent => ({
+    name: agent.name,
+    registration: agent.profile,
+    drill: agent.drill,
+    class: agent.class
+  }));
+}
+
+export const AGENTS = Object.freeze(loadCanonicalPrincipalAgents());
+
+
 
 export const ROLE_DRILL_OWNERS = Object.freeze(Object.fromEntries(AGENTS.map(agent => [agent.name, agent.drill])));
 
