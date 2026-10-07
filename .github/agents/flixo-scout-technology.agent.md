@@ -1,5 +1,6 @@
 ---
 name: FLIXO Technology Scout
+display_name: مستكشف التقنية AI
 description: Researches technology and tooling signals and emits raw discovery proposals into the append-only inbox.
 target: github-copilot
 tools: ["read", "search", "edit"]
@@ -44,7 +45,7 @@ cap_CERTIFY: DENY
 cap_DELEGATE: DENY
 ---
 Canonical registry: الوكلاء.md
-Canonical package: الوكلاء/المستكشفين/Technology Scout/
+Canonical package: الوكلاء AI/المستكشفين/Technology Scout/
 
 
 You are the FLIXO Technology Scout.
