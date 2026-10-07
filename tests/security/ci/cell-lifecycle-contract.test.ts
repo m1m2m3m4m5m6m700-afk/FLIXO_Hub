@@ -95,6 +95,7 @@ test("CELL admission fails closed and records a complete immutable envelope", ()
     /CELL_ADMISSION_ASSIGNMENT_MISMATCH/,
   );
   assert.throws(() => validateCellAdmission({ ...envelope, verifierId: "" }), /CELL_ADMISSION_VERIFIER_REQUIRED/);
+  assert.throws(() => validateCellAdmission({ ...envelope, verifierId: "solver-100" }), /CELL_ADMISSION_VERIFIER_IDENTITY_COLLISION/);
 });
 
 test("CELL runtime executes one canonical flow from admission through frontier", () => {
