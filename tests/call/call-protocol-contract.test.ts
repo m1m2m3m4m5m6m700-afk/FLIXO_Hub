@@ -134,7 +134,7 @@ test("cell workflow accepts a build task generated from its own capability gap",
     [{ capabilityId: "build", maturity: 0.80, referenceId: "reference-builder", evidenceRefs: ["reference-state"] }],
   );
 
-  const task = rt.registerTask(objective.objectiveId);
+  const task = rt.registerSelfDevelopmentTask(objective.objectiveId);
   assert.equal(task.state, "PLANNED");
   rt.transitionTask(task.taskId, "READY");
 
@@ -168,6 +168,7 @@ test("cell workflow accepts a build task generated from its own capability gap",
   rt.transitionTask(task.taskId, "RUNNING");
   assert.equal(rt.getTask(task.taskId).state, "RUNNING");
   assert.equal(rt.getSelfDevelopmentTask(objective.objectiveId).sourceGapIds.length, 1);
+  assert.equal(rt.getSelfDevelopmentTaskForTask(task.taskId).objectiveId, objective.objectiveId);
 });
 
 test("cell refuses to assign a build task against a different live SHA", () => {
