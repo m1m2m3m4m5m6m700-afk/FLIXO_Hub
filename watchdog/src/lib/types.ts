@@ -15,6 +15,8 @@ export interface HeartbeatRecord {
   runId?: number;
 }
 
+export type DispatchReservation = { agentId: string; workflow: string; runIdentity?: string; reason: DispatchReason };
+
 export interface DispatchRecord {
   timestamp: number;
   agentId: string;
