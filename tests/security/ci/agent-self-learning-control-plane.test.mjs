@@ -377,3 +377,42 @@ test('memory lifecycle TTL and suppression suite is green', async () => {
   });
   assert.equal(result.status, 0, result.stderr || result.stdout);
 });
+
+
+test('world model snapshot contract is SHA-bound, complete, and authority-safe', async () => {
+  const { validateKnowledgeSnapshot, REQUIRED_SNAPSHOT_LAYERS } =
+    await import('../../../scripts/agent-learning/world-model-contract.mjs');
+  const snapshot = {
+    model_version: 'flixo-world-model-v1',
+    snapshot_id: 'flixo-world-model-v1:' + SHA,
+    exact_sha: SHA,
+    generated_at: new Date(0).toISOString(),
+    repository_state: { execution_sha: SHA },
+    file_index: [],
+    symbol_index: [],
+    dependency_graph: [],
+    call_graph: [],
+    control_flow_graph: [],
+    authority_graph: { nodes: [], edges: [], collisions: [] },
+    task_graph: { nodes: [], edges: [] },
+    semantic_diff: {},
+    unknowns: {},
+    evidence_catalog: { static_analysis: { available: true, exact_sha: SHA } },
+    integrity: {
+      immutable_by_identity: true,
+      identity: 'flixo-world-model-v1:' + SHA,
+      authority_collisions: [],
+      required_layers: [...REQUIRED_SNAPSHOT_LAYERS],
+    },
+    constraints: { mutation_authority: false },
+  };
+  assert.equal(validateKnowledgeSnapshot(snapshot, { currentSha: SHA, now: 1 }).valid, true);
+  assert.throws(
+    () => validateKnowledgeSnapshot({ ...snapshot, exact_sha: OTHER_SHA }, { currentSha: SHA, now: 1 }),
+    /WORLD_MODEL_SHA_MISMATCH/,
+  );
+  assert.throws(
+    () => validateKnowledgeSnapshot({ ...snapshot, generated_at: new Date(86400000).toISOString() }, { currentSha: SHA, now: 1 }),
+    /WORLD_MODEL_TIMESTAMP_IN_FUTURE/,
+  );
+});
