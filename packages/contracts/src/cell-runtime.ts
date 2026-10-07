@@ -104,6 +104,9 @@ export class CellRuntime {
   checkpointTask(taskId: string, checkpointId: string): RuntimeTask {
     if (!checkpointId) throw new Error("CHECKPOINT_ID_REQUIRED");
     const current = this.getTask(taskId);
+    if (current.state !== "RUNNING" && current.state !== "CHECKPOINTED") {
+      throw new Error("CHECKPOINT_NOT_ALLOWED");
+    }
     const nextState: TaskState = current.state === "RUNNING" ? "CHECKPOINTED" : current.state;
     if (nextState !== current.state) return this.transitionTask(taskId, nextState);
     const next = Object.freeze({
