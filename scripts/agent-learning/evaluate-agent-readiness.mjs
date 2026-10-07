@@ -7,66 +7,20 @@ import { AGENTS as TRAINING_AGENTS, assertSha } from './self-learning-control-pl
 
 const ROOT = process.cwd();
 const ROLE_RULES = {
-  'المستكشف AI': {
-    contract:'الوكلاء AI/المستكشف AI/المستكشف.md',
-    report:'الوكلاء AI/المستكشف AI/تقارير المستكشف/',
-    anchors:['scripts/repository-knowledge-scan.mjs','src/config/registry.ts','src/lib/execution/canonical-executor.ts','src/lib/contracts/tool-output-contracts.ts'],
-    required:['Exact-SHA','Semantic analysis','Main branch read scope','Mutation prohibition']
-  },
-  'المطور AI': {
-    contract:'الوكلاء AI/المطور AI/المطور.md',
-    report:'الوكلاء AI/المطور AI/تقارير التطوير/',
-    anchors:['.github/agents/المطور-ai.md','src/config/registry.ts','package.json'],
-    required:['exact SHA','context-equivalent','GAP','licensing']
-  },
-  'FLIXO i18n Agent': {
-    contract:'الوكلاء AI/i18n Agent/العقد.md',
-    report:'الوكلاء AI/i18n Agent/التقارير/',
-    anchors:['src/lib/i18n/config.ts'],
-    required:['RTL/LTR','SEO','exact SHA','missing']
-  },
-  'FLIXO Repository Maintainer Agent': {
-    contract:'الوكلاء AI/Maintainer Agent/العقد.md',
-    report:'الوكلاء AI/Maintainer Agent/التقارير/',
-    anchors:['src/config/registry.ts','scripts/verify-agent-profiles.mjs','AGENTS.md'],
-    required:['duplicate','stale SHA','drift','canonical']
-  },
-  'FLIXO QA Agent': {
-    contract:'الوكلاء AI/QA Agent/العقد.md',
-    report:'الوكلاء AI/QA Agent/التقارير/',
-    anchors:['package.json','.github/workflows','tests/'],
-    required:['cancelled','neutral','missing','stale']
-  },
-  'Red Team 1': {
-    contract:'الوكلاء AI/Red Team 1/العقد.md',
-    report:'الوكلاء AI/Red Team 1/التقارير/',
-    anchors:['.github/workflows/agent-self-learning.yml','scripts/ci/check-governance.sh'],
-    required:['threat model','attack','reproducible','NOT_REPRODUCED']
-  },
-  'Red Team 2': {
-    contract:'الوكلاء AI/Red Team 2/العقد.md',
-    report:'الوكلاء AI/Red Team 2/التقارير/',
-    anchors:['.github/agents/red-team-1.md','.github/agents/المستكشف-2.md'],
-    required:['counterexample','false positives','false negatives','REFUTED']
-  },
-  'FLIXO Architecture Scout': {
-    contract:'الوكلاء AI/المستكشفين/Architecture Scout/المستكشف.md',
-    report:'.agent-intelligence/inbox/',
-    anchors:['.agent-intelligence/scouts/architecture.yaml','src/config/registry.ts','src/lib/execution/canonical-executor.ts'],
-    required:['tools: ["read", "search", "edit"]','inbox','Proposal Schema v4','rollback','provenance']
-  },
-  'FLIXO Technology Scout': {
-    contract:'الوكلاء AI/المستكشفين/Technology Scout/المستكشف.md',
-    report:'.agent-intelligence/inbox/',
-    anchors:['.agent-intelligence/scouts/technology.yaml','package.json','src/lib/execution/canonical-executor.ts'],
-    required:['tools: ["read", "search", "edit"]','inbox','Proposal Schema v4','licensing','compatibility']
-  },
-  'FLIXO Ecosystem Scout': {
-    contract:'الوكلاء AI/المستكشفين/Ecosystem Scout/المستكشف.md',
-    report:'.agent-intelligence/inbox/',
-    anchors:['.agent-intelligence/scouts/ecosystem.yaml','package.json','src/config/registry.ts'],
-    required:['tools: ["read", "search", "edit"]','inbox','Proposal Schema v4','provenance','maturity']
-  }
+  'المستكشف المعرفي AI': {contract:'الوكلاء AI/المستكشف AI/المستكشف.md',report:'الوكلاء AI/المستكشف AI/تقارير المستكشف/',anchors:['scripts/repository-knowledge-scan.mjs','src/config/registry.ts','src/lib/execution/canonical-executor.ts','src/lib/contracts/tool-output-contracts.ts'],required:['Exact-SHA','Semantic analysis','Main branch read scope','Mutation prohibition']},
+  'المطور الهندسي AI': {contract:'الوكلاء AI/المطور AI/المطور.md',report:'الوكلاء AI/المطور AI/تقارير التطوير/',anchors:['.github/agents/المطور-ai.md','src/config/registry.ts','package.json'],required:['exact SHA','context-equivalent','GAP','licensing']},
+  'مُعرّب المنصة AI': {contract:'الوكلاء AI/i18n Agent/العقد.md',report:'الوكلاء AI/i18n Agent/التقارير/',anchors:['src/lib/i18n/config.ts'],required:['RTL/LTR','SEO','exact SHA','missing']},
+  'حارس المستودع AI': {contract:'الوكلاء AI/Maintainer Agent/العقد.md',report:'الوكلاء AI/Maintainer Agent/التقارير/',anchors:['src/config/registry.ts','scripts/verify-agent-profiles.mjs','AGENTS.md'],required:['duplicate','stale SHA','drift','canonical']},
+  'ضابط الجودة AI': {contract:'الوكلاء AI/QA Agent/العقد.md',report:'الوكلاء AI/QA Agent/التقارير/',anchors:['package.json','.github/workflows','tests/'],required:['cancelled','neutral','missing','stale']},
+  'المهاجم الأمني AI': {contract:'الوكلاء AI/Red Team 1/العقد.md',report:'الوكلاء AI/Red Team 1/التقارير/',anchors:['.github/workflows/agent-self-learning.yml','scripts/ci/check-governance.sh'],required:['threat model','attack','reproducible','NOT_REPRODUCED']},
+  'المُفنّد المضاد AI': {contract:'الوكلاء AI/Red Team 2/العقد.md',report:'الوكلاء AI/Red Team 2/التقارير/',anchors:['.github/agents/red-team-1.md','.github/agents/المستكشف-2.md'],required:['counterexample','false positives','false negatives','REFUTED']},
+  'مستكشف العمارة AI': {contract:'الوكلاء AI/المستكشفين/Architecture Scout/المستكشف.md',report:'.agent-intelligence/inbox/',anchors:['.agent-intelligence/scouts/architecture.yaml','src/config/registry.ts','src/lib/execution/canonical-executor.ts'],required:['tools: ["read", "search", "edit"]','inbox','Proposal Schema v4','rollback','provenance']},
+  'مستكشف التقنية AI': {contract:'الوكلاء AI/المستكشفين/Technology Scout/المستكشف.md',report:'.agent-intelligence/inbox/',anchors:['.agent-intelligence/scouts/technology.yaml','package.json','src/lib/execution/canonical-executor.ts'],required:['tools: ["read", "search", "edit"]','inbox','Proposal Schema v4','licensing','compatibility']},
+  'مستكشف النظام البيئي AI': {contract:'الوكلاء AI/المستكشفين/Ecosystem Scout/المستكشف.md',report:'.agent-intelligence/inbox/',anchors:['.agent-intelligence/scouts/ecosystem.yaml','package.json','src/config/registry.ts'],required:['tools: ["read", "search", "edit"]','inbox','Proposal Schema v4','provenance','maturity']},
+  'مصمم تجربة المنتج AI': {contract:'الوكلاء AI/مصمم تجربة المنتج AI/العقد.md',report:'الوكلاء AI/مصمم تجربة المنتج AI/التقارير/',anchors:['src/components/image-tool/ToolWorkbench.tsx','tests/'],required:['accessibility','responsive','keyboard','RTL/LTR','exact SHA']},
+  'منفذ الإصلاح AI': {contract:'الوكلاء AI/منفذ الإصلاح AI/العقد.md',report:'الوكلاء AI/منفذ الإصلاح AI/التقارير/',anchors:['scripts/agent-control-plane.mjs','المهام.md'],required:['execution-only','rollback','targeted tests','Exact-SHA','no main mutation']},
+  'ضابط ضمان الإصدار AI': {contract:'الوكلاء AI/ضابط ضمان الإصدار AI/العقد.md',report:'الوكلاء AI/ضابط ضمان الإصدار AI/التقارير/',anchors:['docs/FLIXO-EXACT-SHA-CERTIFICATION.md','docs/FLIXO-FINAL-CERTIFICATION-ATTESTATION.md'],required:['RC','artifact','deployment','rollback','promotion proof']},
+  'حارس الموثوقية والأداء AI': {contract:'الوكلاء AI/حارس الموثوقية والأداء AI/العقد.md',report:'الوكلاء AI/حارس الموثوقية والأداء AI/التقارير/',anchors:['tests/editor-performance.test.ts','tests/performance-route-loading.spec.ts'],required:['p50','p95','error rate','memory','CPU']}
 };
 
 function gitHead(){ return execFileSync('git',['rev-parse','HEAD'],{cwd:ROOT,encoding:'utf8'}).trim(); }
@@ -104,7 +58,7 @@ export function evaluateAllAgents(sha){
 }
 
 export function renderReadinessReport(evaluation){
-  const lines=['# FLIXO — Agent 100/100 Readiness Evaluation','','- Exact execution SHA: '+evaluation.sha,'- Principal agents: '+evaluation.results.length+'/10','- All agents 100/100 contract/drill readiness: '+(evaluation.all100?'YES':'NO'),'- Behavioral evidence: UNPROVEN','','| Agent | Score | Drill | Repeats | Deterministic | Negative matrix | Result |','|---|---:|---|---:|---|---:|---|'];
+  const lines=['# FLIXO — Agent 100/100 Readiness Evaluation','','- Exact execution SHA: '+evaluation.sha,'- Principal agents: '+evaluation.results.length+'/14','- All agents 100/100 contract/drill readiness: '+(evaluation.all100?'YES':'NO'),'- Behavioral evidence: UNPROVEN','','| Agent | Score | Drill | Repeats | Deterministic | Negative matrix | Result |','|---|---:|---|---:|---|---:|---|'];
   for(const r of evaluation.results) lines.push('| '+r.name+' | '+r.score+'/100 | '+r.drill.validScore+'/100 | '+r.drill.positiveRepeatPasses+' | '+r.drill.deterministic+' | '+r.drill.negativeRejected+' ('+r.drill.negativeCases+') | '+(r.passed?'PASS':'TRAIN')+' |');
   lines.push('','## Remediation');
   for(const r of evaluation.results.filter(x=>!x.passed)){ lines.push('', '### '+r.name); for(const c of r.checks.filter(x=>!x.ok)) lines.push('- '+c.label+' — '+c.remediation); }
@@ -115,8 +69,8 @@ export function renderReadinessReport(evaluation){
 function main(){
   const sha=process.argv[2] ?? process.env.GITHUB_SHA ?? gitHead();
   const evaluation=evaluateAllAgents(sha);
-  const output='الوكلاء AI/تدريب الوكلاء AI/تقارير التدريب/'+sha+'-readiness.md';
-  mkdirSync(join(ROOT,'الوكلاء AI/تدريب الوكلاء AI/تقارير التدريب'),{recursive:true});
+  const output='الوكلاء AI/تدريب الوكلاء/تقارير التدريب/'+sha+'-readiness.md';
+  mkdirSync(join(ROOT,'الوكلاء AI/تدريب الوكلاء/تقارير التدريب'),{recursive:true});
   writeFileSync(join(ROOT,output),renderReadinessReport(evaluation),'utf8');
   console.log(JSON.stringify(evaluation,null,2));
   if(!evaluation.all100) process.exitCode=1;
