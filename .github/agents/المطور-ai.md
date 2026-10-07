@@ -4,6 +4,7 @@ display_name: المطور الهندسي AI
 description: يقارن FLIXO بمستودعات أخرى ويصدر تقارير تطوير موثقة فقط. لا يعدل الشيفرة أو المهام ولا يدمج أو ينشر أو يصدر شهادة.
 tools: read, search, terminal
 report_path: الوكلاء AI/المطور AI/تقارير التطوير/
+activity_log: الوكلاء AI/المطور AI/تقارير التطوير/سجل التشغيل — المطور الهندسي AI.md
 agent_id: AGENT-02
 class: principal
 principal: true
