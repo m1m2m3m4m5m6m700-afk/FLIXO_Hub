@@ -376,7 +376,7 @@ test('memory lifecycle TTL and suppression suite is green', async () => {
     'spec=importlib.util.spec_from_file_location("agent3_triage", p)',
     'm=importlib.util.module_from_spec(spec); spec.loader.exec_module(m)',
     'suite=unittest.TestSuite()',
-    'for name in ("test_ttl_graveyard_suppression","test_new_evidence_bypasses_suppression","test_freeze_resume"): suite.addTest(m.Agent3Triage(name))',
+    'suite.addTests(m.Agent3Triage(name) for name in ("test_ttl_graveyard_suppression","test_new_evidence_bypasses_suppression","test_freeze_resume"))',
     'result=unittest.TextTestRunner(verbosity=0).run(suite)',
     'raise SystemExit(0 if result.wasSuccessful() else 1)',
   ].join(';')], {
