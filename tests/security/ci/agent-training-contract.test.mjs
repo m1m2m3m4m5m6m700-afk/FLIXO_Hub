@@ -19,10 +19,10 @@ test('all ten principal training agents have explicit identities', () => {
   for (const agent of agents) {
     const content = readFileSync(agent.registration, 'utf8');
     assert.ok(content.includes('name: ' + agent.name));
-    if (agent.scout) assert.ok(content.includes('tools: [\"read\", \"search\", \"edit\"]'));
+    if (agent.scout) assert.ok(content.includes('tools: ["read", "search", "edit"]'));
     else assert.ok(content.includes('tools: read, search, terminal'));
     assert.doesNotMatch(content, /git push origin main|force[- ]push|write directly to main/iu);
-    assert.doesNotMatch(content, /(?:^|\\n)\\s*(?:the agent|agent)\\s+(?:can|may|will|shall)\\s+(?:declare\\s+)?(?:PASS|GREEN|CERTIFIED)|(?:^|\\n)\\s*(?:the agent|agent)\\s+(?:can|may|will|shall)\\s+(?:certify|self-certify)\\b/imu);
+    assert.doesNotMatch(content, /(?:^|\n)\s*(?:the agent|agent)\s+(?:can|may|will|shall)\s+(?:declare\s+)?(?:PASS|GREEN|CERTIFIED)|(?:^|\n)\s*(?:the agent|agent)\s+(?:can|may|will|shall)\s+(?:certify|self-certify)\b/imu);
     assert.match(content, /100\/100/u);
   }
 });
