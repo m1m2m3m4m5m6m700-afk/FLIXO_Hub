@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import test from 'node:test';
-import { capture, verify, reconcile } from './patch-capsule.mjs';
+import { assertTaskScope, capture, taskScopePatterns, verify, reconcile } from './patch-capsule.mjs';
 
 const git = (cwd, ...args) => execFileSync('git', args, { cwd, encoding: 'utf8' }).trim();
 const initRepo = async () => {
@@ -119,6 +119,24 @@ test('reconciles a newly created file without dropping the addition', async () =
     assert.match(result.patchText, /new-file\.txt/);
     assert.match(result.patchText, /agent-created file/);
     assert.equal(result.paths.includes('new-file.txt'), true);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('task-derived scope gate allows in-scope capsule paths and rejects drift', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'flixo-task-scope-'));
+  try {
+    await writeFile(join(dir, 'المهام.md'), [
+      '# ACTIVE DISPATCH QUEUE',
+      '### EXEC-CELL-ARCH-001 — test',
+      '- **TASK_ID:** EXEC-CELL-ARCH-001',
+      '- **SCOPE:** `src/lib/video/**`, `tests/security/ci/**`',
+      '# END ACTIVE DISPATCH QUEUE',
+    ].join('\\n'));
+    assert.deepEqual(taskScopePatterns('EXEC-CELL-ARCH-001', dir), ['src/lib/video/**', 'tests/security/ci/**']);
+    assert.doesNotThrow(() => assertTaskScope('EXEC-CELL-ARCH-001', ['src/lib/video/fixture.ts'], dir));
+    assert.throws(() => assertTaskScope('EXEC-CELL-ARCH-001', ['src/lib/security/auth.ts'], dir), /PATCH_CAPSULE_TASK_SCOPE_DRIFT/);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
