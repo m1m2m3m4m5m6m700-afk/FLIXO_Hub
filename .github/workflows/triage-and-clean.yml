@@ -17,7 +17,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: flixo-agent3-triage-clean
@@ -26,6 +26,8 @@ concurrency:
 jobs:
   pipeline:
     name: Agent-3 mandatory triage pipeline
+    permissions:
+      contents: read
     env:
       FLIXO_TARGET_BRANCH: execution
     runs-on: ubuntu-latest
@@ -36,7 +38,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
-          persist-credentials: true
+          persist-credentials: false
 
       - name: Setup Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
@@ -117,57 +119,28 @@ jobs:
             esac
           done < agent3-changed-files.txt
 
-      - name: Reconcile execution before publication
-        if: github.event_name != 'pull_request'
-        shell: bash
-        run: |
-          set -euo pipefail
-          git fetch origin execution --no-tags
-          test "$(git rev-parse refs/remotes/origin/execution)" = "${{ steps.target.outputs.sha }}"
-
-      - name: Publish generated state to execution
-        if: github.event_name != 'pull_request'
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ -z "$(git status --porcelain)" ]; then
-            echo "NO_GENERATED_MUTATIONS=PASS"
-            exit 0
-          fi
-          git config user.name "flixo-agent3[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .agent-intelligence/review-queue .agent-intelligence/graveyard .agent-intelligence/handoffs التطوير.md
-          git diff --cached --quiet && echo "NO_STAGED_MUTATIONS=PASS" && exit 0
-          git commit -m "chore(agent3): reconcile triage queue"
-          git fetch origin execution --no-tags
-          test "$(git rev-parse refs/remotes/origin/execution)" = "${{ steps.target.outputs.sha }}"
-          git push origin "HEAD:execution"
-
       - name: Verify resulting exact SHA without mutation
         shell: bash
         run: |
           set -euo pipefail
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            RESULT_SHA="${{ steps.target.outputs.sha }}"
-            test "$(git rev-parse HEAD)" = "$RESULT_SHA"
-          else
-            git fetch origin execution --no-tags
-            RESULT_SHA="$(git rev-parse refs/remotes/origin/execution)"
-            git checkout --detach "$RESULT_SHA"
-            test "$(git rev-parse HEAD)" = "$RESULT_SHA"
-          fi
+          RESULT_SHA="${{ steps.target.outputs.sha }}"
+          test "$(git rev-parse HEAD)" = "$RESULT_SHA"
           python3 .agent-intelligence/scripts/triage.py verify
           {
             echo "AGENT3_RESULT_SHA=$RESULT_SHA"
             cat agent3-stage-results.txt
           } > agent3-evidence.txt
 
-      - name: Upload exact-SHA Agent-3 evidence
+      - name: Upload exact-SHA Agent-3 state package
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: flixo-agent3-triage-${{ github.run_id }}
+          name: flixo-agent3-state-${{ github.run_id }}
           path: |
+            .agent-intelligence/review-queue
+            .agent-intelligence/graveyard
+            .agent-intelligence/handoffs
+            التطوير.md
             agent3-stage-results.txt
             agent3-evidence.txt
           if-no-files-found: error
@@ -183,3 +156,76 @@ jobs:
           grep -q '^ReaperTTLSuppression=PASS$' agent3-stage-results.txt
           grep -q '^GeneratedViewAndStateAudit=PASS$' agent3-stage-results.txt
           ! grep -q '=FAIL$' agent3-stage-results.txt
+
+  publish:
+    name: Publish validated Agent-3 state to execution
+    needs: pipeline
+    if: ${{ github.event_name != 'pull_request' }}
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout current execution without persisted credentials
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          ref: execution
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Download exact-SHA generated state package
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: flixo-agent3-state-${{ github.run_id }}
+          path: /tmp/flixo-agent3-state
+
+      - name: Reconcile exact target before publication
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s /tmp/flixo-agent3-state/agent3-evidence.txt
+          TARGET_SHA="$(sed -n 's/^AGENT3_RESULT_SHA=//p' /tmp/flixo-agent3-state/agent3-evidence.txt)"
+          [[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]
+          git fetch origin execution --no-tags
+          LIVE_SHA="$(git rev-parse refs/remotes/origin/execution)"
+          test "$LIVE_SHA" = "$TARGET_SHA"
+          echo "TARGET_SHA=$TARGET_SHA" >> "$GITHUB_ENV"
+
+      - name: Apply only the validated generated state
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp -a /tmp/flixo-agent3-state/.agent-intelligence .
+          cp /tmp/flixo-agent3-state/التطوير.md ./التطوير.md
+
+          git diff --name-only > /tmp/flixo-agent3-changed-files.txt
+          while IFS= read -r path; do
+            [ -z "$path" ] && continue
+            case "$path" in
+              .agent-intelligence/review-queue/*|.agent-intelligence/graveyard/*|.agent-intelligence/handoffs/*|التطوير.md)
+                ;;
+              *)
+                echo "FAIL_CLOSED: unexpected publication mutation: $path"
+                exit 1
+                ;;
+            esac
+          done < /tmp/flixo-agent3-changed-files.txt
+
+      - name: Publish generated state with short-lived token only
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "NO_GENERATED_MUTATIONS=PASS"
+            exit 0
+          fi
+          git config user.name "flixo-agent3[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .agent-intelligence/review-queue .agent-intelligence/graveyard .agent-intelligence/handoffs التطوير.md
+          git diff --cached --quiet && echo "NO_STAGED_MUTATIONS=PASS" && exit 0
+          git commit -m "chore(agent3): reconcile triage queue"
+          git fetch origin execution --no-tags
+          test "$(git rev-parse refs/remotes/origin/execution)" = "$TARGET_SHA"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: bearer $GITHUB_TOKEN" push origin "HEAD:refs/heads/execution"
