@@ -8,9 +8,11 @@ on:
     branches: [execution]
     paths:
       - '.agent-intelligence/scouts/**'
+      - '.agent-intelligence/public-repositories/**'
       - '.agent-intelligence/scripts/**'
       - '.agent-intelligence/schemas/**'
       - 'tests/agent-intelligence/**'
+      - '.agent-intelligence/scripts/discover_public_repositories.py'
       - '.github/agents/flixo-scout-*.agent.md'
       - 'الوكلاء/المستكشفين/**'
       - 'scripts/verify-scout-boundary.mjs'
@@ -121,6 +123,10 @@ jobs:
           test "$(git rev-parse HEAD)" = "$EXECUTION_SHA" 
           git switch --create "scout/discovery-$GITHUB_RUN_ID"
           echo "EXECUTION_SHA=$EXECUTION_SHA" >> "$GITHUB_ENV"
+      - name: Acquire public repository intelligence
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 .agent-intelligence/scripts/discover_public_repositories.py
       - name: Run infinite Scouts and snapshots
         run: python3 .agent-intelligence/scripts/run_scouts.py
       - name: Validate generated proposals with Agent-2 validator
@@ -151,7 +157,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          git add "الوكلاء/التقارير/AGENT-08 — Architecture Scout" "الوكلاء/التقارير/AGENT-09 — Technology Scout" "الوكلاء/التقارير/AGENT-10 — Ecosystem Scout" .agent-intelligence/snapshots
+          git add "الوكلاء/التقارير/AGENT-08 — Architecture Scout" "الوكلاء/التقارير/AGENT-09 — Technology Scout" "الوكلاء/التقارير/AGENT-10 — Ecosystem Scout" .agent-intelligence/snapshots .agent-intelligence/public-repositories
           git -c core.quotePath=false diff --cached --name-only | while IFS= read -r path; do
             case "$path" in
               "الوكلاء/التقارير/AGENT-08 — Architecture Scout/"*.yaml|"الوكلاء/التقارير/AGENT-09 — Technology Scout/"*.yaml|"الوكلاء/التقارير/AGENT-10 — Ecosystem Scout/"*.yaml|.agent-intelligence/snapshots/*.json|.agent-intelligence/snapshots/*.raw|.agent-intelligence/snapshots/*.txt) ;;
