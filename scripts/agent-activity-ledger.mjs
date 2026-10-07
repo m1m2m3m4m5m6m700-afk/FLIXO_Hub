@@ -6,7 +6,7 @@ import { resolve, join, relative } from "node:path";
 const ROOT = process.cwd();
 const REGISTRY = join(ROOT, "الوكلاء.md");
 const PROTOCOL = "flixo-agent-activity-v1";
-const REQUIRED_FIELDS = [
+export const REQUIRED_FIELDS = [
   "Agent ID",
   "Agent Name",
   "Task ID",
