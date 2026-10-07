@@ -1,4 +1,4 @@
-export const CELL_CONTRACT_VERSION = "1.0.0" as const;
+export const CELL_CONTRACT_VERSION = "1.1.0" as const;
 
 export const TASK_STATES = [
   "PLANNED","READY","CLAIMED","RUNNING","CHECKPOINTED","VERIFYING","VERIFIED","PROMOTABLE","PROMOTED","FAILED","BLOCKED","ABANDONED",
@@ -105,8 +105,12 @@ export function decideRetry(input: Readonly<{
   retryable: boolean | null;
   failureFingerprint: string | null;
   previousFailureFingerprint: string | null;
+  sameCapability?: boolean;
+  sameParameters?: boolean;
+  replanned?: boolean;
 }>): RetryDecision {
-  if (input.attempts >= input.maxAttempts) return { allowed: false, reason: "RETRY_BUDGET_EXHAUSTED" };
+  if (input.attempts >= Math.min(3, input.maxAttempts)) return { allowed: false, reason: "RETRY_BUDGET_EXHAUSTED" };
+  if (input.sameCapability === false || input.sameParameters === false || input.replanned === true) return { allowed: false, reason: "RETRY_REPLAN_FORBIDDEN" };
   if (input.retryable === null || !input.failureFingerprint) return { allowed: false, reason: "MISSING_FAILURE_CLASSIFICATION" };
   if (input.previousFailureFingerprint && input.failureFingerprint === input.previousFailureFingerprint) return { allowed: false, reason: "SAME_FAILURE" };
   if (!input.retryable) return { allowed: false, reason: "NON_RETRYABLE" };
