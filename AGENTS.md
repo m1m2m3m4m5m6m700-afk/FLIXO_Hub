@@ -128,3 +128,16 @@ Discovery publication uses the canonical report contract. Scout PRs target execu
 
 The Scout profiles disable automatic model invocation. They are invoked explicitly as research roles.
 
+
+
+## CELL HARD-CONTROL RUNTIME OVERRIDE
+
+For any CELL task using `EXEC-CELL-ARCH-001` or a later hard-control task, documented policy is subordinate to executable enforcement. Before any mutation, the request must obtain a canonical assignment/execution envelope and pass the runtime chain:
+
+`TASK → AGENT → SESSION → SHA → CAPABILITY → SCOPE → BRANCH → TOOL → RESOURCE → DELEGATION → AUTHORITY`.
+
+No caller may mutate first and validate later. Any failed gate is `DENY_BEFORE_MUTATION`.
+
+The canonical runtime hard-control contract also enforces solver/opponent/backups/verifier role independence; `leaseId / ownerId / issuedAt / expiresAt / heartbeat / fenceToken / idempotencyKey`; exact task and agent state machines; exact-SHA evidence lineage; red-team and opponent counterexample gates; recovery by backup reassignment without losing Task/Mission/Lineage; D1–D10 drift handling; and self-evolution proposals through canonical Task/Review/Verification only.
+
+This control is additive to existing repository policy and does not create a second dispatch ledger, registry, executor, verifier, or production authority.
