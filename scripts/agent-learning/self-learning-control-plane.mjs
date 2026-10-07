@@ -18,9 +18,10 @@ function loadCanonicalPrincipalAgents() {
   const registry = JSON.parse(block.slice(jsonStart + 7, jsonEnd).trim());
   if (registry.schema !== 'flixo-canonical-agent-registry-v1') throw new Error('unsupported canonical agent registry schema');
   if (registry.officialAgentCount !== 14 || !Array.isArray(registry.agents) || registry.agents.length !== 14) {
-    throw new Error('canonical principal agent count must be exactly 10');
+    throw new Error('canonical principal agent count must be exactly 14');
   }
   return registry.agents.map(agent => ({
+    id: agent.id,
     name: agent.name,
     registration: agent.profile,
     drill: agent.drill,
@@ -213,7 +214,7 @@ export function loadOfficialAgents(root = process.cwd()) {
 export function generateContractReadinessReport({ root = process.cwd(), currentSha, outputPath }) {
   const results = loadOfficialAgents(root).map(agent => {
     const content = agent.content;
-    const isScout = agent.name.endsWith('Scout');
+    const isScout = ['AGENT-08','AGENT-09','AGENT-10'].includes(agent.id);
     const checks = [
       content.includes('name: ' + agent.name),
       /100\/100/u.test(content),
@@ -236,7 +237,7 @@ export function generateContractReadinessReport({ root = process.cwd(), currentS
 function main() {
   const currentSha = process.argv.find(arg => SHA_RE.test(arg)) ?? process.env.GITHUB_SHA;
   if (!SHA_RE.test(currentSha ?? '')) { process.exitCode = 2; return; }
-  const outputPath = 'الوكلاء AI/تدريب الوكلاء AI/تقارير التدريب/' + currentSha + '.md';
+  const outputPath = 'الوكلاء AI/تدريب الوكلاء/تقارير التدريب/' + currentSha + '.md';
   console.log(JSON.stringify(generateContractReadinessReport({ currentSha, outputPath }), null, 2));
 }
 
