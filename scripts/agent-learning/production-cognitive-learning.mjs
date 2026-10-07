@@ -19,6 +19,19 @@ export function createSupabaseCognitiveTransport({env=process.env,fetchImpl=glob
 
   const rpc=async(name,payload)=>parse(await fetchImpl(root+'/rest/v1/rpc/'+name,{method:'POST',headers:headers(key),body:JSON.stringify(payload)}));
   const get=async(path)=>parse(await fetchImpl(root+path,{method:'GET',headers:headers(key)}));
+  const getPaged=async(baseParams)=>{
+    const all=[];
+    for(let offset=0;;offset+=EVENT_LIMIT){
+      const params=new URLSearchParams(baseParams);
+      params.set('limit',String(EVENT_LIMIT));
+      params.set('offset',String(offset));
+      const rows=await get('/rest/v1/flixo_agent_task_events?'+params.toString());
+      if(!Array.isArray(rows))throw new Error('COGNITIVE_REPLAY_INVALID_RESPONSE');
+      all.push(...rows);
+      if(rows.length<EVENT_LIMIT)break;
+    }
+    return all;
+  };
 
   const append=async(event)=>{
     const exactSha=assertExactSha(event.sourceSha,'event.sourceSha');
@@ -48,8 +61,7 @@ export function createSupabaseCognitiveTransport({env=process.env,fetchImpl=glob
       order:'sequence.asc',
       limit:String(EVENT_LIMIT),
     });
-    const rows=await get('/rest/v1/flixo_agent_task_events?'+params.toString());
-    if(!Array.isArray(rows))throw new Error('COGNITIVE_REPLAY_INVALID_RESPONSE');
+    const rows=await getPaged(params);
     let previousHash=null;
     let expectedSequence=afterSequence+1;
     const events=[];
@@ -74,8 +86,7 @@ export function createSupabaseCognitiveTransport({env=process.env,fetchImpl=glob
       order:'created_at.asc',
       limit:String(EVENT_LIMIT),
     });
-    const rows=await get('/rest/v1/flixo_agent_task_events?'+params.toString());
-    if(!Array.isArray(rows))throw new Error('COGNITIVE_REPLAY_INVALID_RESPONSE');
+    const rows=await getPaged(params);
     return rows.filter(row=>row?.payload?._cognitive).map(row=>Object.freeze({...row.payload._cognitive,sequence:Number(row.sequence),taskId:row.task_id}));
   };
 
