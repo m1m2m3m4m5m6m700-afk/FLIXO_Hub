@@ -502,6 +502,7 @@ export class CellLifecycleRuntime {
   }
 
   recordOpponentIndependentStart(opponentId: string, candidateSha: string, sharedContextHash: string, sequence?: number): void {
+    if (this.opponentContextHash !== null) throw new Error("CELL_OPPONENT_START_ALREADY_RECORDED");
     this.requireStage("PAIR_LOCKED");
     required(opponentId, "CELL_OPPONENT_ID_REQUIRED");
     sha(candidateSha, "CELL_OPPONENT_SHA_INVALID");
@@ -512,7 +513,6 @@ export class CellLifecycleRuntime {
     if (candidateSha !== this.admission.currentSha) {
       throw new Error("CELL_OPPONENT_SHA_DRIFT");
     }
-    if (this.opponentContextHash !== null) throw new Error("CELL_OPPONENT_START_ALREADY_RECORDED");
     const startedAtMs = this.clock();
     if (!Number.isFinite(startedAtMs)) throw new Error("CELL_OPPONENT_START_TIME_INVALID");
     if (sequence !== undefined) {
