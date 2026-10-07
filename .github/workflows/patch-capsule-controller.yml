@@ -28,13 +28,22 @@ jobs:
       SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY || secrets.SUPABASE_SERVICE_ROLE_KEY }}
       FLIXO_CANONICAL_CONTROLLER: assistantController
       FLIXO_TARGET_BRANCH: execution
+      FLIXO_TRUSTED_SOURCE_REF: main
     steps:
       - name: Checkout the sole mutation line
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
         with:
-          ref: execution
+          ref: main
           fetch-depth: 0
-          persist-credentials: true
+          persist-credentials: false
+
+      - name: Capture trusted controller source SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          TRUSTED_SOURCE_SHA="$(git rev-parse HEAD)"
+          [[ "$TRUSTED_SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          echo "FLIXO_TRUSTED_SOURCE_SHA=$TRUSTED_SOURCE_SHA" >> "$GITHUB_ENV"
 
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
