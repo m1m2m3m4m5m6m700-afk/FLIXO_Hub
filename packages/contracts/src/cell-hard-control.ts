@@ -1,6 +1,28 @@
 import type { AgentState } from "./cell-control-plane";
 
-export const HARD_CONTROL_CONTRACT_VERSION = "1.0.0" as const;
+export const HARD_CONTROL_CONTRACT_VERSION = "1.1.0" as const;
+
+export const CELL_AUTHORITY_RANK = Object.freeze({
+  SCOUT: 10,
+  ANALYST: 20,
+  IMPLEMENTER: 30,
+  INTEGRATOR: 40,
+  CERTIFIER: 50,
+  ROOT: 100,
+} as const);
+
+export type CellAuthority = keyof typeof CELL_AUTHORITY_RANK;
+
+export const CELL_PROTECTED_PATHS = Object.freeze([
+  "packages/contracts/src/cell-**",
+  "scripts/agent-control-plane.mjs",
+  "scripts/ci/cell-**",
+  "الخلية.md",
+] as const);
+
+export function authorityRank(authority: CellAuthority | undefined): number {
+  return authority ? CELL_AUTHORITY_RANK[authority] : 0;
+}
 
 export type DriftType =
   | "D1_SCOPE_DRIFT"
@@ -102,6 +124,8 @@ export type ExecutionEnvelope = Readonly<{
   maxDelegationDepth: number;
   normalizedObjectiveId: string;
   acceptanceDigest: string;
+  authority?: CellAuthority;
+  maxRetryAttempts?: number;
 }>;
 
 export function createExecutionEnvelope(input: ExecutionEnvelope): ExecutionEnvelope {
@@ -172,6 +196,30 @@ export type ExecutionAction = Readonly<{
   estimatedCost: number; expectedDurationMs: number; delegationDepth: number;
 }>;
 
+export type RetryRequest = Readonly<{
+  attempt: number;
+  failureClass: "TRANSIENT" | "TIMEOUT" | "RESOURCE" | "VERIFICATION" | "AUTHORITY" | "SCOPE";
+  sameCapability: boolean;
+  sameParameters: boolean;
+  replanned: boolean;
+}>;
+
+export type RetryAuthorization = Readonly<{ allowed: boolean; reason: string }>;
+
+export function authorizeRetry(envelope: ExecutionEnvelope, request: RetryRequest): RetryAuthorization {
+  const maxAttempts = Math.min(3, Math.max(1, Math.floor(envelope.maxRetryAttempts ?? 3)));
+  if (!Number.isInteger(request.attempt) || request.attempt < 1 || request.attempt > maxAttempts) {
+    return Object.freeze({ allowed: false, reason: "RETRY_BUDGET_EXCEEDED" });
+  }
+  if (!request.sameCapability || !request.sameParameters || request.replanned) {
+    return Object.freeze({ allowed: false, reason: "RETRY_REPLAN_FORBIDDEN" });
+  }
+  if (request.failureClass === "AUTHORITY" || request.failureClass === "SCOPE") {
+    return Object.freeze({ allowed: false, reason: "NON_RETRYABLE_POLICY_FAILURE" });
+  }
+  return Object.freeze({ allowed: true, reason: "RETRY_ALLOWED_SAME_ADMISSION" });
+}
+
 export type BudgetUsage = Readonly<{ spentCost: number; spentDurationMs: number }>;
 export type ActionAuthorization = Readonly<{ allowed: boolean; drift: DriftFinding | null }>;
 
@@ -194,6 +242,20 @@ export function authorizeExecutionAction(envelope: ExecutionEnvelope, action: Ex
   if (!Number.isFinite(action.estimatedCost) || !Number.isFinite(action.expectedDurationMs) || action.estimatedCost < 0 || action.expectedDurationMs < 0) return { allowed: false, drift: finding("D4_RESOURCE_DRIFT", "resource-gate", "invalid resource request") };
   if (usage.spentCost + action.estimatedCost > envelope.costBudget || usage.spentDurationMs + action.expectedDurationMs > envelope.timeBudgetMs) return { allowed: false, drift: finding("D4_RESOURCE_DRIFT", "resource-gate", "budget exceeded") };
   if (action.delegationDepth > envelope.maxDelegationDepth) return { allowed: false, drift: finding("D9_DELEGATION_DRIFT", "delegation-gate", "delegation depth exceeded") };
+  if (action.delegatedAuthority) {
+    if (!envelope.authority) return { allowed: false, drift: finding("D7_AUTHORITY_DRIFT", "authority-gate", "delegated authority requires an explicit parent authority") };
+    if (authorityRank(action.delegatedAuthority) > authorityRank(envelope.authority)) {
+      return { allowed: false, drift: finding("D9_DELEGATION_DRIFT", "authority-gate", "delegated authority exceeds parent authority") };
+    }
+  }
+  if (action.operation === "WRITE" && action.path && matchesScope(action.path, CELL_PROTECTED_PATHS)) {
+    if (envelope.authority !== "ROOT") {
+      return { allowed: false, drift: finding("D7_AUTHORITY_DRIFT", "cell-self-protection", "CELL control-plane mutation requires ROOT authority") };
+    }
+  }
+  if ((action.operation === "COMMIT" || action.operation === "BRANCH") && !envelope.authority) {
+    return { allowed: false, drift: finding("D7_AUTHORITY_DRIFT", "mutation-authority-gate", "repository mutation requires explicit authority") };
+  }
   if (!HARD_SHA.test(action.currentSha)) return { allowed: false, drift: finding("D6_EVIDENCE_DRIFT", "sha-gate", "action current SHA is missing or malformed") };
   if (action.operation === "WRITE" && (!action.path || !matchesScope(action.path, envelope.writeScope))) return { allowed: false, drift: finding("D1_SCOPE_DRIFT", "write-scope-firewall", "write path outside task scope") };
   if (action.operation === "READ" && (!action.path || !matchesScope(action.path, envelope.readScope))) return { allowed: false, drift: finding("D1_SCOPE_DRIFT", "read-scope-firewall", "read path outside task scope") };
