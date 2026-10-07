@@ -12,8 +12,8 @@ import {
   rpc,
   HttpError,
 } from './lib/runtime';
-import { AgentState } from './durable';
-import type { Env } from './lib/types';
+import { AgentState } from './durable.ts';
+import type { Env } from './lib/types.ts';
 
 const json = (value: unknown, status = 200) => new Response(JSON.stringify(value), {
   status,
