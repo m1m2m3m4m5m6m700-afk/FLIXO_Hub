@@ -196,30 +196,6 @@ export type ExecutionAction = Readonly<{
   estimatedCost: number; expectedDurationMs: number; delegationDepth: number;
 }>;
 
-export type RetryRequest = Readonly<{
-  attempt: number;
-  failureClass: "TRANSIENT" | "TIMEOUT" | "RESOURCE" | "VERIFICATION" | "AUTHORITY" | "SCOPE";
-  sameCapability: boolean;
-  sameParameters: boolean;
-  replanned: boolean;
-}>;
-
-export type RetryAuthorization = Readonly<{ allowed: boolean; reason: string }>;
-
-export function authorizeRetry(envelope: ExecutionEnvelope, request: RetryRequest): RetryAuthorization {
-  const maxAttempts = Math.min(3, Math.max(1, Math.floor(envelope.maxRetryAttempts ?? 3)));
-  if (!Number.isInteger(request.attempt) || request.attempt < 1 || request.attempt > maxAttempts) {
-    return Object.freeze({ allowed: false, reason: "RETRY_BUDGET_EXCEEDED" });
-  }
-  if (!request.sameCapability || !request.sameParameters || request.replanned) {
-    return Object.freeze({ allowed: false, reason: "RETRY_REPLAN_FORBIDDEN" });
-  }
-  if (request.failureClass === "AUTHORITY" || request.failureClass === "SCOPE") {
-    return Object.freeze({ allowed: false, reason: "NON_RETRYABLE_POLICY_FAILURE" });
-  }
-  return Object.freeze({ allowed: true, reason: "RETRY_ALLOWED_SAME_ADMISSION" });
-}
-
 export type BudgetUsage = Readonly<{ spentCost: number; spentDurationMs: number }>;
 export type ActionAuthorization = Readonly<{ allowed: boolean; drift: DriftFinding | null }>;
 
