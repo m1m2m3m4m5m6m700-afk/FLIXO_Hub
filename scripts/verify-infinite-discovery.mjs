@@ -71,6 +71,8 @@ if(!workflow.includes("scout/discovery-")) fail("publication must target scout/d
 if(!workflow.includes("الوكلاء/التقارير/AGENT-08 — Architecture Scout/*.yaml")) fail("Architecture report publication path missing");
 if(!workflow.includes("الوكلاء/التقارير/AGENT-09 — Technology Scout/*.yaml")) fail("Technology report publication path missing");
 if(!workflow.includes("الوكلاء/التقارير/AGENT-10 — Ecosystem Scout/*.yaml")) fail("Ecosystem report publication path missing");
+if(!workflow.includes('git -c core.quotePath=false diff --name-only')) fail("publication mutation gate must preserve raw unicode paths");
+if(!workflow.includes('git -c core.quotePath=false diff --cached --name-only')) fail("publication staging gate must preserve raw unicode paths");
 if(workflow.match(/\.agent-intelligence\/inbox\/\*\.ya?ml/)) fail("forbidden inbox proposal publication remains");
 if(workflow.match(/git add \.agent-intelligence\/inbox\b/)) fail("forbidden inbox staging remains");
 if(workflow.match(/git push origin (main|execution)\b/)) fail("forbidden main/execution push path");
