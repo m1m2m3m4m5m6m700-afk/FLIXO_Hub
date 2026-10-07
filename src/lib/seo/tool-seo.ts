@@ -47,7 +47,7 @@ export function assertToolCategory(value: string): ToolCategory { if (!TOOL_CATE
 export function getLocalizedToolTitle(localeInput: string, toolId: string, fallbackTitle: string): string { const locale = normalizeLocale(localeInput); const canonicalToolId = toolId === 'crop-resize' ? 'image-cropper' : toolId; const tool = getToolById(canonicalToolId); return tool ? getAuthoritativeToolSeoName(tool, locale) ?? fallbackTitle : fallbackTitle; }
 export function getLocalizedToolUrl(locale: Locale, toolId: string): string { const tool = getToolById(toolId); if (!tool) throw new Error(`Unknown tool id: ${toolId}`); return resolveLocalizedToolUrl(SITE_ORIGIN, tool, locale); }
 export function getToolSeo(localeInput: string, toolId: string) {
-  const locale = normalizeLocale(localeInput); const tool = getToolById(toolId); if (!tool || !tool.isReady) return null;
+  const locale = normalizeLocale(localeInput); const tool = getToolById(toolId); if (!tool || !tool.isReady || tool.capability.state !== 'EXECUTABLE') return null;
   const category = assertToolCategory(tool.category); const label = LOCALE_LABELS[locale]; if (!label) throw new Error(`Missing locale SEO label: ${locale}`);
   const url = getLocalizedToolUrl(locale, tool.id); const xDefaultUrl = getLocalizedToolUrl('en', tool.id); const localizedTitle = getAuthoritativeToolSeoName(tool, locale) ?? tool.title;
   const localizedCategory = localizeMsUkCategory(locale, category) ?? localizeToolCategory(locale, category);
