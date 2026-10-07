@@ -212,7 +212,7 @@ jobs:
         with:
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 1
-          persist-credentials: true
+          persist-credentials: false
       - name: Validate branch policy for the current ref
         if: ${{ github.event_name != 'pull_request' }}
         run: node scripts/ci/verify-branch-policy.mjs
