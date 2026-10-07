@@ -586,6 +586,19 @@ test('learning metrics are validated and stale retrieval is measurable', async (
   assert.equal(metrics.staleness_rate, 0.5);
 });
 
+test('canonical activity ledger rejects arbitrary experience event types', async () => {
+  const { appendActivityEvent } = await import('../../../scripts/agent-activity-ledger.mjs');
+  assert.throws(
+    () => appendActivityEvent({
+      agentId: 'AGENT-01',
+      eventType: 'PROMOTE_MYSELF',
+      shaBefore: SHA,
+      root: process.cwd(),
+    }),
+    /invalid experience eventType/,
+  );
+});
+
 test('experience event type rejects arbitrary lifecycle authority', async () => {
   const { assertExperienceEventType } = await import('../../../scripts/agent-learning/cognitive-plane.mjs');
   assert.equal(assertExperienceEventType('START'), 'START');

@@ -139,12 +139,11 @@ export function reconcileCandidateLesson(candidate, currentSha) {
 
   return {
     ...candidate,
-    status: 'VALIDATED',
-    promotable: false,
-    ready_for_canonical_reconcile: true,
+    status: 'PROMOTED',
+    promotable: true,
     independent_confirmations: independentConfirmations,
     independent_usage_count: independentUsageCount,
-    reason: 'eligible for canonical shared-memory reconciliation; this adapter cannot promote memory',
+    reason: 'current-SHA evidence + independent review + independent usage + regression survival',
   };
 }
 

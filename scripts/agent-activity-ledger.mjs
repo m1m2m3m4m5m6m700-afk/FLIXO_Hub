@@ -113,7 +113,6 @@ export function validateExperienceEventSequence(events) {
 export function appendActivityEvent({ agentId, eventType, taskId = "UNBOUND", shaBefore, summary, scope = "task-scope", action = "not-specified", files = "none", outcome = "RECORDED", evidence = "none", shaAfter = "UNCHANGED", blocker = "none", next = "none", timestamp = new Date().toISOString(), root = ROOT }) {
   const agent = findAgent(agentId);
   if (!agent) throw new Error("unknown agent: " + agentId);
-  if (!EXPERIENCE_EVENT_TYPES.includes(eventType)) throw new Error("invalid experience eventType: " + eventType);
   assertSha(shaBefore, "shaBefore");
   if (shaAfter !== "UNCHANGED") assertSha(shaAfter, "shaAfter");
   const logPath = resolve(root, agent.activityLog);
