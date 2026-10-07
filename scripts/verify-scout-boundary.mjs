@@ -5,6 +5,11 @@ const root=process.cwd();
 const agentsDir=join(root,".github","agents");
 const inboxDir=join(root,".agent-intelligence","inbox");
 const snapshotsDir=join(root,".agent-intelligence","snapshots");
+const canonicalPackages={
+  "flixo-scout-architecture.agent.md":"الوكلاء/المستكشفين/Architecture Scout/المستكشف.md",
+  "flixo-scout-technology.agent.md":"الوكلاء/المستكشفين/Technology Scout/المستكشف.md",
+  "flixo-scout-ecosystem.agent.md":"الوكلاء/المستكشفين/Ecosystem Scout/المستكشف.md",
+};
 const scouts={
   "flixo-scout-architecture.agent.md":"FLIXO Architecture Scout",
   "flixo-scout-technology.agent.md":"FLIXO Technology Scout",
@@ -25,6 +30,9 @@ for(const [file,role] of Object.entries(scouts)){
   if(!content.includes("disable-model-invocation: true")) fail(file+": automatic invocation must be disabled");
   if(!content.includes("Your only writable repository path is .agent-intelligence/inbox/.")) fail(file+": missing inbox write boundary");
   if(!content.includes(role)) fail(file+": missing role identity");
+  const canonical=join(root,canonicalPackages[file]);
+  if(!exists(canonical)) fail(file+": missing canonical package file");
+  if(!content.includes(canonicalPackages[file].replace("/المستكشف.md","/"))) fail(file+": missing canonical package reference");
   if(/Your only writable repository path is (?!\.agent-intelligence\/inbox\/)/u.test(content)) fail(file+": writable path must be inbox");
   if(/writ(?:e|able).*?(?:\.agent-intelligence\/review-queue|التطوير\.md)/iu.test(content)) fail(file+": forbidden writable surface");
 }
