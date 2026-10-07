@@ -60,6 +60,16 @@ jobs:
           python3 tests/three_critic_review.test.py
       - name: Exact-SHA workflow contract tests
         run: node --test scripts/ci/test-workflow-exact-sha-contract.mjs
+
+      - name: Require independent current-head approval for main promotion
+        if: github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node scripts/ci/verify-current-pr-approval.mjs
       - name: Fetch main governance snapshot for read-only contract tests
         run: git fetch origin main:refs/remotes/origin/main --depth=1
       - name: Agent 2 CI security contract tests
