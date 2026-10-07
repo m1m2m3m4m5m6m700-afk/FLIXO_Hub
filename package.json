@@ -53,7 +53,7 @@
     "test:agent-learning-ingestion": "node --test tests/security/ci/agent-learning-ingestion.test.mjs",
     "test:control-assurance-b": "node --test tests/security/ci/control-assurance-b.test.mjs",
     "test:cell-control-plane": "node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/security/ci/cell-control-plane-contract.test.ts",
-    "test:cell-runtime": "node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/security/ci/cell-runtime-contract.test.ts",
+    "test:cell-runtime": "node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/security/ci/cell-runtime-contract.test.ts tests/security/ci/cell-lifecycle-contract.test.ts",
     "test:cell-assignment": "node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/security/ci/cell-assignment-contract.test.ts tests/security/ci/cell-assignment-integrity.test.mjs",
     "test:cell-hard-control": "node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/security/ci/cell-hard-control.test.ts",
     "test:cell-lifecycle": "node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/security/ci/cell-lifecycle-contract.test.ts",
