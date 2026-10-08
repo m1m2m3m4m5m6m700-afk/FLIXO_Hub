@@ -50,3 +50,12 @@ Provider and database credentials remain server-side. Never expose secrets throu
 The launch program is tracked in `docs/FLIXO-PUBLIC-LAUNCH-EXECUTION-PLAN.md` and release truth is recorded in `docs/FLIXO-PUBLIC-RELEASE-MANIFEST.md`.
 
 A public launch is not certified merely because the application builds. CI, security, Red Team, production identity, and browser evidence must bind to the same exact release SHA.
+
+
+## FLIXO Hub local-processing boundary
+
+The /hub and /en/hub surfaces are the first Stage 1 implementation of the 2026-10-08 FLIXO Hub contract. They provide a browser-local Worker demonstration, transferable ArrayBuffer messaging, OPFS with a session-memory fallback, browser capability detection, and a privacy page.
+
+The Hub processing surface does not call network transport APIs and does not persist files or identifiers in browser storage. Runtime delivery is origin-only; third-party CDN bootstrap is not permitted.
+
+Stage 1 currently contains no newly added runtime dependency. OCR remains deliberately blocked until self-hosted Tesseract worker/core/language assets are admitted and verified.

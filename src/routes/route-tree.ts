@@ -1,4 +1,6 @@
 import { arIndexRoute } from './ar-index';
+import { enHubPrivacyRoute, enHubRoute } from './en-hub';
+import { hubPrivacyRoute, hubRoute } from './hub';
 import { indexRoute } from './index';
 import { localizedHomeRoute } from './localized-home';
 import { localizedToolRoute } from './localized-tool';
@@ -7,4 +9,17 @@ import { adminControlPlaneLoginRoute } from './admin-control-plane-login';
 import { toolsRoute } from './tools';
 import { arToolsRoute } from './ar-tools';
 
-export const routeChildren = [indexRoute, arIndexRoute, localizedHomeRoute, toolsRoute, arToolsRoute, localizedToolRoute, adminControlPlaneLoginRoute, adminControlPlaneRoute] as const;
+export const routeChildren = [
+  indexRoute,
+  arIndexRoute,
+  localizedHomeRoute,
+  hubRoute,
+  hubPrivacyRoute,
+  enHubRoute,
+  enHubPrivacyRoute,
+  toolsRoute,
+  arToolsRoute,
+  localizedToolRoute,
+  adminControlPlaneLoginRoute,
+  adminControlPlaneRoute,
+] as const;
