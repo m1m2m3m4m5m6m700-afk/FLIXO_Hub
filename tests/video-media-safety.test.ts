@@ -104,7 +104,8 @@ test('official video acceptance suites use one canonical shared fixture with bou
   assert.match(fixture, /export async function buildVideoFixture/u);
   assert.match(fixture, /VIDEO_FIXTURE_DURATION_MS\s*=\s*2_400/u);
   assert.match(fixture, /VIDEO_FIXTURE_MIN_DURATION_MS\s*=\s*2_000/u);
-  assert.match(fixture, /durationMs\s*<\s*VIDEO_FIXTURE_MIN_DURATION_MS/u);\n  assert.match(fixture, /captureStream\(24\)/u);
+  assert.match(fixture, /durationMs\s*<\s*VIDEO_FIXTURE_MIN_DURATION_MS/u);
+  assert.match(fixture, /captureStream\(24\)/u);
 
   const officialSuites = [
     'tests/official/video-capability-acceptance.spec.ts',
