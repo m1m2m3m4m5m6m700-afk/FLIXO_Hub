@@ -251,8 +251,23 @@ jobs:
           COVERAGE_RESULT: ${{ needs.coverage.result }}
           RED_TEAM_RESULT: ${{ needs.red-team.result }}
           BRANCH_RESULT: ${{ needs.branch-policy.result }}
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref || '' }}
         run: |
           set -euo pipefail
+          # Worker/implementation PRs are intentionally outside the canonical execution -> main
+          # promotion topology. Their release-only lanes are skipped and must not fail trust.
+          if [ "$EVENT_NAME" = "pull_request" ] && [ "$PR_HEAD_REF" != "execution" ]; then
+            test "$VERIFY_RESULT" = skipped
+            test "$BROWSER_RESULT" = skipped
+            test "$COVERAGE_RESULT" = skipped
+            test "$RED_TEAM_RESULT" = success
+            test "$BRANCH_RESULT" = success
+            echo 'TRUST_GATE=PASS_WORKER_PR'
+            exit 0
+          fi
+
           test "$VERIFY_RESULT" = success
           test "$BROWSER_RESULT" = success
           test "$COVERAGE_RESULT" = success
@@ -273,6 +288,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Verify exact head identity and live promotion lineage
+        if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.base.ref == 'main' && github.event.pull_request.head.ref == 'execution' && github.event.pull_request.head.repo.full_name == github.repository) }}
         env:
           EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
           GITHUB_EVENT_NAME: ${{ github.event_name }}
@@ -288,6 +304,10 @@ jobs:
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
           node scripts/ci/verify-promotion-lineage.mjs
           echo "EXACT_SHA_PROMOTION_PROOF=$EXPECTED_SHA"
+
+      - name: Record worker PR promotion-proof disposition
+        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref != 'execution' }}
+        run: echo 'EXACT_SHA_PROMOTION_PROOF=NOT_APPLICABLE_FOR_WORKER_PR'
 
       - name: Wait for exact-head security workflows
         if: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main' }}
