@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useLayoutEffect } from 'react';
 import { HeadContent, Scripts, Outlet, createRootRoute, useLocation } from '@tanstack/react-router';
 import { applyDocumentLocale, installDocumentLocaleContract, localeFromPathname } from '../lib/i18n/runtime-document-locale';
 import { SITE_ORIGIN } from '../lib/i18n';
+import { FlixoAttributionFooter } from '../components/flixo-attribution-footer';
 
 const CommandPalette = lazy(async () => {
   const module = await import('../components/command-palette');
@@ -47,7 +48,7 @@ export const rootRoute = createRootRoute({
       };
     }, []);
     const structuredDataJson = JSON.stringify(GLOBAL_STRUCTURED_DATA).replace(/</g, '\\u003c');
-    return <><HeadContent /><RuntimeLocaleAttributes /><script type="application/ld+json">{structuredDataJson}</script><Suspense fallback={null}><CommandPalette /></Suspense><RouteContent /><Scripts /></>;
+    return <><HeadContent /><RuntimeLocaleAttributes /><script type="application/ld+json">{structuredDataJson}</script><Suspense fallback={null}><CommandPalette /></Suspense><RouteContent /><FlixoAttributionFooter /><Scripts /></>;
   },
   head: () => ({
     meta: [
