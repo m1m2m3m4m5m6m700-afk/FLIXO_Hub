@@ -46,9 +46,9 @@ npm run test:e2e
 ```
 
 
-## See it before you build it
+## Explore the project
 
-Try the hosted project from the [FLIXO Hub web app](https://flixoai.vercel.app). For the governed developer surface, open [/developer](https://flixoai.vercel.app/developer).
+The repository homepage is recorded as [flixoai.vercel.app](https://flixoai.vercel.app). The governed developer-platform implementation is documented in [the developer platform source](src/pages/developer-platform.tsx) and exposed through the repository's documented routes.
 
 The core contribution loop is intentionally simple:
 
