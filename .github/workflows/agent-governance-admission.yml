@@ -40,9 +40,39 @@ jobs:
           TARGET_SHA: ${{ inputs.target_sha }}
         run: |
           set -euo pipefail
-          printf '%s' "$TARGET_SHA" | grep -Eq '^[0-9a-f]{40}$'
+          printf '%s' "$TARGET_SHA" | grep -Eq '^[0-9a-f]{40}
+      - name: Run canonical governance verification
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GOVERNANCE_BRANCH: main
+          GOVERNANCE_MODE: strict
+        run: scripts/ci/check-governance.sh
+
+      - name: Evaluate execution admission
+        shell: bash
+        env:
+          MISSION_ID: ${{ inputs.mission_id }}
+          TARGET_SHA: ${{ inputs.target_sha }}
+          PARENT_RUN_ID: ${{ inputs.parent_run_id }}
+          POLICY_VERSION: "1.4.1"
+        run: |
+          set -euo pipefail
+          node scripts/ci/admission-gate.mjs > admission.json
+          cat admission.json
+
+      - name: Publish SHA-bound admission artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: flixo-admission-${{ inputs.mission_id }}-${{ inputs.target_sha }}
+          path: admission.json
+          if-no-files-found: error
+          retention-days: 30
+
           test "$(git rev-parse HEAD)" = "$TARGET_SHA"
           git cat-file -e "$TARGET_SHA^{commit}"
+          git fetch origin execution --no-tags
+          test "$(git rev-parse origin/execution)" = "$TARGET_SHA"
 
       - name: Run canonical governance verification
         shell: bash
