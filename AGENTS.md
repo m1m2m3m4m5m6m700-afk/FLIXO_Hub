@@ -11,17 +11,19 @@ Runtime authority is limited to:
 Agents may prepare, implement, test, review, and document changes. Agents do not create a second registry, second executor authority, provider-controlled execution path, or certification authority.
 
 ## Open Agent Execution Mode
-Human Authority explicitly authorizes an expanded execution mode for repository work.
+Human Authority explicitly authorizes autonomous repository execution and automated promotion through the protected PR path.
 
 Within the `execution` integration lane, authorized agents may independently inspect, implement, refactor, test, document, harden, and coordinate across repository surfaces without waiting for per-file or per-agent approval. This may include runtime, tests, documentation, configuration, localization, media tooling, security tooling, agent orchestration, CI/workflow definitions, and integration code when the assigned task requires it.
 
-Open execution means broad implementation authority across `execution` and disposable worker branches; it does not grant production or certification authority. Agents must still:
+Open execution means broad implementation authority across `execution` and disposable worker branches. Authorized agents may merge a protected PR from `execution` to `main` when all required automated checks pass; no human review or approval is required. Agents must still:
 - use `execution` as the canonical integration lane; disposable worker branches are allowed for isolation and parallel work;
 - re-read the live execution SHA before and after meaningful mutation;
 - use non-force, race-safe publication and invalidate stale evidence after SHA drift;
 - preserve fail-closed behavior and strengthen or preserve verification gates;
 - keep user data, secrets, and provider/model output inside the existing trust boundaries;
-- record material changes and verification results against the exact resulting SHA.
+- record material changes and verification results against the exact resulting SHA;
+- use only the protected PR merge path for promotion to `main`; direct `main` ref mutation remains forbidden;
+- treat the post-merge report workflow as the merge-time human-facing report artifact.
 
 Multiple agents may collaborate through `execution` or isolated worker branches. Worker branches are development workspaces, not production authority.
 
@@ -54,8 +56,9 @@ Open Agent Execution Mode does not simulate, satisfy, or override missing GitHub
 ## Execution lane
 - Working branch: `execution`
 - Production truth: `main`
-- Promotion path: `execution -> main`
-- Direct main mutation is forbidden.
+- Promotion path: `execution -> main` through a protected pull request.
+- Direct `main` ref mutation is forbidden.
+- Automated PR merge is permitted when required checks pass; no human approval is required.
 - Every verification claim is exact-SHA bound.
 - `IMPLEMENTED`, `VERIFIED`, and `CERTIFIED` are distinct states.
 

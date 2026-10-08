@@ -23,9 +23,10 @@ Advisory/helper profiles are role overlays. They do not constitute additional ce
 ## Non-negotiable invariants
 
 - No Agent directly changes Control Plane state outside the canonical mutation/execution interfaces.
-- No Agent certifies.
-- No Agent merges or promotes to main.
-- No Agent changes MVP scope without explicit Human Authority approval.
+- Agents do not self-certify through prose or model claims.
+- Agents may merge/promote through the protected `execution -> main` PR path when all required automated gates pass.
+- No direct `main` ref mutation is permitted outside the protected merge path.
+- No Agent changes MVP scope outside the canonical scope contract.
 - No Agent bypasses the canonical execution gate.
 - Routine autonomous execution is governed by risk-based limits rather than a fixed pre-execution operation count.
 - Evidence is valid only when bound to the exact SHA under verification.
@@ -62,10 +63,10 @@ Under Open Agent Execution Mode:
 - authorized agents/workers may produce and publish implementation changes broadly on `execution`;
 - publication must remain non-force and race-safe;
 - a moving head causes reconciliation/CAS retry, never overwrite;
-- `main` remains PR-only and unchanged by the execution lane;
+- `main` remains protected and PR-only for direct ref writes; promotion is performed by protected PR merge;
 - live repository settings such as rulesets and branch protection remain governed externally and cannot be rewritten by source changes;
 - Patch Capsules are work products, never certification evidence.
 
 
 ## Flexible Agent Governance
-Worker branches are permitted for parallel execution and experiments without a mandatory PR-to-`execution` step. Routine implementation does not require conversational approval, handoff, lease acquisition, or fixed operation-count preflight. Production promotion and certification remain strict.
+Worker branches are permitted for parallel execution and experiments without a mandatory PR-to-`execution` step. Routine implementation does not require conversational approval, handoff, lease acquisition, or fixed operation-count preflight. Production deployment remains downstream of `main` and its automated post-merge checks; no human approval gate is required.

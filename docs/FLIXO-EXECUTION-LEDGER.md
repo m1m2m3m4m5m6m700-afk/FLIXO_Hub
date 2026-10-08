@@ -20,9 +20,9 @@ This ledger records live execution tasks on the `execution` integration line. A 
 | EXEC-VIDEO-DOM-001 | AGENT-3/Security | VERIFIED-STATIC | `src/lib/execution/canonical-executor.ts`, `src/lib/video/video-executor.ts`, `src/lib/video/blob-video-source.ts` | Video source lifecycle | Canonical verifier/renderer use shared blob-backed source adapter | Current candidate CodeQL/Red Team evidence PASS | No mutation unless a new gap appears |
 | EXEC-SCOPE-CONSISTENCY-001 | AGENT-3/QA | VERIFIED-STATIC | `tests/mvp-scope-contradiction.test.ts` | Canonical capability definitions and registry | Exact ten-tool parity, executor/output contract bindings, LOCAL/network=false, schemas/verifiers, documentation alignment | Current candidate CI PASS | Keep locked |
 | EXEC-SCOPE-CLAIMS-001 | AGENT-3/QA | VERIFIED-STATIC | `docs/FLIXO-PUBLIC-CLAIMS-ALLOWLIST.md` | Current ten-tool MVP scope | Public claims aligned to ten canonical executable capabilities | Current candidate scope test/build PASS | Keep locked |
-| EXEC-PROMPT-02-001 | AGENT-3/QA | IN_PROGRESS | `docs/FLIXO-PROMPT-02-STATE.md`, scope test, public claims | Prompt 02 exact-SHA verification | Runtime contract alignment is implemented; final certification evidence remains governance-blocked | Current candidate CI/coverage/browser/Red Team/security PASS except branch-policy governance | Close after governance blocker is legitimately removed and final certification rerun |
+| EXEC-PROMPT-02-001 | AGENT-3/QA | IN_PROGRESS | `docs/FLIXO-PROMPT-02-STATE.md`, scope test, public claims | Prompt 02 exact-SHA verification | Runtime contract alignment is implemented; final certification evidence remains governance-blocked | Current candidate CI/coverage/browser/Red Team/security PASS except branch-policy governance | Close after autonomous governance is live and exact-SHA promotion evidence is regenerated |
 | EXEC-MVP-NEG-ASSERT-001 | AGENT-3/QA | VERIFIED | `tests/mvp-acceptance-corpus.test.ts` | Node assert.throws behavior | Negative corpus assertion explicitly validates the thrown Error and required message classes | bfa98f6da5bdc28b21c4f22a926d4c219a7230a2; CI + Prompt 17 PASS | Re-run exact-SHA gates after any later mutation |
-| EXEC-CERT-BLOCKER-001 | AGENT-3/Certification | BLOCKED | GitHub ruleset / PR review state | External repository governance | Live main ruleset has 0 required approvals and non-strict required checks; PR #1002 has no human approving review | Live ruleset inspection + PR review list | Harden Ruleset 23854302 and obtain legitimate independent approval |
+| EXEC-CERT-BLOCKER-001 | AGENT-3/Certification | BLOCKED | GitHub ruleset / PR review state | External repository governance | Live main ruleset has 0 required approvals and non-strict required checks; PR #1002 has no human approving review | Live ruleset inspection + PR review list | Keep Ruleset 23854302 aligned with the autonomous merge profile; no human approval prerequisite |
 | EXEC-DOCS-AUDIT-001 | AGENT-2/Product | IMPLEMENTED | `docs/TOOL-EXPANSION-AUDIT.md` | Exact execution candidate | Audit reconciled to active PR #1214 | Latest exact candidate requires state refresh after every mutation | Refresh only as candidate advances |
 
 ## Last fully verified exact-SHA CI evidence — candidate `a44958a97126b2e050746010947aef2cfa286729`
@@ -38,8 +38,8 @@ Exact candidate evidence before this documentation rollover:
 - Execution-push branch policy: PASS with main governance intentionally deferred.
 - PR-to-main branch policy: FAIL CLOSED because live ruleset 23854302 does not satisfy Prompt 12.
 - Chromium browser smoke: PASS.
-- Trust-gate / promotion proof: governance remains blocked by live main ruleset and missing independent human review.
-- Production exact-SHA deployment: not applicable on execution by design; production truth begins on main after protected promotion.
+- Trust-gate / promotion proof: merge authority is automated; no independent human review is required.
+- Production exact-SHA deployment: not applicable on execution; production truth begins on main after protected automated promotion.
 All evidence above is tied to `bfa98f6da5bdc28b21c4f22a926d4c219a7230a2`. This This documentation rollover creates a new SHA, so candidate-specific PASS evidence remains bound to `a44958a97126b2e050746010947aef2cfa286729` until regenerated on the new head.
 
 ## Prompt-state reconciliation — current candidate

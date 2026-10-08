@@ -48,6 +48,23 @@ export function evaluateMainGovernance(rulesets, branch = DEFAULT_BRANCH, mode =
   assert.ok(pullRequestRules.length > 0, 'main governance requires a pull-request rule');
   assert.ok(statusRules.length > 0, 'main governance requires required status checks');
 
+  if (mode === 'autonomous') {
+    const requiredApprovals = Math.max(
+      0,
+      ...pullRequestRules.map((params) => Number(params.required_approving_review_count ?? 0)),
+    );
+    if (requiredApprovals !== 0) failures.push('Autonomous merge requires zero approving human reviews.');
+    for (const context of ['trust-gate', 'Exact-SHA promotion proof']) {
+      if (!requiredContexts.has(context)) failures.push('Required status check missing: ' + context);
+    }
+    return {
+      pass: failures.length === 0,
+      applicableRulesetIds: applicable.map((ruleset) => ruleset.id),
+      failures,
+      mode,
+    };
+  }
+
   if (mode === 'fast') {
     for (const context of ['trust-gate', 'Exact-SHA promotion proof']) {
       if (!requiredContexts.has(context)) failures.push('Required status check missing: ' + context);

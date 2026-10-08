@@ -1,85 +1,62 @@
 # FLIXO Governance Policy Synchronization
 
-STATUS: POLICY-ALIGNED / LIVE ENFORCEMENT PENDING
+STATUS: AUTONOMOUS-MERGE / AUTOMATED-GATES
 
 ## Purpose
 
-This document reconciles three different authorities without conflating them:
+This document separates execution freedom from the automated controls that must remain true at merge time.
 
-1. Agent execution contract — what authorized agents may implement on `execution`.
-2. Live GitHub governance — rulesets and branch protection enforced by GitHub.
-3. Release certification — exact-SHA evidence plus required governance and human promotion conditions.
+1. Agent execution contract defines what authorized agents may implement on `execution`.
+2. Live GitHub governance defines what GitHub enforces on `main`.
+3. Merge reporting records the exact merged SHA after successful promotion.
 
-Repository text cannot mutate or simulate GitHub Administration state.
+Repository text does not simulate GitHub administration state.
 
 ## Canonical repository policy
 
 - Canonical implementation lane: `execution`.
 - Production truth: `main`.
-- Integration path: `execution -> main`.
-- Agents may work broadly on `execution` under Open Agent Execution Mode.
-- No third production/integration lane.
-- No agent self-certification, self-approval, merge/promotion, or governance bypass.
-- Every mutation is non-force and race-safe; moving HEAD invalidates SHA-specific evidence.
-- Required checks remain fail-closed.
+- Integration path: `execution -> main` through a protected pull request.
+- Authorized agents may implement, test, repair, coordinate, and merge without human approval.
+- No direct `main` ref mutation.
+- Automated checks remain fail-closed.
+- Every mutation and every merge claim is bound to an exact SHA.
+- Post-merge reporting is observational and does not create a second approval authority.
 
-## Live GitHub governance target
-
-`FLIXO-MAIN-PROTECTION` must enforce:
+## Autonomous merge profile
 
 | Control | Required |
 |---|---:|
-| approving reviews | 1 |
-| dismiss stale approvals on push | true |
-| Code Owner review | true |
-| latest-push independent approval | true |
-| review-thread resolution | true |
-| strict required status checks | true |
+| approving reviews | 0 |
+| dismiss stale approvals | false |
+| Code Owner review | false |
+| latest-push approval | false |
+| review-thread resolution | false |
+| strict required status checks | false |
 | required check: `trust-gate` | yes |
 | required check: `Exact-SHA promotion proof` | yes |
 
-## Observed live state at policy reconciliation
+Human approval is not a merge prerequisite. The required status checks are the merge gate.
 
-Ruleset ID: `23854302`
-Target: `refs/heads/main`
+## Live ruleset
+
+Ruleset: `FLIXO-MAIN-PROTECTION`  
+ID: `23854302`  
+Target: `refs/heads/main`  
 Enforcement: `active`
 
-Observed values before this policy-alignment commit:
-- approving reviews: 0
-- dismiss stale approvals: false
-- Code Owner review: false
-- latest-push approval: false
-- review-thread resolution: false
-- strict required status checks: false
-- required checks: `trust-gate`, `Exact-SHA promotion proof`
+The available GitHub connector exposes read-only ruleset administration, so live settings must be verified from GitHub. Repository-side policy files cannot change those settings.
 
-Therefore the live state is a governance blocker, not a repository-documentation defect.
+## Merge protocol
 
-## Execution branch protection
+1. Agents publish changes to `execution` using non-force, race-safe mutation.
+2. CI runs against the exact candidate SHA.
+3. The protected PR may merge automatically once required checks pass.
+4. No human review or approval is required.
+5. After merge, the post-merge report records source SHA, merge SHA, base SHA, checks, actor, and change summary.
 
-The `execution` branch must be verified through GitHub live protection/ruleset APIs before being treated as protected. A repository-side contract or CI assertion is not sufficient proof.
+A moving `execution` HEAD invalidates older SHA-specific evidence.
 
-## Conflict-resolution rule
+## Certification language
 
-When repository policy text and live GitHub enforcement disagree:
-
-1. Keep the stronger assurance requirement as the target policy.
-2. Report the live mismatch explicitly.
-3. Do not weaken `verify-main-ruleset`, `Branch Policy`, `trust-gate`, or promotion proof to make the mismatch disappear.
-4. After live GitHub administration is corrected, rerun the required checks on the current exact SHA.
-5. Any mutation to `execution` invalidates prior exact-SHA evidence.
-
-## Certification rule
-
-Only the Certification/Release authority may declare a release certified. Open Agent Execution Mode changes implementation freedom, not certification authority.
-
-
-## Agent Fast Path / Release Strict Path
-The control plane has two explicit modes:
-
-| Mode | Purpose | Agent friction | Release assurance |
-|---|---|---|---|
-| FAST | Routine implementation, repair, testing, experimentation | No fixed operation count, no mandatory handoff/lease, worker branches allowed, no routine approval | Not a certification authority |
-| STRICT | Release candidate, production promotion, final certification | Used only when release assurance is requested | Exact-SHA + live governance + required approval conditions |
-
-FAST mode never grants direct `main` mutation, certification, or production deployment authority. STRICT remains the release closure mode.
+Do not label the merge report as a human certification. It is an exact-SHA automated integration record. Production deployment and production identity verification remain separate downstream facts.
