@@ -45,6 +45,35 @@ npm run build
 npm run test:e2e
 ```
 
+
+## See it before you build it
+
+Try the hosted project from the [FLIXO Hub web app](https://flixoai.vercel.app). For the governed developer surface, open [/developer](https://flixoai.vercel.app/developer).
+
+The core contribution loop is intentionally simple:
+
+```mermaid
+flowchart LR
+  A[Discover] --> B[Try]
+  B --> C[Choose an Issue]
+  C --> D[Contribute]
+  D --> E[Verify]
+  E --> F[Reuse]
+```
+
+The browser-local MVP boundary is documented in [the architecture and privacy documentation](docs/README.md). A remote execution provider is not claimed unless it has actually been configured and admitted by the platform contract.
+
+## Project signals
+
+- [CI](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/workflows/ci.yml)
+- [Open contributor issues](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+- [Help wanted](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)
+- [Discussions](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/discussions)
+
+## Support the project
+
+If FLIXO Hub solves a problem for you, consider [starring the repository](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub) so other developers can discover a maintained project with the same problem space. For questions, ideas, bugs, and contributions, use the public channels linked above.
+
 ## Who this is for
 
 FLIXO Hub is aimed at developers building privacy-sensitive browser workflows, deterministic file-processing tools, multi-agent development systems, or evidence-driven CI/CD and repository governance.
