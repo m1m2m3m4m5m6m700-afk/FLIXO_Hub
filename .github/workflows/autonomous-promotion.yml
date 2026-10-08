@@ -17,6 +17,7 @@ jobs:
     name: Ensure execution PR is auto-merge enabled
     if: >-
       github.repository == 'm1m2m3m4m5m6m700-afk/FLIXO_Hub' &&
+      github.event_name == 'push' &&
       github.ref == 'refs/heads/execution'
     runs-on: ubuntu-latest
     timeout-minutes: 10
