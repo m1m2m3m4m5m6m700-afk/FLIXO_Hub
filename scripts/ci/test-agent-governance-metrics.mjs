@@ -7,7 +7,7 @@ test('downgrade thresholds stay inactive below the 10-PR floor', () => {
     sampleSize: 9,
     buildSuccessRate: 0,
     regressions: 99,
-    rollbacks: 1,
+    rollbackRate: 1,
     rejectedReviewRate: 1,
   });
   assert.equal(result.ok, true);
@@ -20,7 +20,7 @@ test('downgrade triggers only on explicit threshold breaches', () => {
     sampleSize: 10,
     buildSuccessRate: 0.89,
     regressions: 0,
-    rollbacks: 0,
+    rollbackRate: 0,
     rejectedReviewRate: 0,
   });
   assert.equal(result.ok, true);
@@ -34,7 +34,7 @@ test('multiple threshold breaches are cumulative and deterministic', () => {
     sampleSize: 20,
     buildSuccessRate: 0.95,
     regressions: 3,
-    rollbacks: 0.15,
+    rollbackRate: 0.15,
     rejectedReviewRate: 0.31,
   });
   assert.equal(result.downgraded, true);
