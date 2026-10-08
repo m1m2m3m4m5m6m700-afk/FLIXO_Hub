@@ -24,13 +24,13 @@ test('admission gate is fail-closed and execution-scoped', () => {
 test('admission workflow is read-only, manual, exact-SHA, and invokes canonical governance', async () => {
   const workflow = await readFile(new URL('../../.github/workflows/agent-governance-admission.yml', import.meta.url), 'utf8');
   assert.match(workflow, /workflow_dispatch:/u);
-  assert.match(workflow, /contents:s*read/u);
-  assert.doesNotMatch(workflow, /contents:s*write/u);
-  assert.match(workflow, /ref: ${{ inputs.target_sha }}/u);
+  assert.match(workflow, /contents:\s*read/u);
+  assert.doesNotMatch(workflow, /contents:\s*write/u);
+  assert.match(workflow, /ref:\s*\$\{\{ inputs\.target_sha \}\}/u);
   assert.match(workflow, /git rev-parse HEAD.*TARGET_SHA|test "$(git rev-parse HEAD)" = "$TARGET_SHA"/su);
   assert.match(workflow, /scripts/ci/check-governance.sh/u);
-  assert.match(workflow, /POLICY_VERSION:s*"1.4.1"/u);
-  assert.match(workflow, /scope:s*EXECUTION/u);
+  assert.match(workflow, /POLICY_VERSION:\s*"1\.4\.1"/u);
+  assert.match(workflow, /scope:\s*EXECUTION/u);
   assert.match(workflow, /upload-artifact/u);
   assert.doesNotMatch(workflow, /pull_request:/u);
   assert.doesNotMatch(workflow, /push:/u);
