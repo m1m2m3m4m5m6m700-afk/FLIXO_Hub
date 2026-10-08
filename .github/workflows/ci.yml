@@ -110,6 +110,43 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  hub-stage1:
+    name: FLIXO Hub Stage 1 exact-SHA contract
+    needs: verify
+    if: ${{ needs.verify.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Verify exact SHA
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - name: Run explicit Hub Stage 1 contract
+        run: npm run test:hub
+      - name: Write exact-SHA Hub evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf 'HUB_STAGE1_SHA=%s\nHUB_STAGE1_TEST=PASS\n' "$EXPECTED_SHA" > hub-stage1-evidence.txt
+      - name: Upload exact-SHA Hub evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: flixo-hub-stage1-${{ github.run_id }}
+          path: hub-stage1-evidence.txt
+          if-no-files-found: error
+          retention-days: 30
+
   browser:
     name: Chromium browser smoke
     needs: verify
@@ -330,7 +367,7 @@ jobs:
 
   trust-gate:
     name: trust-gate
-    needs: [verify, browser, branch-policy, coverage, red-team, codeql, secret-scan, agent-watchdog, sensitive-path-gate]
+    needs: [verify, hub-stage1, browser, branch-policy, coverage, red-team, codeql, secret-scan, agent-watchdog, sensitive-path-gate]
     if: ${{ always() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -338,6 +375,7 @@ jobs:
       - name: Assert canonical CI gates are GREEN
         env:
           VERIFY_RESULT: ${{ needs.verify.result }}
+          HUB_STAGE1_RESULT: ${{ needs.hub-stage1.result }}
           BROWSER_RESULT: ${{ needs.browser.result }}
           COVERAGE_RESULT: ${{ needs.coverage.result }}
           RED_TEAM_RESULT: ${{ needs.red-team.result }}
@@ -349,6 +387,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$VERIFY_RESULT" = success
+          test "$HUB_STAGE1_RESULT" = success
           test "$BROWSER_RESULT" = success
           test "$COVERAGE_RESULT" = success
           test "$RED_TEAM_RESULT" = success

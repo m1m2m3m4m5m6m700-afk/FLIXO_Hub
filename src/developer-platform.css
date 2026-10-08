@@ -16,8 +16,8 @@
 .developer-platform-project-card span,.developer-platform-project-card small { color:#778796; }
 .developer-platform-project-card strong { font-size:1.15rem; }
 .developer-platform-tabs { display:flex; flex-wrap:wrap; gap:8px; padding:8px; margin-bottom:18px; border:1px solid #1e2d3a; border-radius:17px; background:rgba(8,14,20,.86); }
-.developer-platform-tabs button { min-height:42px; padding:0 13px; border:1px solid transparent; border-radius:11px; background:transparent; color:#93a2b0; cursor:pointer; }
-.developer-platform-tabs button:hover,.developer-platform-tabs button.is-active { border-color:#2b5866; background:rgba(103,232,249,.09); color:#dffaff; }
+.developer-platform-tabs button, .developer-platform-tabs a { min-height:42px; padding:0 13px; border:1px solid transparent; border-radius:11px; background:transparent; color:#93a2b0; cursor:pointer; }
+.developer-platform-tabs button:hover,.developer-platform-tabs button.is-active,.developer-platform-tabs a:hover,.developer-platform-tabs a.is-active { border-color:#2b5866; background:rgba(103,232,249,.09); color:#dffaff; }
 .developer-platform-grid { display:grid; grid-template-columns:minmax(0,1.55fr) minmax(280px,.7fr); gap:18px; }
 .developer-platform-main-card { padding:20px; }
 .developer-platform-card-heading { display:flex; justify-content:space-between; gap:16px; align-items:flex-end; margin-bottom:18px; }
@@ -56,3 +56,5 @@
 .developer-platform-field textarea{resize:vertical;min-height:130px}
 .developer-platform-field-wide{display:grid;margin-top:12px}
 .developer-platform-proposal-status{margin-top:14px;padding:12px;border:1px solid #294555;border-radius:11px;color:#bfeaf3;background:#0b1a22;font-weight:800}
+
+.developer-platform-tabs a{text-decoration:none;display:inline-flex;align-items:center;}

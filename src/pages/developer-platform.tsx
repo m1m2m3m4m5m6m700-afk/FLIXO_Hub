@@ -12,10 +12,10 @@ const COPY = {
     lead: 'مساحة واحدة للمشاريع والكود والتنفيذ والاختبارات والوكلاء وGitHub والمساهمات — مع بقاء كل تنفيذ حقيقي خلف حدود الصلاحية والتحقق وExact-SHA.',
     back: 'العودة إلى FLIXO Hub',
     project: 'المشروع الحالي',
-    projectName: 'FLIXO Hub',
-    branch: 'execution',
-    source: 'هوية المصدر',
-    sourceValue: 'Exact-SHA',
+    projectName: 'FLIXO Hub · مساحة محلية',
+    branch: 'جلسة المتصفح',
+    source: 'حالة المصدر',
+    sourceValue: 'Session-local',
     nav: ['Workspace', 'Repository', 'Execution', 'Verification', 'Agents', 'Contributions'],
     foundation: 'طبقة أساس',
     integrated: 'مُدمج',
@@ -43,10 +43,10 @@ const COPY = {
     lead: 'One surface for projects, code, execution, verification, agents, GitHub, and contributions — with every real mutation behind capability, scope, and exact-SHA controls.',
     back: 'Back to FLIXO Hub',
     project: 'Current project',
-    projectName: 'FLIXO Hub',
-    branch: 'execution',
-    source: 'Source identity',
-    sourceValue: 'Exact-SHA',
+    projectName: 'FLIXO Hub · browser-local workspace',
+    branch: 'Browser session',
+    source: 'Source state',
+    sourceValue: 'Session-local',
     nav: ['Workspace', 'Repository', 'Execution', 'Verification', 'Agents', 'Contributions'],
     foundation: 'Foundation',
     integrated: 'Integrated',
@@ -99,17 +99,24 @@ export function DeveloperPlatform({ locale }: { locale: Locale }) {
         </header>
 
         <nav className="developer-platform-tabs" aria-label={locale === 'ar' ? 'أقسام المنصة' : 'Platform sections'}>
-          {copy.nav.map((item, index) => (
-            index === 5 ? (
+          {copy.nav.map((item, index) => {
+            const target = [
+              '#platform-surface-workspace',
+              '#platform-surface-repository',
+              '#platform-surface-execution',
+              '#platform-surface-verification',
+              '#platform-surface-agents',
+            ][index];
+            return index === 5 ? (
               <Link key={item} to={locale === 'ar' ? '/developer/contributions' : '/en/developer/contributions'} className="developer-platform-tab-link">
                 {item}
               </Link>
             ) : (
-              <button key={item} type="button" className={index === 0 ? 'is-active' : ''} aria-pressed={index === 0}>
+              <a key={item} href={target} className={index === 0 ? 'is-active' : ''}>
                 {item}
-              </button>
-            )
-          ))}
+              </a>
+            );
+          })}
         </nav>
 
         <section className="developer-platform-grid" aria-labelledby="platform-capabilities-title">
@@ -123,7 +130,7 @@ export function DeveloperPlatform({ locale }: { locale: Locale }) {
             </div>
             <div className="developer-platform-capabilities">
               {PROGRAMMING_PLATFORM_CAPABILITIES.map((capability) => (
-                <article key={capability.id} className="developer-platform-capability">
+                <article id={"platform-surface-" + capability.family} key={capability.id} className="developer-platform-capability">
                   <div className="developer-platform-capability-top">
                     <span className="developer-platform-family">{capability.family}</span>
                     <span className={'developer-platform-state state-' + capability.state.toLowerCase()}>{stateLabel(capability.state, locale)}</span>
@@ -157,7 +164,7 @@ export function DeveloperPlatform({ locale }: { locale: Locale }) {
                 <Link to={locale === 'ar' ? '/developer/workspace' : '/en/developer/workspace'} className="developer-platform-button">
                   {copy.workspace}
                 </Link>
-                <Link to="/developer/contribute" className="developer-platform-secondary-button">
+                <Link to={locale === "ar" ? "/developer/contributions" : "/en/developer/contributions"} className="developer-platform-secondary-button">
                   {copy.contribute}
                 </Link>
                 <Link to={locale === 'ar' ? '/hub' : '/en/hub'} className="developer-platform-secondary-button">
