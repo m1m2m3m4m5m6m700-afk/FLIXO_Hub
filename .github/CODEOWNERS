@@ -24,3 +24,8 @@
 /src/server/admin/** @m1m2m3m4m5m6m700-afk
 /src/config/registry.ts @m1m2m3m4m5m6m700-afk
 /scripts/ci/** @m1m2m3m4m5m6m700-afk
+# v1.3 memory governance ownership
+/STATE.md @m1m2m3m4m5m6m700-afk
+/DECISIONS.md @m1m2m3m4m5m6m700-afk
+/MEMORY.md @m1m2m3m4m5m6m700-afk
+/docs/AGENT-LEAD-MEMORY-GOVERNANCE-v1.3-DRAFT.md @m1m2m3m4m5m6m700-afk
