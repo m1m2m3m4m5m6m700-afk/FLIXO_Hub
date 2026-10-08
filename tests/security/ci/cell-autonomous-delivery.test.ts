@@ -8,3 +8,22 @@ test("DONE requires implementation publication and exact SHA verification",()=>{
 test("HEAD drift preserves published work and requires verification again",()=>{let r=startAutonomousDelivery(task());r=recordAutonomousImplementation(r,B,["src/example.ts"]);r=recordAutonomousPublication(r,"execution",B);r=recordAutonomousVerification(r,B,B,r.changedPaths,r.changedPaths);r=reconcileAutonomousDelivery(r,C);assert.equal(r.state,"RECONCILING");assert.equal(r.publishedSha,B);assert.equal(r.verifiedSha,null);assert.equal(mustContinueAutonomousDelivery(r),true)});
 test("agent/session loss recovers the same task",()=>{let r=startAutonomousDelivery(task());r=recordAutonomousImplementation(r,B,["src/example.ts"]);r=recoverAutonomousDelivery(r,"AGENT-02","SESSION-2",B);assert.equal(r.taskId,"TASK-DELIVERY-1");assert.equal(r.agentId,"AGENT-02");assert.equal(r.implemented,true)});
 test("failures never silently discard implementation",()=>{let r=startAutonomousDelivery(task());r=recordAutonomousImplementation(r,B,["src/example.ts"]);r=recordAutonomousFailure(r,"EXTERNAL",true);assert.equal(r.state,"WORKING");r=recordAutonomousFailure(r,"SAFETY");assert.equal(r.state,"BLOCKED_SAFETY");assert.equal(mustContinueAutonomousDelivery(r),false)});
+
+import { CellRuntime } from "../../../packages/contracts/src/cell-runtime.ts";
+import { InMemoryAutonomousTaskDeliveryStore } from "../../../packages/contracts/src/cell-autonomous-delivery.ts";
+
+test("CellRuntime persists autonomous task delivery", () => {
+  const store=new InMemoryAutonomousTaskDeliveryStore();
+  const rt=new CellRuntime(() => 1000,{autoStart:false,deliveryStore:store});
+  rt.registerTask("TASK-RUNTIME-DELIVERY");
+  rt.transitionTask("TASK-RUNTIME-DELIVERY","READY");
+  rt.assignTask("TASK-RUNTIME-DELIVERY",{assignmentId:"A-RUNTIME",primaryAgentId:"AGENT-01",backupAgentId:"AGENT-02",verifierAgentId:null,escalationTargetAgentId:null,startingSha:A,currentSha:A},A);
+  rt.transitionTask("TASK-RUNTIME-DELIVERY","CLAIMED");
+  rt.transitionTask("TASK-RUNTIME-DELIVERY","RUNNING");
+  rt.registerAutonomousTaskDelivery({taskId:"TASK-RUNTIME-DELIVERY",agentId:"AGENT-01",sessionId:"S1",missionId:"M1",startSha:A,expectedOutput:"implementation",acceptanceDigest:"accept"});
+  rt.startTaskDelivery("TASK-RUNTIME-DELIVERY");
+  rt.recordTaskImplementation("TASK-RUNTIME-DELIVERY",B,["src/example.ts"]);
+  const restored=new CellRuntime(() => 1000,{autoStart:false,deliveryStore:store});
+  assert.equal(restored.getTaskDelivery("TASK-RUNTIME-DELIVERY").implemented,true);
+  assert.equal(restored.getTaskDelivery("TASK-RUNTIME-DELIVERY").candidateSha,B);
+});

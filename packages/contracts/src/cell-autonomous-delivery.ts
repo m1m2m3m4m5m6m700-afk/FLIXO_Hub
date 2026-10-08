@@ -4,11 +4,23 @@ export type AutonomousDeliveryState=(typeof AUTONOMOUS_DELIVERY_STATES)[number];
 export type DeliveryFailureKind="TRANSIENT"|"EXTERNAL"|"SAFETY";
 export type AutonomousTaskDelivery=Readonly<{
   taskId:string; agentId:string; sessionId:string; missionId:string;
-  startSha:string; currentSha:string; publishedSha:string|null; verifiedSha:string|null;
+  startSha:string; currentSha:string; candidateSha:string|null; publishedSha:string|null; verifiedSha:string|null;
   changedPaths:readonly string[]; expectedOutput:string; acceptanceDigest:string;
   state:AutonomousDeliveryState; attempt:number; maxAttempts:number;
   implemented:boolean; humanApprovalRequired:false;
 }>;
+export interface AutonomousTaskDeliveryStore {
+  read(taskId:string):AutonomousTaskDelivery|null;
+  write(record:AutonomousTaskDelivery):void;
+  list():readonly AutonomousTaskDelivery[];
+}
+
+export class InMemoryAutonomousTaskDeliveryStore implements AutonomousTaskDeliveryStore {
+  private readonly records=new Map<string,AutonomousTaskDelivery>();
+  read(taskId:string){return this.records.get(taskId)??null;}
+  write(record:AutonomousTaskDelivery){this.records.set(record.taskId,record);}
+  list(){return Object.freeze([...this.records.values()]);}
+}
 const SHA=/^[0-9a-f]{40}$/iu;
 const NEXT:Readonly<Record<AutonomousDeliveryState,readonly AutonomousDeliveryState[]>>=Object.freeze({
   ADMITTED:["WORKING","BLOCKED_EXTERNAL","BLOCKED_SAFETY"],
@@ -22,7 +34,7 @@ const freeze=(r:AutonomousTaskDelivery)=>Object.freeze({...r,changedPaths:Object
 export function createAutonomousTaskDelivery(i:Readonly<{taskId:string;agentId:string;sessionId:string;missionId:string;startSha:string;expectedOutput:string;acceptanceDigest:string;maxAttempts?:number}>):AutonomousTaskDelivery{
   for(const [k,v] of Object.entries({taskId:i.taskId,agentId:i.agentId,sessionId:i.sessionId,missionId:i.missionId,expectedOutput:i.expectedOutput,acceptanceDigest:i.acceptanceDigest})) if(!String(v??"").trim()) throw new Error(k.toUpperCase()+"_REQUIRED");
   if(!SHA.test(i.startSha)) throw new Error("START_SHA_INVALID");
-  return freeze({taskId:i.taskId,agentId:i.agentId,sessionId:i.sessionId,missionId:i.missionId,startSha:i.startSha,currentSha:i.startSha,publishedSha:null,verifiedSha:null,changedPaths:[],expectedOutput:i.expectedOutput,acceptanceDigest:i.acceptanceDigest,state:"ADMITTED",attempt:0,maxAttempts:Math.min(3,Math.max(1,Math.floor(i.maxAttempts??3))),implemented:false,humanApprovalRequired:false});
+  return freeze({taskId:i.taskId,agentId:i.agentId,sessionId:i.sessionId,missionId:i.missionId,startSha:i.startSha,currentSha:i.startSha,candidateSha:null,publishedSha:null,verifiedSha:null,changedPaths:[],expectedOutput:i.expectedOutput,acceptanceDigest:i.acceptanceDigest,state:"ADMITTED",attempt:0,maxAttempts:Math.min(3,Math.max(1,Math.floor(i.maxAttempts??3))),implemented:false,humanApprovalRequired:false});
 }
 function transition(r:AutonomousTaskDelivery,s:AutonomousDeliveryState):AutonomousTaskDelivery{
   if(!(NEXT[r.state]??[]).includes(s)) throw new Error("INVALID_DELIVERY_TRANSITION:"+r.state+"->"+s);
@@ -33,7 +45,7 @@ export function recordAutonomousImplementation(r:AutonomousTaskDelivery,sha:stri
   if(!["WORKING","RECONCILING","RECOVERING"].includes(r.state)) throw new Error("IMPLEMENTATION_NOT_ALLOWED");
   if(!SHA.test(sha)) throw new Error("CANDIDATE_SHA_INVALID");
   if(!paths.length||paths.some(p=>!p.trim()||p.startsWith("/")||p.includes(".."))) throw new Error("IMPLEMENTATION_PATHS_REQUIRED");
-  return freeze({...r,currentSha:sha,publishedSha:null,verifiedSha:null,changedPaths:[...paths],implemented:true});
+  return freeze({...r,candidateSha:sha,publishedSha:null,verifiedSha:null,changedPaths:[...paths],implemented:true});
 }
 export function reconcileAutonomousDelivery(r:AutonomousTaskDelivery,liveSha:string){
   if(!SHA.test(liveSha)) throw new Error("LIVE_SHA_INVALID");

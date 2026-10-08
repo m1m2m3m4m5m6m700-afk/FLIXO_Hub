@@ -24,6 +24,20 @@ import {
   type ExecutionIdentityProbe,
   type ProgressMetrics,
 } from "./cell-hard-control";
+import {
+  createAutonomousTaskDelivery,
+  startAutonomousDelivery,
+  recordAutonomousImplementation,
+  reconcileAutonomousDelivery,
+  recordAutonomousPublication,
+  recordAutonomousVerification,
+  recoverAutonomousDelivery,
+  recordAutonomousFailure,
+  isAutonomousDeliveryComplete,
+  type AutonomousTaskDelivery,
+  type AutonomousTaskDeliveryStore,
+  InMemoryAutonomousTaskDeliveryStore,
+} from "./cell-autonomous-delivery";
 import { CellLivenessRuntime, type CellLivenessOptions, type CellLivenessSnapshot, type CellLivenessTaskRecord } from "./cell-liveness";
 import { CellLifecycleRuntime, type CellAdmissionEnvelope, type CellAdmissionRecord, type CellArbitrationRecord, type CellCandidateHandoff, type CellCertificationRecord, type CellClaim, type CellCounterclaim, type CellEvidence, type CellFrontierProposal, type CellLearningInput, type CellPromotionRecord, type CellRedTeamRecord, type CellReconciliationRecord, type CellVerificationRecord } from "./cell-lifecycle";
 import {
@@ -131,6 +145,8 @@ export class CellRuntime {
   private readonly budgets = new Map<string, RuntimeBudget>();
   private readonly actions: RuntimeActionRecord[] = [];
   private readonly claimedOperations = new Set<string>();
+  private readonly deliveries = new Map<string, AutonomousTaskDelivery>();
+  private readonly deliveryStore: AutonomousTaskDeliveryStore;
   private readonly clock: () => number;
   private opponentStartSequence = 0;
   private readonly opponentIndependentStarts = new Map<string, OpponentIndependentStartProof>();
@@ -140,11 +156,12 @@ export class CellRuntime {
 
   constructor(
     clock: () => number = () => Date.now(),
-    livenessOptions: Omit<CellLivenessOptions, "clock"> & { autoStart?: boolean } = {},
+    livenessOptions: Omit<CellLivenessOptions, "clock"> & { autoStart?: boolean; deliveryStore?: AutonomousTaskDeliveryStore } = {},
   ) {
     this.clock = clock;
     this.cellLifecycle = new CellLifecycleRuntime(this.clock);
-    const { autoStart = true, ...runtimeLivenessOptions } = livenessOptions;
+    const { autoStart = true, deliveryStore = new InMemoryAutonomousTaskDeliveryStore(), ...runtimeLivenessOptions } = livenessOptions;
+    this.deliveryStore = deliveryStore;
     const onWake = runtimeLivenessOptions.onWake ?? ((_reason, generation) => "cell-worker-" + generation);
     this.cellLiveness = new CellLivenessRuntime({
       ...runtimeLivenessOptions,
@@ -189,6 +206,8 @@ export class CellRuntime {
     if (expectedVersion !== undefined && current.version !== expectedVersion) {
       throw new Error("TASK_VERSION_CONFLICT");
     }
+    const delivery=this.deliveries.get(taskId)??this.deliveryStore.read(taskId);
+    if(delivery&&to==="ABANDONED"&&!["DONE","BLOCKED_EXTERNAL","BLOCKED_SAFETY"].includes(delivery.state)) throw new Error("DELIVERY_MUST_CONTINUE");
     assertTransition("TASK", current.state, to);
     const next = Object.freeze({
       ...current,
@@ -257,6 +276,75 @@ export class CellRuntime {
     this.tasks.set(taskId, next);
     this.observeTaskForLiveness(next);
     return next;
+  }
+
+  private saveAutonomousDelivery(record: AutonomousTaskDelivery): AutonomousTaskDelivery {
+    this.deliveries.set(record.taskId, record);
+    this.deliveryStore.write(record);
+    return record;
+  }
+
+  registerAutonomousTaskDelivery(input: Readonly<{
+    taskId:string; agentId:string; sessionId:string; missionId:string; startSha:string;
+    expectedOutput:string; acceptanceDigest:string; maxAttempts?:number;
+  }>): AutonomousTaskDelivery {
+    const task=this.getTask(input.taskId);
+    if(!["READY","CLAIMED","RUNNING"].includes(task.state)) throw new Error("DELIVERY_REQUIRES_ASSIGNED_TASK");
+    if(this.deliveries.has(input.taskId)||this.deliveryStore.read(input.taskId)) throw new Error("DELIVERY_ALREADY_REGISTERED");
+    return this.saveAutonomousDelivery(createAutonomousTaskDelivery(input));
+  }
+
+  getTaskDelivery(taskId:string): AutonomousTaskDelivery {
+    const current=this.deliveries.get(taskId);
+    if(current) return current;
+    const stored=this.deliveryStore.read(taskId);
+    if(!stored) throw new Error("DELIVERY_NOT_FOUND");
+    this.deliveries.set(taskId,stored);
+    return stored;
+  }
+
+  startTaskDelivery(taskId:string): AutonomousTaskDelivery {
+    const task=this.getTask(taskId);
+    if(!["CLAIMED","RUNNING"].includes(task.state)) throw new Error("DELIVERY_START_REQUIRES_ASSIGNED_TASK");
+    return this.saveAutonomousDelivery(startAutonomousDelivery(this.getTaskDelivery(taskId)));
+  }
+
+  recordTaskImplementation(taskId:string,candidateSha:string,changedPaths:readonly string[]):AutonomousTaskDelivery {
+    return this.saveAutonomousDelivery(recordAutonomousImplementation(this.getTaskDelivery(taskId),candidateSha,changedPaths));
+  }
+
+  reconcileTaskDelivery(taskId:string,liveSha:string):AutonomousTaskDelivery {
+    return this.saveAutonomousDelivery(reconcileAutonomousDelivery(this.getTaskDelivery(taskId),liveSha));
+  }
+
+  publishTaskDelivery(taskId:string,publishedSha:string):AutonomousTaskDelivery {
+    return this.saveAutonomousDelivery(recordAutonomousPublication(this.getTaskDelivery(taskId),"execution",publishedSha));
+  }
+
+  verifyTaskDelivery(taskId:string,verifiedSha:string,liveSha:string,requiredPaths:readonly string[],observedPaths:readonly string[]):AutonomousTaskDelivery {
+    const record=this.saveAutonomousDelivery(recordAutonomousVerification(this.getTaskDelivery(taskId),verifiedSha,liveSha,requiredPaths,observedPaths));
+    const task=this.getTask(taskId);
+    if(record.state==="DONE"&&task.state==="RUNNING") this.transitionTask(taskId,"VERIFYING");
+    if(record.state==="DONE"&&task.state==="VERIFYING") this.transitionTask(taskId,"VERIFIED");
+    return record;
+  }
+
+  recoverTaskDelivery(taskId:string,agentId:string,sessionId:string,currentSha:string):AutonomousTaskDelivery {
+    return this.saveAutonomousDelivery(recoverAutonomousDelivery(this.getTaskDelivery(taskId),agentId,sessionId,currentSha));
+  }
+
+  failTaskDelivery(taskId:string,kind:"TRANSIENT"|"EXTERNAL"|"SAFETY",retryable=true):AutonomousTaskDelivery {
+    return this.saveAutonomousDelivery(recordAutonomousFailure(this.getTaskDelivery(taskId),kind,retryable));
+  }
+
+  isTaskDeliveryComplete(taskId:string,liveSha:string):boolean {
+    return isAutonomousDeliveryComplete(this.getTaskDelivery(taskId),liveSha);
+  }
+
+  restoreAutonomousDeliveries():readonly AutonomousTaskDelivery[] {
+    const records=this.deliveryStore.list();
+    for(const record of records) this.deliveries.set(record.taskId,record);
+    return Object.freeze([...records]);
   }
 
   claimIdempotentOperation(operationKey: string): boolean {

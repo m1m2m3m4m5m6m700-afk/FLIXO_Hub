@@ -1,9 +1,7 @@
 name: Agent Watchdog CI / Security integration
 
 on:
-  push:
-    branches:
-      - execution
+  workflow_call:
   workflow_dispatch:
 
 permissions:
