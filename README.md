@@ -4,7 +4,6 @@ FLIXO Hub is an open-source, browser-first AI toolbox and governed developer pla
 
 [![CI](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/workflows/ci.yml)
 [![Security](https://img.shields.io/badge/security-CodeQL%20%7C%20secret%20scan%20%7C%20red--team-informational)](SECURITY.md)
-[![License](https://img.shields.io/badge/license-see%20repository-informational)](LICENSE)
 
 ## What is FLIXO Hub?
 
@@ -51,6 +50,10 @@ FLIXO Hub is aimed at developers building privacy-sensitive browser workflows, d
 ## Contributing
 
 Start with [CONTRIBUTING.md](CONTRIBUTING.md), then inspect the current repository contracts and CI gates before changing execution or governance code.
+
+## Licensing
+
+The repository does not currently declare a software license. Until a license is added, treat the source as available for inspection but not automatically reusable under an open-source license.
 
 ## Security
 
