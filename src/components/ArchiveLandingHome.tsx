@@ -129,6 +129,7 @@ export function ArchiveLandingHome({ locale = 'en' }: { locale?: 'en' | 'ar' }) 
             <button type="button" aria-label={locale === 'ar' ? 'تبديل المظهر' : 'Toggle theme'} onClick={() => setDark((v) => !v)} className="grid size-9 place-items-center rounded-xl text-muted-foreground hover:bg-surface hover:text-foreground">
               {dark ? <Sun className="size-4" /> : <Moon className="size-4" />}
             </button>
+            <Link to={locale === 'ar' ? '/developer' : '/en/developer'} className="hidden rounded-xl border border-border px-4 py-2 text-sm font-semibold text-foreground sm:inline-flex hover:border-primary/40">{locale === 'ar' ? 'منصة البرمجة' : 'Developer Platform'}</Link>
             <Link to={translatorPath} className="hidden rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground sm:inline-flex">{locale === 'ar' ? 'فتح المترجم' : 'Open translator'}</Link>
             <button type="button" aria-label={locale === 'ar' ? 'تبديل القائمة' : 'Toggle menu'} onClick={() => setMenuOpen((v) => !v)} className="grid size-9 place-items-center rounded-xl text-muted-foreground hover:bg-surface hover:text-foreground md:hidden">
               {menuOpen ? <X className="size-4" /> : <Menu className="size-4" />}
@@ -141,6 +142,7 @@ export function ArchiveLandingHome({ locale = 'en' }: { locale?: 'en' | 'ar' }) 
               <button onClick={() => scrollTo('categories')} className="rounded-lg px-3 py-2 text-start text-sm text-muted-foreground hover:bg-surface hover:text-foreground">{locale === 'ar' ? 'الأدوات' : 'Tools'}</button>
               <button onClick={() => scrollTo('why')} className="rounded-lg px-3 py-2 text-start text-sm text-muted-foreground hover:bg-surface hover:text-foreground">Why Flixo</button>
               <button onClick={() => scrollTo('faq')} className="rounded-lg px-3 py-2 text-start text-sm text-muted-foreground hover:bg-surface hover:text-foreground">FAQ</button>
+              <Link to={locale === 'ar' ? '/developer' : '/en/developer'} onClick={() => setMenuOpen(false)} className="rounded-xl border border-border px-4 py-2 text-center text-sm font-semibold hover:border-primary/40">{locale === 'ar' ? 'منصة البرمجة' : 'Developer Platform'}</Link>
               <Link to={translatorPath} onClick={() => setMenuOpen(false)} className="mt-2 rounded-xl bg-primary px-4 py-2 text-center text-sm font-semibold text-primary-foreground">Open translator</Link>
             </div>
           </nav>
