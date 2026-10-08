@@ -60,7 +60,8 @@
     "test:cell-commit-attribution": "node --test tests/security/ci/cell-commit-attribution.test.mjs",
     "test:loop-guard": "bash tests/security/ci/loop-guard.test.sh",
     "test:cell-autonomous-delivery": "node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/security/ci/cell-autonomous-delivery.test.ts",
-    "test:hub": "node --test tests/hub-stage1-contract.test.mjs"
+    "test:hub": "node --test tests/hub-stage1-contract.test.mjs",
+    "test:programming-platform": "node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/developer-platform-contract.test.ts"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",
