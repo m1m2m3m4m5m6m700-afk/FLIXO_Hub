@@ -1,0 +1,171 @@
+name: FLIXO Continuous Discovery
+
+on:
+  schedule:
+    - cron: "17 2 * * *"
+  workflow_dispatch:
+  push:
+    branches: [execution]
+    paths:
+      - '.agent-intelligence/scouts/**'
+      - '.agent-intelligence/scripts/**'
+      - '.agent-intelligence/schemas/**'
+      - 'tests/agent-intelligence/**'
+      - '.github/agents/flixo-scout-*.agent.md'
+      - 'الوكلاء/المستكشفين/**'
+      - 'scripts/verify-scout-boundary.mjs'
+      - 'scripts/verify-infinite-discovery.mjs'
+      - 'tests/security/ci/scout-boundary.test.mjs'
+      - 'tests/security/ci/scout-package-location.test.mjs'
+      - '.github/workflows/continuous-discovery.yml'
+  pull_request:
+    branches: [execution]
+    paths:
+      - ".agent-intelligence/**"
+      - ".github/agents/flixo-scout-*.agent.md"
+      - "scripts/verify-scout-boundary.mjs"
+      - "tests/security/ci/scout-boundary.test.mjs"
+
+concurrency:
+  group: flixo-continuous-discovery-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    if: ${{ github.event_name == 'pull_request' }}
+    name: Discovery contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Fail-closed invocation boundary
+        env:
+          REPOSITORY: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          ACTOR: ${{ github.actor }}
+          BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$REPOSITORY" = "m1m2m3m4m5m6m700-afk/FLIXO_Hub"
+          test "$EVENT_NAME" = "pull_request"
+          test "$BASE_BRANCH" = "execution"
+          test "$HEAD_REPO" = "$REPOSITORY"
+          [[ "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$REF" = "refs/pull/${{ github.event.pull_request.number }}/merge"
+
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Verify infinite discovery contract
+        run: node scripts/verify-infinite-discovery.mjs
+      - name: Verify Scout boundary
+        run: node scripts/verify-scout-boundary.mjs
+      - name: Python syntax checks
+        run: python3 -m py_compile .agent-intelligence/scripts/fetch_snapshot.py .agent-intelligence/scripts/run_scouts.py
+      - name: Discovery unit tests
+        run: python3 -m unittest discover -s tests/agent-intelligence -p 'test_*.py'
+      - name: Scout boundary regression tests
+        run: node --test tests/security/ci/scout-boundary.test.mjs
+
+  discover:
+    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'push' }}
+    name: Append-only Scouts
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - name: Fail-closed non-PR invocation boundary
+        if: ${{ github.event_name != 'pull_request' }}
+        env:
+          REPOSITORY: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          ACTOR: ${{ github.actor }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$REPOSITORY" = "m1m2m3m4m5m6m700-afk/FLIXO_Hub"
+          case "$EVENT_NAME" in
+            push) test "$REF" = "refs/heads/execution" ;;
+            workflow_dispatch) test "$REF" = "refs/heads/execution"; test "$ACTOR" = "m1m2m3m4m5m6m700-afk" ;;
+            schedule) ;;
+            *) echo "FAIL_CLOSED: unsupported discovery event"; exit 1 ;;
+          esac
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Pin exact execution base
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            EXECUTION_SHA="$GITHUB_SHA"
+          else
+            git fetch origin execution --no-tags
+            EXECUTION_SHA="$(git rev-parse origin/execution)"
+            git switch --detach "$EXECUTION_SHA"
+          fi
+          [[ "$EXECUTION_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$EXECUTION_SHA" 
+          git switch --create "scout/discovery-$GITHUB_RUN_ID"
+          echo "EXECUTION_SHA=$EXECUTION_SHA" >> "$GITHUB_ENV"
+      - name: Run infinite Scouts and snapshots
+        run: python3 .agent-intelligence/scripts/run_scouts.py
+      - name: Validate generated proposals with Agent-2 validator
+        run: python3 .agent-intelligence/scripts/validate.py --all
+      - name: Verify mutation boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHANGED="$(git -c core.quotePath=false diff --name-only "$EXECUTION_SHA" --)"
+          while IFS= read -r path; do
+            [ -z "$path" ] && continue
+            case "$path" in
+              "الوكلاء/التقارير/AGENT-08 — Architecture Scout/"*.yaml|"الوكلاء/التقارير/AGENT-09 — Technology Scout/"*.yaml|"الوكلاء/التقارير/AGENT-10 — Ecosystem Scout/"*.yaml|.agent-intelligence/snapshots/*.json|.agent-intelligence/snapshots/*.raw|.agent-intelligence/snapshots/*.txt) ;;
+              *) echo "FAIL_CLOSED: forbidden discovery mutation: $path"; exit 1 ;;
+            esac
+          done <<< "$CHANGED"
+      - name: Run discovery tests
+        run: python3 -m unittest discover -s tests/agent-intelligence -p 'test_*.py'
+      - name: Reconcile execution before publication
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin execution --no-tags
+          test "$(git rev-parse origin/execution)" = "$EXECUTION_SHA" || { echo "FAIL_CLOSED: execution moved during discovery."; exit 1; }
+      - name: Append-only scout branch publication
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git add "الوكلاء/التقارير/AGENT-08 — Architecture Scout" "الوكلاء/التقارير/AGENT-09 — Technology Scout" "الوكلاء/التقارير/AGENT-10 — Ecosystem Scout" .agent-intelligence/snapshots
+          git -c core.quotePath=false diff --cached --name-only | while IFS= read -r path; do
+            case "$path" in
+              "الوكلاء/التقارير/AGENT-08 — Architecture Scout/"*.yaml|"الوكلاء/التقارير/AGENT-09 — Technology Scout/"*.yaml|"الوكلاء/التقارير/AGENT-10 — Ecosystem Scout/"*.yaml|.agent-intelligence/snapshots/*.json|.agent-intelligence/snapshots/*.raw|.agent-intelligence/snapshots/*.txt) ;;
+              *) echo "FAIL_CLOSED: staged path outside discovery outputs: $path"; exit 1 ;;
+            esac
+          done
+          if git diff --cached --quiet; then
+            echo "No discovery changes."
+            exit 0
+          fi
+          git config user.name "FLIXO Discovery Bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(discovery): append scout findings [$(printf '%.12s' "$EXECUTION_SHA")]"
+          git remote set-url origin "https://x-access-token:$GITHUB_TOKEN@github.com/$GITHUB_REPOSITORY.git"
+          git push origin "HEAD:scout/discovery-$GITHUB_RUN_ID"
+      - name: Assert no main target
+        run: test "scout/discovery-$GITHUB_RUN_ID" != "main"

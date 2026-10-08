@@ -10,6 +10,14 @@ const REPOSITORY = 'm1m2m3m4m5m6m700-afk/FLIXO_Hub';
 const BRANCH = 'execution';
 const CONTROLLER = 'assistantController';
 const SHA_RE = /^[0-9a-f]{40}$/;
+const CANONICAL_GIT_REMOTE = 'https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub.git';
+const SENSITIVE_REPO_PATHS = [
+  /^\.github(?:\/|$)/u, /^scripts\/ci(?:\/|$)/u, /^supabase(?:\/|$)/u,
+  /^package(?:\.json|-lock\.json)$/u, /^\.npmrc$/u, /^\.env(?:\.|$)/u,
+  /^wrangler\.jsonc$/u, /^vercel\.json$/u, /^SECURITY\.md$/u, /^AGENTS\.md$/u,
+  /^المهام\.md$/u, /^الوكلاء(?: AI)?\.md$/u,
+];
+const SENSITIVE_ENV_KEY = /(?:TOKEN|SECRET|PASSWORD|PRIVATE|API_KEY|ACCESS_KEY|CLIENT_SECRET|CREDENTIAL|SUPABASE|CLOUDFLARE|TESTSPRITE|GITHUB_|ACTIONS_|RUNNER_)/iu;
 
 function assertSha(value, label) {
   if (!SHA_RE.test(value ?? '')) throw new Error(`CONTROLLER_INVALID_${label.toUpperCase()}_SHA`);
@@ -67,19 +75,20 @@ async function getQueue(queueId) {
     patchSha256: row.patch_sha256,
     patchText: row.patch_text ?? '',
     paths: Array.isArray(row.paths) ? row.paths : [],
+    taskId: row.task_id ?? '',
   });
   return row;
 }
 
 function refreshExecutionRef() {
-  execFileSync('git', ['fetch', '--no-tags', 'origin', `+refs/heads/${BRANCH}:refs/remotes/origin/${BRANCH}`], {
+  execFileSync('git', ['fetch', '--no-tags', CANONICAL_GIT_REMOTE, `+refs/heads/${BRANCH}:refs/remotes/origin/${BRANCH}`], {
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 }
 
 async function liveHead() {
-  const output = execFileSync('git', ['ls-remote', 'origin', `refs/heads/${BRANCH}`], { encoding: 'utf8' }).trim();
+  const output = execFileSync('git', ['ls-remote', CANONICAL_GIT_REMOTE, `refs/heads/${BRANCH}`], { encoding: 'utf8' }).trim();
   const sha = output.split(/\s+/)[0] ?? '';
   assertSha(sha, 'live_head');
   return sha;
@@ -87,6 +96,21 @@ async function liveHead() {
 
 function stablePatchHash(patchText) {
   return createHash('sha256').update(patchText, 'utf8').digest('hex');
+}
+
+export function sanitizeUntrustedEnv(input = process.env) {
+  const output = {};
+  for (const [key, value] of Object.entries(input)) {
+    if (SENSITIVE_ENV_KEY.test(key)) continue;
+    output[key] = value;
+  }
+  delete output.GIT_CONFIG_COUNT; delete output.GIT_CONFIG_KEY_0; delete output.GIT_CONFIG_VALUE_0;
+  delete output.GIT_CONFIG_KEY_1; delete output.GIT_CONFIG_VALUE_1;
+  return output;
+}
+
+export function isSensitiveRepositoryPath(path) {
+  return SENSITIVE_REPO_PATHS.some((pattern) => pattern.test(path));
 }
 
 function assertControllerContext() {
@@ -192,19 +216,46 @@ async function persistReconciliation(queueId, row, current, result, candidateSha
 }
 
 function verifyWorktree(worktree) {
+  const safeEnv = sanitizeUntrustedEnv();
   git(['diff', '--check'], worktree);
-  execFileSync('npm', ['ci', '--no-audit', '--no-fund'], { cwd: worktree, encoding: 'utf8', stdio: 'inherit' });
-  execFileSync('npm', ['test'], { cwd: worktree, encoding: 'utf8', stdio: 'inherit' });
-  execFileSync('npm', ['run', 'build'], { cwd: worktree, encoding: 'utf8', stdio: 'inherit' });
+  execFileSync('npm', ['ci', '--ignore-scripts', '--no-audit', '--no-fund'], { cwd: worktree, env: safeEnv, encoding: 'utf8', stdio: 'inherit' });
+  execFileSync('npm', ['test'], { cwd: worktree, env: safeEnv, encoding: 'utf8', stdio: 'inherit' });
+  execFileSync('npm', ['run', 'build'], { cwd: worktree, env: safeEnv, encoding: 'utf8', stdio: 'inherit' });
+}
+
+export function parsePorcelainV1ZStatus(raw) {
+  const fields = String(raw ?? '').split('\0').filter(Boolean);
+  const paths = [];
+  for (let index = 0; index < fields.length; index += 1) {
+    const record = fields[index];
+    if (record.length < 4) continue;
+    const path = record.slice(3);
+    paths.push(path);
+    const status = record.slice(0, 2);
+    if (/[RC]/u.test(status)) {
+      const original = fields[index + 1];
+      if (original) {
+        paths.push(original);
+        index += 1;
+      }
+    }
+  }
+  return [...new Set(paths)];
 }
 
 function createCandidateCommit(worktree, targetSha, message, allowedPaths) {
-  const statusLines = git(['status', '--short'], worktree).split('\n').filter(Boolean);
-  if (statusLines.length === 0) throw new Error('CONTROLLER_NO_RECONCILED_CHANGES');
+  const statusPaths = parsePorcelainV1ZStatus(
+    execFileSync('git', ['status', '--porcelain=v1', '-z', '--untracked-files=all'], {
+      cwd: worktree,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    }),
+  );
+  if (statusPaths.length === 0) throw new Error('CONTROLLER_NO_RECONCILED_CHANGES');
   const allowed = new Set(allowedPaths);
   if (!allowed.size) throw new Error('CONTROLLER_ALLOWED_PATHS_EMPTY');
-  for (const line of statusLines) {
-    const path = line.slice(3).trim().replace(/^"|"$/g, '');
+  for (const path of statusPaths) {
+    if (isSensitiveRepositoryPath(path)) throw new Error(`CONTROLLER_SENSITIVE_PATH_FORBIDDEN:${path}`);
     if (!allowed.has(path)) throw new Error(`CONTROLLER_OUT_OF_SCOPE_CHANGE:${path}`);
   }
 
@@ -248,10 +299,17 @@ async function publish(queueId, worktree, targetSha, candidateSha) {
   }
 
   try {
-    execFileSync('git', ['push', '--porcelain', 'origin', `HEAD:refs/heads/${BRANCH}`], {
+    const { token } = config();
+    execFileSync('git', ['push', '--porcelain', CANONICAL_GIT_REMOTE, `HEAD:refs/heads/${BRANCH}`], {
       cwd: worktree,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
+      env: {
+        ...process.env,
+        GIT_CONFIG_COUNT: '1',
+        GIT_CONFIG_KEY_0: 'http.extraheader',
+        GIT_CONFIG_VALUE_0: `AUTHORIZATION: bearer ${token}`,
+      },
     });
   } catch (error) {
     const detail = String(error?.stderr ?? error?.message ?? error).slice(0, 2000);

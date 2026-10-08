@@ -30,6 +30,12 @@ const relaxedRuleset = {
   ]
 };
 
+test('AUTONOMOUS governance accepts zero-review merge controls', () => {
+  const result = evaluateMainGovernance([relaxedRuleset], 'main', 'autonomous');
+  assert.equal(result.pass, true);
+  assert.equal(result.mode, 'autonomous');
+});
+
 test('FAST governance accepts relaxed development review controls', () => {
   const result = evaluateMainGovernance([relaxedRuleset], 'main', 'fast');
   assert.equal(result.pass, true);

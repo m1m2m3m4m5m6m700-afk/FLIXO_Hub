@@ -84,3 +84,84 @@ export function createContractFailure(
 ): NonNullable<ToolResult["error"]> {
   return Object.freeze({ code, message, retryable });
 }
+
+export {
+  CELL_CONTRACT_VERSION,
+  TASK_STATES as CELL_TASK_STATES,
+  type TaskState as CellTaskState,
+  AGENT_STATES,
+  type AgentState,
+  CANDIDATE_STATES,
+  type CandidateState,
+  type CellEntity,
+  canTransition,
+  assertTransition,
+  type Lease,
+  isLeaseLive,
+  assertLeaseOwner,
+  type RetryDecision,
+  decideRetry,
+  type EvidenceRecord,
+  isEvidenceCurrent,
+  classifyEvidence as classifyCellEvidence,
+  type PromotionGate,
+  canPromote,
+  type MemoryRecord,
+  isMemoryActionable,
+  type WakeDecision,
+  guardianDecision,
+  type FrontierInput,
+  scoreFrontier,
+} from "./cell-control-plane";
+export * from "./cell-runtime";
+export * from "./cell-assignment";
+export * from "./cell-hard-control";
+export * from "./agent-learning";
+export * from "./cell-lifecycle";
+export * from "./cell-liveness";
+
+export {
+  POLICY_KERNEL_VERSION,
+  POLICY_KERNEL_RULES,
+  POLICY_KERNEL_CANONICAL_JSON,
+  POLICY_KERNEL_HASH,
+  POLICY_AUTHORITY_MODEL,
+  authorizePolicyAction,
+  assertPolicyActionAuthorized,
+  computeSha256Hex,
+  computePolicyKernelHash,
+  verifyPolicyKernelIntegrity,
+  CANDIDATE_INTERFACE_VERSION,
+  CANDIDATE_INTERFACE_SPEC,
+  CANDIDATE_INTERFACE_CANONICAL_JSON,
+  CANDIDATE_INTERFACE_DIGEST,
+  validateMissionAdmission,
+  validateCandidateAdmission,
+  assertCandidateAdmission,
+  DOWNSTREAM_GATES,
+  invalidateAfterCandidateShaChange,
+  validateEvidenceProvenance,
+  classifyEvidence as classifyTruthEvidence,
+  assertFreshEvidence,
+  computeEvidenceDigest,
+  proveGateATwoSha,
+  MVP_TRUTH_CONTRACT_VERSION,
+  MVP_TRUTH_FIELDS,
+  validateMvpTruthRecord,
+  assertMvpTruthSet,
+} from "./truth-contracts";
+
+export type {
+  PolicyActor,
+  PolicyOperation,
+  MissionAdmissionManifest,
+  CandidateAdmissionManifest,
+  CandidateAdmissionResult,
+  CandidateShaInvalidation,
+  EvidenceProvenanceRecord,
+  EvidenceFreshnessBinding,
+  GateAResult,
+  MvpTruthRecord,
+} from "./truth-contracts";
+
+export * from "./cell-autonomous-delivery";

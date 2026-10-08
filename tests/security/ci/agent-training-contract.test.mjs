@@ -3,28 +3,31 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const agents = [
-  { name: 'المستكشف AI', registration: '.github/agents/المستكشف-ai.md', training: true },
-  { name: 'المستكشف 2', registration: '.github/agents/المستكشف-2.md', training: true },
-  { name: 'المطور AI', registration: '.github/agents/المطور-ai.md', training: true },
-  { name: 'FLIXO i18n Agent', registration: '.github/agents/flixo-i18n-agent.md', training: true },
-  { name: 'FLIXO Repository Maintainer Agent', registration: '.github/agents/flixo-maintainer-agent.md', training: true },
-  { name: 'FLIXO QA Agent', registration: '.github/agents/flixo-qa-agent.md', training: true },
-  { name: 'Red Team 1', registration: '.github/agents/red-team-1.md', training: true },
-  { name: 'Red Team 2', registration: '.github/agents/red-team-2.md', training: true },
+  { name: 'المستكشف AI', registration: '.github/agents/المستكشف-ai.md', scout: false },
+  { name: 'المطور AI', registration: '.github/agents/المطور-ai.md', scout: false },
+  { name: 'FLIXO i18n Agent', registration: '.github/agents/flixo-i18n-agent.md', scout: false },
+  { name: 'FLIXO Repository Maintainer Agent', registration: '.github/agents/flixo-maintainer-agent.md', scout: false },
+  { name: 'FLIXO QA Agent', registration: '.github/agents/flixo-qa-agent.md', scout: false },
+  { name: 'Red Team 1', registration: '.github/agents/red-team-1.md', scout: false },
+  { name: 'Red Team 2', registration: '.github/agents/red-team-2.md', scout: false },
+  { name: 'FLIXO Architecture Scout', registration: '.github/agents/flixo-scout-architecture.agent.md', scout: true },
+  { name: 'FLIXO Technology Scout', registration: '.github/agents/flixo-scout-technology.agent.md', scout: true },
+  { name: 'FLIXO Ecosystem Scout', registration: '.github/agents/flixo-scout-ecosystem.agent.md', scout: true },
 ];
 
-test('all official agents have explicit identities', () => {
+test('all ten principal training agents have explicit identities', () => {
   for (const agent of agents) {
     const content = readFileSync(agent.registration, 'utf8');
     assert.ok(content.includes('name: ' + agent.name));
-    assert.ok(content.includes('tools: read, search, terminal'));
+    if (agent.scout) assert.ok(content.includes('tools: ["read", "search", "edit"]'));
+    else assert.ok(content.includes('tools: read, search, terminal'));
     assert.doesNotMatch(content, /git push origin main|force[- ]push|write directly to main/iu);
-    assert.doesNotMatch(content, /(?:^|\\n)\\s*(?:the agent|agent)\\s+(?:can|may|will|shall)\\s+(?:declare\\s+)?(?:PASS|GREEN|CERTIFIED)|(?:^|\\n)\\s*(?:the agent|agent)\\s+(?:can|may|will|shall)\\s+(?:certify|self-certify)\\b/imu);
-    if (agent.training) assert.match(content, /100\/100/u);
+    assert.doesNotMatch(content, /(?:^|\n)\s*(?:the agent|agent)\s+(?:can|may|will|shall)\s+(?:declare\s+)?(?:PASS|GREEN|CERTIFIED)|(?:^|\n)\s*(?:the agent|agent)\s+(?:can|may|will|shall)\s+(?:certify|self-certify)\b/imu);
+    assert.match(content, /100\/100/u);
   }
 });
 
-test('role-specific packages expose bounded report paths', () => {
+test('core role-specific packages expose bounded report paths', () => {
   const checks = [
     ['الوكلاء/المستكشف AI/المستكشف.md', 'الوكلاء/المستكشف AI/تقارير المستكشف/'],
     ['الوكلاء/المستكشف 2/المستكشف-2.md', 'الوكلاء/المستكشف 2/تقارير الاعتراضات/'],
@@ -48,7 +51,7 @@ test('training program defines evidence-based 100 score and adjudication', () =>
 
 test('package exposes the all-agent training contract as a test gate', () => {
   const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
-  assert.equal(pkg.scripts['test:agent-training'], 'node --test tests/security/ci/agent-training-contract.test.mjs');
+  assert.equal(pkg.scripts['test:agent-training'], 'node --test tests/security/ci/agent-training-contract.test.mjs tests/security/ci/agent-canonical-registry.test.mjs tests/security/ci/agent-self-learning-control-plane.test.mjs tests/security/ci/agent-role-drills.test.mjs tests/security/ci/agent-readiness-evaluator.test.mjs');
   assert.match(pkg.scripts.test, /test:agent-training/u);
 });
 
@@ -66,7 +69,7 @@ test('agent training includes exact-SHA learning and lesson promotion checks', a
   }, sha).status, 'PROMOTED');
 });
 
-test('all core agents have canonical package contracts', () => {
+test('all core training agents have canonical package contracts', () => {
   const packages = [
     'الوكلاء/i18n Agent/العقد.md',
     'الوكلاء/Maintainer Agent/العقد.md',
@@ -76,5 +79,20 @@ test('all core agents have canonical package contracts', () => {
     const content = readFileSync(path, 'utf8');
     assert.match(content, /100\/100/u);
     assert.match(content, /Exact-SHA|exact-SHA/iu);
+  }
+});
+test('all three Scout contracts preserve research-only role requirements', () => {
+  for (const path of [
+    '.github/agents/flixo-scout-architecture.agent.md',
+    '.github/agents/flixo-scout-technology.agent.md',
+    '.github/agents/flixo-scout-ecosystem.agent.md',
+  ]) {
+    const content = readFileSync(path, 'utf8');
+    assert.match(content, /tools:\s*\["read",\s*"search",\s*"edit"\]/u);
+    assert.match(content, /Proposal Schema v4/u);
+    assert.match(content, /Your only writable repository path is الوكلاء\/التقارير\//u);
+    assert.doesNotMatch(content, /only writable repository path is \.agent-intelligence\/inbox\//u);
+    assert.match(content, /never.*(?:PASS|GREEN|CERTIFIED|EXECUTE)/isu);
+    assert.match(content, /rollback/u);
   }
 });

@@ -1,0 +1,66 @@
+name: FLIXO Post-Merge Agent Report
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  report:
+    if: >-
+      github.event.pull_request.merged == true &&
+      github.repository == 'm1m2m3m4m5m6m700-afk/FLIXO_Hub' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      PR_URL: ${{ github.event.pull_request.html_url }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+      MERGED_BY: ${{ github.event.pull_request.merged_by.login }}
+      MERGED_AT: ${{ github.event.pull_request.merged_at }}
+      TITLE: ${{ github.event.pull_request.title }}
+    steps:
+      - name: Build immutable merge report
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p merge-report
+          changed_files="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/files?per_page=100" --jq '.[].filename' | wc -l | tr -d ' ')"
+          {
+            echo '# FLIXO Post-Merge Agent Report'
+            echo
+            echo "- PR: #$PR_NUMBER"
+            echo "- URL: $PR_URL"
+            echo "- Title: $TITLE"
+            echo "- Head SHA: $HEAD_SHA"
+            echo "- Base SHA: $BASE_SHA"
+            echo "- Merge SHA: $MERGE_SHA"
+            echo "- Merged by: $MERGED_BY"
+            echo "- Merged at: $MERGED_AT"
+            echo "- Changed files observed: $changed_files"
+            echo
+            echo '## Merge Contract'
+            echo
+            echo 'Human approval was not an execution prerequisite.'
+            echo 'Promotion used the protected execution -> main path.'
+            echo 'This report does not mutate main and therefore does not alter the merge SHA.'
+          } > merge-report/report.md
+          printf '%s\n' "$MERGE_SHA" > merge-report/exact-main-sha.txt
+          sha256sum merge-report/report.md > merge-report/report.sha256
+      - name: Add report to run summary
+        run: cat merge-report/report.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload immutable merge report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: flixo-post-merge-report-${{ github.event.pull_request.merge_commit_sha }}
+          path: merge-report
+          if-no-files-found: error
+          retention-days: 3650

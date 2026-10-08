@@ -1,0 +1,33 @@
+import type { Config } from './types.ts';
+
+export const CORE_LIMITS: Config = Object.freeze({
+  maxBodyBytes: 32 * 1024,
+  maxResponseBytes: 16 * 1024,
+  maxRpcBodyBytes: 64 * 1024,
+  maxAgentIdBytes: 128,
+  maxTaskIdBytes: 128,
+  maxCheckpointBytes: 4096,
+  maxWorkflowBytes: 256,
+  maxRunUrlBytes: 512,
+  maxRunIdBytes: 64,
+  maxRunIdentityBytes: 64,
+  maxReasonBytes: 128,
+  maxDispatchLogEntries: 256,
+  maxStatusAgents: 64,
+  maxAgents: 64,
+  maxConsecutiveFails: 3,
+  maxDispatchesPerHour: 4,
+  dispatchWindowMs: 60 * 60 * 1000,
+  minGapMinutes: 15,
+  staleRunningMs: 30 * 60 * 1000,
+  pendingNotContinuedMs: 15 * 60 * 1000,
+  cancelStaleRunningMs: 60 * 60 * 1000,
+  githubTimeoutMs: 5000,
+  rate: {
+    heartbeat: { windowMs: 60_000, limit: 60 },
+    mutation: { windowMs: 60_000, limit: 30 },
+    failsBump: { windowMs: 60_000, limit: 12 },
+    dlog: { windowMs: 60_000, limit: 30 },
+    forget: { windowMs: 60 * 60 * 1000, limit: 2 },
+  },
+});

@@ -1,0 +1,74 @@
+{
+  "format": "flixo-scout-manifest-v1",
+  "role": "TECHNOLOGY",
+  "ttl_days": 14,
+  "default_repo_refs": [
+    "package.json",
+    "src/lib/execution/canonical-executor.ts"
+  ],
+  "repo_refs": [
+    "package.json",
+    "src/lib/execution/canonical-executor.ts"
+  ],
+  "topics": [
+    "Frameworks",
+    "Runtimes",
+    "Browser APIs",
+    "Web Workers",
+    "WASM",
+    "Media processing",
+    "Image processing",
+    "AI tooling",
+    "Build tooling",
+    "Testing",
+    "Security",
+    "Performance"
+  ],
+  "sources": [
+    {
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API",
+      "source_type": "official_docs",
+      "stability": "stable",
+      "evidence_kind": "documentation",
+      "vendor_affiliated": false,
+      "title": "Web Workers API for off-main-thread processing",
+      "entity_key": "web-workers::performance",
+      "repo_refs": [
+        "src/lib/execution/canonical-executor.ts",
+        "src/config/registry.ts"
+      ],
+      "proposal": "Evaluate moving CPU-heavy browser-local transformations to workers while preserving canonical execution and deterministic verification.",
+      "rollback": "Disable the worker path and route execution back through the proven main-thread implementation."
+    },
+    {
+      "url": "https://developer.mozilla.org/en-US/docs/WebAssembly",
+      "source_type": "official_docs",
+      "stability": "stable",
+      "evidence_kind": "documentation",
+      "vendor_affiliated": false,
+      "title": "WebAssembly platform capabilities",
+      "entity_key": "webassembly::performance",
+      "repo_refs": [
+        "package.json",
+        "src/lib/execution/canonical-executor.ts"
+      ],
+      "proposal": "Assess WASM only where measured CPU cost justifies it and licensing, bundle, memory, and compatibility evidence is acceptable.",
+      "rollback": "Remove the candidate WASM path and keep the current browser-local execution implementation."
+    },
+    {
+      "url": "https://react.dev/blog",
+      "source_type": "official_docs",
+      "stability": "stable",
+      "evidence_kind": "release",
+      "vendor_affiliated": true,
+      "title": "React release and deprecation signal",
+      "entity_key": "react-release-signal::framework",
+      "repo_refs": [
+        "package.json",
+        "src/config/registry.ts"
+      ],
+      "proposal": "Monitor React release and deprecation signals for compatibility work that remains isolated from execution authority.",
+      "rollback": "Pin the proven React version and remove compatibility shims without changing runtime contracts."
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
+import { analyzeWorkflowAuthority } from './verify-branch-policy.mjs';
 
 const EXACT_HEAD_SELECTOR = "github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha";
 const EXACT_HEAD_EXPRESSION = '${{ ' + EXACT_HEAD_SELECTOR + ' }}';
@@ -25,7 +26,7 @@ test('candidate diagnostics stay bound to the exact PR head SHA', async () => {
     !workflow.includes('    EXPECTED_SHA: ${{ github.sha }}'),
     'bare github.sha must not label PR-head diagnostics',
   );
-  const expectedRedTeamGroup = "  group: flixo-final-red-team-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.ref }}";
+  const expectedRedTeamGroup = "  group: flixo-final-red-team-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref_name }}";
   assert.ok(
     workflow.includes(expectedRedTeamGroup),
     'final Red Team concurrency must deduplicate promotion PR runs by PR identity',
@@ -47,6 +48,17 @@ test('candidate diagnostics stay bound to the exact PR head SHA', async () => {
 test('FLIXO CI protects every candidate-sensitive checkout and identity stamp', async () => {
   const workflow = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
 
+  assert.match(
+    workflow,
+    /group:\s*flixo-ci-\$\{\{ github\.event_name \}\}-\$\{\{ github\.event\.pull_request\.number \|\| github\.ref_name \}\}/u,
+    'CI concurrency must be stable within an event lane',
+  );
+  assert.doesNotMatch(
+    workflow,
+    /group:[^\n]*\$\{\{ github\.sha \}\}/u,
+    'CI concurrency group must not include commit SHA',
+  );
+
   const exactRefCount = workflow.split('          ref: ' + EXACT_HEAD_EXPRESSION).length - 1;
   assert.equal(exactRefCount, 6, 'all six candidate-sensitive CI checkouts must use the exact PR head SHA');
 
@@ -64,42 +76,26 @@ test('execution-only assurance lanes deduplicate by branch while promotion lanes
   const redTeam = await readFile(new URL('../../.github/workflows/final-red-team.yml', import.meta.url), 'utf8');
   const video = await readFile(new URL('../../.github/workflows/video-assurance.yml', import.meta.url), 'utf8');
 
-  assert.match(redTeam, /group:\s*flixo-final-red-team-\$\{\{ github\.event_name == 'pull_request' && github\.event\.pull_request\.number \|\| github\.ref \}\}/u);
-  assert.match(video, /group:\s*flixo-video-assurance-\$\{\{ github\.event_name == 'pull_request' && github\.event\.pull_request\.number \|\| github\.ref \}\}/u);
+  assert.match(redTeam, /group:\s*flixo-final-red-team-\$\{\{ github\.event_name \}\}-\$\{\{ github\.event\.pull_request\.number \|\| github\.ref_name \}\}/u);
+  assert.match(video, /group:\s*flixo-video-assurance-\$\{\{ github\.event_name \}\}-\$\{\{ github\.ref_name \}\}/u);
   assert.match(redTeam, /cancel-in-progress:\s*\$\{\{ github\.event_name == 'push' && github\.ref == 'refs\/heads\/execution' \}\}/u);
   assert.match(video, /cancel-in-progress: true/u);
 });
 
-test('canonical CI security workflows do not trigger on execution worker PRs', async () => {
-  const files = [
-    '.github/workflows/ci.yml',
-    '.github/workflows/codeql.yml',
-    '.github/workflows/secret-scan.yml',
-  ];
-
-  for (const path of files) {
-    const workflow = await readFile(new URL('../../' + path, import.meta.url), 'utf8');
-    assert.doesNotMatch(workflow, /pull_request:\s*\n\s*branches:\s*\[main, execution\]/u);
-    assert.match(workflow, /pull_request:\s*\n\s*branches:\s*\[main\]/u);
-  }
+test('canonical CI uses execution push as the single release verification trigger', async () => {
+  const workflow = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
+  assert.doesNotMatch(workflow, /pull_request:\s*\n\s*branches:\s*\[main\]/u);
+  assert.match(workflow, /push:\s*\n\s*branches:\s*\[main, execution\]/u);
 });
 
-test('worker pull requests are filtered out of canonical release jobs', async () => {
-  const files = [
-    '.github/workflows/ci.yml',
-    '.github/workflows/codeql.yml',
-    '.github/workflows/secret-scan.yml',
-    '.github/workflows/final-red-team.yml',
-  ];
-
-  for (const path of files) {
-    const workflow = await readFile(new URL('../../' + path, import.meta.url), 'utf8');
-    assert.match(
-      workflow,
-      /if:\s*\$\{\{ github\.event_name != 'pull_request' \|\| \(github\.event\.pull_request\.head\.ref == 'execution' && github\.event\.pull_request\.head\.repo\.full_name == github\.repository\) \}\}/u,
-      path + ' must gate PR jobs to the canonical execution branch',
-    );
-  }
+test('canonical CI consumes security assurance as reusable jobs', async () => {
+  const workflow = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
+  assert.match(workflow, /name: FLIXO CodeQL \/ reusable/u);
+  assert.match(workflow, /uses: \.\/\.github\/workflows\/codeql\.yml/u);
+  assert.match(workflow, /name: FLIXO Secret Scan \/ reusable/u);
+  assert.match(workflow, /uses: \.\/\.github\/workflows\/secret-scan\.yml/u);
+  assert.match(workflow, /name: Agent Watchdog \/ reusable/u);
+  assert.match(workflow, /uses: \.\/\.github\/workflows\/agent-watchdog\.yml/u);
 });
 
 test('final Red Team security wait is promotion-only after execution security deduplication', async () => {
@@ -113,7 +109,8 @@ test('final Red Team security wait is promotion-only after execution security de
     block,
     /if:\s*github\.event_name == 'pull_request' && github\.event\.pull_request\.base\.ref == 'main'/u,
   );
-  assert.match(block, /event=push/u);
+  assert.match(block, /event=pull_request/u);
+  assert.doesNotMatch(block, /event=push/u);
   assert.match(block, /FLIXO CodeQL/u);
   assert.match(block, /FLIXO Secret Scan/u);
 });
@@ -127,6 +124,66 @@ test('promotion lineage checkout retains full history for merge-base verificatio
   assert.ok(checkoutIndex >= 0, 'promotion lineage checkout must exist');
   const checkoutBlock = workflow.slice(checkoutIndex, markerIndex);
   assert.match(checkoutBlock, /fetch-depth: 0/u);
+});
+
+test('all candidate-sensitive CI checkouts explicitly disable credential persistence', async () => {
+  const workflow = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
+  const blocks = workflow.split(/\n[ ]{6}- (?:name:[^\n]+\n[ ]{8})?uses: actions\/checkout@/u).slice(1);
+  const candidateBlocks = blocks.filter((block) => block.includes('ref: ' + EXACT_HEAD_EXPRESSION));
+  assert.equal(candidateBlocks.length, 6, 'all six candidate-sensitive CI checkouts must remain identifiable');
+  for (const block of candidateBlocks) {
+    assert.match(block, /persist-credentials:\s*false\b/u);
+    assert.doesNotMatch(block, /persist-credentials:\s*true\b/u);
+  }
+});
+
+test('branch policy rejects implicit checkout credential persistence on execution-triggered workflows', () => {
+  const vulnerable = [
+    'name: vulnerable',
+    'on:',
+    '  push:',
+    '    branches: [execution]',
+    'permissions:',
+    '  contents: read',
+    'jobs:',
+    '  build:',
+    '    steps:',
+    '      - uses: actions/checkout@v5',
+    '      - run: npm test',
+  ].join('\n');
+  const safe = vulnerable.replace('      - uses: actions/checkout@v5', '      - uses: actions/checkout@v5\n        with:\n          persist-credentials: false');
+  assert.equal(analyzeWorkflowAuthority('.github/workflows/vulnerable.yml', vulnerable).pass, false);
+  assert.equal(analyzeWorkflowAuthority('.github/workflows/safe.yml', safe).pass, true);
+});
+
+test('execution push branch-policy checkout never persists Git credentials', async () => {
+  const workflow = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
+
+  const marker = '      - name: Validate branch policy for the current ref';
+  const markerIndex = workflow.indexOf(marker);
+  assert.ok(markerIndex >= 0, 'branch-policy validation step must exist');
+
+  const checkoutStart = workflow.lastIndexOf('      - uses: actions/checkout@', markerIndex);
+  assert.ok(checkoutStart >= 0, 'branch-policy checkout must exist');
+
+  const checkoutBlock = workflow.slice(checkoutStart, markerIndex);
+  assert.match(checkoutBlock, /persist-credentials:\s*false\b/u);
+  assert.doesNotMatch(checkoutBlock, /persist-credentials:\s*true\b/u);
+});
+
+test('human gate execution code cannot inherit persisted Git credentials', async () => {
+  const workflow = await readFile(new URL('../../.github/workflows/human-gate.yml', import.meta.url), 'utf8');
+
+  assert.match(workflow, /ref:\s*execution/u);
+  assert.match(workflow, /persist-credentials:\s*false\b/u);
+  assert.doesNotMatch(workflow, /persist-credentials:\s*true\b/u);
+
+  const publishMarker = '      - name: Publish human gate transition to execution';
+  const publishIndex = workflow.indexOf(publishMarker);
+  assert.ok(publishIndex >= 0, 'human gate publish step must exist');
+  const publishBlock = workflow.slice(publishIndex);
+  assert.match(publishBlock, /GITHUB_TOKEN:\s*\$\{\{\s*github\.token\s*\}\}/u);
+  assert.match(publishBlock, /http\.extraheader=AUTHORIZATION: bearer \$GITHUB_TOKEN/u);
 });
 
 test('promotion and production gates remain fail-closed and exact-SHA bound', async () => {
@@ -155,4 +212,23 @@ test('promotion and production gates remain fail-closed and exact-SHA bound', as
   );
   assert.ok(workflow.includes('git rev-parse HEAD'), 'production deployment must inspect the checked-out commit SHA');
   assert.ok(workflow.includes('$DEPLOYMENT_SHA'), 'production deployment must retain immutable SHA binding');
+});
+
+
+test('specialized execution gates are path-gated and TestSprite concurrency is commit-independent', async () => {
+  const testsprite = await readFile(new URL('../../.github/workflows/testsprite-execution.yml', import.meta.url), 'utf8');
+  const video = await readFile(new URL('../../.github/workflows/video-assurance.yml', import.meta.url), 'utf8');
+  const learning = await readFile(new URL('../../.github/workflows/agent-self-learning.yml', import.meta.url), 'utf8');
+  const knowledge = await readFile(new URL('../../.github/workflows/repository-knowledge.yml', import.meta.url), 'utf8');
+  const scout = await readFile(new URL('../../.github/workflows/scout-boundary.yml', import.meta.url), 'utf8');
+  const discovery = await readFile(new URL('../../.github/workflows/continuous-discovery.yml', import.meta.url), 'utf8');
+
+  assert.match(testsprite, /push:\s*\n\s*branches:\s*\n\s*- execution\s*\n\s*paths:/u);
+  assert.match(testsprite, /group:\s*testsprite-fallback-\$\{\{ github\.ref_name \}\}/u);
+  assert.doesNotMatch(testsprite, /group:[^\n]*\$\{\{ github\.sha \}\}/u);
+  assert.match(video, /push:\s*\n\s*branches:\s*\[execution\]\s*\n\s*paths:/u);
+  assert.match(learning, /paths:\s*\n(?:\s+- .+\n){4,}/u);
+  assert.match(knowledge, /paths:\s*\n(?:\s+- .+\n){4,}/u);
+  assert.match(scout, /paths:\s*\n(?:\s+- .+\n){4,}/u);
+  assert.match(discovery, /paths:\s*\n(?:\s+- .+\n){4,}/u);
 });

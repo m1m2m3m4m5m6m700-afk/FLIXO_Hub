@@ -1,0 +1,79 @@
+name: Contribution
+description: Propose a reusable FLIXO project, tool, agent, skill, verifier, adapter, workflow, or template.
+title: "contribution: "
+labels: ["contribution"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## FLIXO Contribution Proposal
+        Publication requires current Exact-SHA evidence.
+  - type: input
+    id: slug
+    attributes:
+      label: Contribution slug
+      description: Lowercase stable identifier.
+      placeholder: my-contribution
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind
+      options:
+        - PROJECT_TEMPLATE
+        - TOOL
+        - AGENT
+        - SKILL
+        - VERIFIER
+        - RUNTIME_ADAPTER
+        - DOCS
+        - WORKFLOW
+        - TEMPLATE
+    validations:
+      required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: What does it add?
+      description: State the user or developer outcome.
+    validations:
+      required: true
+  - type: textarea
+    id: source
+    attributes:
+      label: Proposed source paths
+      description: Describe the contribution package under contributions/<slug>/.
+    validations:
+      required: true
+  - type: input
+    id: contributor
+    attributes:
+      label: Contributor
+    validations:
+      required: true
+  - type: input
+    id: license
+    attributes:
+      label: License
+      placeholder: Apache-2.0
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: Tests and evidence
+      description: List tests, exact SHA, artifacts, and limitations. Do not paste secrets.
+    validations:
+      required: true
+  - type: checkboxes
+    id: boundaries
+    attributes:
+      label: Boundary checks
+      options:
+        - label: I will not add a second registry, executor, verifier, certification authority, or direct main mutation.
+          required: true
+        - label: I will not commit secrets or raw private user data.
+          required: true
+        - label: I understand that SHA drift invalidates candidate evidence.
+          required: true

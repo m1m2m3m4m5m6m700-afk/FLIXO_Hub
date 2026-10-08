@@ -7,7 +7,7 @@ on:
       - '.agent-intelligence/**'
       - 'package.json'
   pull_request:
-    branches: [execution, main]
+    branches: [execution]
     paths:
       - '.agent-intelligence/**'
       - 'package.json'
@@ -18,7 +18,7 @@ permissions:
 
 concurrency:
   group: flixo-proposal-integrity-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   validate:
@@ -30,6 +30,14 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 1
+          persist-credentials: false
+      - name: Verify exact candidate SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXPECTED_SHA="$(jq -r '.pull_request.head.sha // .after // empty' "$GITHUB_EVENT_PATH")"
+          test -n "$EXPECTED_SHA" || EXPECTED_SHA="$GITHUB_SHA"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.12'
@@ -49,5 +57,5 @@ jobs:
           path: agent2-test-output.txt
           if-no-files-found: error
           retention-days: 7
-      - name: Validate all inbox proposals
+      - name: Validate all canonical report proposals
         run: python3 .agent-intelligence/scripts/validate.py --all --json

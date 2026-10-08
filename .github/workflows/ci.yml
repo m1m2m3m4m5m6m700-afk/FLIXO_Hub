@@ -1,14 +1,12 @@
 name: FLIXO CI
 
 on:
-  pull_request:
-    branches: [main]
   push:
     branches: [main, execution]
   workflow_dispatch:
     inputs:
       strict_governance:
-        description: 'Run strict release governance verification'
+        description: 'Run legacy strict governance verification for diagnostics only'
         required: false
         default: false
         type: boolean
@@ -19,7 +17,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: flixo-ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  group: flixo-ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref_name }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main' || github.ref == 'refs/heads/execution' }}
 
 env:
@@ -38,11 +36,26 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
         with:
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci --no-audit --no-fund
+      - name: Typecheck CELL contract package
+        run: npm run typecheck:contracts
+      - name: Fetch main snapshot for repository knowledge contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          MAIN_SHA="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          [[ "$MAIN_SHA" =~ ^[0-9a-f]{40}$ ]]
+          git fetch origin "$MAIN_SHA" --depth=1
+          echo "FLIXO_KNOWLEDGE_MAIN_SHA=$MAIN_SHA" >> "$GITHUB_ENV"
+
+      - name: CELL hard-control commit attribution
+        run: node scripts/ci/cell-commit-attribution.mjs
       - name: Three-critic local contract tests
         run: |
           set -euo pipefail
@@ -51,7 +64,7 @@ jobs:
       - name: Exact-SHA workflow contract tests
         run: node --test scripts/ci/test-workflow-exact-sha-contract.mjs
       - name: Fetch main governance snapshot for read-only contract tests
-        run: git fetch origin main --depth=1
+        run: git fetch origin main:refs/remotes/origin/main --depth=1
       - name: Agent 2 CI security contract tests
         run: node --test tests/security/ci/*.test.mjs
       - name: Model license and admission gate
@@ -97,6 +110,43 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  hub-stage1:
+    name: FLIXO Hub Stage 1 exact-SHA contract
+    needs: verify
+    if: ${{ needs.verify.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Verify exact SHA
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - name: Run explicit Hub Stage 1 contract
+        run: npm run test:hub
+      - name: Write exact-SHA Hub evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf 'HUB_STAGE1_SHA=%s\nHUB_STAGE1_TEST=PASS\n' "$EXPECTED_SHA" > hub-stage1-evidence.txt
+      - name: Upload exact-SHA Hub evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: flixo-hub-stage1-${{ github.run_id }}
+          path: hub-stage1-evidence.txt
+          if-no-files-found: error
+          retention-days: 30
+
   browser:
     name: Chromium browser smoke
     needs: verify
@@ -108,6 +158,7 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
         with:
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version-file: .nvmrc
@@ -143,6 +194,7 @@ jobs:
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
         with:
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
           fetch-depth: 1
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
@@ -183,6 +235,7 @@ jobs:
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
         with:
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
           fetch-depth: 1
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
@@ -203,7 +256,7 @@ jobs:
         with:
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 1
-          persist-credentials: true
+          persist-credentials: false
       - name: Validate branch policy for the current ref
         if: ${{ github.event_name != 'pull_request' }}
         run: node scripts/ci/verify-branch-policy.mjs
@@ -220,11 +273,11 @@ jobs:
           test "$HEAD_REPO" = "$GITHUB_REPOSITORY"
           test "$BASE_REPO" = "$GITHUB_REPOSITORY"
           echo "PR_SOURCE_IDENTITY=PASS"
-      - name: Verify main governance ruleset (FAST agent mode)
+      - name: Verify main governance ruleset (STRICT release mode)
         if: ${{ (github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main') || github.ref == 'refs/heads/main' }}
         env:
           GH_TOKEN: ${{ github.token }}
-          GOVERNANCE_MODE: fast
+          GOVERNANCE_MODE: strict
         run: bash scripts/ci/check-governance.sh
 
       - name: Verify main governance ruleset (STRICT release mode)
@@ -237,9 +290,84 @@ jobs:
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/execution' }}
         run: echo 'MAIN_GOVERNANCE=PR_OR_MAIN_ONLY'
 
+  codeql:
+    name: FLIXO CodeQL / reusable
+    uses: ./.github/workflows/codeql.yml
+    permissions:
+      contents: read
+      actions: read
+      security-events: read
+
+  secret-scan:
+    name: FLIXO Secret Scan / reusable
+    uses: ./.github/workflows/secret-scan.yml
+    permissions:
+      contents: read
+
+  agent-watchdog:
+    name: Agent Watchdog / reusable
+    uses: ./.github/workflows/agent-watchdog.yml
+    permissions:
+      contents: read
+
+  sensitive-path-gate:
+    name: Sensitive path automated assurance
+    needs: [verify]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Classify changed paths
+        id: classify
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            files="$(git diff --name-only "${{ github.event.pull_request.base.sha }}" "$EXPECTED_SHA")"
+          elif [ "$GITHUB_EVENT_NAME" = "merge_group" ]; then
+            files="$(git diff --name-only HEAD^ HEAD)"
+          elif [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
+            files="$(git diff-tree --root --name-only -r "$EXPECTED_SHA")"
+          else
+            files="$(git diff --name-only "${{ github.event.before }}" "$EXPECTED_SHA")"
+          fi
+          sensitive=0
+          while IFS= read -r path; do
+            case "$path" in
+              .github/*|scripts/ci/*|scripts/release/*|supabase/*|src/server/admin/*|api/admin/*|src/lib/security/*|src/config/registry.ts|src/worker.ts|wrangler.jsonc|vercel.json|package.json|package-lock.json)
+                echo "SENSITIVE_PATH=$path"
+                sensitive=1
+                ;;
+            esac
+          done <<< "$files"
+          echo "sensitive=$sensitive" >> "$GITHUB_OUTPUT"
+      - name: Ordinary path fast path
+        if: steps.classify.outputs.sensitive != '1'
+        run: echo 'SENSITIVE_PATH_GATE=PASS_NO_SPECIAL_PATHS'
+      - name: Targeted automated assurance for sensitive paths
+        if: steps.classify.outputs.sensitive == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GOVERNANCE_BRANCH: main
+          GOVERNANCE_MODE: autonomous
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run test:security
+          npm run verify:agents
+          npm run verify:governance
+          npm audit --omit=dev --audit-level=high
+
   trust-gate:
     name: trust-gate
-    needs: [verify, browser, branch-policy, coverage, red-team]
+    needs: [verify, hub-stage1, browser, branch-policy, coverage, red-team, codeql, secret-scan, agent-watchdog, sensitive-path-gate]
     if: ${{ always() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -247,17 +375,27 @@ jobs:
       - name: Assert canonical CI gates are GREEN
         env:
           VERIFY_RESULT: ${{ needs.verify.result }}
+          HUB_STAGE1_RESULT: ${{ needs.hub-stage1.result }}
           BROWSER_RESULT: ${{ needs.browser.result }}
           COVERAGE_RESULT: ${{ needs.coverage.result }}
           RED_TEAM_RESULT: ${{ needs.red-team.result }}
           BRANCH_RESULT: ${{ needs.branch-policy.result }}
+          CODEQL_RESULT: ${{ needs.codeql.result }}
+          SECRET_SCAN_RESULT: ${{ needs.secret-scan.result }}
+          AGENT_WATCHDOG_RESULT: ${{ needs.agent-watchdog.result }}
+          SENSITIVE_RESULT: ${{ needs.sensitive-path-gate.result }}
         run: |
           set -euo pipefail
           test "$VERIFY_RESULT" = success
+          test "$HUB_STAGE1_RESULT" = success
           test "$BROWSER_RESULT" = success
           test "$COVERAGE_RESULT" = success
           test "$RED_TEAM_RESULT" = success
           test "$BRANCH_RESULT" = success
+          test "$CODEQL_RESULT" = success
+          test "$SECRET_SCAN_RESULT" = success
+          test "$AGENT_WATCHDOG_RESULT" = success
+          test "$SENSITIVE_RESULT" = success
           echo 'TRUST_GATE=PASS'
 
   promotion-proof:
@@ -289,32 +427,7 @@ jobs:
           node scripts/ci/verify-promotion-lineage.mjs
           echo "EXACT_SHA_PROMOTION_PROOF=$EXPECTED_SHA"
 
-      - name: Wait for exact-head security workflows
-        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main' }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          required=("FLIXO CodeQL" "FLIXO Secret Scan")
-          for attempt in $(seq 1 15); do
-            runs="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$EXPECTED_SHA&event=pull_request&per_page=100")"
-            all_ok=true
-            for workflow in "${required[@]}"; do
-              state="$(printf '%s' "$runs" | jq -r --arg workflow "$workflow" --arg sha "$EXPECTED_SHA" '[.workflow_runs[] | select(.head_sha == $sha and .name == $workflow)] | sort_by(.updated_at) | last | if . == null then "MISSING" else (.status + ":" + (.conclusion // "null")) end')"
-              echo "$workflow@$EXPECTED_SHA => $state"
-              case "$state" in
-                completed:success) ;;
-                completed:*) echo "FAIL_CLOSED: exact-head security workflow failed: $workflow => $state"; exit 1 ;;
-                *) all_ok=false ;;
-              esac
-            done
-            if [ "$all_ok" = true ]; then echo "EXACT_SHA_SECURITY_GATE=PASS"; exit 0; fi
-            sleep 10
-          done
-          echo "FAIL_CLOSED: timed out waiting for exact-head CodeQL and Secret Scan."
-          exit 1
+
   production-deploy:
     name: Production exact-SHA deployment
     needs: [promotion-proof]

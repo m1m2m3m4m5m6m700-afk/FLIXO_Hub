@@ -2,11 +2,12 @@ import { getCapability, validateCapabilityParameters, type CanonicalCapabilityPa
 import { getToolById } from '@/config/registry.ts';
 import { getToolOutputContract } from '@/lib/contracts/tool-output-contracts.ts';
 import { assertToolOutputContract } from '@/lib/contracts/tool-output.ts';
-import { validateFileSafety, MAGIC_BYTE_SIGNATURES } from '@/lib/contracts/file-safety.ts';
-import { applyBasicImageEffect, convertImage, cropResizeImage, removeBackground, resizeImage } from '@/tools/image-toolkit/engine.ts';
+import { validateFileSafety, MAGIC_BYTE_SIGNATURES, readRasterHeaderDimensions } from '@/lib/contracts/file-safety.ts';
+import { convertImage, cropResizeImage, removeBackground, resizeImage } from '@/tools/image-toolkit/engine.ts';
 import { compressImage } from '@/tools/image-compressor/engine.ts';
 import { renderVideoToWebm } from '@/lib/video/video-executor.ts';
 import { attachVideoBlobSource, getBoundedVideoDuration } from '@/lib/video/blob-video-source.ts';
+import { admitExecution, getCellPolicyFingerprint, bindExecutionEvidence, assertExecutionEvidence, recordCellEvent, startCellWatchdog } from '@/lib/cell/index.ts';
 
 const IMAGE_MIME = ['image/png', 'image/jpeg', 'image/webp'] as const;
 const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp'] as const;
@@ -87,15 +88,10 @@ async function withDeadline<T>(
   });
 }
 
-async function readImageDimensions(blob: Blob, signal?: AbortSignal): Promise<{ width: number; height: number }> {
-  assertNotAborted(signal);
-  if (typeof createImageBitmap !== 'function') throw new Error('Browser image decoder is unavailable.');
-  const bitmap = await createImageBitmap(blob);
-  try {
-    return { width: bitmap.width, height: bitmap.height };
-  } finally {
-    bitmap.close();
-  }
+async function readImageDimensionsFromHeader(blob: Blob): Promise<{ width: number; height: number }> {
+  const dimensions = await readRasterHeaderDimensions(blob, blob.type);
+  if (!dimensions) throw new Error('Execution denied: raster dimensions could not be determined from the bounded header.');
+  return dimensions;
 }
 
 async function preflightInput(
@@ -148,7 +144,7 @@ async function preflightInput(
   }
 
   if (!isVideo) {
-    const dimensions = await withDeadline(readImageDimensions(input.blob, signal), Math.min(timeoutMs, 30_000), signal);
+    const dimensions = await withDeadline(readImageDimensionsFromHeader(input.blob), Math.min(timeoutMs, 2_000), signal);
     if (dimensions.width * dimensions.height > maxPixels) {
       throw new Error('Execution denied: image dimensions exceed the canonical pixel budget.');
     }
@@ -209,7 +205,7 @@ async function executeImageEffectsInWorker(
 ): Promise<Blob> {
   const canUseWorkerCanvas = typeof Worker !== 'undefined' && typeof OffscreenCanvas !== 'undefined';
   if (!canUseWorkerCanvas) {
-    return executeImageEffectsFallback(input, effects);
+    throw new Error('IMAGE_EFFECTS_WORKER_UNAVAILABLE');
   }
 
   const worker = new Worker(new URL('./image-effects.worker.ts', import.meta.url), { type: 'module' });
@@ -248,21 +244,7 @@ async function executeImageEffectsInWorker(
     } catch (error) {
       finish(() => reject(error instanceof Error ? error : new Error('IMAGE_EFFECTS_WORKER_FAILED')));
     }
-  }).catch(async (error) => {
-    if (signal?.aborted) throw error;
-    return executeImageEffectsFallback(input, effects);
   });
-}
-
-async function executeImageEffectsFallback(
-  input: Blob,
-  effects: ReadonlyArray<readonly ['brightness' | 'contrast' | 'saturation' | 'grayscale', number]>,
-): Promise<Blob> {
-  let current = input;
-  for (const [effect, value] of effects) {
-    current = await applyBasicImageEffect(current, effect, value);
-  }
-  return current;
 }
 
 async function executeImageEffects(
@@ -336,7 +318,7 @@ async function executeMvpTool(
       return Object.freeze({ blob, fileName: baseName(input.fileName) + '-' + scale + 'x.png' });
     }
     case 'image-cropper': {
-      const source = await readImageDimensions(input.blob, signal);
+      const source = await readImageDimensionsFromHeader(input.blob);
       const x = numberOr(parameters.x, 0);
       const y = numberOr(parameters.y, 0);
       const cropWidth = numberOr(parameters.cropWidth, source.width);
@@ -433,7 +415,7 @@ async function verifyOutputContract(
         video.load();
       }
     } else {
-      dimensions = await withDeadline(readImageDimensions(output.blob, signal), Math.min(timeoutMs, 30_000), signal);
+      dimensions = await withDeadline(readImageDimensionsFromHeader(output.blob), Math.min(timeoutMs, 30_000), signal);
     }
   }
 
@@ -473,6 +455,24 @@ export async function executeCanonicalTool(
 ): Promise<CanonicalExecutionOutput> {
   const { capability } = resolveCanonicalTool(toolId);
   assertNotAborted(signal);
+  const requestId = `canonical:${toolId}:${typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `${Date.now()}`}`;
+  const admission = admitExecution({
+    requestId,
+    taskId: requestId,
+    capabilityId: toolId,
+    scope: 'media:local',
+    maxAttempts: capability.recovery.maxAttempts,
+    signal,
+  });
+  if (admission.decision !== 'ALLOW') {
+    recordCellEvent({ type: 'ADMISSION_DENIED', requestId, taskId: requestId, capabilityId: toolId, at: new Date().toISOString(), detail: `${admission.code}:${admission.reason}` });
+    throw new Error(`CELL execution denied [${admission.code}]: ${admission.reason}`);
+  }
+  const admittedPolicyFingerprint = admission.policyFingerprint;
+  recordCellEvent({ type: 'ADMISSION_ALLOWED', requestId, taskId: requestId, capabilityId: toolId, at: new Date().toISOString() });
+  if (admittedPolicyFingerprint !== getCellPolicyFingerprint()) {
+    throw new Error('CELL execution denied: policy fingerprint drift detected at admission.');
+  }
   const parameters = validateCapabilityParameters(toolId, rawParameters);
 
   // Preflight is intentionally outside the retry loop: it is the canonical admission
@@ -487,15 +487,21 @@ export async function executeCanonicalTool(
     signal,
   );
 
+  if (admittedPolicyFingerprint !== getCellPolicyFingerprint()) {
+    throw new Error('CELL execution denied: policy fingerprint drift detected before execution.');
+  }
+
   return runBoundedExecutionAttempts(
     capability.recovery.maxAttempts,
     async () => {
       const executionController = new AbortController();
-      const relayAbort = () => executionController.abort();
-      signal?.addEventListener('abort', relayAbort, { once: true });
+      const watchdog = startCellWatchdog(capability.safetyLimits.timeoutMs, signal);
+      const relayWatchdogAbort = () => executionController.abort();
+      watchdog.signal.addEventListener('abort', relayWatchdogAbort, { once: true });
       const executionSignal = executionController.signal;
 
       try {
+        recordCellEvent({ type: 'EXECUTION_STARTED', requestId, taskId: requestId, capabilityId: toolId, at: new Date().toISOString() });
         assertNotAborted(executionSignal);
         const output = await withDeadline(
           executeMvpTool(toolId, input, parameters, executionSignal),
@@ -510,19 +516,42 @@ export async function executeCanonicalTool(
           verifyOutputContract(toolId, output, capability.safetyLimits.timeoutMs, executionSignal),
           capability.safetyLimits.timeoutMs,
           executionSignal,
-          executionController,
+          undefined,
         );
 
         const verified = await withDeadline(
           capability.verifier(input.blob, output.blob, parameters, executionSignal),
           capability.safetyLimits.timeoutMs,
           executionSignal,
-          executionController,
+          undefined,
         );
         if (!verified) throw new Error('Execution failed closed: verifier rejected artifact for ' + toolId + '.');
+        const evidence = await bindExecutionEvidence(
+          { requestId, taskId: requestId, capabilityId: toolId, policyFingerprint: admittedPolicyFingerprint },
+          input.blob,
+          output.blob,
+        );
+        assertExecutionEvidence(evidence);
+        recordCellEvent({ type: 'EXECUTION_VERIFIED', requestId, taskId: requestId, capabilityId: toolId, at: new Date().toISOString(), detail: evidence.outputSha256 });
         return output;
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : String(error);
+        if (signal?.aborted || executionSignal.aborted) {
+          recordCellEvent({
+            type: 'EXECUTION_ABORTED',
+            requestId,
+            taskId: requestId,
+            capabilityId: toolId,
+            at: new Date().toISOString(),
+            detail: watchdog.timedOut() ? 'watchdog-timeout:' + detail : detail,
+          });
+        } else {
+          recordCellEvent({ type: 'EXECUTION_FAILED', requestId, taskId: requestId, capabilityId: toolId, at: new Date().toISOString(), detail });
+        }
+        throw error;
       } finally {
-        signal?.removeEventListener('abort', relayAbort);
+        watchdog.signal.removeEventListener('abort', relayWatchdogAbort);
+        watchdog.stop();
         executionController.abort();
       }
     },

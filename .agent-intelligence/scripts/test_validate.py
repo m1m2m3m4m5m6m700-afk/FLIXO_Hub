@@ -37,7 +37,7 @@ def proposal_text(**overrides):
         "id": "ARCH-0042",
         "category": "architecture",
         "title": "Adopt bounded tile scheduling",
-        "status": "inbox",
+        "status": "candidate",
         "entity_key": "tile-scheduling",
         "created_at": "2026-10-07T00:00:00Z",
         "expires_at": "2099-10-07T00:00:00Z",
@@ -93,9 +93,9 @@ class ValidatorTests(unittest.TestCase):
         self.tmp.cleanup()
 
     def write_proposal(self, text, name="proposal.yml"):
-        inbox = self.root / ".agent-intelligence" / "inbox"
-        inbox.mkdir(parents=True, exist_ok=True)
-        path = inbox / name
+        reports = self.root / "الوكلاء" / "التقارير" / "AGENT-08 — Architecture Scout"
+        reports.mkdir(parents=True, exist_ok=True)
+        path = reports / name
         path.write_text(text, encoding="utf-8")
         return path
 
@@ -316,11 +316,20 @@ class ValidatorTests(unittest.TestCase):
         result = self.validate(proposal_text(snapshot_id="../escape"))
         self.assertEqual(result["checks"]["V-01"], "FAIL")
 
-    def test_proposal_outside_inbox_is_rejected(self):
+    def test_proposal_outside_canonical_reports_is_rejected(self):
         outside = self.root / "outside.yml"
         outside.write_text(proposal_text(), encoding="utf-8")
         result = validate.validate_proposal(outside, self.root, NOW)
         self.assertEqual(result["checks"]["V-01"], "FAIL")
+
+    def test_legacy_inbox_is_not_a_valid_proposal_location(self):
+        inbox = self.root / ".agent-intelligence" / "inbox"
+        inbox.mkdir(parents=True, exist_ok=True)
+        path = inbox / "proposal.yml"
+        path.write_text(proposal_text(), encoding="utf-8")
+        result = validate.validate_proposal(path, self.root, NOW)
+        self.assertEqual(result["checks"]["V-01"], "FAIL")
+
 
     def test_command_injection_payload_is_quarantined(self):
         result = self.validate(proposal_text(

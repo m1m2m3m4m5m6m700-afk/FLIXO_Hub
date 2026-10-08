@@ -1,6 +1,6 @@
 import { createRoute } from '@tanstack/react-router';
 import { rootRoute } from './__root';
-import { OfficialHome } from '../components/OfficialHome';
+import { ArchiveLandingHome } from '../components/ArchiveLandingHome';
 import { buildSeoMetadata } from '../lib/seo';
 
 const SEO = buildSeoMetadata({
@@ -43,5 +43,5 @@ export const arIndexRoute = createRoute({
       },
     ],
   }),
-  component: OfficialHome,
+  component: function ArabicArchiveHome() { return <ArchiveLandingHome locale="ar" />; },
 });

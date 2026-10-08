@@ -2,8 +2,7 @@
 
 STATUS: NOT READY
 
-This document is a certification template/state record, not a certification by itself.
-No release claim is valid until every required identity and gate is bound to the same exact SHA.
+This document is a certification template/state record, not certification by itself.
 
 ## Current release lineage fields
 
@@ -20,19 +19,15 @@ No release claim is valid until every required identity and gate is bound to the
 ## Required gates
 
 1. Clean-clone Red Team PASS on CURRENT_SHA.
-2. Release-candidate freeze bound to CURRENT_SHA.
-3. Exact-SHA evidence for CI, tests, security, coverage, and browser verification.
-4. Required GitHub governance policy on `main`.
-5. Human-authorized promotion through `execution -> main`.
-6. Post-merge exact-SHA verification and production identity verification when applicable.
+2. Exact-SHA evidence for CI, tests, security, coverage, and browser verification.
+3. Required GitHub governance policy on `main`.
+4. Legitimate promotion through the protected `execution -> main` path.
+5. Post-merge exact-SHA report and downstream production verification when applicable.
 
-Any missing, mixed-SHA, stale, skipped, cancelled, neutral, expired, or unverifiable evidence is a blocker.
+Independent governance approval remains required by the release policy.
 
-## Historical evidence retained — NOT CURRENT RELEASE TRUTH
+Any missing, mixed-SHA, stale, skipped, cancelled, neutral, expired, or unverifiable evidence remains a blocker.
 
-- Historical main base SHA: `263827228cbe5f4851470297fde5f2858ff844de`.
-- Historical active integration PR observed during the previous release attempt: `#1002`.
-- Historical candidate SHA: `a44958a97126b2e050746010947aef2cfa286729`.
-- Historical candidate workflow run: `37437187406`.
+## Historical evidence
 
-These values remain available for audit lineage only. They are not a current candidate or certification authority.
+Older candidate SHAs and PR numbers may remain elsewhere in the repository for audit lineage. They are not current release truth.

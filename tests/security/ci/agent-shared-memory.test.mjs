@@ -1,0 +1,194 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import {
+  SHA_RE,
+  buildKnowledgeKey,
+  classifyKnowledgeForSha,
+  isPromotableMemory,
+  validateMemoryProposal,
+  createSupabaseRpcClient,
+  preflightMemoryRetrieval,
+} from '../../../scripts/agent-learning/shared-memory.mjs';
+
+const SHA = '0000000000000000000000000000000000000001';
+const OTHER_SHA = '0000000000000000000000000000000000000002';
+
+test('shared-memory helpers enforce exact SHA', () => {
+  assert.equal(SHA_RE.test(SHA), true);
+  assert.equal(SHA_RE.test('bad-sha'), false);
+  assert.equal(classifyKnowledgeForSha({ status: 'PROMOTED', tested_sha: SHA }, SHA).usable, true);
+  assert.equal(classifyKnowledgeForSha({ status: 'PROMOTED', tested_sha: SHA }, OTHER_SHA).usable, false);
+  assert.equal(classifyKnowledgeForSha({ status: 'PROMOTED', tested_sha: SHA }, OTHER_SHA).sha_freshness, 'STALE_EVIDENCE');
+});
+
+test('knowledge keys are deterministic and safe', () => {
+  const a = buildKnowledgeKey({ kind: 'LESSON', claim: 'Re-read current SHA before evidence', scope: 'repository' });
+  const b = buildKnowledgeKey({ kind: 'LESSON', claim: 'Re-read current SHA before evidence', scope: 'repository' });
+  assert.equal(a, b);
+  assert.match(a, /^[a-z0-9][a-z0-9._:-]{2,255}$/);
+});
+
+test('raw inbox routing is rejected and canonical reports are required', () => {
+  const failures = validateMemoryProposal({
+    agent: 'FLIXO Architecture Scout',
+    agentId: 'AGENT-08',
+    role: 'architecture-research',
+    exactSha: SHA,
+    reportPath: '.agent-intelligence/inbox/proposal.yaml',
+    kind: 'LESSON',
+    claim: 'test',
+    content: 'test',
+    evidenceRefs: ['report:L1'],
+  }, SHA);
+  assert.ok(failures.includes('reportPath must be inside the canonical agent report center'));
+  assert.ok(failures.includes('inbox path is forbidden'));
+  assert.ok(failures.includes('reportPath must match the registered report scope for this agent'));
+  assert.equal(failures.includes('reportPath contains forbidden traversal segments'), false);
+  const traversal = validateMemoryProposal({ agent: 'FLIXO Architecture Scout', agentId: 'AGENT-08', role: 'architecture-research', exactSha: SHA, kind: 'LESSON', claim: 'test claim', content: 'test content', evidenceRefs: ['report:L1'], reportPath: 'الوكلاء/التقارير/AGENT-08 — Architecture Scout/../AGENT-09 — Technology Scout/a.md' }, SHA);
+  assert.ok(traversal.includes('reportPath contains forbidden traversal segments'));
+});
+
+test('memory promotion needs independent evidence, repeated utility, zero harm and regression', () => {
+  const base = {
+    status: 'VALIDATED',
+    tested_sha: SHA,
+    independent_confirmations: 2,
+    helpful_count: 2,
+    regression_evidence: true,
+    harmful_count: 0,
+  };
+  assert.equal(isPromotableMemory(base, SHA), true);
+  assert.equal(isPromotableMemory({ ...base, harmful_count: 1 }, SHA), false);
+  assert.equal(isPromotableMemory({ ...base, independent_confirmations: 1 }, SHA), false);
+  assert.equal(isPromotableMemory({ ...base, tested_sha: OTHER_SHA }, SHA), false);
+  assert.equal(isPromotableMemory({ ...base, regression_evidence: false }, SHA), false);
+});
+
+test('RPC client uses service-only authorization without embedding secrets in payloads', async () => {
+  const calls = [];
+  const client = createSupabaseRpcClient({
+    baseUrl: 'https://example.supabase.co',
+    serviceRoleKey: 'secret',
+    fetchImpl: async (url, options) => {
+      calls.push({ url, options });
+      return { ok: true, async json() { return [{ ok: true }]; }, async text() { return JSON.stringify([{ ok: true }]); } };
+    },
+  });
+  const result = await client.call('flixo_search_agent_memory', {
+    p_query: 'architecture',
+    p_current_sha: SHA,
+    p_limit: 5,
+    p_include_candidates: false,
+  });
+  assert.deepEqual(result, [{ ok: true }]);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].url, 'https://example.supabase.co/rest/v1/rpc/flixo_search_agent_memory');
+  assert.equal(calls[0].options.headers.apikey, 'secret');
+  assert.equal(calls[0].options.headers.Authorization, 'Bearer secret');
+  assert.equal(JSON.stringify(calls[0].options.body).includes('secret'), false);
+});
+
+  
+test('memory preflight allows only PROMOTED current-SHA memory to execute', () => {
+  const result = preflightMemoryRetrieval({
+    currentSha: SHA,
+    memories: [
+      { memory_id: 'current', status: 'PROMOTED', tested_sha: SHA },
+      { memory_id: 'validated', status: 'VALIDATED', tested_sha: SHA },
+      { memory_id: 'stale', status: 'PROMOTED', tested_sha: OTHER_SHA },
+      { memory_id: 'disputed', status: 'DISPUTED', tested_sha: SHA },
+    ],
+  });
+  assert.deepEqual(result.executableMemory.map(item => item.memory_id), ['current']);
+  assert.equal(result.blockedCount, 3);
+  assert.ok(result.warnings.some(item => item.memory_id === 'stale' && item.sha_freshness === 'STALE_EVIDENCE'));
+});
+
+
+test('context retrieval adapter preflights RPC results before executable use', async () => {
+  const { searchSharedMemoryForContext } = await import('../../../scripts/agent-learning/shared-memory.mjs');
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => ({
+    ok: true,
+    status: 200,
+    async text() {
+      return JSON.stringify([
+        { memory_id: 'current', status: 'PROMOTED', tested_sha: SHA },
+        { memory_id: 'candidate', status: 'CANDIDATE', tested_sha: SHA },
+        { memory_id: 'stale', status: 'PROMOTED', tested_sha: OTHER_SHA },
+      ]);
+    },
+  });
+  try {
+    const result = await searchSharedMemoryForContext(
+      { query: 'current lesson', currentSha: SHA, limit: 5 },
+      { SUPABASE_URL: 'https://example.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'placeholder' },
+    );
+    assert.deepEqual(result.executableMemory.map(item => item.memory_id), ['current']);
+    assert.equal(result.blockedCount, 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+
+test('official cognitive memory adapter exposes retrieval, usage, proposal, review, and reconcile lanes', async () => {
+  const { createCognitiveMemoryAdapter } = await import('../../../scripts/agent-learning/shared-memory.mjs');
+  const adapter = createCognitiveMemoryAdapter({ SUPABASE_URL: 'https://example.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'placeholder' });
+  assert.deepEqual(Object.keys(adapter).sort(), ['preflight', 'propose', 'reconcile', 'retrieve', 'review', 'usage']);
+  assert.deepEqual(adapter.preflight(SHA, [{ memory_id: 'usable', status: 'PROMOTED', tested_sha: SHA }, { memory_id: 'stale', status: 'PROMOTED', tested_sha: OTHER_SHA }]).executableMemory.map(item => item.memory_id), ['usable']);
+});
+
+
+test('shared-memory retrieval rejects unbounded result limits', async () => {
+  const { searchSharedMemory, MAX_MEMORY_RESULTS } = await import('../../../scripts/agent-learning/shared-memory.mjs');
+  assert.equal(MAX_MEMORY_RESULTS, 50);
+  await assert.rejects(
+    searchSharedMemory({ query: 'x', currentSha: SHA, limit: 51 }, { SUPABASE_URL: 'https://example.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'placeholder' }),
+    /MEMORY_RETRIEVAL_LIMIT_INVALID/,
+  );
+});
+
+await import('./agent-shared-cognitive-learning.test.mjs');
+
+await import('./production-cognitive-learning.test.mjs');
+
+
+test('modern Supabase secret keys are not sent as bearer tokens', async () => {
+  const calls = [];
+  const { createSupabaseRpcClient } = await import('../../../scripts/agent-learning/shared-memory.mjs');
+  const client = createSupabaseRpcClient({
+    baseUrl: 'https://example.supabase.co',
+    serviceRoleKey: 'sb_secret_example',
+    fetchImpl: async (url, options) => {
+      calls.push({ url, options });
+      return { ok: true, async text() { return '[]'; } };
+    },
+  });
+  await client.call('flixo_search_agent_memory', { p_query:'x', p_current_sha:SHA, p_limit:1, p_include_candidates:false });
+  assert.equal(calls[0].options.headers.apikey, 'sb_secret_example');
+  assert.equal('Authorization' in calls[0].options.headers, false);
+});
+
+test('memory proposal validation requires an independent current runtime SHA', async () => {
+  const { submitMemoryProposal } = await import('../../../scripts/agent-learning/shared-memory.mjs');
+  const payload = {
+    agent:'AGENT-08',
+    agentId:'AGENT-08',
+    role:'architecture-research',
+    taskId:'T-MEMORY-SHA',
+    exactSha:SHA,
+    currentSha:OTHER_SHA,
+    kind:'LESSON',
+    knowledgeKey:'lesson:testsha',
+    title:'test',
+    claim:'test',
+    content:'test',
+    evidenceRefs:['report:L1'],
+    reportPath:'الوكلاء/التقارير/AGENT-08 — Architecture Scout/اقتراح-ARCH-123.yaml',
+  };
+  await assert.rejects(
+    () => submitMemoryProposal(payload,{SUPABASE_URL:'https://example.supabase.co',SUPABASE_SERVICE_ROLE_KEY:'placeholder'}),
+    /MEMORY_PROPOSAL_INVALID:exactSha must equal currentSha/u,
+  );
+});

@@ -28,7 +28,7 @@ properties:
     maxLength: 200
   status:
     type: string
-    enum: [inbox, triaged, queued, approved, rejected, expired]
+    enum: [candidate, triaged, queued, approved, rejected, expired]
   entity_key:
     type: string
     pattern: "^[a-z0-9][a-z0-9._:/-]{1,127}$"

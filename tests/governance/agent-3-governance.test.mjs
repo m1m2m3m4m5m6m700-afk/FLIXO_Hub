@@ -247,6 +247,20 @@ test('workflow authority scans every workflow and enforces production deployment
   );
 });
 
+test('workflow authority accepts nested non-mutating deployment dry-runs', () => {
+  const fixture = [
+    'jobs:',
+    '  watchdog:',
+    '    runs-on: ubuntu-latest',
+    '    steps:',
+    '      - run: |',
+    '          npm --prefix watchdog exec -- wrangler deploy --dry-run --config wrangler.toml',
+  ].join('\n');
+
+  const report = analyzeWorkflowAuthority('.github/workflows/fixture.yml', fixture);
+  assert.equal(report.pass, true, report.findings.join('\n'));
+});
+
 test('workflow authority rejects production deployment actions without a main-push gate', () => {
   const fixture = [
     'jobs:',

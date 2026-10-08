@@ -17,6 +17,16 @@ id = "generic-api-key"
     '''^src/lib/communicationStore\.ts$''',
   ]
 
+  [[rules.allowlists]]
+  description = "Known non-secret CELL scope example in historical hard-control contract"
+  condition = "AND"
+  commits = [
+    "06197e57ea31138287c14faf2418c9e59583df5e",
+  ]
+  paths = [
+    '''^docs/CELL-HARD-CONTROL-CONTRACT\.md$''',
+  ]
+
 [[rules]]
 id = "jwt"
 

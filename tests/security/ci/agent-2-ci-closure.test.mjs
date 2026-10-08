@@ -98,16 +98,29 @@ test('CI promotion workflow contains live lineage and exact security-gate semant
   ]) assert.ok(workflow.includes(token), 'missing CI token: ' + token);
 });
 
-test('TestSprite privileged execution is canonical-source-only', async () => {
+test('execution TestSprite lane is unprivileged and exact-SHA', async () => {
   const workflow = await readFile(path.join(ROOT, '.github/workflows/testsprite-execution.yml'), 'utf8');
-  assert.ok(workflow.includes("github.repository == 'm1m2m3m4m5m6m700-afk/FLIXO_Hub'"));
-  assert.ok(workflow.includes("github.ref == 'refs/heads/execution'"));
-  assert.ok(!workflow.includes('pull_request:'), 'privileged TestSprite workflow must not run on PR events');
-  const trustIndex = workflow.indexOf('Fail-closed trusted TestSprite execution boundary');
-  const secretIndex = workflow.indexOf('TESTSPRITE_API_KEY');
-  assert.ok(trustIndex >= 0 && secretIndex > trustIndex, 'trust boundary must precede secret use');
-  assert.ok(workflow.includes('ref: ${{ github.sha }}'));
-  assert.ok(workflow.includes('test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"'));
+  assert.doesNotMatch(workflow, /TESTSPRITE_API_KEY|TESTSPRITE_PROJECT_ID|\$\{\{\s*secrets\./u);
+  assert.match(workflow, /persist-credentials: false/u);
+  assert.match(workflow, /npm ci --ignore-scripts/u);
+  assert.match(workflow, /testsprite-fallback\.mjs/u);
+});
+
+test('privileged controller is schedule-only and main-anchored', async () => {
+  const workflow = await readFile(path.join(ROOT, '.github/workflows/patch-capsule-controller.yml'), 'utf8');
+  assert.doesNotMatch(workflow, /\n\s+push:\s*\n/u);
+  assert.match(workflow, /ref: main/u);
+  assert.match(workflow, /persist-credentials: false/u);
+  assert.match(workflow, /permissions:\s*\n\s*contents: read/u);
+  assert.doesNotMatch(workflow, /permissions:\s*\n\s*contents: write/u);
+});
+
+test('controller isolates mutable execution from privileged verification', async () => {
+  const script = await readFile(path.join(ROOT, 'scripts/ci/controller-reconcile-and-publish.mjs'), 'utf8');
+  assert.match(script, /sanitizeUntrustedEnv/u);
+  assert.match(script, /--ignore-scripts/u);
+  assert.match(script, /CONTROLLER_SENSITIVE_PATH_FORBIDDEN/u);
+  assert.match(script, /CANONICAL_GIT_REMOTE/u);
 });
 
 test('Secret Scan is exact-SHA, full-history, and does not mask findings', async () => {

@@ -1,0 +1,88 @@
+name: FLIXO Autonomous Promotion Controller
+
+on:
+  push:
+    branches: [execution]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: flixo-autonomous-promotion
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    name: Ensure execution PR is auto-merge enabled
+    if: >-
+      github.repository == 'm1m2m3m4m5m6m700-afk/FLIXO_Hub' &&
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/execution'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Verify invocation boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "m1m2m3m4m5m6m700-afk/FLIXO_Hub"
+          test "$GITHUB_REF" = "refs/heads/execution"
+          test "$GITHUB_EVENT_NAME" = "push"
+
+      - name: Verify exact execution SHA
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+
+      - name: Checkout exact execution candidate
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .nvmrc
+
+      - name: Find or create canonical execution PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          number="$(gh pr list --repo "$GITHUB_REPOSITORY" --head execution --base main --state open --json number --jq '.[0].number // empty')"
+          if [ -z "$number" ]; then
+            url="$(gh pr create --repo "$GITHUB_REPOSITORY" --head execution --base main --title "feat(cell): autonomous execution integration" --body "Canonical autonomous promotion path. Agents publish to execution; live GitHub governance and required automated checks govern promotion to main. Conversational approval is not an implementation prerequisite; release approval remains a live governance control.")"
+            number="${url##*/}"
+          fi
+          test "$number" -gt 0
+          echo "PR_NUMBER=$number" >> "$GITHUB_ENV"
+
+      - name: Verify autonomous live governance before enabling auto-merge
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GOVERNANCE_MODE: autonomous
+          GOVERNANCE_BRANCH: main
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/ci/check-governance.sh
+
+      - name: Enable protected auto-merge
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          auto_merge_enabled="$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json autoMergeRequest --jq '.autoMergeRequest != null')"
+          if [ "$auto_merge_enabled" = "true" ]; then
+            echo "AUTO_MERGE_ALREADY_ENABLED=true"
+          else
+            gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --auto --squash
+            echo "AUTO_MERGE_ENABLED=true"
+          fi

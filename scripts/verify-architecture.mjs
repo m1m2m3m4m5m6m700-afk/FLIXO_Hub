@@ -109,6 +109,18 @@ const authorityChecks = [
     expected: 1,
     label: 'canonical execution entrypoint',
   },
+  {
+    path: 'packages/contracts/src/cell-hard-control.ts',
+    pattern: /export function authorizeExecutionAction\b/gu,
+    expected: 1,
+    label: 'CELL hard-control authority',
+  },
+  {
+    path: 'packages/contracts/src/cell-runtime.ts',
+    pattern: /export class CellRuntime\b/gu,
+    expected: 1,
+    label: 'CELL canonical runtime',
+  },
 ];
 
 const authorityViolations = [];
@@ -120,6 +132,10 @@ for (const check of authorityChecks) {
       check.path + ' -> ' + check.label + ' expected=' + check.expected + ' actual=' + matches.length,
     );
   }
+}
+
+if (existsSync('src/lib/cell')) {
+  authorityViolations.push('src/lib/cell -> duplicate CELL authority must remain absent; packages/contracts/src/cell-* is canonical');
 }
 
 if (existsSync('src/lib/media/media-safety.ts')) {
