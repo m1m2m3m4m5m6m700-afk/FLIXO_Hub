@@ -1,7 +1,7 @@
 # CELL — COMMIT ATTRIBUTION BASELINE
 
 Status: ACTIVE ENFORCEMENT BASELINE
-BASELINE_SHA: 3bbc70f2a9520e5e52226768d4ac2f3ae1e23cb2
+BASELINE_SHA: 6159b5be734055b7aad8d893cf3c900534911100
 
 من هذه النقطة، كل commit جديد خاص بخط CELL يجب أن يحمل TASK_ID صالحًا ظاهرًا داخل ACTIVE DISPATCH QUEUE في المهام.md.
 
