@@ -6,7 +6,7 @@ import {
   type ExecutionResult,
   type ProviderStatus,
 } from './execution-provider';
-import type { PlatformExecutionRequest } from './platform-contract';
+import { evaluatePlatformExecution, type PlatformExecutionAuthorityContext, type PlatformExecutionRequest } from './platform-contract';
 
 export type VercelSandboxCommandResult = Readonly<{
   exitCode: number;
@@ -85,7 +85,9 @@ export class VercelSandboxExecutionProvider implements ExecutionProvider {
     };
   }
 
-  async execute(request: PlatformExecutionRequest): Promise<ExecutionResult> {
+  async execute(request: PlatformExecutionRequest, authority: PlatformExecutionAuthorityContext): Promise<ExecutionResult> {
+    const decision = evaluatePlatformExecution(request, authority.currentSha, authority);
+    if (!decision.admitted) throw new Error('PLATFORM_EXECUTION_DENIED:' + decision.code);
     if (!this.client) throw new Error('VERCEL_SANDBOX_CLIENT_NOT_CONFIGURED');
 
     const providerMemoryMb = request.limits.memoryMb;

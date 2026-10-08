@@ -1,4 +1,4 @@
-import type { PlatformExecutionRequest, ResourceLimits } from './platform-contract';
+import type { PlatformExecutionAuthorityContext, PlatformExecutionRequest, ResourceLimits } from './platform-contract';
 
 export type ProviderStatus = Readonly<{
   id: string;
@@ -34,23 +34,14 @@ export type ExecutionResult = Readonly<{
 export interface ExecutionProvider {
   readonly id: string;
   getStatus(): ProviderStatus;
-  execute(request: PlatformExecutionRequest): Promise<ExecutionResult>;
+  execute(request: PlatformExecutionRequest, authority: PlatformExecutionAuthorityContext): Promise<ExecutionResult>;
   cancel(executionId: string): Promise<void>;
 }
 
-export type ExecutionProviderRegistry = Readonly<{
-  providers: readonly ExecutionProvider[];
-}>;
+export type ExecutionProviderRegistry = Readonly<{ providers: readonly ExecutionProvider[] }>;
 
-export function chooseExecutionProvider(
-  registry: ExecutionProviderRegistry,
-  requestedId?: string,
-): ExecutionProvider | null {
-  if (requestedId) {
-    const provider = registry.providers.find((candidate) => candidate.id === requestedId);
-    return provider ?? null;
-  }
-
+export function chooseExecutionProvider(registry: ExecutionProviderRegistry, requestedId?: string): ExecutionProvider | null {
+  if (requestedId) return registry.providers.find((candidate) => candidate.id === requestedId) ?? null;
   return registry.providers.find((candidate) => candidate.getStatus().configured) ?? null;
 }
 
@@ -58,10 +49,6 @@ export function assertProviderResourceCompatibility(
   limits: ResourceLimits,
   constraints: Readonly<{ minMemoryMb: number; memoryStepMb: number; maxTimeoutMs: number }>,
 ): void {
-  if (limits.memoryMb < constraints.minMemoryMb || limits.memoryMb % constraints.memoryStepMb !== 0) {
-    throw new Error('UNSUPPORTED_RESOURCE_LIMITS');
-  }
-  if (limits.timeoutMs > constraints.maxTimeoutMs) {
-    throw new Error('UNSUPPORTED_TIMEOUT_LIMIT');
-  }
+  if (limits.memoryMb < constraints.minMemoryMb || limits.memoryMb % constraints.memoryStepMb !== 0) throw new Error('UNSUPPORTED_RESOURCE_LIMITS');
+  if (limits.timeoutMs > constraints.maxTimeoutMs) throw new Error('UNSUPPORTED_TIMEOUT_LIMIT');
 }
