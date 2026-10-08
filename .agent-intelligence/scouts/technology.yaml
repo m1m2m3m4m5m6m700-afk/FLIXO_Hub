@@ -6,6 +6,10 @@
     "package.json",
     "src/lib/execution/canonical-executor.ts"
   ],
+  "repo_refs": [
+    "package.json",
+    "src/lib/execution/canonical-executor.ts"
+  ],
   "topics": [
     "Frameworks",
     "Runtimes",
