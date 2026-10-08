@@ -27,7 +27,7 @@ export function evaluateGovernanceMetrics(input) {
   const sampleSize = Number(input.sampleSize ?? 0);
   const buildSuccessRate = Number(input.buildSuccessRate ?? NaN);
   const regressions = Number(input.regressions ?? 0);
-  const rollbacks = Number(input.rollbacks ?? 0);
+  const rollbackRate = Number(input.rollbackRate ?? 0);
   const rejectedReviewRate = Number(input.rejectedReviewRate ?? NaN);
   const failures = [];
   if (!Number.isInteger(sampleSize) || sampleSize < 0) failures.push('sample-size:invalid');
@@ -41,7 +41,7 @@ export function evaluateGovernanceMetrics(input) {
   if (sampleEligible) {
     if (buildSuccessRate < 0.90) reasons.push('build-success-rate<90%');
     if (regressions > 2) reasons.push('regressions>2');
-    if (rollbacks > 0.10) reasons.push('rollback-rate>10%');
+    if (rollbackRate > 0.10) reasons.push('rollback-rate>10%');
     if (rejectedReviewRate > 0.30) reasons.push('rejected-review-rate>30%');
   }
 
@@ -146,7 +146,7 @@ export async function collectGovernanceMetrics({
     sampleSize,
     buildSuccessRate: metrics.buildSuccessRate,
     regressions,
-    rollbacks: metrics.rollbackRate,
+    rollbackRate: metrics.rollbackRate,
     rejectedReviewRate: metrics.rejectedReviewRate,
   }) };
 }
