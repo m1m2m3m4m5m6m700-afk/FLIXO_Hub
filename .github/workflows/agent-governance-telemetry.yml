@@ -1,0 +1,39 @@
+name: FLIXO Agent Governance Telemetry
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+  actions: read
+
+jobs:
+  metrics:
+    name: Measure agent governance health
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          ref: main
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Collect and evaluate governance metrics
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node scripts/ci/agent-governance-metrics.mjs > agent-governance-metrics.json
+      - name: Publish governance telemetry
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: agent-governance-telemetry-${{ github.run_id }}
+          path: agent-governance-metrics.json
+          if-no-files-found: error
+          retention-days: 30
