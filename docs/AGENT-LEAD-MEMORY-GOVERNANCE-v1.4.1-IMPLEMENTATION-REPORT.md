@@ -137,7 +137,7 @@ Run `37782515373` على:
 فشل بعد الإصلاح الأول لأن `admission-gate.mjs` كان ينفذ نفسه عند import داخل Node test runner، ما أدى إلى `target-sha:invalid` و`mission-id:missing`.
 تم إصلاح السبب بإضافة direct-execution guard.
 
-بعد ذلك لا توجد حتى آخر فحص نتيجة نهائية منشورة للرأس الأحدث عبر connector؛ لذلك لا يتم ادعاء GREEN.
+Run `37782849418` succeeded for the Admission Gate contract tests and then failed only in the telemetry collector mock on URL encoding; the failed test was repaired in `16200467a85897faf24c3530469ca9750653d8ed`. No final Governance Contract conclusion for that corrected SHA was available at the time this report was frozen, so GREEN is not claimed.
 
 ## 6. Live Governance Blocker
 
@@ -164,8 +164,8 @@ Issue #1125 تثبت أن ruleset `FLIXO-MAIN-PROTECTION` لا يحقق strict g
 Canonical baseline:
 `de1e5b3c46bc1f5812987cb8ad863c5ff983178d`
 
-Implementation snapshot before this report refresh:
-`d6ac2b4f24f2b634b5d5853626b91793e840cfb2`
+Final implementation test snapshot:
+`16200467a85897faf24c3530469ca9750653d8ed`
 
 يجب على المراجع إعادة قراءة HEAD الحالي من GitHub قبل اعتماد أي evidence نهائي، لأن إضافة التقرير نفسها تغيّر SHA وتبطل أي دليل سابق غير المرتبط بالرأس الجديد.
 
@@ -181,7 +181,7 @@ Implementation snapshot before this report refresh:
 | Automatic downgrade logic | IMPLEMENTED / ENFORCED AT ADMISSION |
 | Blocked-channel verifier | IMPLEMENTED |
 | Contract tests | IMPLEMENTED |
-| CI verification on current final SHA | PENDING / NOT GREEN-PROVEN |
+| CI verification on corrected implementation SHA | PENDING / NOT GREEN-PROVEN |
 | Live strict main governance | BLOCKED |
 | Owner approval | NOT VERIFIED |
 | Merge to approved branch | NOT DONE |
@@ -220,3 +220,8 @@ Implementation snapshot before this report refresh:
 **توقيع الحالة:** FLIXO Governance Bootstrap Review  
 **Policy:** 1.4.1  
 **Mission:** EXEC-LEAD-MEMORY-001
+
+
+## 13. Final Review Snapshot
+
+The corrected implementation snapshot is `16200467a85897faf24c3530469ca9750653d8ed`. Any report-only commit after this line does not change implementation behavior; reviewers must re-read the branch HEAD before treating evidence as final.
