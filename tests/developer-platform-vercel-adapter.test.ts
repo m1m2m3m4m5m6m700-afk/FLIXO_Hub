@@ -52,12 +52,24 @@ test('provider rejects limits it cannot enforce exactly', () => {
   );
 });
 
+test('fake sandbox rejects source revision drift before execution', async () => {
+  const provider = new VercelSandboxExecutionProvider({
+    async create() {
+      throw new Error('CREATE_MUST_NOT_RUN');
+    },
+  });
+  await assert.rejects(
+    provider.execute({ ...request(), source: { ...request().source!, revision: 'f'.repeat(40) } }),
+    /VERCEL_SANDBOX_SOURCE_SHA_MISMATCH/,
+  );
+});
+
 test('fake sandbox proves exact source and cleanup behavior through the adapter', async () => {
   let stopped = false;
-  let observed: { source?: unknown; command?: string; args?: readonly string[] } = {};
+  let observed: { source?: unknown; command?: string; args?: readonly string[]; networkPolicy?: unknown } = {};
   const client: VercelSandboxClient = {
     async create(input) {
-      observed = { source: input.source, command: undefined, args: undefined };
+      observed = { source: input.source, command: undefined, args: undefined, networkPolicy: input.networkPolicy };
       return {
         async runCommand(input) {
           observed.command = input.cmd;
@@ -82,5 +94,6 @@ test('fake sandbox proves exact source and cleanup behavior through the adapter'
   assert.equal(observed.command, 'node');
   assert.deepEqual(observed.args, ['-e', 'console.log("ok")']);
   assert.deepEqual(observed.source, request().source);
+  assert.deepEqual(observed.networkPolicy, { mode: 'deny-all' });
   assert.equal(stopped, true);
 });
