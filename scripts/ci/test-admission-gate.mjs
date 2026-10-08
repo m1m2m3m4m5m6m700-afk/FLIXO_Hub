@@ -3,6 +3,8 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { evaluateAdmission } from '../../scripts/ci/admission-gate.mjs';
 
+// Governance contract invariant: tests must import without executing the gate.
+
 test('admission gate is fail-closed and execution-scoped', () => {
   const base = {
     repository: 'm1m2m3m4m5m6m700-afk/FLIXO_Hub',
