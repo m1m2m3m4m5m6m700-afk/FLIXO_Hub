@@ -32,10 +32,14 @@ test('admission workflow is read-only, manual, exact-SHA, and invokes canonical 
   assert.ok(workflow.includes('test "$(git rev-parse HEAD)" = "$TARGET_SHA"'));
   assert.ok(workflow.includes('scripts/ci/check-governance.sh'));
   assert.ok(workflow.includes('POLICY_VERSION: "1.4.1"'));
-  assert.ok(workflow.includes('scope: EXECUTION'));
+  const gateSource = await readFile(new URL('../../scripts/ci/admission-gate.mjs', import.meta.url), 'utf8');
+  assert.ok(gateSource.includes("scope: 'EXECUTION'"));
+  assert.ok(gateSource.includes("ALLOW_EXECUTION"));
   assert.ok(workflow.includes('git fetch origin execution'));
   assert.ok(workflow.includes('test "$(git rev-parse origin/execution)" = "$TARGET_SHA"'));
   assert.ok(workflow.includes('upload-artifact'));
+  assert.ok(workflow.includes('GH_TOKEN: ${{ github.token }}'));
+  assert.ok(workflow.includes('GITHUB_REPOSITORY: ${{ github.repository }}'));
   assert.ok(!workflow.includes('pull_request:'));
   assert.ok(!workflow.includes('push:'));
 });
