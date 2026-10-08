@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { fileURLToPath } from 'node:url';
+
 const CANONICAL_REPOSITORY = 'm1m2m3m4m5m6m700-afk/FLIXO_Hub';
 const SAMPLE_MAX = 20;
 const WINDOW_DAYS = 30;
@@ -149,7 +151,7 @@ export async function collectGovernanceMetrics({
   }) };
 }
 
-if (process.argv[1] && new URL(import.meta.url).pathname === new URL('file://' + process.argv[1]).pathname) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const result = await collectGovernanceMetrics({
     token: process.env.GH_TOKEN || process.env.GITHUB_TOKEN,
     repo: process.env.GITHUB_REPOSITORY || CANONICAL_REPOSITORY,
