@@ -32,6 +32,7 @@ Advisory/helper profiles are role overlays. They do not constitute additional ce
 - Evidence is valid only when bound to the exact SHA under verification.
 - Infrastructure Green, Product Green, and MVP Certified are separate states.
 - Manual execution remains functional without the Agent Router.
+- Human review/approval is not a merge prerequisite; required automated checks are the merge authority.
 - Expanded implementation authority must not weaken required verification, security, or repository protection.
 
 ## Baseline agent seats
