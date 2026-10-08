@@ -31,6 +31,8 @@ test('admission workflow is read-only, manual, exact-SHA, and invokes canonical 
   assert.match(workflow, /scripts/ci/check-governance.sh/u);
   assert.match(workflow, /POLICY_VERSION:\s*"1\.4\.1"/u);
   assert.match(workflow, /scope:\s*EXECUTION/u);
+  assert.match(workflow, /git fetch origin execution/u);
+  assert.match(workflow, /test "\$\(git rev-parse origin\/execution\)" = "\$TARGET_SHA"/u);
   assert.match(workflow, /upload-artifact/u);
   assert.doesNotMatch(workflow, /pull_request:/u);
   assert.doesNotMatch(workflow, /push:/u);
