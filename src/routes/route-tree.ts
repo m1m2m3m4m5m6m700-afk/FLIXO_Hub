@@ -11,6 +11,7 @@ import { arToolsRoute } from './ar-tools';
 import { developerPlatformRoute, enDeveloperPlatformRoute } from './developer-platform';
 import { developerWorkspaceRoute, enDeveloperWorkspaceRoute } from './developer-workspace';
 import { developerContributionRoute } from './developer-contribution';
+import { developerContributionsRoute, enDeveloperContributionsRoute } from './developer-contributions';
 
 export const routeChildren = [
   indexRoute,
@@ -27,7 +28,9 @@ export const routeChildren = [
   developerWorkspaceRoute,
   enDeveloperWorkspaceRoute,
   developerContributionRoute,
-  localizedToolRoute,
+  developerContributionsRoute,
+  enDeveloperContributionsRoute,
+    localizedToolRoute,
   adminControlPlaneLoginRoute,
   adminControlPlaneRoute,
 ] as const;

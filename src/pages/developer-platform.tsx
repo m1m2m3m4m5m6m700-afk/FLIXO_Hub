@@ -100,9 +100,15 @@ export function DeveloperPlatform({ locale }: { locale: Locale }) {
 
         <nav className="developer-platform-tabs" aria-label={locale === 'ar' ? 'أقسام المنصة' : 'Platform sections'}>
           {copy.nav.map((item, index) => (
-            <button key={item} type="button" className={index === 0 ? 'is-active' : ''} aria-pressed={index === 0}>
-              {item}
-            </button>
+            index === 5 ? (
+              <Link key={item} to={locale === 'ar' ? '/developer/contributions' : '/en/developer/contributions'} className="developer-platform-tab-link">
+                {item}
+              </Link>
+            ) : (
+              <button key={item} type="button" className={index === 0 ? 'is-active' : ''} aria-pressed={index === 0}>
+                {item}
+              </button>
+            )
           ))}
         </nav>
 
@@ -167,7 +173,12 @@ export function DeveloperPlatform({ locale }: { locale: Locale }) {
             <span className="developer-platform-kicker">04</span>
             <h2 id="contribution-title">{copy.contributionTitle}</h2>
           </div>
-          <p>{copy.contributionText}</p>
+          <div>
+            <p>{copy.contributionText}</p>
+            <Link to={locale === 'ar' ? '/developer/contributions' : '/en/developer/contributions'} className="developer-platform-contribution-link">
+              {locale === 'ar' ? 'فتح مركز المساهمات ←' : 'Open contribution center →'}
+            </Link>
+          </div>
         </section>
       </div>
     </main>
