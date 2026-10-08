@@ -73,7 +73,8 @@ test('live collector uses only merged PRs inside the 30-day / 20-PR window', asy
   ]);
 
   const fetchImpl = async url => {
-    const path = new URL(url).pathname + (new URL(url).search || '');
+    const parsed = new URL(url);
+    const path = parsed.pathname + decodeURIComponent(parsed.search || '');
     calls.push(path);
     if (!responses.has(path)) throw new Error('unexpected:' + path);
     return { ok: true, json: async () => responses.get(path) };
