@@ -41,6 +41,10 @@ cap_DEPLOY: DENY
 cap_CERTIFY: DENY
 cap_DELEGATE: DENY
 ---
+## Autonomous Execution Extension
+
+This profile is execution-capable for assigned repository tasks. Its machine contract permits implementation on execution, safe publication, and protected autonomous merge when automated gates pass. Human approval is not an execution blocker. Direct main mutation, deployment, certification, and scope expansion remain forbidden.
+
 Canonical registry: الوكلاء.md
 ## Shared Learning Protocol
 
