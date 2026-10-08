@@ -73,7 +73,7 @@ jobs:
             git fetch origin execution --no-tags
             TARGET_SHA="$(git rev-parse refs/remotes/origin/execution)"
           fi
-          test "$TARGET_SHA" =~ ^[0-9a-f]{40}$
+          [[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]
           git checkout --detach "$TARGET_SHA"
           test "$(git rev-parse HEAD)" = "$TARGET_SHA"
           echo "sha=$TARGET_SHA" >> "$GITHUB_OUTPUT"
