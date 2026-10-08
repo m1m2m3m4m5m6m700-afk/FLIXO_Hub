@@ -51,7 +51,12 @@ jobs:
       - name: Exact-SHA workflow contract tests
         run: node --test scripts/ci/test-workflow-exact-sha-contract.mjs
       - name: Fetch main governance snapshot for read-only contract tests
-        run: git fetch origin main --depth=1
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Materialize a deterministic remote-tracking ref for read-only main snapshot tests.
+          git fetch origin main:refs/remotes/origin/main --depth=1
+          test "$(git rev-parse refs/remotes/origin/main)" = "$(git ls-remote origin refs/heads/main | awk '{print $1}')"
       - name: Agent 2 CI security contract tests
         run: node --test tests/security/ci/*.test.mjs
       - name: Model license and admission gate
