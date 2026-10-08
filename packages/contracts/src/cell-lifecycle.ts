@@ -270,12 +270,6 @@ function sha(value: string, code: string): void {
   if (!SHA_PATTERN.test(value)) throw new Error(code);
 }
 
-const CONTEXT_HASH_PATTERN = /^[0-9a-f]{64}$/iu;
-
-function contextHash(value: string, code: string): void {
-  if (!CONTEXT_HASH_PATTERN.test(value)) throw new Error(code);
-}
-
 function unique(values: readonly string[], code: string): void {
   if (new Set(values).size !== values.length) throw new Error(code);
 }
