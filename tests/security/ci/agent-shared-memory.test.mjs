@@ -135,7 +135,7 @@ test('context retrieval adapter preflights RPC results before executable use', a
 test('official cognitive memory adapter exposes retrieval, usage, proposal, review, and reconcile lanes', async () => {
   const { createCognitiveMemoryAdapter } = await import('../../../scripts/agent-learning/shared-memory.mjs');
   const adapter = createCognitiveMemoryAdapter({ SUPABASE_URL: 'https://example.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'placeholder' });
-  assert.deepEqual(Object.keys(adapter).sort(), ['preflight', 'propose', 'reconcile', 'retrieve', 'review', 'usage']);
+  assert.deepEqual(Object.keys(adapter).sort(), ['episodic', 'preflight', 'propose', 'reconcile', 'retrieve', 'review', 'usage']);
   assert.deepEqual(adapter.preflight(SHA, [{ memory_id: 'usable', status: 'PROMOTED', tested_sha: SHA }, { memory_id: 'stale', status: 'PROMOTED', tested_sha: OTHER_SHA }]).executableMemory.map(item => item.memory_id), ['usable']);
 });
 
