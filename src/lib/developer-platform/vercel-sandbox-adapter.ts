@@ -86,6 +86,11 @@ export class VercelSandboxExecutionProvider implements ExecutionProvider {
       maxTimeoutMs: 5 * 60 * 60 * 1000,
     });
 
+    const vcpus = request.limits.memoryMb / 2048;
+    if (vcpus !== 1 && vcpus % 2 !== 0) {
+      throw new Error('UNSUPPORTED_VERCEL_CPU_MEMORY_PAIR');
+    }
+
     if (!request.source) {
       throw new Error('VERCEL_SANDBOX_SOURCE_REQUIRED');
     }
@@ -103,7 +108,7 @@ export class VercelSandboxExecutionProvider implements ExecutionProvider {
       timeout: request.limits.timeoutMs,
       networkPolicy: request.network,
       resources: {
-        vcpus: Math.max(1, Math.ceil(providerMemoryMb / 2048) / 2) * 2,
+        vcpus,
         memory: providerMemoryMb,
       },
       source: request.source,
