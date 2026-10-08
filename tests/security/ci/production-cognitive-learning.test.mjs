@@ -89,6 +89,56 @@ test('production cognitive facade shares durable events and shared memory withou
   assert.ok(calls.some(x=>x.url.includes('/rpc/flixo_append_agent_task_event')));
 });
 
+test('production cognitive facade exposes the economy matchmaker without granting authority',async()=>{
+  const requests=[];
+  const facade=createProductionCognitiveLearning({
+    env:{SUPABASE_URL:'https://example.supabase.co',SUPABASE_SECRET_KEY:'secret'},
+    fetchImpl:async(url,options)=>{
+      requests.push({url,options});
+      const value=String(url);
+      if(value.includes('/rest/v1/flixo_agent_economy_wallets?')){
+        return {ok:true,async text(){return JSON.stringify([
+          {agent_id:'AGENT-01',role:'AGENT',status:'ACTIVE',balance_credits:1000,staked_credits:0,reputation:90,tasks_won:4,tasks_lost:0},
+          {agent_id:'AGENT-05',role:'VERIFIER',status:'ACTIVE',balance_credits:1000,staked_credits:0,reputation:70,tasks_won:2,tasks_lost:0},
+        ]);}};
+      }
+      if(value.includes('/rpc/flixo_economy_open_task')){
+        return {ok:true,async text(){return JSON.stringify({task_id:'ECO-TASK',status:'OPEN',quoted_reward:240,stake_required:60});}};
+      }
+      if(value.includes('/rpc/flixo_economy_claim_task')){
+        return {ok:true,async text(){return JSON.stringify({task_id:'ECO-TASK',solver_agent:'AGENT-01',stake_locked:60});}};
+      }
+      return {ok:true,async text(){return JSON.stringify([]);}};
+    },
+  });
+
+  const plan=await facade.prepareEconomyDispatch({
+    taskId:'ECO-TASK',
+    exactSha:SHA,
+    difficulty:5,
+    baseReward:100,
+    openDemand:0,
+    verifierAgentId:'AGENT-05',
+  });
+  assert.equal(plan.status,'ELIGIBLE');
+  assert.equal(plan.solver.agentId,'AGENT-01');
+  assert.equal(plan.verifier.agentId,'AGENT-05');
+  assert.equal(plan.authority.certificationAuthority,false);
+
+  const opened=await facade.openAndClaimEconomyTask({
+    taskId:'ECO-TASK',
+    exactSha:SHA,
+    difficulty:5,
+    baseReward:100,
+    openDemand:0,
+    verifierAgentId:'AGENT-05',
+  });
+  assert.equal(opened.plan.solver.agentId,'AGENT-01');
+  assert.equal(opened.claimed.solver_agent,'AGENT-01');
+  assert.ok(requests.some(x=>x.url.includes('/rpc/flixo_economy_open_task')));
+  assert.ok(requests.some(x=>x.url.includes('/rpc/flixo_economy_claim_task')));
+});
+
 test('production XP event remains hash-valid after durable serialization',async()=>{
   let requestBody;
   const facade=createProductionCognitiveLearning({
