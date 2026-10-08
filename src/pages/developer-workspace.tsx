@@ -65,10 +65,6 @@ const COPY = {
   },
 } as const;
 
-function baseName(path: string): string {
-  return path.split('/').pop() || path;
-}
-
 export function DeveloperWorkspace({ locale }: { locale: Locale }) {
   const copy = COPY[locale];
   const inputRef = useRef<HTMLInputElement>(null);
