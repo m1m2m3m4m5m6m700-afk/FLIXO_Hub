@@ -66,6 +66,6 @@ test('Tesseract no longer bootstraps an external script', () => {
 test('Hub routes are materialized by the static build step', () => {
   const source = readFileSync('scripts/generate-static-route-entries.mjs', 'utf8');
   for (const route of ['/hub', '/hub/privacy', '/en/hub', '/en/hub/privacy']) {
-    assert.match(source, new RegExp('copyEntry\\(' + route.replaceAll('/', '\\/') + '\\)'));
+    assert.match(source, new RegExp("copyEntry\\(['\\\"]" + route.replaceAll('/', '\\\\/') + "['\\\"]\\)"));
   }
 });
