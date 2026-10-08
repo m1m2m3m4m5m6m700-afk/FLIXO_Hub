@@ -29,6 +29,17 @@ jobs:
           test "$GITHUB_REF" = "refs/heads/execution"
           test "$GITHUB_EVENT_NAME" = "push"
 
+      - name: Checkout exact execution candidate
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .nvmrc
+
       - name: Find or create canonical execution PR
         env:
           GH_TOKEN: ${{ github.token }}
@@ -59,4 +70,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --auto --squash
+          auto_merge_enabled="$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json autoMergeRequest --jq '.autoMergeRequest != null')"
+          if [ "$auto_merge_enabled" = "true" ]; then
+            echo "AUTO_MERGE_ALREADY_ENABLED=true"
+          else
+            gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --auto --squash
+            echo "AUTO_MERGE_ENABLED=true"
+          fi
