@@ -1,46 +1,51 @@
 # MEMORY.md
 
-## Canonical Bootstrap Memory
+## Canonical Governance Memory
 
 ### Authority
 - Agent identity: FLIXO-Lead-Agent.
-- State: BOOTSTRAP / VERIFYING.
-- Active execution authority is NOT established.
-- Source: docs/AGENT-LEAD-MEMORY-GOVERNANCE-v1.3-DRAFT.md.
+- Contract version: 1.4.1.
+- Current state: BOOTSTRAP / POST-MERGE SYNC.
+- Active execution authority: NOT ESTABLISHED.
+- Approval evidence: NOT VERIFIED.
+- Source: merged v1.4.1 governance contract and current STATE.md.
 
 ### Repository
 - Repository: m1m2m3m4m5m6m700-afk/FLIXO_Hub.
 - Production truth branch: main.
-- Observed main SHA: de1e5b3c46bc1f5812987cb8ad863c5ff983178d.
-- Source: GitHub repository and commit metadata observed 2026-10-08.
+- Current main SHA: 508b5f9f9314deb7cbfd6d6592450b7d5f39141e.
+- Bootstrap implementation PR: #1257.
+- PR #1257 merge commit: 508b5f9f9314deb7cbfd6d6592450b7d5f39141e.
+- Source: GitHub metadata observed 2026-10-08.
 
 ### Ownership
 - CODEOWNERS lists @m1m2m3m4m5m6m700-afk as owner.
-- Source: .github/CODEOWNERS, blob SHA 806ab7b8e73a5ef9ede6fbb27f84cfdc1c033fce.
+- Owner and PR author are the same GitHub account.
+- No GitHub APPROVE review is recorded on PR #1257.
+- Source: .github/CODEOWNERS and PR review metadata.
 
-### Memory bootstrap
-- Required files: STATE.md, DECISIONS.md, MEMORY.md.
-- These files were not found on the observed main by bootstrap code search.
-- Mission: EXEC-LEAD-MEMORY-001.
-
-### Evidence
-- Execution Ledger requires exact-SHA evidence and warns that evidence becomes stale after mutation.
-- Source: docs/FLIXO-EXECUTION-LEDGER.md, blob SHA 77fdfd4737b0278ed3219d537e663b0c48a77b32.
-
-## ما لم يُتحقق منه
-- Owner approval of v1.3.
-- ACTIVE authority.
-- Approved-branch merge.
-- Automatic downgrade enforcement.
-- agent-blocked channel enforcement.
-
-
-### v1.4.1 Governance Implementation Draft
+### Implemented Governance
 - Admission Gate: .github/workflows/agent-governance-admission.yml.
 - Admission implementation: scripts/ci/admission-gate.mjs.
 - Downgrade telemetry: scripts/ci/agent-governance-metrics.mjs.
-- Governance contract tests: scripts/ci/test-admission-gate.mjs and scripts/ci/test-agent-governance-metrics.mjs.
-- Admission remains execution-only, read-only, exact-SHA bound.
+- Blocked-channel verifier: scripts/ci/check-agent-blocked-channel.mjs.
+- Governance Contract: .github/workflows/governance-contract.yml.
+- Admission remains execution-only, read-only, and exact-SHA bound.
 - Automatic downgrade enforcement begins only after the 10-completed-PR floor.
-- Main strict governance remains externally blocked according to the live ruleset state recorded in Issue #1125.
-- This memory entry is draft evidence only and does not establish ACTIVE authority.
+
+### CI Topology
+- Worker/implementation PRs do not execute the canonical execution -> main release-only verify/browser/coverage topology.
+- On pre-merge head ea868bd303b01977400dd692ef6271f62bbf2b87, FLIXO CI passed with trust-gate=PASS_WORKER_PR and promotion proof explicitly not applicable to worker PRs.
+- This pre-merge evidence is historical and must not be treated as evidence for the current main SHA unless independently rerun.
+
+### Post-merge status
+- PR #1257 is merged.
+- main is 508b5f9f9314deb7cbfd6d6592450b7d5f39141e.
+- Merge status does not imply ACTIVE.
+- The verified GitHub signature on 508b5f9f9314deb7cbfd6d6592450b7d5f39141e does not substitute for a PR APPROVE review or other accepted owner-approval evidence.
+- Strict main governance remains authority-controlled as documented in Issue #1125.
+- Live agent-blocked label enforcement remains to be proven by the live verifier.
+
+### Evidence discipline
+- Any mutation changes the target SHA and invalidates evidence tied to the prior SHA.
+- Before claiming GREEN/ACTIVE/certification/production, re-read current main HEAD and attach evidence to that exact SHA.
