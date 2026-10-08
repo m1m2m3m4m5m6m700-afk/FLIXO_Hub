@@ -268,7 +268,7 @@ export type SandboxPolicy = Readonly<{
 
 export const DEFAULT_SANDBOX_POLICY: SandboxPolicy = Object.freeze({
   filesystem: 'EPHEMERAL',
-  network: { mode: 'NONE' },
+  network: { mode: 'NONE' } as NetworkPolicy,
   limits: {
     timeoutMs: 10 * 60 * 1000,
     memoryMb: 1024,
