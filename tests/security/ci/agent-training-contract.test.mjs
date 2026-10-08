@@ -20,7 +20,7 @@ test('all ten principal training agents have explicit identities', () => {
     const content = readFileSync(agent.registration, 'utf8');
     assert.ok(content.includes('name: ' + agent.name));
     if (agent.scout) assert.ok(content.includes('tools: ["read", "search", "edit"]'));
-    else assert.ok(content.includes('tools: read, search, terminal'));
+    else assert.ok(content.includes('tools: read, search, edit, terminal'));
     assert.doesNotMatch(content, /git push origin main|force[- ]push|write directly to main/iu);
     assert.doesNotMatch(content, /(?:^|\n)\s*(?:the agent|agent)\s+(?:can|may|will|shall)\s+(?:declare\s+)?(?:PASS|GREEN|CERTIFIED)|(?:^|\n)\s*(?:the agent|agent)\s+(?:can|may|will|shall)\s+(?:certify|self-certify)\b/imu);
     assert.match(content, /100\/100/u);
@@ -51,7 +51,7 @@ test('training program defines evidence-based 100 score and adjudication', () =>
 
 test('package exposes the all-agent training contract as a test gate', () => {
   const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
-  assert.equal(pkg.scripts['test:agent-training'], 'node --test tests/security/ci/agent-training-contract.test.mjs tests/security/ci/agent-canonical-registry.test.mjs tests/security/ci/agent-self-learning-control-plane.test.mjs tests/security/ci/agent-role-drills.test.mjs tests/security/ci/agent-readiness-evaluator.test.mjs');
+  assert.equal(pkg.scripts['test:agent-training'], 'node --test tests/security/ci/agent-training-contract.test.mjs tests/security/ci/agent-canonical-registry.test.mjs tests/security/ci/agent-self-learning-control-plane.test.mjs tests/security/ci/agent-role-drills.test.mjs tests/security/ci/agent-readiness-evaluator.test.mjs tests/security/ci/agent-memory-economy.test.mjs');
   assert.match(pkg.scripts.test, /test:agent-training/u);
 });
 
