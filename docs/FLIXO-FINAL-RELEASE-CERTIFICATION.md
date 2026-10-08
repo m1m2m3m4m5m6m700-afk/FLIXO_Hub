@@ -1,6 +1,6 @@
 # FLIXO Final Release Certification
 
-STATUS: AUTOMATED-PROMOTION / NOT A CERTIFICATION CLAIM
+STATUS: NOT READY
 
 This document is a certification template/state record, not certification by itself.
 
@@ -20,11 +20,11 @@ This document is a certification template/state record, not certification by its
 
 1. Clean-clone Red Team PASS on CURRENT_SHA.
 2. Exact-SHA evidence for CI, tests, security, coverage, and browser verification.
-3. Required GitHub automated governance checks on `main`.
-4. Protected automated promotion through `execution -> main`.
+3. Required GitHub governance policy on `main`.
+4. Legitimate promotion through the protected `execution -> main` path.
 5. Post-merge exact-SHA report and downstream production verification when applicable.
 
-Human review or approval is not a release prerequisite in the autonomous merge profile.
+Independent governance approval remains required by the release policy.
 
 Any missing, mixed-SHA, stale, skipped, cancelled, neutral, expired, or unverifiable evidence remains a blocker.
 

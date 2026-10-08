@@ -1,6 +1,6 @@
 # FLIXO Governance Policy Synchronization
 
-STATUS: AUTONOMOUS-MERGE / AUTOMATED-GATES
+STATUS: POLICY-ALIGNED / LIVE ENFORCEMENT PENDING
 
 ## Purpose
 
@@ -8,7 +8,7 @@ This document separates execution freedom from the automated controls that must 
 
 1. Agent execution contract defines what authorized agents may implement on `execution`.
 2. Live GitHub governance defines what GitHub enforces on `main`.
-3. Merge reporting records the exact merged SHA after successful promotion.
+3. Release certification requires fresh exact-SHA evidence plus required live governance and promotion conditions.
 
 Repository text does not simulate GitHub administration state.
 
@@ -17,26 +17,26 @@ Repository text does not simulate GitHub administration state.
 - Canonical implementation lane: `execution`.
 - Production truth: `main`.
 - Integration path: `execution -> main` through a protected pull request.
-- Authorized agents may implement, test, repair, coordinate, and merge without human approval.
+- Authorized agents may implement, test, repair, and coordinate on `execution` without conversational approval.
 - No direct `main` ref mutation.
 - Automated checks remain fail-closed.
 - Every mutation and every merge claim is bound to an exact SHA.
 - Post-merge reporting is observational and does not create a second approval authority.
 
-## Autonomous merge profile
+## Canonical release governance target
 
 | Control | Required |
 |---|---:|
-| approving reviews | 0 |
-| dismiss stale approvals | false |
-| Code Owner review | false |
-| latest-push approval | false |
-| review-thread resolution | false |
-| strict required status checks | false |
+| approving reviews | 1 |
+| dismiss stale approvals | true |
+| Code Owner review | true |
+| latest-push approval | true |
+| review-thread resolution | true |
+| strict required status checks | true |
 | required check: `trust-gate` | yes |
 | required check: `Exact-SHA promotion proof` | yes |
 
-Human approval is not a merge prerequisite. The required status checks are the merge gate.
+Independent governance approval is part of the release gate; repository text cannot simulate live GitHub enforcement.
 
 ## Live ruleset
 
@@ -59,4 +59,4 @@ A moving `execution` HEAD invalidates older SHA-specific evidence.
 
 ## Certification language
 
-Do not label the merge report as a human certification. It is an exact-SHA automated integration record. Production deployment and production identity verification remain separate downstream facts.
+Do not label the merge report as certification. It is an exact-SHA integration record. Production deployment and production identity verification remain separate downstream facts. A live governance mismatch remains a blocker.

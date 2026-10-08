@@ -1,6 +1,6 @@
 # FLIXO Exact-SHA Certification Record
 
-STATUS: AUTONOMOUS-MERGE / AUTOMATED-GATES
+STATUS: POLICY-ALIGNED / LIVE-GOVERNANCE-BLOCKED
 
 This file indexes evidence policy. It never substitutes for live GitHub state.
 
@@ -10,19 +10,21 @@ This file indexes evidence policy. It never substitutes for live GitHub state.
 2. The promotion path is the protected `execution -> main` pull request.
 3. Required CI, security, browser, Red-Team, and exact-SHA evidence must match the candidate SHA.
 4. GitHub rulesets are live external enforcement.
-5. Human approval is not a promotion prerequisite. Automated required checks are.
+5. Legitimate independent governance approval remains part of final promotion policy.
 
-## Autonomous merge target
+## Canonical governance target
 
 For `main`:
-- zero required approving reviews;
-- no Code Owner review requirement;
-- no latest-push approval requirement;
-- no review-thread approval requirement;
-- required `trust-gate`;
-- required `Exact-SHA promotion proof`.
+- at least 1 approving review;
+- dismiss stale approvals on push;
+- require Code Owner review;
+- require independent latest-push approval;
+- resolve review threads before merge;
+- enforce strict required status checks;
+- require `trust-gate`;
+- require `Exact-SHA promotion proof`.
 
-The merge actor may be an authorized automation/agent identity. Direct writes to the `main` ref remain forbidden.
+Direct writes to the `main` ref remain forbidden.
 
 ## Evidence rule
 
@@ -34,4 +36,4 @@ A merge report is generated only after a PR is actually merged into `main`. The 
 
 ## Certification state
 
-Final product/production claims still require their own exact-SHA evidence. This document does not turn a successful merge into a production certification.
+Final product/production claims still require their own exact-SHA evidence. Current live GitHub governance remains a release blocker until the required ruleset controls are actually enforced.
