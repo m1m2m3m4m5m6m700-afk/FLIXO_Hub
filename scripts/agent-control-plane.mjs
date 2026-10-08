@@ -117,8 +117,13 @@ function validateCapabilityContract(profile, id, issues, expected) {
 
   if (profile.certification_authority !== false) issues.push(id + ': certification_authority must be false');
   const scout = id === 'AGENT-08' || id === 'AGENT-09' || id === 'AGENT-10';
+  const supporting = expected.class === 'supporting-subrole';
   if (scout) {
     if (profile.merge_authority !== false) issues.push(id + ': merge_authority must be false');
+  } else if (supporting) {
+    if (profile.merge_authority !== false) issues.push(id + ': merge_authority must be false for supporting roles');
+    if (profile.execution_scope === 'execution-full') issues.push(id + ': supporting roles cannot expose execution-full scope');
+    if (profile.cap_MERGE !== 'DENY') issues.push(id + ': supporting roles must deny MERGE');
   } else {
     if (profile.merge_authority !== true) issues.push(id + ': merge_authority must be true for execution agents');
     if (profile.cap_MERGE !== 'SCOPED') issues.push(id + ': MERGE must be SCOPED for execution agents');
@@ -130,7 +135,13 @@ function validateCapabilityContract(profile, id, issues, expected) {
   if (profile.deploy_authority !== false) issues.push(id + ': deploy_authority must be false');
   if (profile.self_certification !== false) issues.push(id + ': self_certification must be false');
   if (profile.cap_DELEGATE !== 'DENY') issues.push(id + ': DELEGATE must be DENY');
-  if (scout) { if (profile.cap_MERGE !== 'DENY') issues.push(id + ': MERGE must be DENY for research scouts'); } else if (profile.cap_MERGE !== 'SCOPED') { issues.push(id + ': MERGE must be SCOPED for execution agents'); }
+  if (scout) {
+    if (profile.cap_MERGE !== 'DENY') issues.push(id + ': MERGE must be DENY for research scouts');
+  } else if (supporting) {
+    if (profile.cap_MERGE !== 'DENY') issues.push(id + ': MERGE must be DENY for supporting roles');
+  } else if (profile.cap_MERGE !== 'SCOPED') {
+    issues.push(id + ': MERGE must be SCOPED for execution agents');
+  }
   if (profile.cap_DEPLOY !== 'DENY') issues.push(id + ': DEPLOY must be DENY');
   if (profile.cap_CERTIFY !== 'DENY') issues.push(id + ': CERTIFY must be DENY');
 
@@ -152,6 +163,7 @@ function validateCapabilityContract(profile, id, issues, expected) {
   }
 
   const scouts = id === 'AGENT-08' || id === 'AGENT-09' || id === 'AGENT-10';
+  const supportingRole = expected.class === 'supporting-subrole';
   if (scouts) {
     if (JSON.stringify(tools) !== JSON.stringify(['read', 'search', 'edit'])) {
       issues.push(id + ': Scout tools must be exactly read/search/edit');
@@ -165,6 +177,10 @@ function validateCapabilityContract(profile, id, issues, expected) {
     for (const capability of ['EDIT_SOURCE', 'EDIT_TESTS', 'EDIT_WORKFLOWS', 'EDIT_GOVERNANCE', 'EDIT_TASKS', 'EDIT_AGENT_PROFILES']) {
       if (profile['cap_' + capability] !== 'DENY') issues.push(id + ': Scout ' + capability + ' must be DENY');
     }
+  } else if (supportingRole) {
+    if (profile.cap_WRITE_INBOX !== 'DENY') issues.push(id + ': supporting WRITE_INBOX must be DENY');
+    if (profile.cap_WRITE_REPORTS !== 'SCOPED') issues.push(id + ': supporting WRITE_REPORTS must be SCOPED');
+    if (profile.write_scope !== expected.report) issues.push(id + ': supporting write_scope must match report scope');
   } else {
     if (profile.cap_WRITE_INBOX !== 'DENY') issues.push(id + ': non-Scout WRITE_INBOX must be DENY');
     if (profile.cap_WRITE_REPORTS !== 'SCOPED') issues.push(id + ': execution agent WRITE_REPORTS must be SCOPED');

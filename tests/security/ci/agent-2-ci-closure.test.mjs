@@ -94,8 +94,12 @@ test('CI promotion workflow contains live lineage and exact security-gate semant
   const workflow = await readFile(path.join(ROOT, '.github/workflows/ci.yml'), 'utf8');
   for (const token of [
     'GITHUB_EVENT_PATH:', 'verify-promotion-lineage.mjs', 'EXPECTED_SHA:',
-    'head_sha=$EXPECTED_SHA', 'event=pull_request', 'FLIXO CodeQL', 'FLIXO Secret Scan',
+    'FLIXO CodeQL', 'FLIXO Secret Scan',
   ]) assert.ok(workflow.includes(token), 'missing CI token: ' + token);
+  assert.match(workflow, /pull_request:\s*\n\s*branches:\s*\[main\]/u);
+  assert.match(workflow, /github\.event\.pull_request\.head\.ref == 'execution'/u);
+  assert.match(workflow, /github\.event\.pull_request\.head\.repo\.full_name == github\.repository/u);
+  assert.match(workflow, /git rev-parse HEAD\) = "\$EXPECTED_SHA"/u);
 });
 
 test('execution TestSprite lane is unprivileged and exact-SHA', async () => {
