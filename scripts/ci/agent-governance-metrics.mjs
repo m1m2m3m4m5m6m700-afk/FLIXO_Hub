@@ -33,7 +33,7 @@ export function evaluateGovernanceMetrics(input) {
   if (!Number.isInteger(sampleSize) || sampleSize < 0) failures.push('sample-size:invalid');
   if (!Number.isFinite(buildSuccessRate) || buildSuccessRate < 0 || buildSuccessRate > 1) failures.push('build-success-rate:invalid');
   if (!Number.isInteger(regressions) || regressions < 0) failures.push('regressions:invalid');
-  if (!Number.isFinite(rollbacks) || rollbacks < 0 || rollbacks > 1) failures.push('rollback-rate:invalid');
+  if (!Number.isFinite(rollbackRate) || rollbackRate < 0 || rollbackRate > 1) failures.push('rollback-rate:invalid');
   if (!Number.isFinite(rejectedReviewRate) || rejectedReviewRate < 0 || rejectedReviewRate > 1) failures.push('rejected-review-rate:invalid');
 
   const reasons = [];
