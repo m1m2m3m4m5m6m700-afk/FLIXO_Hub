@@ -85,8 +85,7 @@ test('canonical CI security workflows do not trigger on execution worker PRs', a
 });
 
 test('OSS readiness PRs run verification while promotion proof remains execution-only', async () => {
-  const ossPrGate =
-    /if:\s*\$\{\{ github\.event_name != 'pull_request' \|\| \(\(github\.event\.pull_request\.head\.ref == 'execution' \|\| startsWith\(github\.event\.pull_request\.head\.ref, 'chore\\/oss-'\)\) && github\.event\.pull_request\.head\.repo\.full_name == github\.repository\) \}\}/u;
+  const ossPrGate = "if: ${{ github.event_name != 'pull_request' || ((github.event.pull_request.head.ref == 'execution' || startsWith(github.event.pull_request.head.ref, 'chore/oss-')) && github.event.pull_request.head.repo.full_name == github.repository) }}";
 
   for (const path of [
     '.github/workflows/ci.yml',
@@ -94,13 +93,14 @@ test('OSS readiness PRs run verification while promotion proof remains execution
     '.github/workflows/secret-scan.yml',
   ]) {
     const workflow = await readFile(new URL('../../' + path, import.meta.url), 'utf8');
-    assert.match(workflow, ossPrGate, path + ' must allow canonical OSS readiness PRs');
+    assert.ok(workflow.includes(ossPrGate), path + ' must allow canonical OSS readiness PRs');
   }
 
   const ci = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
-  assert.match(
-    ci,
-    /promotion-proof:\s+[\s\S]*?if:\s*\$\{\{ always\(\) && \(github\.event_name != 'pull_request' \|\| github\.event\.pull_request\.head\.ref == 'execution'\) \}\}/u,
+  const promotionProofGate =
+    "if: ${{ always() && (github.event_name != 'pull_request' || github.event.pull_request.head.ref == 'execution') }}";
+  assert.ok(
+    ci.includes(promotionProofGate),
     'promotion proof must remain execution-only for pull requests',
   );
 });
