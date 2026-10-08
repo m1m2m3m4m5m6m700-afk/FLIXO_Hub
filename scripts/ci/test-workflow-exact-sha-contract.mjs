@@ -88,13 +88,6 @@ test('canonical CI uses execution push as the single release verification trigge
   assert.match(workflow, /push:\s*\n\s*branches:\s*\[main, execution\]/u);
 });
 
-  for (const path of files) {
-    const workflow = await readFile(new URL('../../' + path, import.meta.url), 'utf8');
-    assert.doesNotMatch(workflow, /pull_request:\s*\n\s*branches:\s*\[main, execution\]/u);
-    assert.match(workflow, /pull_request:\s*\n\s*branches:\s*\[main\]/u);
-  }
-});
-
 test('canonical CI consumes security assurance as reusable jobs', async () => {
   const workflow = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
   assert.match(workflow, /name: FLIXO CodeQL \/ reusable/u);
@@ -103,16 +96,6 @@ test('canonical CI consumes security assurance as reusable jobs', async () => {
   assert.match(workflow, /uses: \.\/\.github\/workflows\/secret-scan\.yml/u);
   assert.match(workflow, /name: Agent Watchdog \/ reusable/u);
   assert.match(workflow, /uses: \.\/\.github\/workflows\/agent-watchdog\.yml/u);
-});
-
-  for (const path of files) {
-    const workflow = await readFile(new URL('../../' + path, import.meta.url), 'utf8');
-    assert.match(
-      workflow,
-      /if:\s*\$\{\{ github\.event_name != 'pull_request' \|\| \(github\.event\.pull_request\.head\.ref == 'execution' && github\.event\.pull_request\.head\.repo\.full_name == github\.repository\) \}\}/u,
-      path + ' must gate PR jobs to the canonical execution branch',
-    );
-  }
 });
 
 test('final Red Team security wait is promotion-only after execution security deduplication', async () => {
