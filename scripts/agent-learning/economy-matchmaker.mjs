@@ -45,7 +45,15 @@ export function buildEconomyDispatchPlan({
   const quote = quoteEconomyTask({ difficulty, baseReward, openDemand });
   const normalized = wallets.map(normalizeWallet);
 
-  const solver = normalized.find(wallet => wallet.agentId === String(solverAgentId ?? '').trim());
+  const explicitSolverId = String(solverAgentId ?? '').trim();
+  const eligibleSolvers = rankEconomySolverCandidates({
+    candidates: normalized,
+    stakeRequired: quote.stakeRequired,
+  });
+  const solver = explicitSolverId
+    ? normalized.find(wallet => wallet.agentId === explicitSolverId)
+    : eligibleSolvers[0];
+
   if (!solver) throw new Error('ECONOMY_SOLVER_WALLET_NOT_FOUND');
   if (solver.status !== 'ACTIVE') throw new Error('ECONOMY_SOLVER_WALLET_INACTIVE');
   if (solver.balanceCredits < quote.stakeRequired) throw new Error('INSUFFICIENT_STAKE');
