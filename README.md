@@ -137,6 +137,6 @@ The platform is designed as a mutual-value loop: people can build and reuse proj
 
 For a small, scoped first contribution, start with the open [good first issues](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) or [help wanted issues](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22).
 
-For repository and contribution policy, read [CONTRIBUTING.md](CONTRIBUTING.md). For reusable projects, tools, agents, skills, verifiers, adapters, workflows, and templates, use the [Developer Contribution Center](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/tree/main/src/pages/developer-contributions.tsx) and [contribution contract](docs/CONTRIBUTIONS.md).
+For repository and contribution policy, read [CONTRIBUTING.md](CONTRIBUTING.md). For reusable projects, tools, agents, skills, verifiers, adapters, workflows, and templates, use the [Developer Contribution Center](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/blob/main/src/pages/developer-contributions.tsx) and [contribution contract](docs/CONTRIBUTIONS.md).
 
 Support and accessibility guidance are available in [SUPPORT.md](SUPPORT.md) and [ACCESSIBILITY.md](ACCESSIBILITY.md). Citation metadata is provided through [CITATION.cff](CITATION.cff).

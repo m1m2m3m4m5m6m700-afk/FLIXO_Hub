@@ -1,141 +1,33 @@
-name: FLIXO Community Bootstrap
+name: FLIXO Community Label Bootstrap
 
 on:
   push:
     branches: [main, execution]
     paths:
       - .github/workflows/community-bootstrap.yml
+  workflow_dispatch:
 
 permissions:
-  contents: read
   issues: write
 
 jobs:
-  seed:
-    name: Ensure contributor labels and starter issues
+  labels:
+    name: Ensure contributor labels
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
-      - name: Configure contributor labels
+      - name: Create or update contributor labels
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-          create_label() {
-            local name="$1"
-            local color="$2"
-            local description="$3"
-            gh label create "$name" --color "$color" --description "$description" --force >/dev/null
-          }
-
-          create_label "good first issue" "7057ff" "A scoped task suitable for a first-time contributor."
-          create_label "help wanted" "008672" "A task where the maintainers welcome community help."
-          create_label "documentation" "0075ca" "Documentation or developer guidance."
-          create_label "testing" "5319e7" "Tests, regression coverage, or test tooling."
-          create_label "accessibility" "1d76db" "Accessibility, keyboard, screen-reader, or usability barriers."
-          create_label "developer-platform" "fbca04" "Developer platform, workspace, contribution, or agent surfaces."
-          create_label "i18n" "cfd3d7" "Internationalization and localization."
-
-      - name: Seed concrete starter issues
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          create_issue_if_missing() {
-            local title="$1"
-            local labels="$2"
-            local body="$3"
-
-            if gh issue list --state all --limit 100 --search "$title in:title" --json title --jq '.[].title' | grep -Fxq "$title"; then
-              echo "EXISTS: $title"
-              return 0
-            fi
-
-            gh issue create --title "$title" --body "$body" --label "$labels"
-          }
-
-          create_issue_if_missing             "docs: add a five-minute contributor quickstart example"             "good first issue,documentation"             "## Goal
-
-Add a small, copy-pasteable contributor walkthrough to the documentation.
-
-## Acceptance criteria
-- Start from a clean checkout.
-- Show the smallest useful documentation-only change.
-- Run one targeted validation command.
-- Show the expected pull-request evidence.
-
-Keep the change documentation-only. Do not alter governance or release gates."
-
-          create_issue_if_missing             "docs: document the local workspace privacy boundary"             "good first issue,documentation"             "## Goal
-
-Add a concise developer-facing explanation of how the browser-local workspace keeps raw file bytes out of LLM/provider/backend paths.
-
-## Acceptance criteria
-- Identify the local processing boundary.
-- Distinguish browser memory from persistence.
-- Link to the relevant source contract.
-- Avoid claims that are not backed by current code."
-
-          create_issue_if_missing             "testing: add an accessibility smoke test for the developer landing page"             "good first issue,testing,accessibility"             "## Goal
-
-Add a focused browser test for keyboard navigation and visible focus behavior on the /developer surface.
-
-## Acceptance criteria
-- Chromium coverage is sufficient.
-- The test asserts a concrete accessible interaction.
-- No production behavior is weakened to make the test pass.
-- The test is deterministic."
-
-          create_issue_if_missing             "testing: add a route contract test for the contributions center"             "good first issue,testing,developer-platform"             "## Goal
-
-Add a small contract test that verifies the developer contribution center routes and required navigation links remain discoverable.
-
-## Acceptance criteria
-- Cover the Arabic and English routes.
-- Check the contribution proposal entry point.
-- Fail clearly if a canonical route disappears.
-- Keep the test independent from external services."
-
-          create_issue_if_missing             "frontend: improve keyboard focus visibility on developer platform surfaces"             "good first issue,accessibility"             "## Goal
-
-Audit the developer platform pages for keyboard focus visibility and make one minimal, reusable improvement where needed.
-
-## Acceptance criteria
-- Keyboard-only navigation remains usable.
-- Focus is visually distinguishable.
-- No color-only state is introduced.
-- Include a focused regression when behavior changes."
-
-          create_issue_if_missing             "i18n: audit developer contribution copy for locale parity"             "good first issue,i18n"             "## Goal
-
-Compare the developer contribution center's user-facing copy across the canonical locale set and document any missing or inconsistent strings.
-
-## Acceptance criteria
-- Record the affected keys/routes.
-- Avoid changing translation architecture.
-- Add targeted tests when a concrete regression is fixed."
-
-          create_issue_if_missing             "developer-platform: add a reusable contribution package example"             "help wanted,developer-platform"             "## Goal
-
-Add a small example under contributions/ showing the expected package shape for a reusable contribution.
-
-## Acceptance criteria
-- Include contribution.json, README.md, src/, and tests/.
-- Use the existing Contribution Contract.
-- Bind example evidence to an exact source SHA where applicable.
-- Do not create a second registry or authority."
-
-          create_issue_if_missing             "docs: add a maintainer checklist for publishing verified contributions"             "help wanted,documentation"             "## Goal
-
-Create a concise maintainer checklist that maps proposal admission, validation, exact-SHA verification, publication, and deprecation to the existing contracts.
-
-## Acceptance criteria
-- Reference the canonical contribution registry and contract.
-- State what makes evidence stale.
-- State that publication does not grant merge, deploy, or governance authority.
-- Avoid inventing a new approval or certification authority."
-
-          echo "COMMUNITY_BOOTSTRAP=PASS"
+          repo="${GITHUB_REPOSITORY}"
+          gh label create "good first issue" --repo "$repo" --color "7057ff" --description "A scoped task suitable for a first-time contributor." --force
+          gh label create "help wanted" --repo "$repo" --color "008672" --description "A task where maintainers welcome community help." --force
+          gh label create "documentation" --repo "$repo" --color "0075ca" --description "Documentation or developer guidance." --force
+          gh label create "testing" --repo "$repo" --color "5319e7" --description "Tests, regression coverage, or test tooling." --force
+          gh label create "accessibility" --repo "$repo" --color "1d76db" --description "Accessibility, keyboard, screen-reader, or usability barriers." --force
+          gh label create "developer-platform" --repo "$repo" --color "fbca04" --description "Developer platform, workspace, contribution, or agent surfaces." --force
+          gh label create "i18n" --repo "$repo" --color "cfd3d7" --description "Internationalization and localization." --force
+          echo "COMMUNITY_LABEL_BOOTSTRAP=PASS"
