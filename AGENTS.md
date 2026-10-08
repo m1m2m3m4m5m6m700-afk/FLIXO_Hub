@@ -11,11 +11,11 @@ Runtime authority is limited to:
 Agents may prepare, implement, test, review, and document changes. Agents do not create a second registry, second executor authority, provider-controlled execution path, or certification authority.
 
 ## Open Agent Execution Mode
-Human Authority authorizes autonomous implementation and verification within `execution`; promotion remains subject to the live protected PR governance policy.
+Human Authority authorizes autonomous implementation, verification, and promotion through the protected PR path within `execution`; required automated checks remain blocking.
 
 Within the `execution` integration lane, authorized agents may independently inspect, implement, refactor, test, document, harden, and coordinate across repository surfaces without waiting for per-file or per-agent approval. This may include runtime, tests, documentation, configuration, localization, media tooling, security tooling, agent orchestration, CI/workflow definitions, and integration code when the assigned task requires it.
 
-Open execution means broad implementation authority across `execution` and disposable worker branches. Authorized agents may prepare and validate promotion through the protected PR path, but cannot treat automated checks as a substitute for live GitHub governance requirements. Agents must still:
+Open execution means broad implementation authority across `execution` and disposable worker branches. Authorized execution agents may publish and merge the protected execution -> main PR when required automated checks pass; human approval is not required. Agents must still:
 - use `execution` as the canonical integration lane; disposable worker branches are allowed for isolation and parallel work;
 - re-read the live execution SHA before and after meaningful mutation;
 - use non-force, race-safe publication and invalidate stale evidence after SHA drift;
@@ -58,7 +58,7 @@ Open Agent Execution Mode does not simulate, satisfy, or override missing GitHub
 - Production truth: `main`
 - Promotion path: `execution -> main` through a protected pull request.
 - Direct `main` ref mutation is forbidden.
-- Promotion remains subject to the live GitHub ruleset and required independent governance conditions.
+- Promotion is subject to the live GitHub ruleset and required automated checks only; human approval is not a prerequisite.
 - Every verification claim is exact-SHA bound.
 - `IMPLEMENTED`, `VERIFIED`, and `CERTIFIED` are distinct states.
 

@@ -37,6 +37,7 @@ const REGISTRY_END = '<!-- CANONICAL_AGENT_REGISTRY:END -->';
 const PROFILE_DIR = '.github/agents';
 const LEDGER = 'المهام.md';
 const ROLE_DRILLS = 'scripts/agent-learning/run-role-drills.mjs';
+const AUTONOMOUS_PROMOTION_WORKFLOW = '.github/workflows/autonomous-promotion.yml';
 
 function gitHead(root) {
   try {
@@ -359,6 +360,7 @@ export function auditAgentControlPlane(root = process.cwd(), sha = gitHead(root)
   for (const agent of agents) issues.push(...agent.issues);
   const envelope = auditExecutionEnvelope(root);
   issues.push(...envelope.issues);
+  if (!existsSync(join(root, AUTONOMOUS_PROMOTION_WORKFLOW))) issues.push('autonomous promotion controller workflow missing');
 
   return {
     sha,

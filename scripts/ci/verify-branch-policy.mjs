@@ -237,9 +237,10 @@ export function analyzeWorkflowAuthority(path, workflow) {
       );
     }
 
+    const autonomousPromotionController = path.endsWith('/autonomous-promotion.yml') && hasExecutionPushGate(jobText) && /gh\s+pr\s+(?:list|create|merge)\b/iu.test(jobText) && !/git\s+push\b/iu.test(jobText);
     const jobContentsWrite = /contents:\s*write\b/iu.test(jobText);
     const executionPush = hasExecutionPushGate(jobText);
-    if (executionPush && (jobContentsWrite || workflowContentsWrite)) {
+    if (executionPush && (jobContentsWrite || workflowContentsWrite) && !autonomousPromotionController) {
       findings.push(`${path}#${job.id}: execution-push job may not expose contents:write to mutable execution code.`);
     }
     if (executionPush && /\bsecrets\.[A-Za-z0-9_]+/u.test(jobText)) {
@@ -250,7 +251,7 @@ export function analyzeWorkflowAuthority(path, workflow) {
     }
     if (jobContentsWrite || workflowContentsWrite) {
       const safeMainWrite = mainPushGate || workflowMainOnlyPush;
-      const safeExecutionWrite = executionTarget || isolatedKnowledgeTarget || isolatedDiscoveryTarget || trustedControllerTarget || hasExecutionOnlyMutationTarget(jobText);
+      const safeExecutionWrite = executionTarget || isolatedKnowledgeTarget || isolatedDiscoveryTarget || trustedControllerTarget || autonomousPromotionController || hasExecutionOnlyMutationTarget(jobText);
       if (!safeMainWrite && !safeExecutionWrite) {
         findings.push(
           `${path}#${job.id}: contents:write has neither an explicit main-push gate nor an execution-only mutation target.`,

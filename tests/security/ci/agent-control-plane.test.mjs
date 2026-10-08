@@ -93,3 +93,24 @@ test('declared lifecycle cannot outrun derived lifecycle', async () => {
     assert.equal(agent.issues.some(issue => /declared lifecycle must equal/u.test(issue)), false, agent.id);
   }
 });
+
+
+test('execution agents are autonomous-capable while research scouts remain restricted', () => {
+  const root = process.cwd();
+  const registry = loadCanonicalRegistry(root);
+  for (const id of ['AGENT-01','AGENT-02','AGENT-03','AGENT-04','AGENT-05','AGENT-06','AGENT-07']) {
+    const agent = registry.agents.find(a => a.id === id);
+    const profile = parseProfileFrontmatter(readFileSync(agent.profile, 'utf8'));
+    assert.equal(profile.execution_scope, 'execution-full', id);
+    assert.equal(profile.merge_authority, true, id);
+    assert.equal(profile.cap_MERGE, 'SCOPED', id);
+    assert.equal(profile.cap_EDIT_SOURCE, 'ALLOW', id);
+    assert.equal(profile.cap_EDIT_TESTS, 'ALLOW', id);
+  }
+  for (const id of ['AGENT-08','AGENT-09','AGENT-10']) {
+    const agent = registry.agents.find(a => a.id === id);
+    const profile = parseProfileFrontmatter(readFileSync(agent.profile, 'utf8'));
+    assert.equal(profile.merge_authority, false, id);
+    assert.equal(profile.cap_MERGE, 'DENY', id);
+  }
+});

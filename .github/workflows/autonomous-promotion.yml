@@ -1,0 +1,52 @@
+name: FLIXO Autonomous Promotion Controller
+
+on:
+  push:
+    branches: [execution]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: flixo-autonomous-promotion
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    name: Ensure execution PR is auto-merge enabled
+    if: >-
+      github.repository == 'm1m2m3m4m5m6m700-afk/FLIXO_Hub' &&
+      github.ref == 'refs/heads/execution'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Verify invocation boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "m1m2m3m4m5m6m700-afk/FLIXO_Hub"
+          test "$GITHUB_REF" = "refs/heads/execution"
+          test "$GITHUB_EVENT_NAME" = "push"
+
+      - name: Find or create canonical execution PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          number="$(gh pr list --repo "$GITHUB_REPOSITORY" --head execution --base main --state open --json number --jq '.[0].number // empty')"
+          if [ -z "$number" ]; then
+            url="$(gh pr create --repo "$GITHUB_REPOSITORY" --head execution --base main --title "feat(cell): autonomous execution integration" --body "Canonical autonomous promotion path. Agents publish to execution; required automated checks govern promotion to main. Human approval is not a merge prerequisite.")"
+            number="${url##*/}"
+          fi
+          test "$number" -gt 0
+          echo "PR_NUMBER=$number" >> "$GITHUB_ENV"
+
+      - name: Enable protected auto-merge
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --auto --squash
