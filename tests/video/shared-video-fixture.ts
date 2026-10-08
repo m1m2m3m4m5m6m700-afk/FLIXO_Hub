@@ -21,7 +21,7 @@ export async function buildVideoFixture(page: Page, durationMs = VIDEO_FIXTURE_D
     );
     if (!mimeType) throw new Error('VIDEO_FIXTURE_WEBM_UNAVAILABLE');
 
-    const stream = canvas.captureStream(15);
+    const stream = canvas.captureStream(24);
     const recorder = new MediaRecorder(stream, { mimeType });
     const chunks: Blob[] = [];
     const finished = new Promise<void>((resolve, reject) => {
