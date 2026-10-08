@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { collectGovernanceMetrics } from './agent-governance-metrics.mjs';
 
 const CANONICAL_REPOSITORY = 'm1m2m3m4m5m6m700-afk/FLIXO_Hub';
+const CANONICAL_POLICY_VERSION = '1.4.1';
 const SHA = /^[a-f0-9]{40}$/u;
 
 export function evaluateAdmission(input) {
@@ -10,7 +11,7 @@ export function evaluateAdmission(input) {
   if (input.repository !== CANONICAL_REPOSITORY) failures.push('repository:not-canonical');
   if (!SHA.test(input.targetSha || '')) failures.push('target-sha:invalid');
   if (!input.missionId) failures.push('mission-id:missing');
-  if (!input.policyVersion) failures.push('policy-version:missing');
+  if (input.policyVersion !== CANONICAL_POLICY_VERSION) failures.push('policy-version:not-canonical');
   if (input.scope !== 'EXECUTION') failures.push('scope:not-execution');
   if (input.workflowRun && input.targetSha !== input.workflowRun.headSha) failures.push('target-sha:not-workflow-head');
   if (input.dispatchRef && input.targetSha !== input.dispatchRef) failures.push('target-sha:not-dispatch-target');
@@ -27,7 +28,7 @@ const result = evaluateAdmission({
   repository: process.env.GITHUB_REPOSITORY || '',
   targetSha,
   missionId: process.env.MISSION_ID || '',
-  policyVersion: process.env.POLICY_VERSION || '1.4.1',
+  policyVersion: process.env.POLICY_VERSION || CANONICAL_POLICY_VERSION,
   scope: 'EXECUTION',
   workflowRun: process.env.GITHUB_EVENT_NAME === 'workflow_run' ? { headSha: process.env.WORKFLOW_RUN_HEAD_SHA || '' } : null,
   dispatchRef: process.env.GITHUB_EVENT_NAME === 'workflow_dispatch' ? process.env.TARGET_SHA || '' : null,
