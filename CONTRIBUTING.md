@@ -109,3 +109,19 @@ Their tools are restricted to read, search, and edit. They have no shell/execute
 
 Scout branches use scout/*, target execution, and are blocked by CI if they change any file other than التطوير.md or attempt to target main.
 
+
+
+## External contributor path
+
+A contributor who is new to FLIXO should be able to follow this sequence without private instructions:
+
+1. Read this file and the [Code of Conduct](CODE_OF_CONDUCT.md).
+2. Choose a scoped issue, preferably one tagged `good first issue` or `help wanted`.
+3. Make the smallest change that satisfies the issue acceptance criteria.
+4. Run the relevant targeted checks locally and report the exact commands in the pull request.
+5. Open a pull request using the repository template.
+6. Keep the contribution bound to the current repository contracts. Do not add a parallel registry, executor, verifier, certification authority, or direct `main` mutation.
+7. For reusable contributions, use the [Contribution Contract](docs/CONTRIBUTIONS.md). Exact-SHA evidence is required and becomes invalid if the candidate SHA changes.
+8. For security-sensitive findings, use [SECURITY.md](SECURITY.md), not a public issue.
+
+Use [SUPPORT.md](SUPPORT.md) for help routing and [ACCESSIBILITY.md](ACCESSIBILITY.md) to report accessibility barriers.
