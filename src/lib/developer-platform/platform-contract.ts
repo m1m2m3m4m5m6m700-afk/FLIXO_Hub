@@ -228,7 +228,7 @@ export function evaluatePlatformExecution(
   if (request.source) {
     if (
       request.source.type !== 'git' ||
-      !/^https:\/\/[^\\/@?#\\s]+(?:\\/[^?#\\s]*)?$/u.test(request.source.url) ||
+      !/^https:\/\/[^/@?#\s]+(?:\/[^?#\s]*)?$/u.test(request.source.url) ||
       !SHA_PATTERN.test(request.source.revision) ||
       request.source.revision.toLowerCase() !== normalizedCurrent
     ) return { admitted: false, code: 'INVALID_SOURCE' };
