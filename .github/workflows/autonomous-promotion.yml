@@ -37,11 +37,21 @@ jobs:
           set -euo pipefail
           number="$(gh pr list --repo "$GITHUB_REPOSITORY" --head execution --base main --state open --json number --jq '.[0].number // empty')"
           if [ -z "$number" ]; then
-            url="$(gh pr create --repo "$GITHUB_REPOSITORY" --head execution --base main --title "feat(cell): autonomous execution integration" --body "Canonical autonomous promotion path. Agents publish to execution; required automated checks govern promotion to main. Human approval is not a merge prerequisite.")"
+            url="$(gh pr create --repo "$GITHUB_REPOSITORY" --head execution --base main --title "feat(cell): autonomous execution integration" --body "Canonical autonomous promotion path. Agents publish to execution; live GitHub governance and required automated checks govern promotion to main. Conversational approval is not an implementation prerequisite; release approval remains a live governance control.")"
             number="${url##*/}"
           fi
           test "$number" -gt 0
           echo "PR_NUMBER=$number" >> "$GITHUB_ENV"
+
+      - name: Verify strict live governance before enabling auto-merge
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GOVERNANCE_MODE: strict
+          GOVERNANCE_BRANCH: main
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/ci/check-governance.sh
 
       - name: Enable protected auto-merge
         env:
