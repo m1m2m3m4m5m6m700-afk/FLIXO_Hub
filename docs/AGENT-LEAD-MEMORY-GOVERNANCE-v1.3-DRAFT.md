@@ -212,6 +212,6 @@ REQUIRED_OWNER_DECISION: "<specific decision>"
 - اعتماد المالك للإصدار 1.4.1.
 - وجود workflow فعلي يفرض حد 10 PRs والتقليص التلقائي.
 - وجود label `agent-blocked` أو workflow مرتبط به.
-- وجود Admission Gate منفذ فعلياً، بدلاً من كونه عقداً موثقاً.
+- وجود workflow Admission Gate منفذ فعلياً؛ التنفيذ الحالي read-only/manual ولا يمنح merge أو ACTIVE.
 - دمج ملفات الذاكرة في الفرع المعتمد.
 - نجاح CI/CD بعد mutation الحالي؛ يجب إعادة التحقق من SHA النهائي قبل الدمج.
