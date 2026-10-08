@@ -127,17 +127,17 @@ Run `37781263769` على:
 
 هذه النتيجة تؤكد topology الحالي ولا تعتبر نجاحًا للـrelease lane.
 
-### Governance Contract Run
+### Governance Contract Runs
 Run `37782185301` على:
 `2aafaa6b71da58c13dcf6a775aa8d5504359ce7f`
+فشل في البداية بسبب regex غير صالح في `test-admission-gate.mjs`.
 
-فشل في بداية الاختبار بسبب regex غير صالح في `test-admission-gate.mjs`. تم إصلاح السبب، ولم يتم إخفاء الفشل.
-
-### أحدث تشغيل مراقَب وقت إعداد التقرير
 Run `37782515373` على:
 `409caea68f26302651a2eac69e8ea5f01a7f15f7`
+فشل بعد الإصلاح الأول لأن `admission-gate.mjs` كان ينفذ نفسه عند import داخل Node test runner، ما أدى إلى `target-sha:invalid` و`mission-id:missing`.
+تم إصلاح السبب بإضافة direct-execution guard.
 
-كان قيد التنفيذ وقت آخر فحص؛ therefore لا يتم ادعاء نجاحه في هذا التقرير حتى تظهر conclusion نهائية.
+بعد ذلك لا توجد حتى آخر فحص نتيجة نهائية منشورة للرأس الأحدث عبر connector؛ لذلك لا يتم ادعاء GREEN.
 
 ## 6. Live Governance Blocker
 
@@ -164,8 +164,8 @@ Issue #1125 تثبت أن ruleset `FLIXO-MAIN-PROTECTION` لا يحقق strict g
 Canonical baseline:
 `de1e5b3c46bc1f5812987cb8ad863c5ff983178d`
 
-Implementation snapshot قبل إضافة هذا التقرير:
-`409caea68f26302651a2eac69e8ea5f01a7f15f7`
+Implementation snapshot before this report refresh:
+`d6ac2b4f24f2b634b5d5853626b91793e840cfb2`
 
 يجب على المراجع إعادة قراءة HEAD الحالي من GitHub قبل اعتماد أي evidence نهائي، لأن إضافة التقرير نفسها تغيّر SHA وتبطل أي دليل سابق غير المرتبط بالرأس الجديد.
 
