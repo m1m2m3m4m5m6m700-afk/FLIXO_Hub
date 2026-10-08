@@ -1,6 +1,8 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { createCognitiveEvent, CognitiveConsumer, FileConsumerCheckpointStore, AgentExcellenceRegistry, RoutingLearningEngine } from './cognitive-learning-engine.mjs';
 import { assertExactSha, createCognitiveMemoryAdapter } from './shared-memory.mjs';
+import { createAgentEconomyClient } from './agent-economy.mjs';
+import { createAgentEconomyMatchmaker } from './economy-matchmaker.mjs';
 
 const UUID_RE=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SHA=/^[0-9a-f]{40}$/i;
@@ -100,6 +102,8 @@ export function createProductionCognitiveLearning({env=process.env,fetchImpl=glo
     SUPABASE_SECRET_KEY:env.SUPABASE_SECRET_KEY,
     SUPABASE_SERVICE_ROLE_KEY:env.SUPABASE_SERVICE_ROLE_KEY,
   });
+  const economy=createAgentEconomyClient({env,fetchImpl});
+  const economyMatchmaker=createAgentEconomyMatchmaker({env,fetchImpl,client:economy});
   const consumers=new Map();
   const checkpointStore=env.COGNITIVE_CHECKPOINT_PATH?new FileConsumerCheckpointStore(env.COGNITIVE_CHECKPOINT_PATH):null;
   let excellence=new AgentExcellenceRegistry();
@@ -116,6 +120,17 @@ export function createProductionCognitiveLearning({env=process.env,fetchImpl=glo
   return Object.freeze({
     events,
     memory,
+    economy,
+    economyMatchmaker,
+    async prepareEconomyDispatch(input) {
+      return economyMatchmaker.prepare(input);
+    },
+    async openAndClaimEconomyTask(input) {
+      return economyMatchmaker.openAndClaim(input);
+    },
+    async settleEconomyTask(input) {
+      return economyMatchmaker.settle(input);
+    },
     get excellence(){return excellence;},
     get routing(){return routing;},
     epochState:async()=>{
