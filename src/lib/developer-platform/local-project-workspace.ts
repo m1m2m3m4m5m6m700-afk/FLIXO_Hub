@@ -10,11 +10,17 @@ export type LocalProjectFile = Readonly<{
 }>;
 
 const MAX_EDITABLE_BYTES = 2 * 1024 * 1024;
-const SAFE_PATH = /^(?!\/)(?!.*(?:^|\/)\.\.(?:\/|$))[A-Za-z0-9._~!$&'()*+,;=@\-\/ ]+$/;
-
 export function normalizeProjectPath(input: string): string {
   const normalized = input.replaceAll('\\', '/').replace(/^\.\//, '').trim();
-  if (!normalized || normalized.length > 512 || !SAFE_PATH.test(normalized)) {
+  const segments = normalized.split('/');
+  if (
+    !normalized ||
+    normalized.length > 512 ||
+    normalized.startsWith('/') ||
+    normalized.includes('\\0') ||
+    /[\\x00-\\x1F\\x7F]/u.test(normalized) ||
+    segments.some((segment) => segment === '' || segment === '.' || segment === '..')
+  ) {
     throw new Error('INVALID_PROJECT_PATH');
   }
   return normalized;
