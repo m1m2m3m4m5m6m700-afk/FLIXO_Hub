@@ -59,3 +59,12 @@ The /hub and /en/hub surfaces are the first Stage 1 implementation of the 2026-1
 The Hub processing surface does not call network transport APIs and does not persist files or identifiers in browser storage. Runtime delivery is origin-only; third-party CDN bootstrap is not permitted.
 
 Stage 1 currently contains no newly added runtime dependency. OCR remains deliberately blocked until self-hosted Tesseract worker/core/language assets are admitted and verified.
+
+
+## General programming platform
+
+FLIXO Hub now exposes a governed developer-platform foundation at `/developer` and `/en/developer`.
+
+The platform contract unifies project/workspace state, repository identity, sandbox execution policy, verification, CELL agents, artifact evidence, collaboration, contributions, and evidence-based learning. It intentionally does not pretend that a remote code-execution provider is connected: until a real provider satisfies the execution contract, that surface remains a foundation state rather than a fake terminal.
+
+The platform is designed as a mutual-value loop: people can build and reuse projects, tools, agents, skills, templates, and workflows; only verified contributions become publishable reusable capabilities; evidence remains bound to source identity and canonical governance.
