@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { execFileSync } from 'node:child_process';
 import { parsePorcelainV1ZStatus } from '../../../scripts/ci/controller-reconcile-and-publish.mjs';
-import { evaluateControlAssuranceB, CONTROL_ASSURANCE_B_GATES } from '../../scripts/ci/verify-control-assurance-b.mjs';
+import { evaluateControlAssuranceB, CONTROL_ASSURANCE_B_GATES } from '../../../scripts/ci/verify-control-assurance-b.mjs';
 
 function head() {
   return execFileSync('git', ['rev-parse','HEAD'], { encoding:'utf8' }).trim();
