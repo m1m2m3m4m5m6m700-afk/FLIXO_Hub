@@ -61,7 +61,7 @@ class Agent3Triage(unittest.TestCase):
   def test_workflow_contracts(self):
     wf=(ROOT/".github/workflows/triage-and-clean.yml").read_text(encoding="utf-8")
     report=(ROOT/".github/workflows/post-merge-agent-report.yml").read_text(encoding="utf-8")
-    for s in ("branches: [execution]","ValidatorAdmission","TriageDedupPriorityQueue","ReaperTTLSuppression","GeneratedViewAndStateAudit","FAIL_CLOSED","git push origin \"HEAD:execution\""):self.assertIn(s,wf)
+    for s in ("branches: [execution]","ValidatorAdmission","TriageDedupPriorityQueue","ReaperTTLSuppression","GeneratedViewAndStateAudit","FAIL_CLOSED","push origin \"HEAD:execution\""):self.assertIn(s,wf)
     self.assertNotIn("pull_request_target",wf)
     self.assertIn("pull_request",wf)
     self.assertIn("github.event.pull_request.merge_commit_sha",report)

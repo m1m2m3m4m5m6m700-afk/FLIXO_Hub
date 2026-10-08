@@ -104,7 +104,8 @@ export function createAgentEconomyClient({ env = process.env, fetchImpl = global
     }), 'SUPABASE_ECONOMY_RPC');
   }
 
-  async listWallets({ minReputation = 0, limit = 100 } = {}) {
+  return Object.freeze({
+    async listWallets({ minReputation = 0, limit = 100 } = {}) {
       const reputation = Number(minReputation);
       const boundedLimit = Math.max(1, Math.min(100, Number(limit)));
       if (!Number.isFinite(reputation) || reputation < 0 || reputation > 100) {
