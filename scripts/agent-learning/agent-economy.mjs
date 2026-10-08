@@ -104,6 +104,27 @@ export function createAgentEconomyClient({ env = process.env, fetchImpl = global
     }), 'SUPABASE_ECONOMY_RPC');
   }
 
+  async listWallets({ minReputation = 0, limit = 100 } = {}) {
+      const reputation = Number(minReputation);
+      const boundedLimit = Math.max(1, Math.min(100, Number(limit)));
+      if (!Number.isFinite(reputation) || reputation < 0 || reputation > 100) {
+        throw new Error('INVALID_MIN_REPUTATION');
+      }
+      if (!Number.isInteger(boundedLimit)) throw new Error('INVALID_WALLET_LIMIT');
+
+      const params = new URLSearchParams({
+        select: 'agent_id,role,status,balance_credits,staked_credits,reputation,tasks_won,tasks_lost',
+        status: 'eq.ACTIVE',
+        reputation: 'gte.' + String(reputation),
+        order: 'reputation.desc,agent_id.asc',
+        limit: String(boundedLimit),
+      });
+      return parse(await fetchImpl(baseUrl + '/rest/v1/flixo_agent_economy_wallets?' + params.toString(), {
+        method: 'GET',
+        headers,
+      }), 'SUPABASE_ECONOMY_WALLETS');
+    },
+
   return Object.freeze({
     quote({ difficulty, baseReward, openDemand = 0 }) {
       return rpc('flixo_economy_quote_task', {
