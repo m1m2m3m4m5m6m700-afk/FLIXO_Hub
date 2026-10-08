@@ -120,7 +120,7 @@ export function evaluateControlAssuranceB({
     for (const role of ['architecture','technology','ecosystem']) {
       const manifest = read(root,'.agent-intelligence/scouts/' + role + '.yaml');
       assert(manifest.includes('flixo-scout-manifest-v1'),'invalid ' + role + ' manifest');
-      assert(/entity_key:/u.test(manifest),role + ' manifest missing entity identity');
+      assert(/[\"']entity_key[\"']\s*:/u.test(manifest),role + ' manifest missing entity identity');
       assert(/repo_refs:/u.test(manifest),role + ' manifest missing repo references');
       assert(/rollback:/u.test(manifest),role + ' manifest missing rollback');
     }
@@ -130,7 +130,10 @@ export function evaluateControlAssuranceB({
     assert(agents.includes('"officialAgentCount": 10'),'canonical registry must contain ten principal agents');
     assert(agents.includes('"id": "AGENT-06"') && agents.includes('"id": "AGENT-07"'),'Red Team agents missing');
     assert(agents.includes('"id": "SUPPORT-EXPLORER-02"'),'supporting Explorer missing');
-    assert(!controlPlane.includes('main-mutation'),'control plane must not grant main mutation');
+    for (const profileName of readdirSync(join(root,'.github','agents')).filter(name => name.endsWith('.md'))) {
+      const profile = read(root,'.github/agents/' + profileName);
+      assert(!/execution_scope:\s*[^\n]*main-mutation/u.test(profile),'agent profile grants main mutation: ' + profileName);
+    }
   }));
 
   results.push(runGate('MEMORY-INTEGRITY', () => {
@@ -158,7 +161,7 @@ export function evaluateControlAssuranceB({
 
   results.push(runGate('AGENT-BEHAVIOR', () => {
     for (const drill of ['independent-challenge','counterexample','architecture-research','technology-research','ecosystem-research']) assert(roleDrills.includes(drill),'missing drill: ' + drill);
-    assert(roleDrills.includes('staleEvidenceRejected: true'),'role drills must reject stale evidence');
+    assert(/staleEvidenceRejected\s*:\s*true/u.test(roleDrills),'role drills must reject stale evidence');
     assert(controlPlane.includes('roleDrillRegistered'),'control plane must bind drills to registry');
   }));
 

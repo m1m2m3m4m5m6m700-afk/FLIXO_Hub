@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Manifest-driven infinite FLIXO discovery intake.
-Network content is data only; no source text reaches a command/evaluator."""
+Network content is data only; no source text reaches a command/evaluator.
+All emitted reports stay inside the canonical report center."""
 from __future__ import annotations
 import argparse,hashlib,json,re,sys
 from datetime import datetime,timedelta,timezone

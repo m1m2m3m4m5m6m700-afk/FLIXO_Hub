@@ -62,7 +62,7 @@ test('B12 Unicode rename status preserves both paths', () => {
 
 test('B12 publication authentication is explicit and execution-only', () => {
   const workflow = show('.github/workflows/continuous-discovery.yml');
-  assert.match(workflow, /GITHUB_TOKEN:\s+\$\{\{\s*secrets\.GITHUB_TOKEN\s*\}\}/u);
+  assert.match(workflow, /GITHUB_TOKEN:\s+\$\{\{\s*(?:secrets\.GITHUB_TOKEN|github\.token)\s*\}\}/u);
   assert.match(workflow, /x-access-token:\$GITHUB_TOKEN@github\.com\/\$GITHUB_REPOSITORY\.git/u);
   assert.doesNotMatch(workflow, /git push origin (?:main|execution)\b/u);
 });
