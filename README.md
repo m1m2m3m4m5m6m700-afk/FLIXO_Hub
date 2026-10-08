@@ -140,3 +140,14 @@ For a small, scoped first contribution, start with the open [good first issues](
 For repository and contribution policy, read [CONTRIBUTING.md](CONTRIBUTING.md). For reusable projects, tools, agents, skills, verifiers, adapters, workflows, and templates, use the [Developer Contribution Center](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/blob/main/src/pages/developer-contributions.tsx) and [contribution contract](docs/CONTRIBUTIONS.md).
 
 Support and accessibility guidance are available in [SUPPORT.md](SUPPORT.md) and [ACCESSIBILITY.md](ACCESSIBILITY.md). Citation metadata is provided through [CITATION.cff](CITATION.cff).
+
+
+## Community
+
+Use the public repository surfaces to learn, discuss, report, and contribute:
+
+- [Discussions](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/discussions) for questions, ideas, architecture discussion, and community coordination.
+- [Issues](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/issues) for actionable bugs, features, and scoped contributor work.
+- [Community standards](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/community) for the GitHub community-health checklist.
+- [Developer Contribution Center](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/blob/main/src/pages/developer-contributions.tsx) for reusable contribution proposals.
+
