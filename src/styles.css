@@ -908,3 +908,25 @@ button, a, input { -webkit-tap-highlight-color: transparent; }
   .official-featured-card,
   .official-thinking-dot { transition: none; animation: none; }
 }
+
+.flixo-attribution {
+  width: min(1180px, calc(100% - 36px));
+  margin: 0 auto;
+  padding: 20px 0 28px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+  border-top: 1px solid rgba(52, 83, 101, .18);
+  font-size: .8rem;
+  line-height: 1.5;
+}
+.flixo-attribution a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.flixo-attribution a:hover,
+.flixo-attribution a:focus-visible {
+  text-decoration-thickness: 2px;
+}
