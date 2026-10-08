@@ -34,6 +34,7 @@ const COPY = {
     currentBoundary: 'الحالة الحالية',
     currentBoundaryText: 'هذه الواجهة هي shell حقيقي لعقد المنصة وليست terminal وهميًا. موفّر التنفيذ العام لم يُعتبر متصلًا حتى يقدم evidence مستقلًا.',
     open: 'فتح الـHub المحلي',
+    workspace: 'فتح مساحة المشروع المحلية',
   },
   en: {
     eyebrow: 'FLIXO HUB · DEVELOPER PLATFORM',
@@ -63,6 +64,7 @@ const COPY = {
     currentBoundary: 'Current boundary',
     currentBoundaryText: 'This is a real platform shell backed by the canonical contract, not a fake terminal. General execution stays unconnected until an independent provider proof exists.',
     open: 'Open local Hub',
+    workspace: 'Open local project workspace',
   },
 } as const;
 
@@ -143,9 +145,14 @@ export function DeveloperPlatform({ locale }: { locale: Locale }) {
               <span className="developer-platform-kicker">03</span>
               <h2>{copy.currentBoundary}</h2>
               <p>{copy.currentBoundaryText}</p>
-              <Link to={locale === 'ar' ? '/hub' : '/en/hub'} className="developer-platform-button">
-                {copy.open}
-              </Link>
+              <div className="developer-platform-actions">
+                <Link to={locale === 'ar' ? '/developer/workspace' : '/en/developer/workspace'} className="developer-platform-button">
+                  {copy.workspace}
+                </Link>
+                <Link to={locale === 'ar' ? '/hub' : '/en/hub'} className="developer-platform-secondary-button">
+                  {copy.open}
+                </Link>
+              </div>
             </section>
           </aside>
         </section>
