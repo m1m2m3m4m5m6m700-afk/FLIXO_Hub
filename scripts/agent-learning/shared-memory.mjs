@@ -118,14 +118,15 @@ export async function createMemoryEmbedding(text, env = process.env, fetchImpl =
   if (!/^[A-Za-z0-9_-]+$/.test(functionName)) throw new Error('MEMORY_EMBED_FUNCTION_INVALID');
 
   if (typeof fetchImpl !== 'function') throw new Error('FETCH_REQUIRED');
+  const headers = {
+    apikey: secret,
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+    ...(String(secret).startsWith('sb_secret_') ? {} : { Authorization: 'Bearer ' + secret }),
+  };
   const response = await fetchImpl(baseUrl + '/functions/v1/' + functionName, {
     method: 'POST',
-    headers: {
-      apikey: secret,
-      Authorization: 'Bearer ' + secret,
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    },
+    headers,
     body: JSON.stringify({ text: String(text).trim() }),
   });
   const body = await parseSupabaseResponse(response, 'SUPABASE_MEMORY_EMBED');
