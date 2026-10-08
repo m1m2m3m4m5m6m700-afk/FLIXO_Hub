@@ -154,3 +154,8 @@ test('crop fixture is spatially color-distinct at the canonical crop sample poin
   assert.ok(fixture.includes("context.fillStyle = '#22c55e';") && fixture.includes('context.fillRect(30, 30, 90, 120);'));
   assert.ok(fixture.includes("context.fillStyle = '#3b82f6';") && fixture.includes('context.fillRect(120, 30, 90, 120);'));
 });
+test('video fixture contract closes its capture track after recording', () => {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+  const fixture = readFileSync(resolve(root, 'tests/video/shared-video-fixture.ts'), 'utf8');
+  assert.match(fixture, /stream\.getTracks\(\)\.forEach\(\(track\) => track\.stop\(\)\)/u);
+});
