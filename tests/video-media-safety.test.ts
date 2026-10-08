@@ -128,9 +128,11 @@ test('official video acceptance suites use one canonical shared fixture with bou
 test('shared fixture contract emits a bounded WebM artifact and rejects sub-minimum durations', () => {
   const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
   const fixture = readFileSync(resolve(root, 'tests/video/shared-video-fixture.ts'), 'utf8');
-  assert.match(fixture, /name:\s*['"]flixo-fixture\.webm['"]/u);
-  assert.match(fixture, /mimeType:\s*['"]video\/webm['"]/u);
-  assert.match(fixture, /bytes:\s*\[0x1a,\s*0x45,\s*0xdf,\s*0xa3\]/u);
+  assert.match(fixture, /new Blob\(chunks, \{ type: ['"]video\/webm['"] \}\)/u);
+  assert.match(fixture, /bytes\[0\]\s*!==\s*0x1a/u);
+  assert.match(fixture, /bytes\[1\]\s*!==\s*0x45/u);
+  assert.match(fixture, /bytes\[2\]\s*!==\s*0xdf/u);
+  assert.match(fixture, /bytes\[3\]\s*!==\s*0xa3/u);
   assert.match(fixture, /VIDEO_FIXTURE_DURATION_MS\s*=\s*2_400/u);
   assert.match(fixture, /durationMs\s*<\s*VIDEO_FIXTURE_MIN_DURATION_MS/u);
 });
