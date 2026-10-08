@@ -1,5 +1,7 @@
 # FLIXO Hub
 
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+
 FLIXO Hub is an open-source, browser-first AI toolbox and governed developer platform for privacy-preserving local workflows, deterministic file processing, and autonomous multi-agent development control.
 
 [![CI](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/workflows/ci.yml)
@@ -53,7 +55,7 @@ Start with [CONTRIBUTING.md](CONTRIBUTING.md), then inspect the current reposito
 
 ## Licensing
 
-The repository does not currently declare a software license. Until a license is added, treat the source as available for inspection but not automatically reusable under an open-source license.
+FLIXO Hub is licensed under the Apache License 2.0. See [LICENSE](LICENSE) for the complete terms.
 
 ## Security
 
