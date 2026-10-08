@@ -702,8 +702,8 @@ export class CellRuntime {
     this.cellLifecycle.lockPair();
   }
 
-  startCellOpponent(opponentId: string, candidateSha: string, sharedContextHash: string, sequence?: number): void {
-    this.cellLifecycle.recordOpponentIndependentStart(opponentId, candidateSha, sharedContextHash, sequence);
+  startCellOpponent(opponentId: string, candidateSha: string, sequence?: number): void {
+    this.cellLifecycle.recordOpponentIndependentStart(opponentId, candidateSha, sequence);
   }
 
   discloseCellSolverResult(candidateSha: string): void {
