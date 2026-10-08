@@ -1,9 +1,6 @@
 name: Agent Watchdog CI / Security integration
 
 on:
-  pull_request:
-    branches:
-      - main
   push:
     branches:
       - execution
