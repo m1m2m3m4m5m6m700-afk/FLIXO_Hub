@@ -1,6 +1,9 @@
 # STATE.md
 
 ## Bootstrap State
+- Contract version: 1.4.1
+- Current PR: #1257
+- Current PR head: 59a57eabd8e182e2fe0080ea855e66f080c9b15b
 - Status: BOOTSTRAP / VERIFYING
 - Mission: EXEC-LEAD-MEMORY-001
 - Repository: m1m2m3m4m5m6m700-afk/FLIXO_Hub
@@ -20,4 +23,6 @@
 - Owner approval of v1.3.
 - Effective ACTIVE authority.
 - Merge of these files into an approved branch.
-- Enforcement workflow for automatic downgrade and agent-blocked reporting.
+- Agent-blocked label enforcement remains unverified.
+- Automatic downgrade telemetry implementation exists on the bootstrap branch; live enforcement is only at Admission and remains inactive before the 10-PR floor.
+- Strict main governance remains blocked by the live GitHub ruleset state documented in Issue #1125.
