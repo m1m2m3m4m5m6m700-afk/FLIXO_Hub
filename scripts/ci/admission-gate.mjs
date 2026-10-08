@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process';
-import assert from 'node:assert/strict';
 
 const CANONICAL_REPOSITORY = 'm1m2m3m4m5m6m700-afk/FLIXO_Hub';
 const SHA = /^[a-f0-9]{40}$/u;
