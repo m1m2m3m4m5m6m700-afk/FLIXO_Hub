@@ -237,6 +237,15 @@ function resolveMainRef(preferred = 'refs/remotes/origin/main') {
       // Try the next known local/remote ref without turning an absent ref into a false snapshot.
     }
   }
+
+  // On a push directly to main, HEAD is the exact main SHA even when checkout
+  // does not materialize a remote-tracking ref. Preserve that exact identity.
+  if (process.env.GITHUB_REF === 'refs/heads/main') {
+    const head = sh('git', ['rev-parse', '--verify', 'HEAD^{commit}']);
+    const eventSha = process.env.GITHUB_SHA || '';
+    if (/^[0-9a-f]{40}$/u.test(eventSha) && head === eventSha) return head;
+  }
+
   return null;
 }
 
