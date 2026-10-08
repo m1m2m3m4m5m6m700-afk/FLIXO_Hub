@@ -3,6 +3,15 @@ name: CELL Agent Fleet
 on:
   push:
     branches: [execution]
+    paths:
+      - 'packages/contracts/**'
+      - 'src/**'
+      - 'tests/**'
+      - 'scripts/ci/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.json'
+      - 'vite.config.ts'
 
 permissions:
   contents: read

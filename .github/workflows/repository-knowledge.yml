@@ -8,7 +8,6 @@ on:
       - 'scripts/**'
       - 'tests/security/ci/repository-knowledge-agent.test.mjs'
       - '.github/agents/**'
-      - '.github/workflows/**'
       - 'package.json'
       - 'package-lock.json'
       - 'vite.config.ts'
@@ -18,6 +17,7 @@ on:
       - 'الوكلاء.md'
       - 'الأدوات.md'
       - 'المهام.md'
+  workflow_dispatch:
   workflow_dispatch:
 
 permissions:

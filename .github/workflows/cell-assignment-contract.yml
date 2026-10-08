@@ -3,6 +3,12 @@ name: CELL Assignment Delegation Contract
 on:
   push:
     branches: [execution]
+    paths:
+      - 'packages/contracts/**'
+      - 'tests/security/ci/cell-assignment-contract.test.ts'
+      - 'tests/security/ci/cell-runtime-contract.test.ts'
+      - 'package.json'
+      - 'package-lock.json'
 
 permissions:
   contents: read

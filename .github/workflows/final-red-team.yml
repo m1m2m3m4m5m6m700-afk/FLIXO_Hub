@@ -3,6 +3,18 @@ name: FLIXO Final Clean-Clone Red Team
 on:
   push:
     branches: [execution]
+    paths:
+      - 'packages/contracts/**'
+      - 'src/**'
+      - 'tests/**'
+      - 'scripts/ci/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'vite.config.ts'
+      - 'tsconfig.json'
+      - 'wrangler.jsonc'
+      - '.gitleaks.toml'
+  workflow_dispatch:
   workflow_dispatch:
 
 permissions:
