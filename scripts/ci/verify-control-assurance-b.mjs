@@ -105,7 +105,7 @@ export function evaluateControlAssuranceB({
     assert(!/open\([^\n]*(?:\.agent-intelligence\/inbox|inbox)[^\n]*(?:["\x27]w|["\x27]a)/u.test(scouts),'Scout runtime contains inbox write route');
     for (const id of ['AGENT-08','AGENT-09','AGENT-10']) assert(workflow.includes('الوكلاء/التقارير/' + id),'missing canonical report publication for ' + id);
     assert(workflow.includes('scout/discovery-$GITHUB_RUN_ID'),'discovery publication must use isolated scout branch');
-    assert(workflow.includes('GITHUB_TOKEN:') && workflow.includes('secrets.GITHUB_TOKEN'),'publication token must be explicit');
+    assert(workflow.includes('GITHUB_TOKEN:') && /\$\{\{\s*(?:secrets\.GITHUB_TOKEN|github\.token)\s*\}\}/u.test(workflow),'publication token must be explicit');
   }));
 
   results.push(runGate('EXPLORATION-SCHEDULER', () => {
@@ -121,7 +121,7 @@ export function evaluateControlAssuranceB({
       const manifest = read(root,'.agent-intelligence/scouts/' + role + '.yaml');
       assert(manifest.includes('flixo-scout-manifest-v1'),'invalid ' + role + ' manifest');
       assert(/(?:^|\n)\s*(?:["']?entity_key["']?)\s*:/u.test(manifest),role + ' manifest missing entity identity');
-      assert(/repo_refs:/u.test(manifest),role + ' manifest missing repo references');
+      assert(/["']?repo_refs["']?\s*:/u.test(manifest),role + ' manifest missing repo references');
       assert(/rollback:/u.test(manifest),role + ' manifest missing rollback');
     }
   }));
