@@ -15,7 +15,6 @@ on:
       - 'wrangler.jsonc'
       - '.gitleaks.toml'
   workflow_dispatch:
-  workflow_dispatch:
 
 permissions:
   contents: read
