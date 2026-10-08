@@ -56,7 +56,7 @@ export class HubWorkerPool {
     options: { signal?: AbortSignal; onProgress?: (progress: HubTaskProgress) => void } = {},
   ): HubCancelableTask<TResult> {
     const taskId = 'hub-' + String(++this.sequence);
-    let cancelTask = () => undefined;
+    let cancelTask: () => void = () => {};
 
     const promise = new Promise<TResult>((resolve, reject) => {
       const pending: PendingTask<TPayload, TResult> = {
