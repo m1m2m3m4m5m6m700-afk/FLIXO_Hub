@@ -233,13 +233,16 @@ export class CellLivenessRuntime {
       this.lastError = error instanceof Error ? error.message : String(error);
       this.persist(this.clock());
     }
-    this.timer = setInterval(() => {
+    const timer = setInterval(() => {
       try { this.tick(this.clock()); }
       catch (error) {
         this.lastError = error instanceof Error ? error.message : String(error);
         this.persist(this.clock());
       }
     }, this.heartbeatIntervalMs);
+    const unref = (timer as unknown as { unref?: () => void }).unref;
+    unref?.();
+    this.timer = timer;
   }
 
   stop(): void {
