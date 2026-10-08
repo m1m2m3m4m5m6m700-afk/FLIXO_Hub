@@ -127,6 +127,27 @@ test('episodic retrieval is current-SHA scoped', async () => {
   assert.equal(rows[0].memory_kind, 'EPISODIC');
 });
 
+test('economy client exposes bounded wallet discovery through Supabase REST', async () => {
+  let requestUrl = '';
+  const { createAgentEconomyClient } = await import('../../../scripts/agent-learning/agent-economy.mjs');
+  const client = createAgentEconomyClient({
+    env: { SUPABASE_URL: 'https://example.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'server-key' },
+    fetchImpl: async (url) => {
+      requestUrl = String(url);
+      return new Response(JSON.stringify([{ agent_id: 'AGENT-01', role: 'SOLVER', reputation: 91 }]), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    },
+  });
+
+  const rows = await client.listWallets({ minReputation: 90, limit: 10 });
+  assert.equal(rows.length, 1);
+  assert.match(requestUrl, /flixo_agent_economy_wallets/);
+  assert.match(requestUrl, /reputation=gte\.90/);
+  assert.match(requestUrl, /limit=10/);
+});
+
 test('economy pricing increases with difficulty and demand', () => {
   const easy = quoteEconomyTask({ difficulty: 1, baseReward: 100, openDemand: 0 });
   const hard = quoteEconomyTask({ difficulty: 10, baseReward: 100, openDemand: 20 });

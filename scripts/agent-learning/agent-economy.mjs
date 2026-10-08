@@ -126,7 +126,6 @@ export function createAgentEconomyClient({ env = process.env, fetchImpl = global
       }), 'SUPABASE_ECONOMY_WALLETS');
     },
 
-  return Object.freeze({
     quote({ difficulty, baseReward, openDemand = 0 }) {
       return rpc('flixo_economy_quote_task', {
         p_difficulty: difficulty, p_base_reward: baseReward, p_open_demand: openDemand,
