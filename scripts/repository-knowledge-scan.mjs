@@ -223,6 +223,32 @@ export function extractAstFacts(path, content) {
   return { parser: 'typescript-compiler-api', parseDiagnostics: sourceFile.parseDiagnostics.length, declarations, imports, exports, callExpressions, callTargets: Array.from(callTargets).sort(), controlFlow };
 }
 
+function resolveMainRef(preferred = 'refs/remotes/origin/main') {
+  const candidates = [
+    preferred,
+    'origin/main',
+    'refs/heads/main',
+    'main',
+  ];
+  for (const candidate of candidates) {
+    try {
+      return sh('git', ['rev-parse', '--verify', candidate + '^{commit}']);
+    } catch {
+      // Try the next known local/remote ref without turning an absent ref into a false snapshot.
+    }
+  }
+
+  // On a push directly to main, HEAD is the exact main SHA even when checkout
+  // does not materialize a remote-tracking ref. Preserve that exact identity.
+  if (process.env.GITHUB_REF === 'refs/heads/main') {
+    const head = sh('git', ['rev-parse', '--verify', 'HEAD^{commit}']);
+    const eventSha = process.env.GITHUB_SHA || '';
+    if (/^[0-9a-f]{40}$/u.test(eventSha) && head === eventSha) return head;
+  }
+
+  return null;
+}
+
 function collectGitRefIndex(ref) {
   const resolvedRef = sh('git', ['rev-parse', ref]);
   const rows = sh('git', ['ls-tree', '-r', '-z', resolvedRef]).split('\0').filter(Boolean);
@@ -243,7 +269,9 @@ function setDiff(before, after) {
 
 export function collectSemanticDiff(mainRef = 'refs/remotes/origin/main', executionRef = 'HEAD') {
   try {
-    const main = collectGitRefIndex(mainRef);
+    const resolvedMainRef = resolveMainRef(mainRef);
+    if (!resolvedMainRef) throw new Error('main-ref-unavailable');
+    const main = collectGitRefIndex(resolvedMainRef);
     const execution = collectGitRefIndex(executionRef);
     const paths = new Set([...main.files.keys(), ...execution.files.keys()]);
     const changedFiles = [];
@@ -280,7 +308,8 @@ export function collectSemanticDiff(mainRef = 'refs/remotes/origin/main', execut
 }
 export function collectGitRefSnapshot(ref = 'refs/remotes/origin/main') {
   try {
-    const resolvedRef = sh('git', ['rev-parse', ref]);
+    const resolvedRef = resolveMainRef(ref);
+    if (!resolvedRef) throw new Error('main-ref-unavailable');
     const paths = sh('git', ['ls-tree', '-r', '-z', '--name-only', resolvedRef]).split('\0').filter(Boolean);
     let textFiles = 0;
     let binaryFiles = 0;
