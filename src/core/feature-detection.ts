@@ -17,12 +17,13 @@ export function detectHubFeatures(): HubFeatureSnapshot {
     getDirectory?: () => Promise<FileSystemDirectoryHandle>;
   }) | undefined;
 
-  let simd = false;
-  try {
-    simd = typeof WebAssembly !== 'undefined' && WebAssembly.validate(SIMD_PROBE);
-  } catch {
-    simd = false;
-  }
+  const simd = (() => {
+    try {
+      return typeof WebAssembly !== 'undefined' && WebAssembly.validate(SIMD_PROBE);
+    } catch {
+      return false;
+    }
+  })();
 
   return Object.freeze({
     opfs: typeof storage?.getDirectory === 'function',
