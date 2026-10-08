@@ -14,3 +14,8 @@ test('english developer platform exposes the same capability contract', async ({
   await expect(page.getByRole('heading', { name: 'A governed general-purpose programming platform.' })).toBeVisible();
   await expect(page.getByText('platform.verification.pipeline')).toBeVisible();
 });
+
+test('public landing page exposes the developer platform entrypoint', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByRole('link', { name: 'Developer Platform' })).toBeVisible();
+});
