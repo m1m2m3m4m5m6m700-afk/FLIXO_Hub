@@ -10,6 +10,11 @@ Runtime authority is limited to:
 
 Agents may prepare, implement, test, review, and document changes. Agents do not create a second registry, second executor authority, provider-controlled execution path, or certification authority.
 
+
+## Official Lead Agent Working Document
+
+`docs/FLIXO-LEAD-AGENT-WORKING-CONTRACT-v1.1.md` is the canonical working contract and explicit/core-memory document for the lead agent. It governs lead-agent behavior, memory discipline, evidence claims, task completion, escalation, and stop conditions within its stated scope. It does not create a second task ledger, registry, executor, verifier, certification authority, or governance-bypass path; executable hard-control and live GitHub protection remain enforcement mechanisms.
+
 ## Open Agent Execution Mode
 Human Authority authorizes autonomous implementation, verification, and promotion through the protected PR path within `execution`; required automated checks remain blocking.
 
