@@ -249,7 +249,7 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.strict_governance == true }}
         env:
           GH_TOKEN: ${{ github.token }}
-          GOVERNANCE_MODE: autonomous
+          GOVERNANCE_MODE: strict
         run: bash scripts/ci/check-governance.sh
       - name: Record execution-branch governance deferral
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/execution' }}
