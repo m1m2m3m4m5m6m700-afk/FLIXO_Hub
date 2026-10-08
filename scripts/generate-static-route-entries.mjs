@@ -21,6 +21,10 @@ const copyEntry = (route) => {
 // operational routes as physical entries so direct navigation cannot become
 // a Vercel static 404.
 copyEntry('/admin');
+copyEntry('/hub');
+copyEntry('/hub/privacy');
+copyEntry('/en/hub');
+copyEntry('/en/hub/privacy');
 
 // Materialize the authenticated admin read boundary alongside the immutable
 // artifact. Vercel detects the /api tree as serverless functions during deploy;
@@ -40,4 +44,4 @@ for (const locale of LOCALES) {
   }
 }
 
-console.log(`G1 static route entries generated: executable=${executableTools.length}, locales=${LOCALES.length}, routes=${executableTools.length * LOCALES.length + LOCALES.length + 1}, adminApi=5`);
+console.log(`G1 static route entries generated: executable=${executableTools.length}, locales=${LOCALES.length}, routes=${executableTools.length * LOCALES.length + LOCALES.length + 5}, adminApi=5`);
