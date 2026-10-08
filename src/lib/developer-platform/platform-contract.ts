@@ -33,6 +33,13 @@ export type ProgrammingProjectManifest = Readonly<{
   defaultBranch: string;
 }>;
 
+export type PlatformSource = Readonly<{
+  type: 'git';
+  url: string;
+  revision: string;
+  depth?: number;
+}>;
+
 export type PlatformExecutionRequest = Readonly<{
   projectId: string;
   taskId: string;
@@ -47,6 +54,7 @@ export type PlatformExecutionRequest = Readonly<{
   network: NetworkPolicy;
   limits: ResourceLimits;
   expectedArtifacts: readonly string[];
+  source?: PlatformSource;
 }>;
 
 export type PlatformExecutionDecision =
@@ -64,7 +72,8 @@ export type PlatformExecutionDecision =
         | 'INVALID_NETWORK_POLICY'
         | 'INVALID_LIMITS'
         | 'INVALID_ENVIRONMENT_KEYS'
-        | 'INVALID_ARTIFACT_REQUEST';
+        | 'INVALID_ARTIFACT_REQUEST'
+        | 'INVALID_SOURCE';
     }>;
 
 export const DEFAULT_PROGRAMMING_LIMITS: ResourceLimits = Object.freeze({
@@ -122,6 +131,14 @@ export function evaluatePlatformExecution(
     !isPositiveFinite(request.limits.timeoutMs)
   ) {
     return { admitted: false, code: 'INVALID_LIMITS' };
+  }
+  if (request.source) {
+    if (request.source.type !== 'git' || !/^https:\/\/[^/@?#\\s]+(?:\/[^?#\\s]*)?$/u.test(request.source.url) || !SHA_PATTERN.test(request.source.revision)) {
+      return { admitted: false, code: 'INVALID_SOURCE' };
+    }
+    if (request.source.depth !== undefined && (!Number.isInteger(request.source.depth) || request.source.depth < 1 || request.source.depth > 100)) {
+      return { admitted: false, code: 'INVALID_SOURCE' };
+    }
   }
   if (request.environmentKeys.some((key) => !SAFE_ENVIRONMENT_KEY.test(key))) {
     return { admitted: false, code: 'INVALID_ENVIRONMENT_KEYS' };
