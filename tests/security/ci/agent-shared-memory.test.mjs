@@ -71,7 +71,7 @@ test('RPC client uses service-only authorization without embedding secrets in pa
     serviceRoleKey: 'secret',
     fetchImpl: async (url, options) => {
       calls.push({ url, options });
-      return { ok: true, async json() { return [{ ok: true }]; }, async text() { return ''; } };
+      return { ok: true, async json() { return [{ ok: true }]; }, async text() { return JSON.stringify([{ ok: true }]); } };
     },
   });
   const result = await client.call('flixo_search_agent_memory', {

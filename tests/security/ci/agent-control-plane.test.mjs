@@ -41,7 +41,7 @@ test('Scout profiles are report-only and cannot expose source-edit authority', (
   ]) {
     const p = parseProfileFrontmatter(readFileSync(file, 'utf8'));
     assert.deepEqual(p.tools, ['read', 'search', 'edit']);
-    assert.match(p.write_scope, /^الوكلاء\/التقارير\/AGENT-0[89] — .+\/$/u);
+    assert.match(p.write_scope, /^الوكلاء\/التقارير\/AGENT-(?:0[89]|10) — .+\/$/u);
     assert.equal(p.write_scope, p.report_scope);
     assert.equal(p.cap_WRITE_INBOX, 'DENY');
     assert.equal(p.cap_WRITE_REPORTS, 'SCOPED');

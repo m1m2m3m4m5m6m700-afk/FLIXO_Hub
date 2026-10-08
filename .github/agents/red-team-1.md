@@ -23,7 +23,7 @@ self_certification: false
 dispatch_authority: none
 parent_agent_id: none
 authority_inheritance: none
-independent_review: false
+independent_review: true
 capabilities_schema: flixo-agent-capabilities-v1
 cap_READ_REPOSITORY: ALLOW
 cap_SEARCH: ALLOW
