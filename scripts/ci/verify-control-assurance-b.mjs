@@ -120,7 +120,7 @@ export function evaluateControlAssuranceB({
     for (const role of ['architecture','technology','ecosystem']) {
       const manifest = read(root,'.agent-intelligence/scouts/' + role + '.yaml');
       assert(manifest.includes('flixo-scout-manifest-v1'),'invalid ' + role + ' manifest');
-      assert(/(?:^|\n)\s*(?:[\"']?entity_key[\"']?)\s*:/u.test(manifest),role + ' manifest missing entity identity');
+      assert(/(?:^|\n)\s*(?:["']?entity_key["']?)\s*:/u.test(manifest),role + ' manifest missing entity identity');
       assert(/repo_refs:/u.test(manifest),role + ' manifest missing repo references');
       assert(/rollback:/u.test(manifest),role + ' manifest missing rollback');
     }
