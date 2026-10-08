@@ -9,6 +9,7 @@ import { adminControlPlaneLoginRoute } from './admin-control-plane-login';
 import { toolsRoute } from './tools';
 import { arToolsRoute } from './ar-tools';
 import { developerPlatformRoute, enDeveloperPlatformRoute } from './developer-platform';
+import { developerWorkspaceRoute, enDeveloperWorkspaceRoute } from './developer-workspace';
 
 export const routeChildren = [
   indexRoute,
@@ -22,6 +23,8 @@ export const routeChildren = [
   arToolsRoute,
   developerPlatformRoute,
   enDeveloperPlatformRoute,
+  developerWorkspaceRoute,
+  enDeveloperWorkspaceRoute,
   localizedToolRoute,
   adminControlPlaneLoginRoute,
   adminControlPlaneRoute,
