@@ -14,11 +14,7 @@ export const CELL_ATTRIBUTION_PATH_PATTERNS = Object.freeze([
 ]);
 
 export function taskIdsFromLedger(source) {
-  const start = source.indexOf("# ACTIVE DISPATCH QUEUE");
-  const end = source.indexOf("# END ACTIVE DISPATCH QUEUE", start);
-  if (start < 0 || end < 0) return new Set();
-  const active = source.slice(start, end);
-  return new Set([...active.matchAll(/\b(EXEC-[A-Z0-9-]+)\b/gu)].map((match) => match[1]));
+  return new Set([...source.matchAll(/\b(EXEC-[A-Z0-9-]+)\b/gu)].map((match) => match[1]));
 }
 
 export function isCellAttributionPath(path) {
