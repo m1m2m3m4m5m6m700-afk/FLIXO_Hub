@@ -138,10 +138,20 @@ export class CellRuntime {
   private readonly cellLifecycle: CellLifecycleRuntime;
   private readonly cellLiveness: CellLivenessRuntime;
 
-  constructor(clock: () => number = () => Date.now(), livenessOptions: Omit<CellLivenessOptions, "clock"> = {}) {
+  constructor(
+    clock: () => number = () => Date.now(),
+    livenessOptions: Omit<CellLivenessOptions, "clock"> & { autoStart?: boolean } = {},
+  ) {
     this.clock = clock;
     this.cellLifecycle = new CellLifecycleRuntime(this.clock);
-    this.cellLiveness = new CellLivenessRuntime({ ...livenessOptions, clock: this.clock });
+    const { autoStart = true, ...runtimeLivenessOptions } = livenessOptions;
+    const onWake = runtimeLivenessOptions.onWake ?? ((_reason, generation) => "cell-worker-" + generation);
+    this.cellLiveness = new CellLivenessRuntime({
+      ...runtimeLivenessOptions,
+      onWake,
+      clock: this.clock,
+    });
+    if (autoStart) this.cellLiveness.start();
   }
 
   private observeTaskForLiveness(task: RuntimeTask, currentSha?: string | null): void {
