@@ -142,3 +142,8 @@ test('shared fixture default duration is the bounded acceptance baseline', () =>
   const defaultDuration = fixture.match(/VIDEO_FIXTURE_DURATION_MS\s*=\s*(\d[\d_]*)/u)?.[1];
   assert.equal(defaultDuration?.replaceAll('_', ''), '2400');
 });
+test('buildVideoFixture defaults to the canonical bounded duration constant', () => {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+  const fixture = readFileSync(resolve(root, 'tests/video/shared-video-fixture.ts'), 'utf8');
+  assert.match(fixture, /durationMs = VIDEO_FIXTURE_DURATION_MS/u);
+});
