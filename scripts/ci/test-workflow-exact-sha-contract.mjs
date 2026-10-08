@@ -82,12 +82,11 @@ test('execution-only assurance lanes deduplicate by branch while promotion lanes
   assert.match(video, /cancel-in-progress: true/u);
 });
 
-test('canonical CI security workflows do not trigger on execution worker PRs', async () => {
-  const files = [
-    '.github/workflows/ci.yml',
-    '.github/workflows/codeql.yml',
-    '.github/workflows/secret-scan.yml',
-  ];
+test('canonical CI uses execution push as the single release verification trigger', async () => {
+  const workflow = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
+  assert.doesNotMatch(workflow, /pull_request:\s*\n\s*branches:\s*\[main\]/u);
+  assert.match(workflow, /push:\s*\n\s*branches:\s*\[main, execution\]/u);
+});
 
   for (const path of files) {
     const workflow = await readFile(new URL('../../' + path, import.meta.url), 'utf8');
@@ -96,13 +95,15 @@ test('canonical CI security workflows do not trigger on execution worker PRs', a
   }
 });
 
-test('worker pull requests are filtered out of canonical release jobs', async () => {
-  const files = [
-    '.github/workflows/ci.yml',
-    '.github/workflows/codeql.yml',
-    '.github/workflows/secret-scan.yml',
-    '.github/workflows/final-red-team.yml',
-  ];
+test('canonical CI consumes security assurance as reusable jobs', async () => {
+  const workflow = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
+  assert.match(workflow, /name: FLIXO CodeQL \/ reusable/u);
+  assert.match(workflow, /uses: \.\/\.github\/workflows\/codeql\.yml/u);
+  assert.match(workflow, /name: FLIXO Secret Scan \/ reusable/u);
+  assert.match(workflow, /uses: \.\/\.github\/workflows\/secret-scan\.yml/u);
+  assert.match(workflow, /name: Agent Watchdog \/ reusable/u);
+  assert.match(workflow, /uses: \.\/\.github\/workflows\/agent-watchdog\.yml/u);
+});
 
   for (const path of files) {
     const workflow = await readFile(new URL('../../' + path, import.meta.url), 'utf8');
