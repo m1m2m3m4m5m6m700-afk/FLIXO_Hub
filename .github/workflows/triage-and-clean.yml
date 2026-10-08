@@ -73,7 +73,7 @@ jobs:
             git fetch origin execution --no-tags
             TARGET_SHA="$(git rev-parse refs/remotes/origin/execution)"
           fi
-          test "$TARGET_SHA" =~ ^[0-9a-f]{40}$
+          [[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]
           git checkout --detach "$TARGET_SHA"
           test "$(git rev-parse HEAD)" = "$TARGET_SHA"
           echo "sha=$TARGET_SHA" >> "$GITHUB_OUTPUT"
@@ -210,7 +210,7 @@ jobs:
         run: |
           set -euo pipefail
           EXPECTED_SHA="$(cat agent3-publication/agent3-publication-sha.txt)"
-          test "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$
+          [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]]
           git fetch origin execution --no-tags
           CURRENT_SHA="$(git rev-parse refs/remotes/origin/execution)"
           test "$CURRENT_SHA" = "$EXPECTED_SHA"
