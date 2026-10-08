@@ -163,3 +163,14 @@ test('default sandbox policy is ephemeral, network-denied and resource bounded',
   assert.deepEqual(DEFAULT_SANDBOX_POLICY.network, { mode: 'NONE' });
   assert.equal(DEFAULT_SANDBOX_POLICY.secrets, 'BROKERED_KEYS_ONLY');
 });
+
+test('contribution proposal rejects malformed source SHAs', () => {
+  assert.equal(validateContributionProposal({
+    proposalId: 'proposal-3',
+    contributorId: 'contributor-1',
+    kind: 'TOOL',
+    sourceSha: 'not-a-sha',
+    summary: 'A verified reusable developer capability.',
+    evidenceIds: ['artifact-1'],
+  }, 'not-a-sha'), false);
+});
