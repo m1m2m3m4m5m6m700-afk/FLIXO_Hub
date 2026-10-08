@@ -37,8 +37,10 @@ export async function buildVideoFixture(page: Page, durationMs = VIDEO_FIXTURE_D
         const elapsed = performance.now() - started;
         context.fillStyle = '#111827';
         context.fillRect(0, 0, canvas.width, canvas.height);
-        context.fillStyle = elapsed < 400 ? '#22c55e' : '#3b82f6';
-        context.fillRect(30, 30, 120 + Math.min(120, elapsed / 5), 120);
+        context.fillStyle = '#22c55e';
+        context.fillRect(30, 30, 90, 120);
+        context.fillStyle = '#3b82f6';
+        context.fillRect(120, 30, 90, 120);
         context.fillStyle = '#ffffff';
         context.font = '24px sans-serif';
         context.fillText('FLIXO VIDEO FIXTURE', 25, 165);
