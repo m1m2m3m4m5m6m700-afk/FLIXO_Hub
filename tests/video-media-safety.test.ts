@@ -136,3 +136,9 @@ test('shared fixture contract emits a bounded WebM artifact and rejects sub-mini
   assert.match(fixture, /VIDEO_FIXTURE_DURATION_MS\s*=\s*2_400/u);
   assert.match(fixture, /durationMs\s*<\s*VIDEO_FIXTURE_MIN_DURATION_MS/u);
 });
+test('shared fixture default duration is the bounded acceptance baseline', () => {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+  const fixture = readFileSync(resolve(root, 'tests/video/shared-video-fixture.ts'), 'utf8');
+  const defaultDuration = fixture.match(/VIDEO_FIXTURE_DURATION_MS\\s*=\\s*(\\d[\\d_]*)/u)?.[1];
+  assert.equal(defaultDuration?.replaceAll('_', ''), '2400');
+});
