@@ -60,7 +60,7 @@ test('FLIXO CI protects every candidate-sensitive checkout and identity stamp', 
   );
 
   const exactRefCount = workflow.split('          ref: ' + EXACT_HEAD_EXPRESSION).length - 1;
-  assert.equal(exactRefCount, 6, 'all six candidate-sensitive CI checkouts must use the exact PR head SHA');
+  assert.equal(exactRefCount, 8, 'all eight candidate-sensitive CI checkouts must use the exact PR head SHA');
 
   assert.ok(
     workflow.includes('          BUILD_SHA: ' + EXACT_HEAD_EXPRESSION),
@@ -130,7 +130,7 @@ test('all candidate-sensitive CI checkouts explicitly disable credential persist
   const workflow = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
   const blocks = workflow.split(/\n[ ]{6}- (?:name:[^\n]+\n[ ]{8})?uses: actions\/checkout@/u).slice(1);
   const candidateBlocks = blocks.filter((block) => block.includes('ref: ' + EXACT_HEAD_EXPRESSION));
-  assert.equal(candidateBlocks.length, 6, 'all six candidate-sensitive CI checkouts must remain identifiable');
+  assert.equal(candidateBlocks.length, 8, 'all eight candidate-sensitive CI checkouts must remain identifiable');
   for (const block of candidateBlocks) {
     assert.match(block, /persist-credentials:\s*false\b/u);
     assert.doesNotMatch(block, /persist-credentials:\s*true\b/u);
@@ -171,19 +171,16 @@ test('execution push branch-policy checkout never persists Git credentials', asy
   assert.doesNotMatch(checkoutBlock, /persist-credentials:\s*true\b/u);
 });
 
-test('human gate execution code cannot inherit persisted Git credentials', async () => {
-  const workflow = await readFile(new URL('../../.github/workflows/human-gate.yml', import.meta.url), 'utf8');
+test('post-merge reporting workflows remain exact-merge-SHA and credential isolated', async () => {
+  const agentReport = await readFile(new URL('../../.github/workflows/post-merge-agent-report.yml', import.meta.url), 'utf8');
+  const integrationReport = await readFile(new URL('../../.github/workflows/post-merge-report.yml', import.meta.url), 'utf8');
 
-  assert.match(workflow, /ref:\s*execution/u);
-  assert.match(workflow, /persist-credentials:\s*false\b/u);
-  assert.doesNotMatch(workflow, /persist-credentials:\s*true\b/u);
-
-  const publishMarker = '      - name: Publish human gate transition to execution';
-  const publishIndex = workflow.indexOf(publishMarker);
-  assert.ok(publishIndex >= 0, 'human gate publish step must exist');
-  const publishBlock = workflow.slice(publishIndex);
-  assert.match(publishBlock, /GITHUB_TOKEN:\s*\$\{\{\s*github\.token\s*\}\}/u);
-  assert.match(publishBlock, /http\.extraheader=AUTHORIZATION: bearer \$GITHUB_TOKEN/u);
+  for (const workflow of [agentReport, integrationReport]) {
+    assert.match(workflow, /ref:\s*\$\{\{\s*github\.event\.pull_request\.merge_commit_sha\s*\}\}/u);
+    assert.match(workflow, /persist-credentials:\s*false\b/u);
+    assert.match(workflow, /git rev-parse HEAD/u);
+    assert.doesNotMatch(workflow, /persist-credentials:\s*true\b/u);
+  }
 });
 
 test('promotion and production gates remain fail-closed and exact-SHA bound', async () => {
