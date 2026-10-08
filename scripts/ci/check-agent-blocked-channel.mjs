@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { fileURLToPath } from 'node:url';
+
 const CANONICAL_REPOSITORY = 'm1m2m3m4m5m6m700-afk/FLIXO_Hub';
 
 async function githubLabel(pathname, token, fetchImpl = fetch) {
@@ -30,7 +32,7 @@ export async function verifyAgentBlockedLabels({token, repo = CANONICAL_REPOSITO
   return {repository: repo, labels, status: 'PASS'};
 }
 
-if (process.argv[1] && new URL(import.meta.url).href === new URL('file://' + process.argv[1]).href) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const result = await verifyAgentBlockedLabels({
     token: process.env.GH_TOKEN || process.env.GITHUB_TOKEN,
     repo: process.env.GITHUB_REPOSITORY || CANONICAL_REPOSITORY,
