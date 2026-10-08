@@ -45,3 +45,7 @@
 .developer-platform-contribution { display:grid; grid-template-columns:minmax(220px,.6fr) minmax(0,1.4fr); gap:20px; margin-top:18px; padding:20px; }
 @media (max-width:930px) { .developer-platform-header,.developer-platform-grid,.developer-platform-contribution { grid-template-columns:1fr; } }
 @media (max-width:720px) { .developer-platform-shell { width:min(100% - 22px,1240px); } .developer-platform-capabilities { grid-template-columns:1fr; } .developer-platform-card-heading { align-items:flex-start; flex-direction:column; } }
+
+.developer-platform-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.developer-platform-secondary-button{display:inline-flex;min-height:44px;align-items:center;padding:0 14px;border:1px solid #2a3d4c;border-radius:12px;color:#dbe7ee;text-decoration:none;font-weight:800}
+.developer-platform-secondary-button:hover{border-color:#67e8f9}
