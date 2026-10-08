@@ -25,7 +25,22 @@ Source: v1.3 draft, metrics section.
 ### DRAFT-005
 Status: PROPOSED / NOT APPROVED.
 Decision: Tool/security blocks use an Issue labeled agent-blocked.
-Source: v1.3 draft, Bootstrap section.
+Source: v1.4.1 draft, Bootstrap section.
+
+### DRAFT-006
+Status: PROPOSED / NOT APPROVED.
+Decision: Admission is execution-scoped only, read-only, exact-SHA bound, and must not imply Approval, Merge, ACTIVE, or Production.
+Source: v1.4.1 draft, Admission sections.
+
+### DRAFT-007
+Status: PROPOSED / NOT APPROVED.
+Decision: Automatic downgrade is evaluated only after at least 10 completed merged PRs in the last-30-days window capped at 20, using the canonical telemetry definitions in agent-governance-metrics.mjs.
+Source: v1.4.1 draft, Downgrade section.
+
+### DRAFT-008
+Status: PROPOSED / NOT APPROVED.
+Decision: Admission rejects closed-loop execution when the live governance verifier is unavailable or when automatic downgrade thresholds are breached.
+Source: v1.4.1 draft, Admission and Failure sections.
 
 ## ما لم يُتحقق منه
 - Owner approval.
