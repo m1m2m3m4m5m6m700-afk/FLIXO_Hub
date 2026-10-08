@@ -126,12 +126,10 @@ export function createAgentEconomyClient({ env = process.env, fetchImpl = global
         p_task_id: taskId, p_agent_id: agentId, p_role: role,
       });
     },
-    settleTask({ taskId, verifierAgent, outcome, exactSha, evidenceRefs = [] }) {
+    settleTask({ taskId, solverAgent, verifierAgent, outcome, exactSha, evidenceRefs = [] }) {
       const normalized = validateEconomySettlement({
         taskExactSha: exactSha, settlementExactSha: exactSha,
-        solverAgent: verifierAgent === taskId ? '' : taskId,
-        verifierAgent,
-        outcome,
+        solverAgent, verifierAgent, outcome,
       });
       return rpc('flixo_economy_settle_task', {
         p_task_id: taskId, p_verifier_agent: verifierAgent,
