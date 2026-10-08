@@ -90,5 +90,6 @@
   },
   "workspaces": [
     "packages/contracts"
-  ]
+  ],
+  "license": "Apache-2.0"
 }
