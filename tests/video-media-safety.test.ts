@@ -96,3 +96,33 @@ test('video legacy executor surface is absent and active UI remains canonical', 
   assert.match(ui, /executeCanonicalTool\(id/u);
   assert.doesNotMatch(ui, /video-tool-executors/u);
 });
+
+
+test('official video acceptance suites use one canonical shared fixture with bounded trim headroom', () => {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+  const fixture = readFileSync(resolve(root, 'tests/video/shared-video-fixture.ts'), 'utf8');
+  assert.match(fixture, /export async function buildVideoFixture/u);
+  assert.match(fixture, /VIDEO_FIXTURE_DURATION_MS\\s*=\\s*2_400/u);
+  assert.match(fixture, /VIDEO_FIXTURE_MIN_DURATION_MS\\s*=\\s*2_000/u);
+  assert.match(fixture, /durationMs\\s*<\\s*VIDEO_FIXTURE_MIN_DURATION_MS/u);
+
+  const officialSuites = [
+    'tests/official/video-capability-acceptance.spec.ts',
+    'tests/official/video-media-assurance.spec.ts',
+    'tests/official/mvp-10-release-verification.spec.ts',
+  ] as const;
+  for (const suite of officialSuites) {
+    const source = readFileSync(resolve(root, suite), 'utf8');
+    assert.match(source, /from ['"]\.\.\\/video\\/shared-video-fixture['"]/u, suite);
+    assert.match(source, /buildVideoFixture\\(/u, suite);
+    assert.doesNotMatch(source, /(?:async\\s+)?function\\s+videoFixture\\b/u, suite);
+  }
+
+  const ui = readFileSync(resolve(root, 'src/tools/video-local/index.tsx'), 'utf8');
+  const fixtureDuration = Number(
+    fixture.match(/VIDEO_FIXTURE_DURATION_MS\\s*=\\s*(\\d[\\d_]*)/u)?.[1]?.replaceAll('_', '') ?? 0,
+  );
+  const endpointMs = Number(ui.match(/endSec:\\s*(\\d+(?:\\.\\d+)?)/u)?.[1] ?? 0) * 1000;
+  assert.ok(fixtureDuration >= endpointMs * 2);
+});
+
