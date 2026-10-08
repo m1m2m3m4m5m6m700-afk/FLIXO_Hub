@@ -2,12 +2,27 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
+export const CELL_ATTRIBUTION_PATH_PATTERNS = Object.freeze([
+  /^packages\/contracts\/src\/cell[^/]*\.(?:ts|tsx)$/u,
+  /^tests\/security\/ci\/cell[^/]*\.(?:ts|tsx|mjs|js)$/u,
+  /^tests\/cell[^/]*\.(?:ts|tsx|mjs|js)$/u,
+  /^scripts\/ci\/cell[^/]*\.(?:mjs|js|sh)$/u,
+  /^docs\/CELL[^/]*\.(?:md|mdx)$/u,
+  /^AGENTS\.md$/u,
+  /^الخلية\.md$/u,
+  /^المهام\.md$/u,
+]);
+
 export function taskIdsFromLedger(source) {
   const start = source.indexOf("# ACTIVE DISPATCH QUEUE");
   const end = source.indexOf("# END ACTIVE DISPATCH QUEUE", start);
   if (start < 0 || end < 0) return new Set();
   const active = source.slice(start, end);
   return new Set([...active.matchAll(/\b(EXEC-[A-Z0-9-]+)\b/gu)].map((match) => match[1]));
+}
+
+export function isCellAttributionPath(path) {
+  return CELL_ATTRIBUTION_PATH_PATTERNS.some((pattern) => pattern.test(path));
 }
 
 export function validateCommitMessages(messages, allowedTaskIds) {
@@ -20,10 +35,35 @@ export function validateCommitMessages(messages, allowedTaskIds) {
   return { pass: failures.length === 0, failures };
 }
 
-export function commitMessagesBetween(baseSha, headSha) {
+export function validateCommitRecords(records, allowedTaskIds) {
+  const failures = [];
+  for (const record of records) {
+    if (!record.files.some(isCellAttributionPath)) continue;
+    const result = validateCommitMessages([record.message], allowedTaskIds);
+    failures.push(...result.failures.map((failure) => record.sha + ":" + failure));
+  }
+  return { pass: failures.length === 0, failures };
+}
+
+export function commitRecordsBetween(baseSha, headSha) {
   if (!baseSha || !headSha || baseSha === headSha) return [];
-  const output = execFileSync("git", ["log", "--format=%B%x00", "--no-merges", baseSha + ".." + headSha], { encoding: "utf8" });
-  return output.split("\0").map((value) => value.trim()).filter(Boolean);
+  const output = execFileSync(
+    "git",
+    ["log", "--format=%x1e%H%x00%B%x00", "--name-only", "--no-merges", baseSha + ".." + headSha],
+    { encoding: "utf8" },
+  );
+  const chunks = output.split("\x1e").filter(Boolean);
+  return chunks.map((chunk) => {
+    const firstNull = chunk.indexOf("\x00");
+    if (firstNull < 0) throw new Error("ATTRIBUTION_LOG_PARSE_FAILED");
+    const sha = chunk.slice(0, firstNull);
+    const afterSha = chunk.slice(firstNull + 1);
+    const secondNull = afterSha.indexOf("\x00");
+    if (secondNull < 0) throw new Error("ATTRIBUTION_LOG_PARSE_FAILED");
+    const message = afterSha.slice(0, secondNull).trim();
+    const files = afterSha.slice(secondNull + 1).split(/\r?\n/u).map((value) => value.trim()).filter(Boolean);
+    return { sha, message, files };
+  });
 }
 
 function main() {
@@ -33,7 +73,7 @@ function main() {
   const head = process.env.CELL_ATTRIBUTION_HEAD_SHA ?? execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
   const base = process.env.CELL_ATTRIBUTION_BASE_SHA ?? baseline;
   if (!base) throw new Error("ATTRIBUTION_BASELINE_MISSING");
-  const result = validateCommitMessages(commitMessagesBetween(base, head), taskIdsFromLedger(ledger));
+  const result = validateCommitRecords(commitRecordsBetween(base, head), taskIdsFromLedger(ledger));
   if (!result.pass) {
     console.error("CELL_COMMIT_ATTRIBUTION=FAIL");
     for (const failure of result.failures) console.error(failure);
