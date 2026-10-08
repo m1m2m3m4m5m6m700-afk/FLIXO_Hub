@@ -114,7 +114,7 @@ test("CELL context hash is runtime-derived, exact-SHA bound, and authority-owned
   assert.equal(artifact.artifactPath, ".cell/context/context-100.json");
   assert.equal(artifact.hashAlgorithm, "SHA-256");
   assert.equal(artifact.startingSha, SHA);
-  assert.match(artifact.sharedContextHash, /^[0-9a-f]{64}$/u);
+  assert.match(artifact.sharedContextHash, /^[0-9a-f]{64}$/u);\n  assert.equal(artifact.sharedContextHash, "c92073645562c3e631291ba274f2e0996ce3d44791424c980559be4e24462060");
 
   const changedAcceptance = createCellContextArtifact({
     taskId: "context-100",
