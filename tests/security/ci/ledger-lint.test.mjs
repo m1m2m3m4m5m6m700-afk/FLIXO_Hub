@@ -6,7 +6,10 @@ import { lintLedger } from '../../../scripts/ci/ledger-lint.mjs';
 test('active task ledger satisfies the 13-field contract', () => {
   const result = lintLedger(readFileSync('المهام.md', 'utf8'));
   assert.equal(result.pass, true, result.failures.join('\n'));
-  assert.equal(result.taskCount, 24);
+  const ledgerSource = readFileSync('المهام.md', 'utf8');
+  const declared = ledgerSource.match(/\*\*ACTIVE TASK COUNT:\*\*\s*(\d+)/u);
+  assert.ok(declared, 'ledger declares ACTIVE TASK COUNT');
+  assert.equal(result.taskCount, Number(declared[1]));
   assert.equal(result.inProgressCount, 0);
 });
 
