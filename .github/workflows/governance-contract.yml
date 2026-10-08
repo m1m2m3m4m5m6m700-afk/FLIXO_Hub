@@ -1,0 +1,44 @@
+name: FLIXO Governance Contract
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'AGENTS.md'
+      - 'STATE.md'
+      - 'DECISIONS.md'
+      - 'MEMORY.md'
+      - '.github/CODEOWNERS'
+      - '.github/workflows/agent-governance-admission.yml'
+      - '.github/workflows/agent-governance-telemetry.yml'
+      - 'docs/AGENT-LEAD-MEMORY-GOVERNANCE-v1.3-DRAFT.md'
+      - 'scripts/ci/admission-gate.mjs'
+      - 'scripts/ci/agent-governance-metrics.mjs'
+      - 'scripts/ci/test-admission-gate.mjs'
+      - 'scripts/ci/test-agent-governance-metrics.mjs'
+      - 'scripts/ci/test-workflow-exact-sha-contract.mjs'
+      - 'package.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    name: Governance contract tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run test:admission-gate
+      - run: node --test scripts/ci/test-agent-governance-metrics.mjs
+      - run: node --test scripts/ci/test-workflow-exact-sha-contract.mjs
