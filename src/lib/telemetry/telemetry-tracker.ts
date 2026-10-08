@@ -13,5 +13,7 @@ export function trackUserMovement(
   _properties: TelemetryProperties = {},
   _endpoint?: string,
 ): void {
-  return;
+  void _event;
+  void _properties;
+  void _endpoint;
 }
