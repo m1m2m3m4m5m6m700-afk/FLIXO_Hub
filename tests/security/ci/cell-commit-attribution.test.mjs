@@ -2,11 +2,27 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   isCellAttributionPath,
+  taskIdsFromLedger,
   validateCommitMessages,
   validateCommitRecords,
 } from "../../../scripts/ci/cell-commit-attribution.mjs";
 
 const ids = new Set(["EXEC-CELL-CTRL-002", "EXEC-TEST-001"]);
+
+test("accepts task IDs that are no longer active but remain canonical historical ledger entries", () => {
+  const ids = taskIdsFromLedger(`
+# ACTIVE DISPATCH QUEUE
+EXEC-ACTIVE-001
+# END ACTIVE DISPATCH QUEUE
+# CLOSED TASK REGISTER
+EXEC-CLOSED-001
+`);
+  assert.equal(ids.has("EXEC-CLOSED-001"), true);
+  assert.deepEqual(
+    validateCommitMessages(["fix(EXEC-CLOSED-001): historical repair"], ids),
+    { pass: true, failures: [] },
+  );
+});
 
 test("accepts commit messages with canonical task attribution", () => {
   assert.deepEqual(
