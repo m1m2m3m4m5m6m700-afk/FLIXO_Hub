@@ -37,6 +37,9 @@ export function createCognitiveMemoryAdapter(env = process.env) {
     retrieve({ query, currentSha, limit = 8 } = {}) {
       return searchSharedMemoryForContext({ query, currentSha, limit }, env);
     },
+    episodic({ taskId, currentSha, limit = 10 } = {}) {
+      return searchEpisodicExperiences({ taskId, currentSha, limit }, env);
+    },
     propose(payload) {
       return submitMemoryProposal(payload, env);
     },
@@ -53,14 +56,115 @@ export function createCognitiveMemoryAdapter(env = process.env) {
 }
 
 export async function searchSharedMemoryForContext({ query, currentSha, limit = 8 } = {}, env = process.env) {
+  assertExactSha(currentSha, 'currentSha');
+  const text = String(query ?? '').trim();
+  if (!text) {
+    const rows = await searchSharedMemory({ query: '', currentSha, limit, includeCandidates: true }, env);
+    if (!Array.isArray(rows)) throw new Error('MEMORY_RETRIEVAL_INVALID_RESPONSE');
+    return { ...preflightMemoryRetrieval({ currentSha, memories: rows }), semanticUsed: false };
+  }
+
+  const hasSupabase = Boolean(
+    (env.SUPABASE_URL || env.SUPABASE_PROJECT_URL) &&
+    (env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY),
+  );
+
+  if (hasSupabase && env.SUPABASE_MEMORY_SEMANTIC !== 'false') {
+    try {
+      const embedding = await createMemoryEmbedding(text, env);
+      const rows = await searchSharedMemorySemantic({
+        query,
+        currentSha,
+        limit,
+        includeCandidates: true,
+        embedding,
+      }, env);
+      if (!Array.isArray(rows)) throw new Error('MEMORY_SEMANTIC_INVALID_RESPONSE');
+      return { ...preflightMemoryRetrieval({ currentSha, memories: rows }), semanticUsed: true };
+    } catch (error) {
+      if (env.SUPABASE_MEMORY_SEMANTIC_STRICT === 'true') throw error;
+    }
+  }
+
   const rows = await searchSharedMemory({ query, currentSha, limit, includeCandidates: true }, env);
   if (!Array.isArray(rows)) throw new Error('MEMORY_RETRIEVAL_INVALID_RESPONSE');
-  return preflightMemoryRetrieval({ currentSha, memories: rows });
+  return { ...preflightMemoryRetrieval({ currentSha, memories: rows }), semanticUsed: false };
 }
 
 export function assertExactSha(value, field = 'sha') {
   if (!SHA_RE.test(value ?? '')) throw new Error(field + ' must be an exact 40-character git SHA');
   return String(value).toLowerCase();
+}
+
+
+function parseSupabaseResponse(response, label) {
+  return response.text().then((raw) => {
+    let parsed;
+    try { parsed = raw ? JSON.parse(raw) : null; } catch { parsed = raw; }
+    if (!response.ok) {
+      const detail = typeof parsed === 'string' ? parsed : JSON.stringify(parsed);
+      throw new Error(label + '_FAILED:' + response.status + ':' + detail);
+    }
+    return parsed;
+  });
+}
+
+export async function createMemoryEmbedding(text, env = process.env, fetchImpl = globalThis.fetch) {
+  const baseUrl = String(env.SUPABASE_URL || env.SUPABASE_PROJECT_URL || '').replace(/\/+$/,'');
+  const secret = env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!nonEmptyString(baseUrl)) throw new Error('SUPABASE_URL_REQUIRED');
+  if (!nonEmptyString(secret)) throw new Error('SUPABASE_SERVICE_KEY_REQUIRED');
+  const functionName = String(env.SUPABASE_MEMORY_EMBED_FUNCTION || 'flixo-memory-embed');
+  if (!/^[A-Za-z0-9_-]+$/.test(functionName)) throw new Error('MEMORY_EMBED_FUNCTION_INVALID');
+
+  if (typeof fetchImpl !== 'function') throw new Error('FETCH_REQUIRED');
+  const response = await fetchImpl(baseUrl + '/functions/v1/' + functionName, {
+    method: 'POST',
+    headers: {
+      apikey: secret,
+      Authorization: 'Bearer ' + secret,
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify({ text: String(text).trim() }),
+  });
+  const body = await parseSupabaseResponse(response, 'SUPABASE_MEMORY_EMBED');
+  const embedding = body?.embedding;
+  if (!Array.isArray(embedding) || embedding.length !== 384 || embedding.some(value => !Number.isFinite(value))) {
+    throw new Error('MEMORY_EMBEDDING_SHAPE_INVALID');
+  }
+  return embedding;
+}
+
+export async function searchSharedMemorySemantic({
+  query, currentSha, limit = 8, includeCandidates = true, embedding,
+} = {}, env = process.env) {
+  assertExactSha(currentSha, 'currentSha');
+  if (!Array.isArray(embedding) || embedding.length !== 384) throw new Error('MEMORY_EMBEDDING_REQUIRED');
+  if (!Number.isInteger(limit) || limit < 1 || limit > MAX_MEMORY_RESULTS) throw new Error('MEMORY_RETRIEVAL_LIMIT_INVALID');
+  return loadRpcClient(env).call('flixo_search_agent_memory_semantic', {
+    p_query_embedding: embedding,
+    p_query: String(query ?? ''),
+    p_current_sha: currentSha,
+    p_limit: limit,
+    p_include_candidates: includeCandidates,
+  });
+}
+
+export async function searchEpisodicExperiences({ taskId, currentSha, limit = 10 } = {}, env = process.env) {
+  assertExactSha(currentSha, 'currentSha');
+  if (!nonEmptyString(taskId)) throw new Error('TASK_ID_REQUIRED');
+  if (!Number.isInteger(limit) || limit < 1 || limit > 50) throw new Error('EPISODIC_RETRIEVAL_LIMIT_INVALID');
+  const params = new URLSearchParams({
+    select: 'learning_id,source_agent,source_role,kind,status,task_id,target_sha,claim,content,evidence_refs,provenance,fingerprint,canonical_green,created_at',
+    task_id: 'eq.' + taskId,
+    target_sha: 'eq.' + currentSha,
+    order: 'created_at.desc',
+    limit: String(limit),
+  });
+  const rows = await loadRpcClient(env).get('/rest/v1/flixo_agent_learning_events?' + params.toString());
+  if (!Array.isArray(rows)) throw new Error('EPISODIC_RETRIEVAL_INVALID_RESPONSE');
+  return rows.map(row => ({ ...row, tested_sha: row.target_sha, memory_kind: 'EPISODIC' }));
 }
 
 
@@ -156,27 +260,24 @@ export function createSupabaseRpcClient({ baseUrl, serviceRoleKey, fetchImpl = g
   if (!nonEmptyString(serviceRoleKey)) throw new Error('SUPABASE_SERVICE_ROLE_KEY is required');
   if (typeof fetchImpl !== 'function') throw new Error('fetch implementation is required');
   const root = String(baseUrl).replace(/\/+$/, '');
+  const headers = {
+    apikey: serviceRoleKey,
+    ...(String(serviceRoleKey).startsWith('sb_secret_') ? {} : { Authorization: 'Bearer ' + serviceRoleKey }),
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+  };
   return {
     async call(functionName, payload = {}) {
       if (!/^[A-Za-z0-9_]+$/.test(functionName)) throw new Error('invalid RPC function name');
-      const response = await fetchImpl(root + '/rest/v1/rpc/' + functionName, {
-        method: 'POST',
-        headers: {
-          apikey: serviceRoleKey,
-          ...(String(serviceRoleKey).startsWith('sb_secret_') ? {} : { Authorization: 'Bearer ' + serviceRoleKey }),
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-      const raw = await response.text();
-      let parsed;
-      try { parsed = raw ? JSON.parse(raw) : null; } catch { parsed = raw; }
-      if (!response.ok) {
-        const detail = typeof parsed === 'string' ? parsed : JSON.stringify(parsed);
-        throw new Error('SUPABASE_RPC_FAILED:' + functionName + ':' + response.status + ':' + detail);
-      }
-      return parsed;
+      return parseSupabaseResponse(await fetchImpl(root + '/rest/v1/rpc/' + functionName, {
+        method: 'POST', headers, body: JSON.stringify(payload),
+      }), 'SUPABASE_RPC');
+    },
+    async get(path) {
+      if (!String(path).startsWith('/rest/v1/')) throw new Error('invalid Supabase REST path');
+      return parseSupabaseResponse(await fetchImpl(root + String(path), {
+        method: 'GET', headers: { ...headers, 'Content-Type': 'application/json' },
+      }), 'SUPABASE_REST');
     },
   };
 }
@@ -185,6 +286,7 @@ export function loadRpcClient(env = process.env) {
   return createSupabaseRpcClient({
     baseUrl: env.SUPABASE_URL || env.SUPABASE_PROJECT_URL,
     serviceRoleKey: env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY,
+    fetchImpl: env.fetchImpl || globalThis.fetch,
   });
 }
 
@@ -206,7 +308,7 @@ export async function submitMemoryProposal(payload, env = process.env) {
   const failures = validateMemoryProposal(payload, currentSha);
   if (failures.length) throw new Error('MEMORY_PROPOSAL_INVALID:' + failures.join('|'));
   const rpc = loadRpcClient(env);
-  return rpc.call('flixo_submit_agent_memory', {
+  const stored = await rpc.call('flixo_submit_agent_memory', {
     p_agent: payload.agent,
     p_role: payload.role,
     p_task_id: payload.taskId,
@@ -221,6 +323,28 @@ export async function submitMemoryProposal(payload, env = process.env) {
     p_provenance: payload.provenance ?? {},
     p_metadata: { ...(payload.metadata ?? {}), agent_id: payload.agentId },
   });
+
+  const semanticConfigured = Boolean(
+    (env.SUPABASE_URL || env.SUPABASE_PROJECT_URL) &&
+    (env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY),
+  );
+  if (semanticConfigured && stored?.memory_id) {
+    try {
+      const embedding = await createMemoryEmbedding(
+        [payload.title || payload.claim.slice(0, 300), payload.claim, payload.content].join('\n'),
+        env,
+      );
+      await rpc.call('flixo_store_agent_memory_embedding', {
+        p_memory_id: stored.memory_id,
+        p_embedding: embedding,
+      });
+      return { ...stored, embedding_status: 'STORED' };
+    } catch (error) {
+      if (env.SUPABASE_MEMORY_SEMANTIC_STRICT === 'true') throw error;
+      return { ...stored, embedding_status: 'DEFERRED', embedding_error: String(error?.message ?? error) };
+    }
+  }
+  return { ...stored, embedding_status: 'NOT_CONFIGURED' };
 }
 
 export async function reviewMemory(payload, env = process.env) {

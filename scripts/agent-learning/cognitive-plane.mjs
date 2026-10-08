@@ -216,11 +216,25 @@ export async function assembleCognitiveContext({
     limit: Math.min(50, Math.max(1, Number(limits.maxMemoryResults ?? 8))),
   });
 
+  let episodicExperiences = [];
+  if (task?.task_id && typeof adapter.episodic === 'function') {
+    episodicExperiences = await adapter.episodic({
+      taskId: String(task.task_id),
+      currentSha: current,
+      limit: Math.min(20, Math.max(1, Number(limits.maxEpisodicResults ?? 10))),
+    });
+  }
+
+  const dedupedExperiences = [...episodicExperiences, ...recentExperiences].filter((item, index, all) => {
+    const key = String(item?.learning_id ?? item?.experience_id ?? item?.id ?? index);
+    return all.findIndex(candidate => String(candidate?.learning_id ?? candidate?.experience_id ?? candidate?.id ?? -1) === key) === index;
+  });
+
   const context = compileContext({
     task,
     worldModel,
     promotedMemory: memoryResult.executableMemory,
-    recentExperiences,
+    recentExperiences: dedupedExperiences,
     knownFailures,
     currentSha: current,
     agentContract,

@@ -39,7 +39,7 @@
     "test:repository-knowledge": "node --test tests/security/ci/repository-knowledge-agent.test.mjs",
     "verify:governance": "bash scripts/ci/check-governance.sh",
     "test:governance-cli": "node --test tests/security/ci/governance-cli.test.mjs",
-    "test:agent-training": "node --test tests/security/ci/agent-training-contract.test.mjs tests/security/ci/agent-canonical-registry.test.mjs tests/security/ci/agent-self-learning-control-plane.test.mjs tests/security/ci/agent-role-drills.test.mjs tests/security/ci/agent-readiness-evaluator.test.mjs",
+    "test:agent-training": "node --test tests/security/ci/agent-training-contract.test.mjs tests/security/ci/agent-canonical-registry.test.mjs tests/security/ci/agent-self-learning-control-plane.test.mjs tests/security/ci/agent-role-drills.test.mjs tests/security/ci/agent-readiness-evaluator.test.mjs tests/security/ci/agent-memory-economy.test.mjs",
     "verify:global-baseline": "node scripts/ci/verify-global-baseline.mjs",
     "verify:live-governance": "node scripts/ci/verify-live-governance.mjs",
     "verify:global-evidence": "node scripts/ci/verify-evidence-chain.mjs",
