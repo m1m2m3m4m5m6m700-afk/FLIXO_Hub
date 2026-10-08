@@ -175,3 +175,5 @@ test('economy settlement is exact-SHA and requires an independent verifier', () 
 });
 
 await import('./agent-economy-settlement-sql-contract.test.mjs');
+
+await import('./agent-economy-settlement-v3.test.mjs');
