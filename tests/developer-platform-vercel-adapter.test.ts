@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { assertProviderResourceCompatibility, chooseExecutionProvider } from '../src/lib/developer-platform/execution-provider';
+import { assertProviderResourceCompatibility } from '../src/lib/developer-platform/execution-provider';
 import { VercelSandboxExecutionProvider, type VercelSandboxClient } from '../src/lib/developer-platform/vercel-sandbox-adapter';
 import { DEFAULT_PROGRAMMING_LIMITS, type PlatformExecutionAuthorityContext, type PlatformExecutionRequest } from '../src/lib/developer-platform/platform-contract';
 
