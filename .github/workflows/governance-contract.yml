@@ -11,11 +11,14 @@ on:
       - '.github/CODEOWNERS'
       - '.github/workflows/agent-governance-admission.yml'
       - '.github/workflows/agent-governance-telemetry.yml'
+      - '.github/workflows/agent-blocked-channel.yml'
       - 'docs/AGENT-LEAD-MEMORY-GOVERNANCE-v1.3-DRAFT.md'
       - 'scripts/ci/admission-gate.mjs'
       - 'scripts/ci/agent-governance-metrics.mjs'
       - 'scripts/ci/test-admission-gate.mjs'
       - 'scripts/ci/test-agent-governance-metrics.mjs'
+      - 'scripts/ci/check-agent-blocked-channel.mjs'
+      - 'scripts/ci/test-agent-blocked-channel.mjs'
       - 'scripts/ci/test-workflow-exact-sha-contract.mjs'
       - 'package.json'
   workflow_dispatch:
@@ -41,4 +44,5 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: npm run test:admission-gate
       - run: node --test scripts/ci/test-agent-governance-metrics.mjs
+      - run: node --test scripts/ci/test-agent-blocked-channel.mjs
       - run: node --test scripts/ci/test-workflow-exact-sha-contract.mjs
