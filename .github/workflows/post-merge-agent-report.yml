@@ -28,6 +28,19 @@ jobs:
       MERGED_AT: ${{ github.event.pull_request.merged_at }}
       TITLE: ${{ github.event.pull_request.title }}
     steps:
+      - name: Checkout exact merge SHA
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Verify exact merge SHA
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
       - name: Build immutable merge report
         shell: bash
         run: |
