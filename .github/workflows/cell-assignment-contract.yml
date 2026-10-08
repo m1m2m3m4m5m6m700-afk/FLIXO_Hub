@@ -3,8 +3,6 @@ name: CELL Assignment Delegation Contract
 on:
   push:
     branches: [execution]
-  pull_request:
-    branches: [main]
 
 permissions:
   contents: read
