@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process';
+import { collectGovernanceMetrics } from './agent-governance-metrics.mjs';
 
 const CANONICAL_REPOSITORY = 'm1m2m3m4m5m6m700-afk/FLIXO_Hub';
 const SHA = /^[a-f0-9]{40}$/u;
@@ -46,6 +47,24 @@ try {
   process.exit(1);
 }
 
+let telemetry;
+try {
+  telemetry = await collectGovernanceMetrics({
+    token: process.env.GH_TOKEN || process.env.GITHUB_TOKEN,
+    repo: process.env.GITHUB_REPOSITORY || '',
+  });
+} catch (error) {
+  console.error('ADMISSION=REJECT');
+  console.error('governance-telemetry:unavailable');
+  console.error(String(error?.message || error));
+  process.exit(1);
+}
+if (telemetry.decision.downgraded) {
+  console.error('ADMISSION=REJECT');
+  for (const reason of telemetry.decision.reasons) console.error('automatic-downgrade:' + reason);
+  process.exit(1);
+}
+
 const artifact = {
   admission: {
     decision: 'ALLOW',
@@ -56,6 +75,14 @@ const artifact = {
     gate_run_id: process.env.GITHUB_RUN_ID || '',
     parent_run_id: process.env.PARENT_RUN_ID || '',
     reason: 'ALL_ADMISSION_CHECKS_GREEN',
+    governance_enforcement: telemetry.decision.enforcement,
+    governance_sample_size: telemetry.metrics.window.sampleSize,
+    governance_metrics: {
+      build_success_rate: telemetry.metrics.buildSuccessRate,
+      regressions: telemetry.metrics.regressions,
+      rollback_rate: telemetry.metrics.rollbackRate,
+      rejected_review_rate: telemetry.metrics.rejectedReviewRate,
+    },
     timestamp: new Date().toISOString(),
   },
 };
