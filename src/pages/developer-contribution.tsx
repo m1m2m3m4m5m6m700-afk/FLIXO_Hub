@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { Download, FileCheck2, ShieldCheck } from 'lucide-react';
-import { validateContributionProposal, type ContributionProposal } from '../lib/developer-platform/platform-boundaries';
+import { validateContributionProposal, type ContributionEvidenceIndex, type ContributionProposal } from '../lib/developer-platform/platform-boundaries';
 import { downloadBlob } from '../lib/developer-platform/local-project-workspace';
 import '../developer-platform.css';
 
@@ -16,6 +16,7 @@ export function DeveloperContribution() {
   const [sourceSha, setSourceSha] = useState('');
   const [summary, setSummary] = useState('');
   const [evidenceIds, setEvidenceIds] = useState('');
+  const [evidenceDocument, setEvidenceDocument] = useState('');
   const [status, setStatus] = useState('');
 
   const evidence = useMemo(() => evidenceIds.split(',').map((value) => value.trim()).filter(Boolean), [evidenceIds]);
@@ -31,9 +32,17 @@ export function DeveloperContribution() {
 
   const validate = () => {
     const proposal = buildProposal();
-    const ok = validateContributionProposal(proposal, sourceSha);
-    setStatus(ok ? 'VALID_FOR_ADMISSION' : 'REJECTED_BY_CONTRACT');
-    return ok;
+    try {
+      const evidenceIndex: ContributionEvidenceIndex = evidenceDocument.trim()
+        ? JSON.parse(evidenceDocument) as ContributionEvidenceIndex
+        : {};
+      const ok = validateContributionProposal(proposal, sourceSha, evidenceIndex);
+      setStatus(ok ? 'VALID_FOR_ADMISSION' : 'REJECTED_BY_CONTRACT');
+      return ok;
+    } catch {
+      setStatus('INVALID_EVIDENCE_DOCUMENT');
+      return false;
+    }
   };
 
   const exportProposal = () => {
@@ -79,6 +88,7 @@ export function DeveloperContribution() {
 
           <label className="developer-platform-field developer-platform-field-wide"><span>Summary</span><textarea value={summary} onChange={(event) => setSummary(event.target.value)} rows={4} /></label>
           <label className="developer-platform-field developer-platform-field-wide"><span>Evidence IDs (comma separated)</span><input value={evidenceIds} onChange={(event) => setEvidenceIds(event.target.value)} /></label>
+          <label className="developer-platform-field developer-platform-field-wide"><span>Resolved PASS evidence index (JSON)</span><textarea value={evidenceDocument} onChange={(event) => setEvidenceDocument(event.target.value)} rows={7} placeholder='{"artifact-1":{"evidence":{"artifactId":"artifact-1","sourceSha":"...","digest":"...","mediaType":"application/json","verificationId":"verify-1"},"verification":{"verificationId":"verify-1","sourceSha":"...","checks":["..."],"conclusion":"PASS"}}}' /></label>
 
           <div className="developer-platform-actions">
             <button type="button" className="developer-platform-button" onClick={validate}><FileCheck2 size={16} />Validate proposal</button>

@@ -1,5 +1,6 @@
 import {
   authorizeExecutionAction,
+  matchesScope,
   verifyExecutionIdentity,
   type BudgetUsage,
   type ExecutionEnvelope,
@@ -200,6 +201,9 @@ export function evaluatePlatformExecution(
 
   const reason = classifyCommand(request.command, request.args);
   if (!reason) return { admitted: false, code: request.command.trim() ? 'COMMAND_NOT_ALLOWLISTED' : 'INVALID_COMMAND' };
+  if (reason === 'TARGETED_VERIFY' && !matchesScope(authority.executionPath, authority.envelope.readScope) && !matchesScope(authority.executionPath, authority.envelope.writeScope)) {
+    return { admitted: false, code: 'SCOPE_VIOLATION' };
+  }
   if (!request.cwd.startsWith(authority.cwdRoot) || request.cwd.includes('..')) return { admitted: false, code: 'INVALID_CWD' };
   if (!validNetworkRequest(request.network, authority.networkPolicy)) return { admitted: false, code: 'INVALID_NETWORK_POLICY' };
 

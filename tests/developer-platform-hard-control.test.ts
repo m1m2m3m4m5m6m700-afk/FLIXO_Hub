@@ -10,6 +10,8 @@ import {
   canTransitionContribution,
   transitionContribution,
   type ContributionEvidenceIndex,
+  GovernedGitHubRepositoryProvider,
+  type RepositoryAuthorityContext,
 } from '../src/lib/developer-platform/platform-boundaries';
 
 const SHA = '0123456789abcdef0123456789abcdef01234567';
@@ -108,7 +110,7 @@ test('heuristic command classification is gone and shell escape syntax is reject
 test('network, scope, resource and forbidden-action gates are hard failures', () => {
   assert.equal(evaluatePlatformExecution(request({ network: { mode: 'ALLOWLIST', hosts: ['example.com'] } }), SHA, auth()).code, 'INVALID_NETWORK_POLICY');
   assert.equal(evaluatePlatformExecution(request({ limits: { ...DEFAULT_PROGRAMMING_LIMITS, memoryMb: 4097 } }), SHA, auth()).code, 'RESOURCE_DRIFT');
-  assert.equal(evaluatePlatformExecution(request(), SHA, auth({ executionPath: 'secrets.txt' })).code, 'SCOPE_VIOLATION');
+  assert.equal(evaluatePlatformExecution(request(), SHA, auth({ executionPath: 'secrets.txt', envelope: { ...auth().envelope, readScope: ['src/**'] } })).code, 'SCOPE_VIOLATION');
   assert.equal(evaluatePlatformExecution(request(), SHA, auth({ envelope: { ...auth().envelope, forbiddenActions: ['TEST'] } })).code, 'FORBIDDEN_ACTION');
 });
 
@@ -133,4 +135,53 @@ test('contribution publication is evidence-resolved and source-fresh', () => {
   assert.equal(transitionContribution('VERIFIED', 'PUBLISHED', proposal, SHA, index), 'PUBLISHED');
   assert.equal(canTransitionContribution('UNDER_REVIEW', 'PUBLISHED', proposal, SHA, index), false);
   assert.equal(canTransitionContribution('UNDER_REVIEW', 'VERIFIED', proposal, 'f'.repeat(40), index), false);
+});
+
+test('governed GitHub provider blocks stale mutations before transport mutation', async () => {
+  const a = auth();
+  const repository = 'm1m2m3m4m5m6m700-afk/FLIXO_Hub';
+  const authority: RepositoryAuthorityContext = {
+    source: 'CANONICAL_CELL_RUNTIME',
+    repository,
+    task: { ...a.task!, capability: 'platform.repository.github' },
+    envelope: { ...a.envelope, allowedCapabilities: ['platform.repository.github'] },
+    currentSha: SHA,
+    usage: { spentCost: 0, spentDurationMs: 0 },
+  };
+  const snapshot = {
+    provider: 'github' as const,
+    repository,
+    defaultBranch: 'main',
+    headSha: SHA,
+    fetchedAt: '2026-10-08T00:00:00.000Z',
+  };
+  let mutationCalls = 0;
+  const provider = new GovernedGitHubRepositoryProvider(
+    {
+      async getSnapshot() {
+        return { defaultBranch: snapshot.defaultBranch, headSha: snapshot.headSha };
+      },
+      async proposeMutation() {
+        mutationCalls += 1;
+        return { proposalId: 'proposal-1' };
+      },
+    },
+    authority,
+  );
+  const mutation = {
+    kind: 'COMMIT' as const,
+    repository,
+    branch: 'execution',
+    expectedHeadSha: SHA,
+    taskId: 'EXEC-PLATFORM-CONTRACT-001',
+    agentId: 'platform-test',
+    message: 'feat: governed platform',
+  };
+  assert.deepEqual(await provider.proposeMutation(mutation), { proposalId: 'proposal-1' });
+  assert.equal(mutationCalls, 1);
+  await assert.rejects(
+    provider.proposeMutation({ ...mutation, expectedHeadSha: 'f'.repeat(40) }),
+    /REPOSITORY_MUTATION_DENIED/,
+  );
+  assert.equal(mutationCalls, 1);
 });
