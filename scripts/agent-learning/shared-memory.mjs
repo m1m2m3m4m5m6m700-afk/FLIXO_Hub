@@ -109,7 +109,7 @@ function parseSupabaseResponse(response, label) {
   });
 }
 
-export async function createMemoryEmbedding(text, env = process.env) {
+export async function createMemoryEmbedding(text, env = process.env, fetchImpl = globalThis.fetch) {
   const baseUrl = String(env.SUPABASE_URL || env.SUPABASE_PROJECT_URL || '').replace(/\/+$/,'');
   const secret = env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY;
   if (!nonEmptyString(baseUrl)) throw new Error('SUPABASE_URL_REQUIRED');
@@ -117,7 +117,8 @@ export async function createMemoryEmbedding(text, env = process.env) {
   const functionName = String(env.SUPABASE_MEMORY_EMBED_FUNCTION || 'flixo-memory-embed');
   if (!/^[A-Za-z0-9_-]+$/.test(functionName)) throw new Error('MEMORY_EMBED_FUNCTION_INVALID');
 
-  const response = await fetch(baseUrl + '/functions/v1/' + functionName, {
+  if (typeof fetchImpl !== 'function') throw new Error('FETCH_REQUIRED');
+  const response = await fetchImpl(baseUrl + '/functions/v1/' + functionName, {
     method: 'POST',
     headers: {
       apikey: secret,
@@ -285,6 +286,7 @@ export function loadRpcClient(env = process.env) {
   return createSupabaseRpcClient({
     baseUrl: env.SUPABASE_URL || env.SUPABASE_PROJECT_URL,
     serviceRoleKey: env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY,
+    fetchImpl: env.fetchImpl || globalThis.fetch,
   });
 }
 
