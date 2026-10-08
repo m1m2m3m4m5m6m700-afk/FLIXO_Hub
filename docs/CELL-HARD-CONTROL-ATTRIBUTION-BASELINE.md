@@ -1,7 +1,7 @@
 # CELL — COMMIT ATTRIBUTION BASELINE
 
 Status: ACTIVE ENFORCEMENT BASELINE
-BASELINE_SHA: 1bc688c7fc4e8e6711ce024c8004539c4340edd1
+BASELINE_SHA: 3f1cf5ec3cbdeac4aea9dad7c1ccd036bf0448da
 
 من هذه النقطة، كل commit جديد خاص بخط CELL يجب أن يحمل TASK_ID صالحًا ظاهرًا داخل ACTIVE DISPATCH QUEUE في المهام.md.
 
@@ -16,4 +16,4 @@ Fail-closed rule: missing or non-active TASK_ID in a post-baseline CELL commit =
 
 Reconciliation reset (EXEC-PR-RECONCILE-001): the prior enforcement baseline was superseded after confirming that legacy execution commits after 6159b5be734055b7aad8d893cf3c900534911100 predate the current reconciliation contract and contain historical messages without TASK_ID. Git history is preserved; attribution enforcement resumes from the exact execution SHA above, and every new commit must carry an active TASK_ID.
 
-Ratcheting rule (EXEC-AGENT-SELF-LEARNING-001): the enforcement baseline is advanced to the exact main SHA observed by the current integration gate. Historical pre-baseline commits remain immutable and are not rewritten; only commits introduced after this baseline must carry an active TASK_ID.
+Ratcheting rule (EXEC-AGENT-SELF-LEARNING-001): enforcement starts at the exact execution SHA `3f1cf5ec3cbdeac4aea9dad7c1ccd036bf0448da`, the last reconciled execution candidate before this ratchet. Historical execution commits before that point remain immutable and are outside the active enforcement window. New commits after the baseline must carry a canonical EXEC task ID; historical task IDs remain valid attribution even after their task leaves the ACTIVE DISPATCH QUEUE.
