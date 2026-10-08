@@ -3,7 +3,7 @@
 ## Bootstrap State
 - Contract version: 1.4.1
 - Current PR: #1257
-- Current PR head: 59a57eabd8e182e2fe0080ea855e66f080c9b15b
+- Current PR head: re-read from GitHub before every verification claim; not stored as canonical state.
 - Status: BOOTSTRAP / VERIFYING
 - Mission: EXEC-LEAD-MEMORY-001
 - Repository: m1m2m3m4m5m6m700-afk/FLIXO_Hub
