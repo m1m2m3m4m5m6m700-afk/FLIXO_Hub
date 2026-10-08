@@ -111,7 +111,8 @@ test('privileged controller is schedule-only and main-anchored', async () => {
   assert.doesNotMatch(workflow, /\n\s+push:\s*\n/u);
   assert.match(workflow, /ref: main/u);
   assert.match(workflow, /persist-credentials: false/u);
-  assert.match(workflow, /contents: write/u);
+  assert.match(workflow, /permissions:\s*\n\s*contents: read/u);
+  assert.doesNotMatch(workflow, /permissions:\s*\n\s*contents: write/u);
 });
 
 test('controller isolates mutable execution from privileged verification', async () => {
