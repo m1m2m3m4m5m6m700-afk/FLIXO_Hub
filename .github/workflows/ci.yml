@@ -3,6 +3,8 @@ name: FLIXO CI
 on:
   push:
     branches: [main, execution]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
     inputs:
       strict_governance:
