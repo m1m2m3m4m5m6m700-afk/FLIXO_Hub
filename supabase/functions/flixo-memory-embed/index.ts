@@ -14,9 +14,34 @@ function decodeRole(token: string): string | null {
   }
 }
 
+function configuredSecretKeys(): Set<string> {
+  const keys = new Set<string>();
+  const plural = Deno.env.get("SUPABASE_SECRET_KEYS") ?? "";
+  try {
+    const parsed = JSON.parse(plural) as Record<string, unknown>;
+    for (const value of Object.values(parsed)) {
+      if (typeof value === "string" && value.startsWith("sb_secret_")) keys.add(value);
+    }
+  } catch {
+    // Legacy/local environments may not expose the plural JSON variable.
+  }
+  const single = Deno.env.get("SUPABASE_SECRET_KEY") ?? "";
+  if (single.startsWith("sb_secret_")) keys.add(single);
+  return keys;
+}
+
 function authorized(request: Request): boolean {
-  const header = request.headers.get("authorization") ?? "";
-  return header.startsWith("Bearer ") && decodeRole(header.slice(7)) === "service_role";
+  const authorization = request.headers.get("authorization") ?? "";
+  if (authorization.startsWith("Bearer ") && decodeRole(authorization.slice(7)) === "service_role") {
+    return true;
+  }
+
+  const apiKey = request.headers.get("apikey") ?? "";
+  if (apiKey.startsWith("sb_secret_")) {
+    return configuredSecretKeys().has(apiKey);
+  }
+
+  return false;
 }
 
 const model = new Supabase.ai.Session(MODEL);
