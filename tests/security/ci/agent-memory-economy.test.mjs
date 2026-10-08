@@ -63,6 +63,30 @@ test('semantic embedding client validates the 384-dimensional contract', async (
   );
 });
 
+test('modern Supabase secret keys use apikey, not Authorization bearer', async () => {
+  let requestHeaders = null;
+  const fetchImpl = async (_url, options) => {
+    requestHeaders = options.headers;
+    return new Response(JSON.stringify({
+      model: 'gte-small',
+      dimensions: 384,
+      embedding: Array.from({ length: 384 }, () => 0.01),
+    }), { status: 200, headers: { 'content-type': 'application/json' } });
+  };
+
+  await createMemoryEmbedding(
+    'modern secret key embedding request',
+    {
+      SUPABASE_URL: 'https://example.supabase.co',
+      SUPABASE_SECRET_KEY: 'sb_secret_example',
+    },
+    fetchImpl,
+  );
+
+  assert.equal(requestHeaders.apikey, 'sb_secret_example');
+  assert.equal('Authorization' in requestHeaders, false);
+});
+
 test('semantic search sends the exact SHA and embedding through the canonical RPC', async () => {
   const embedding = Array.from({ length: 384 }, () => 0.01);
   let requestBody = null;
