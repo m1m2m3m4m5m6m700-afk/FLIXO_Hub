@@ -59,3 +59,18 @@ test("fresh runtime reloads persisted open task state without marking it failed/
   assert.equal(task?.version, 12);
   assert.equal(task?.currentSha, "b".repeat(40));
 });
+test("CellRuntime auto-starts liveness with a deterministic default worker wake", () => {
+  const runtime = new CellRuntime(() => 0);
+  const snapshot = runtime.getCellLivenessSnapshot();
+  assert.equal(snapshot.workerId, "cell-worker-1");
+  assert.equal(snapshot.workerGeneration, 1);
+  assert.equal(snapshot.lastHeartbeatAtMs, 0);
+  runtime.stopCellLiveness();
+});
+
+test("CellRuntime can disable auto-start for deterministic lifecycle control", () => {
+  const runtime = new CellRuntime(() => 0, { autoStart: false });
+  const snapshot = runtime.getCellLivenessSnapshot();
+  assert.equal(snapshot.workerId, null);
+  assert.equal(snapshot.workerGeneration, 0);
+});
