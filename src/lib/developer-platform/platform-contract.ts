@@ -108,8 +108,6 @@ const SHA_PATTERN = /^[0-9a-f]{40}$/i;
 const TASK_PATTERN = /^EXEC-[A-Z0-9-]{3,}$/;
 const AGENT_PATTERN = /^[A-Za-z0-9._:-]{2,96}$/;
 const SESSION_PATTERN = /^[A-Za-z0-9._:-]{2,128}$/;
-const SAFE_ENVIRONMENT_KEY = /^[A-Z_][A-Z0-9_]{0,127}$/;
-const SAFE_ARTIFACT_KIND = /^[a-z0-9][a-z0-9._-]{0,63}$/;
 const SAFE_ARG = /^[A-Za-z0-9_./:@+=,-]+$/;
 const SAFE_HOST = /^[a-z0-9.-]+(?::[0-9]{1,5})?$/i;
 
@@ -142,10 +140,18 @@ function validNetworkRequest(request: NetworkPolicy, allowed: NetworkPolicy): bo
   return request.hosts.every((host) => allowedHosts.has(host.trim().toLowerCase()));
 }
 
+function hasUnsafeCommandCharacters(value: string): boolean {
+  for (const char of value) {
+    const code = char.charCodeAt(0);
+    if (code <= 0x1f || code === 0x7f || ';&|$\\`<>'.includes(char)) return true;
+  }
+  return false;
+}
+
 function classifyCommand(command: string, args: readonly string[]): 'READ_ONLY' | 'TARGETED_VERIFY' | null {
   const normalized = command.trim();
   if (!normalized || normalized.length > 256 || !args.every((arg) => SAFE_ARG.test(arg))) return null;
-  if (/[\u0000-\u001f\u007f;&|$\\x60<>]/u.test(normalized) || args.some((arg) => /[\u0000-\u001f\u007f;&|$\\x60<>]/u.test(arg))) return null;
+  if (hasUnsafeCommandCharacters(normalized) || args.some(hasUnsafeCommandCharacters)) return null;
   if (READ_COMMANDS.has(normalized)) return 'READ_ONLY';
   if (VERIFY_COMMANDS.has(normalized)) return 'TARGETED_VERIFY';
   return null;
