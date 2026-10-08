@@ -61,9 +61,9 @@
     "test:loop-guard": "bash tests/security/ci/loop-guard.test.sh",
     "test:cell-autonomous-delivery": "node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/security/ci/cell-autonomous-delivery.test.ts",
     "test:hub": "node --test tests/hub-stage1-contract.test.mjs",
-    "test:programming-platform": "node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/developer-platform-contract.test.ts",
+    "test:programming-platform": "node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/developer-platform-contract.test.ts tests/developer-platform-hard-control.test.ts tests/developer-platform-execution-service.test.ts tests/developer-platform-vercel-adapter.test.ts tests/developer-platform-client-factory.test.ts",
     "test:developer-workspace": "node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/developer-workspace-contract.test.ts",
-    "test:developer-platform": "node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/developer-platform-contract.test.ts tests/developer-platform-vercel-adapter.test.ts tests/developer-platform-client-factory.test.ts tests/developer-platform-execution-service.test.ts tests/developer-contribution-registry.test.ts"
+    "test:developer-platform": "node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/developer-platform-contract.test.ts tests/developer-platform-hard-control.test.ts tests/developer-platform-vercel-adapter.test.ts tests/developer-platform-client-factory.test.ts tests/developer-platform-execution-service.test.ts"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",

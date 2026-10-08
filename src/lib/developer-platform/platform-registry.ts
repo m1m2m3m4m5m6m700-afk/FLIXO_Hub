@@ -41,26 +41,26 @@ export const PROGRAMMING_PLATFORM_CAPABILITIES: readonly PlatformCapability[] = 
   {
     id: 'platform.verification.pipeline',
     family: 'verification',
-    state: 'INTEGRATED',
+    state: 'FOUNDATION',
     executionMode: 'TARGETED_VERIFY',
     authority: 'canonical-ci-and-verifiers',
-    description: 'Tests, type checks, security, browser verification and exact-SHA proof.',
+    description: 'Canonical verification infrastructure; the platform surface is not exact-SHA certified until fresh evidence exists.',
   },
   {
     id: 'platform.agents.cell',
     family: 'agents',
-    state: 'INTEGRATED',
+    state: 'FOUNDATION',
     executionMode: 'TARGETED_VERIFY',
     authority: 'cell-control-plane',
-    description: 'Bounded delegation and agent evidence without second dispatch authority.',
+    description: 'CELL control-plane integration boundary; fresh platform-surface verification remains required.',
   },
   {
     id: 'platform.artifacts.evidence',
     family: 'artifacts',
-    state: 'INTEGRATED',
+    state: 'FOUNDATION',
     executionMode: 'READ_ONLY',
     authority: 'evidence-fabric',
-    description: 'Artifact and deployment evidence bound to source SHA.',
+    description: 'Evidence-fabric boundary; artifact publication is not platform-certified without fresh PASS proof.',
   },
   {
     id: 'platform.collaboration.review',
@@ -81,10 +81,10 @@ export const PROGRAMMING_PLATFORM_CAPABILITIES: readonly PlatformCapability[] = 
   {
     id: 'platform.learning.experience',
     family: 'learning',
-    state: 'INTEGRATED',
+    state: 'FOUNDATION',
     executionMode: 'READ_ONLY',
     authority: 'agent-learning-control-plane',
-    description: 'Evidence-based lessons without granting new authority.',
+    description: 'Learning control-plane boundary without granting authority; fresh platform evidence remains required.'
   },
 ]);
 
