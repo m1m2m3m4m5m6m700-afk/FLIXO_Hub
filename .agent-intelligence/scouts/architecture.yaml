@@ -6,6 +6,10 @@
     "src/config/registry.ts",
     "src/lib/execution/canonical-executor.ts"
   ],
+  "repo_refs": [
+    "src/config/registry.ts",
+    "src/lib/execution/canonical-executor.ts"
+  ],
   "topics": [
     "Clean Architecture",
     "Hexagonal Architecture",
