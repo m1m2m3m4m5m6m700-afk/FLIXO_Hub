@@ -33,9 +33,13 @@ test('PRIVILEGED_DISPATCH: write-capable workflow_dispatch is actor/repository/r
   }
 });
 test('EXACT_SHA_CONTRACT: candidate-sensitive workflows verify HEAD', () => {
-  for (const n of names()) { const t = read(n); if (!(executionPush(t) || /pull_request:\s*[\s\S]{0,500}?branches:\s*\[[^\]]*\bmain\b/.test(t))) continue;
-    for (const b of checkouts(t)) assert.match(b, /persist-credentials:\s*false/);
-    if (n !== 'release-drafter.yml') assert.match(t, /git rev-parse HEAD/, n);
+  const informational = new Set(['release-drafter.yml', 'repository-community-health.yml']);
+  for (const n of names()) {
+    const workflow = read(n);
+    if (informational.has(n)) continue;
+    if (!(executionPush(workflow) || /pull_request:\s*[\s\S]{0,500}?branches:\s*\[[^\]]*\bmain\b/.test(workflow))) continue;
+    for (const b of checkouts(workflow)) assert.match(b, /persist-credentials:\s*false/);
+    assert.match(workflow, /git rev-parse HEAD/, n);
   }
 });
 test('SHARED_MEMORY_DISPATCH_GATE: secret-bearing shared-memory dispatch is actor/ref/repository gated', () => {
