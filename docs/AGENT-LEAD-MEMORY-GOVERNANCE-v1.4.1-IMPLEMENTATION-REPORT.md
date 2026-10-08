@@ -4,7 +4,7 @@
 **العقد المستهدف:** Agent Lead Memory Governance v1.4.1  
 **المهمة:** EXEC-LEAD-MEMORY-001  
 **PR:** #1257  
-**الحالة النهائية المقصودة للتقرير:** DRAFT / BOOTSTRAP، بدون Merge وبدون ACTIVE
+**الحالة الحالية للتقرير:** BOOTSTRAP / POST-MERGE SYNC، تم دمج bootstrap إلى `main`، بدون ACTIVE
 
 ## 1. نطاق التنفيذ
 
@@ -16,7 +16,7 @@
 
 `execution → main`
 
-لم يتم تنفيذ Merge، ولم يتم منح الوكيل سلطة Production أو Certification.
+تم تنفيذ Merge عبر PR #1257. لم يتم منح الوكيل سلطة Production أو Certification، ولم يُثبت انتقال ACTIVE.
 
 ## 2. ما تم تنفيذه
 
@@ -166,10 +166,13 @@ Issue #1125 تثبت أن ruleset `FLIXO-MAIN-PROTECTION` لا يحقق strict g
 Canonical baseline:
 `de1e5b3c46bc1f5812987cb8ad863c5ff983178d`
 
-Final implementation test snapshot:
-`16200467a85897faf24c3530469ca9750653d8ed`
+Final pre-merge implementation/test head:
+`ea868bd303b01977400dd692ef6271f62bbf2b87`
 
-يجب على المراجع إعادة قراءة HEAD الحالي من GitHub قبل اعتماد أي evidence نهائي، لأن إضافة التقرير نفسها تغيّر SHA وتبطل أي دليل سابق غير المرتبط بالرأس الجديد.
+Merged main SHA:
+`508b5f9f9314deb7cbfd6d6592450b7d5f39141e`
+
+The merged SHA is the current production-truth branch head as observed on 2026-10-08. Any subsequent mutation creates a new SHA and invalidates evidence tied only to an earlier head.
 
 ## 9. Definition of Done Assessment
 
@@ -186,14 +189,14 @@ Final implementation test snapshot:
 | Governance Contract on corrected implementation SHA | GREEN (Run 37782936554) |
 | Live strict main governance | BLOCKED |
 | Owner approval | NOT VERIFIED |
-| Merge to approved branch | NOT DONE |
-| ACTIVE transition | NOT ALLOWED |
+| Merge to main | DONE (PR #1257, `508b5f9...`) |
+| ACTIVE transition | NOT VERIFIED |
 
 ## 10. Review Decision Boundary
 
 الحالة الصحيحة للمراجعة هي:
 
-**BOOTSTRAP / SPEC + IMPLEMENTATION PRESENT / NOT ACTIVE**
+**BOOTSTRAP / IMPLEMENTATION MERGED / NOT ACTIVE**
 
 لا يوجد في هذه النسخة أي دليل مشروع على:
 - owner approval
@@ -209,15 +212,14 @@ Final implementation test snapshot:
 2. إثبات قناة `agent-blocked` الحية أو تصحيحها إداريًا.
 3. معالجة strict main ruleset بواسطة صاحب الصلاحية.
 4. إعادة CI/evidence على SHA النهائي بعد آخر mutation.
-5. موافقة owner قابلة للتحقق من GitHub metadata.
-6. Merge عبر المسار canonical.
-7. تحقق خارجي من انتقال الحالة إلى ACTIVE.
+5. إثبات owner approval وفق قاعدة الأدلة المعتمدة.
+6. تحقق خارجي من انتقال الحالة إلى ACTIVE.
 
 ## 12. الخلاصة
 
 التنفيذ البرمجي والوثائقي المطلوب للـbootstrap تم إنجازه مع الحفاظ على الفصل بين السلطة والتنفيذ والأدلة.
 
-الـrelease/activation النهائي لم يتم، لأن شروطه الخارجية غير مكتملة. اعتبار الحالة GREEN أو ACTIVE الآن سيكون false-green صريحًا.
+الـbootstrap أصبح مدموجًا في `main`. أما release/activation النهائي فما زال غير مثبت، لأن شروطه الخارجية والأدلة المطلوبة للحالة ACTIVE غير مكتملة. اعتبار الحالة GREEN أو ACTIVE الآن سيكون false-green صريحًا.
 
 **توقيع الحالة:** FLIXO Governance Bootstrap Review  
 **Policy:** 1.4.1  
@@ -231,3 +233,20 @@ The corrected implementation snapshot is `16200467a85897faf24c3530469ca9750653d8
 Governance Contract evidence: Run `37782936554` = SUCCESS on that exact snapshot.
 
 A later report-only commit changes documentation SHA only and does not change implementation behavior. Reviewers must still re-read the branch HEAD before treating any evidence as final.
+
+
+## 14. Post-Merge Update — 2026-10-08
+
+PR #1257 is merged into `main`.
+
+- PR: #1257
+- Merge commit: `508b5f9f9314deb7cbfd6d6592450b7d5f39141e`
+- main observed SHA: `508b5f9f9314deb7cbfd6d6592450b7d5f39141e`
+- Pre-merge FLIXO CI on `ea868bd303b01977400dd692ef6271f62bbf2b87`: SUCCESS after the worker-PR topology repair.
+- Governance Contract: SUCCESS before merge on the corrected implementation path.
+- Owner PR review approval: not recorded.
+- ACTIVE authority: not established.
+- Certification: not established.
+- Production promotion: not established.
+
+This update supersedes pre-merge wording that stated the PR had not been merged.
