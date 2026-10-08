@@ -13,6 +13,10 @@ import {
 import {
   type KnowledgeRecord,
 } from "./agent-learning";
+import {
+  createCellContextArtifact,
+  type CellContextArtifact,
+} from "./cell-context";
 
 export const CELL_LIFECYCLE_CONTRACT_VERSION = "1.0.0" as const;
 
@@ -246,6 +250,7 @@ export type CellLifecycleSnapshot = Readonly<{
   opponentStartSequence: number | null;
   solverDisclosureSequence: number | null;
   opponentContextHash: string | null;
+  opponentContextArtifact: CellContextArtifact | null;
   opponentStartedAtMs: number | null;
 }>;
 
@@ -417,6 +422,7 @@ export class CellLifecycleRuntime {
   private opponentStartSequence: number | null = null;
   private solverDisclosureSequence: number | null = null;
   private opponentContextHash: string | null = null;
+  private opponentContextArtifact: CellContextArtifact | null = null;
   private opponentStartedAtMs: number | null = null;
   private readonly clock: () => number;
   private readonly retiredArtifactIds = new Set<string>();
@@ -460,6 +466,10 @@ export class CellLifecycleRuntime {
     return this.stage;
   }
 
+  getOpponentContextArtifact(): CellContextArtifact | null {
+    return this.opponentContextArtifact;
+  }
+
   snapshot(): CellLifecycleSnapshot {
     return Object.freeze({
       stage: this.stage,
@@ -478,6 +488,7 @@ export class CellLifecycleRuntime {
       frontier: this.frontier,
       opponentStartSequence: this.opponentStartSequence,
       opponentContextHash: this.opponentContextHash,
+      opponentContextArtifact: this.opponentContextArtifact,
       opponentStartedAtMs: this.opponentStartedAtMs,
       solverDisclosureSequence: this.solverDisclosureSequence,
     });
@@ -522,23 +533,32 @@ export class CellLifecycleRuntime {
     this.opponentStartSequence = null;
     this.solverDisclosureSequence = null;
     this.opponentContextHash = null;
+    this.opponentContextArtifact = null;
     this.opponentStartedAtMs = null;
     this.stage = "ADMITTED";
     return record;
   }
 
-  recordOpponentIndependentStart(opponentId: string, candidateSha: string, sharedContextHash: string, sequence?: number): void {
+  recordOpponentIndependentStart(opponentId: string, candidateSha: string, sequence?: number): void {
     if (this.opponentContextHash !== null) throw new Error("CELL_OPPONENT_START_ALREADY_RECORDED");
     this.requireStage("PAIR_LOCKED");
     required(opponentId, "CELL_OPPONENT_ID_REQUIRED");
     sha(candidateSha, "CELL_OPPONENT_SHA_INVALID");
-    contextHash(sharedContextHash, "CELL_OPPONENT_CONTEXT_HASH_INVALID");
     if (!this.admission || opponentId !== this.admission.assignment.opponentId) {
       throw new Error("CELL_OPPONENT_ID_MISMATCH");
     }
     if (candidateSha !== this.admission.currentSha) {
       throw new Error("CELL_OPPONENT_SHA_DRIFT");
     }
+
+    const contextArtifact = createCellContextArtifact({
+      taskId: this.admission.taskId,
+      missionId: this.admission.missionId,
+      objective: this.admission.objective,
+      acceptanceCriteria: this.admission.acceptanceCriteria,
+      startingSha: this.admission.startingSha,
+    });
+    const sharedContextHash = contextArtifact.sharedContextHash;
     const startedAtMs = this.clock();
     if (!Number.isFinite(startedAtMs)) throw new Error("CELL_OPPONENT_START_TIME_INVALID");
     if (sequence !== undefined) {
@@ -548,6 +568,7 @@ export class CellLifecycleRuntime {
     } else {
       this.opponentStartSequence = this.next();
     }
+    this.opponentContextArtifact = contextArtifact;
     this.opponentContextHash = sharedContextHash;
     this.opponentStartedAtMs = startedAtMs;
     this.stage = "OPPONENT_STARTED";
