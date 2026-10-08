@@ -8,6 +8,7 @@ import {
 
 test('local project paths reject traversal and normalize separators', () => {
   assert.equal(normalizeProjectPath('./src\\index.ts'), 'src/index.ts');
+  assert.equal(normalizeProjectPath('مشروع/ملف.ts'), 'مشروع/ملف.ts');
   assert.throws(() => normalizeProjectPath('../secret.txt'), /INVALID_PROJECT_PATH/);
   assert.throws(() => normalizeProjectPath('/absolute/path.ts'), /INVALID_PROJECT_PATH/);
 });
