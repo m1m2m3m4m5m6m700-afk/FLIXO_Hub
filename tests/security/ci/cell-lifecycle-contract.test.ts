@@ -6,6 +6,7 @@ import {
   validateCellAdmission,
   type CellAdmissionEnvelope,
 } from "../../../packages/contracts/src/cell-lifecycle.ts";
+import { createCellContextArtifact } from "../../../packages/contracts/src/cell-context.ts";
 import { CellRuntime } from "../../../packages/contracts/src/cell-runtime.ts";
 import { createCanonicalCellAssignment } from "../../../packages/contracts/src/cell-assignment.ts";
 
@@ -100,6 +101,57 @@ test("CELL admission fails closed and records a complete immutable envelope", ()
   assert.throws(() => validateCellAdmission({ ...envelope, verifierId: "solver-100" }), /CELL_ADMISSION_VERIFIER_IDENTITY_COLLISION/);
 });
 
+test("CELL context hash is runtime-derived, exact-SHA bound, and authority-owned", () => {
+  const artifact = createCellContextArtifact({
+    taskId: "context-100",
+    missionId: "mission-context-100",
+    objective: "produce a verified candidate",
+    acceptanceCriteria: ["candidate is reproducible", "red team passes"],
+    startingSha: SHA,
+  });
+
+  assert.equal(artifact.authorityOwned, true);
+  assert.equal(artifact.artifactPath, ".cell/context/context-100.json");
+  assert.equal(artifact.hashAlgorithm, "SHA-256");
+  assert.equal(artifact.startingSha, SHA);
+  assert.match(artifact.sharedContextHash, /^[0-9a-f]{64}$/u);
+
+  const changedAcceptance = createCellContextArtifact({
+    taskId: "context-100",
+    missionId: "mission-context-100",
+    objective: "produce a verified candidate",
+    acceptanceCriteria: ["candidate is reproducible", "red team fails"],
+    startingSha: SHA,
+  });
+  assert.notEqual(artifact.sharedContextHash, changedAcceptance.sharedContextHash);
+
+  const changedSha = createCellContextArtifact({
+    taskId: "context-100",
+    missionId: "mission-context-100",
+    objective: "produce a verified candidate",
+    acceptanceCriteria: ["candidate is reproducible", "red team passes"],
+    startingSha: "b".repeat(40),
+  });
+  assert.notEqual(artifact.sharedContextHash, changedSha.sharedContextHash);
+});
+
+test("CELL opponent start derives the hash from admission context, not caller input", () => {
+  const lifecycle = new CellLifecycleRuntime(() => 3000);
+  const envelope = makeEnvelope();
+  lifecycle.admit(envelope);
+  lifecycle.lockPair();
+  lifecycle.recordOpponentIndependentStart("opponent-100", SHA);
+
+  const artifact = lifecycle.getOpponentContextArtifact();
+  assert.ok(artifact);
+  assert.equal(artifact?.taskId, envelope.taskId);
+  assert.equal(artifact?.missionId, envelope.missionId);
+  assert.equal(artifact?.startingSha, envelope.startingSha);
+  assert.equal(lifecycle.snapshot().opponentContextHash, artifact?.sharedContextHash);
+  assert.equal(lifecycle.snapshot().opponentStartedAtMs, 3000);
+});
+
+
 test("CELL runtime executes one canonical flow from admission through frontier", () => {
   const rt = new CellRuntime(() => 1000);
   const envelope = makeEnvelope();
@@ -110,7 +162,7 @@ test("CELL runtime executes one canonical flow from admission through frontier",
   rt.lockCellPair();
   assert.equal(rt.getCellLifecycleSnapshot().stage, "PAIR_LOCKED");
 
-  rt.startCellOpponent("opponent-100", SHA, "c".repeat(64));
+  rt.startCellOpponent("opponent-100", SHA);
   assert.equal(rt.getCellLifecycleSnapshot().stage, "OPPONENT_STARTED");
 
   rt.discloseCellSolverResult(SHA);
@@ -243,7 +295,7 @@ test("CELL arbitration prevents self-adjudication and requires recorded evidence
   const envelope = makeEnvelope();
   lifecycle.admit(envelope);
   lifecycle.lockPair();
-  lifecycle.recordOpponentIndependentStart("opponent-100", SHA, "c".repeat(64));
+  lifecycle.recordOpponentIndependentStart("opponent-100", SHA);
   lifecycle.discloseSolverResult(SHA);
   lifecycle.startFalsification();
   lifecycle.recordClaim({
@@ -314,7 +366,7 @@ test("CELL lifecycle stays exact-SHA and fail-closed across promotion and learni
   const envelope = makeEnvelope();
   rt.admitCell(envelope);
   rt.lockCellPair();
-  rt.startCellOpponent("opponent-100", SHA, "c".repeat(64));
+  rt.startCellOpponent("opponent-100", SHA);
   assert.throws(() => rt.discloseCellSolverResult("b".repeat(40)), /CELL_SOLVER_DISCLOSURE_SHA_DRIFT/);
 
   rt.discloseCellSolverResult(SHA);
@@ -343,7 +395,7 @@ test("CELL replan recovery resets stale downstream state and preserves task/miss
   const first = makeEnvelope();
   lifecycle.admit(first);
   lifecycle.lockPair();
-  lifecycle.recordOpponentIndependentStart("opponent-100", SHA, "c".repeat(64));
+  lifecycle.recordOpponentIndependentStart("opponent-100", SHA);
   lifecycle.discloseSolverResult(SHA);
   lifecycle.startFalsification();
   lifecycle.recordClaim({
@@ -427,7 +479,7 @@ test("CELL replan quarantines every prior artifact identity from replay", () => 
   const first = makeEnvelope();
   lifecycle.admit(first);
   lifecycle.lockPair();
-  lifecycle.recordOpponentIndependentStart("opponent-100", SHA, "c".repeat(64));
+  lifecycle.recordOpponentIndependentStart("opponent-100", SHA);
   lifecycle.discloseSolverResult(SHA);
   lifecycle.startFalsification();
   lifecycle.recordClaim({
@@ -489,7 +541,7 @@ test("CELL replan quarantines every prior artifact identity from replay", () => 
   });
 
   lifecycle.lockPair();
-  lifecycle.recordOpponentIndependentStart("opponent-101", SHA, "d".repeat(64));
+  lifecycle.recordOpponentIndependentStart("opponent-101", SHA);
   lifecycle.discloseSolverResult(SHA);
   lifecycle.startFalsification();
 
@@ -517,7 +569,7 @@ test("CELL replan retires old artifact identities and forbids cross-attempt repl
   const first = makeEnvelope();
   lifecycle.admit(first);
   lifecycle.lockPair();
-  lifecycle.recordOpponentIndependentStart("opponent-100", SHA, "c".repeat(64));
+  lifecycle.recordOpponentIndependentStart("opponent-100", SHA);
   lifecycle.discloseSolverResult(SHA);
   lifecycle.startFalsification();
   lifecycle.recordClaim({
@@ -577,7 +629,7 @@ test("CELL replan retires old artifact identities and forbids cross-attempt repl
   });
 
   lifecycle.lockPair();
-  lifecycle.recordOpponentIndependentStart("opponent-replan-1", SHA, "d".repeat(64));
+  lifecycle.recordOpponentIndependentStart("opponent-replan-1", SHA);
   lifecycle.discloseSolverResult(SHA);
   lifecycle.startFalsification();
 
@@ -612,7 +664,7 @@ test("CELL opponent independence proof is immutable, timestamped, and verifier-b
   const envelope = makeEnvelope();
   lifecycle.admit(envelope);
   lifecycle.lockPair();
-  lifecycle.recordOpponentIndependentStart("opponent-100", SHA, "d".repeat(64));
+  lifecycle.recordOpponentIndependentStart("opponent-100", SHA);
   assert.throws(() => lifecycle.recordOpponentIndependentStart("opponent-100", SHA, "e".repeat(64)), /CELL_OPPONENT_START_ALREADY_RECORDED/);
   lifecycle.discloseSolverResult(SHA);
   lifecycle.startFalsification();
@@ -642,7 +694,7 @@ test("CELL replay matrix rejects candidate, verification, and certification repl
   const envelope = makeEnvelope();
   lifecycle.admit(envelope);
   lifecycle.lockPair();
-  lifecycle.recordOpponentIndependentStart("opponent-100", SHA, "e".repeat(64));
+  lifecycle.recordOpponentIndependentStart("opponent-100", SHA);
   lifecycle.discloseSolverResult(SHA);
   lifecycle.startFalsification();
   lifecycle.recordClaim({
