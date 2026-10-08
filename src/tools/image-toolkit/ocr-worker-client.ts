@@ -13,15 +13,7 @@ declare global {
 
 async function ensureTesseract(): Promise<TesseractApi> {
   if (window.Tesseract) return window.Tesseract;
-  await new Promise<void>((resolve, reject) => {
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@6/dist/tesseract.min.js';
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error('OCR engine could not be loaded.'));
-    document.head.appendChild(script);
-  });
-  if (!window.Tesseract) throw new Error('OCR engine is unavailable.');
-  return window.Tesseract;
+  throw new Error('OCR engine is not self-hosted yet; local OCR assets are required.');
 }
 
 async function preprocessWithWorker(blob: Blob): Promise<Blob> {
