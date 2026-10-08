@@ -137,7 +137,9 @@ Run `37782515373` على:
 فشل بعد الإصلاح الأول لأن `admission-gate.mjs` كان ينفذ نفسه عند import داخل Node test runner، ما أدى إلى `target-sha:invalid` و`mission-id:missing`.
 تم إصلاح السبب بإضافة direct-execution guard.
 
-Run `37782849418` succeeded for the Admission Gate contract tests and then failed only in the telemetry collector mock on URL encoding; the failed test was repaired in `16200467a85897faf24c3530469ca9750653d8ed`. No final Governance Contract conclusion for that corrected SHA was available at the time this report was frozen, so GREEN is not claimed.
+Run `37782849418` succeeded for the Admission Gate contract tests and then failed only in the telemetry collector mock on URL encoding; the failed test was repaired in `16200467a85897faf24c3530469ca9750653d8ed`.
+
+Run `37782936554` on `16200467a85897faf24c3530469ca9750653d8ed` completed **SUCCESS**. All four contract stages passed: Admission Gate, governance metrics, agent-blocked channel, and existing exact-SHA workflow contract tests.
 
 ## 6. Live Governance Blocker
 
@@ -181,7 +183,7 @@ Final implementation test snapshot:
 | Automatic downgrade logic | IMPLEMENTED / ENFORCED AT ADMISSION |
 | Blocked-channel verifier | IMPLEMENTED |
 | Contract tests | IMPLEMENTED |
-| CI verification on corrected implementation SHA | PENDING / NOT GREEN-PROVEN |
+| Governance Contract on corrected implementation SHA | GREEN (Run 37782936554) |
 | Live strict main governance | BLOCKED |
 | Owner approval | NOT VERIFIED |
 | Merge to approved branch | NOT DONE |
@@ -224,4 +226,8 @@ Final implementation test snapshot:
 
 ## 13. Final Review Snapshot
 
-The corrected implementation snapshot is `16200467a85897faf24c3530469ca9750653d8ed`. Any report-only commit after this line does not change implementation behavior; reviewers must re-read the branch HEAD before treating evidence as final.
+The corrected implementation snapshot is `16200467a85897faf24c3530469ca9750653d8ed`.
+
+Governance Contract evidence: Run `37782936554` = SUCCESS on that exact snapshot.
+
+A later report-only commit changes documentation SHA only and does not change implementation behavior. Reviewers must still re-read the branch HEAD before treating any evidence as final.
