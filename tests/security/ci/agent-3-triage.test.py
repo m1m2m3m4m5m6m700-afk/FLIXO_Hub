@@ -59,14 +59,23 @@ class Agent3Triage(unittest.TestCase):
   def test_top10_and_zero_input_non_destructive(self):
     self.inp([p(i,f"Proposal {i}",impact=i) for i in range(20)]);triage.run(self.r);v=(self.r/"التطوير.md").read_text(encoding="utf-8");section=v[v.index(triage.START):v.index(triage.END)];self.assertEqual(section.count("### "),10);q=set(self.queued());(self.r/".agent-intelligence/validated/input.json").unlink();triage.run(self.r);self.assertEqual(set(self.queued()),q)
   def test_workflow_contracts(self):
-    wf=(ROOT/".github/workflows/triage-and-clean.yml").read_text(encoding="utf-8");hg=(ROOT/".github/workflows/human-gate.yml").read_text(encoding="utf-8")
+    wf=(ROOT/".github/workflows/triage-and-clean.yml").read_text(encoding="utf-8")
+    report=(ROOT/".github/workflows/post-merge-agent-report.yml").read_text(encoding="utf-8")
     for s in ("branches: [execution]","ValidatorAdmission","TriageDedupPriorityQueue","ReaperTTLSuppression","GeneratedViewAndStateAudit","FAIL_CLOSED","git push origin \"HEAD:execution\""):self.assertIn(s,wf)
-    self.assertNotIn("pull_request_target",wf);self.assertIn("workflow_dispatch",hg);self.assertIn("Reject bot actors",hg);self.assertNotIn("HEAD:main",hg)
+    self.assertNotIn("pull_request_target",wf)
+    self.assertIn("pull_request",wf)
+    self.assertIn("github.event.pull_request.merge_commit_sha",report)
+    self.assertIn("persist-credentials: false",report)
+    self.assertIn("git rev-parse HEAD",report)
+
   def test_validator_result_adapter(self):
-    results=self.r/".agent-intelligence/validated/validator-results.json"; inbox=self.r/".agent-intelligence/inbox"; inbox.mkdir(parents=True,exist_ok=True)
-    (inbox/"P-12.yml").write_text('id: P-12\ntitle: "Validator Cache"\nentity_key: "cache.validator"\n',encoding="utf-8")
+    results=self.r/".agent-intelligence/validated/validator-results.json"
+    report_root=self.r/"الوكلاء/التقارير"
+    report_root.mkdir(parents=True,exist_ok=True)
+    (report_root/"P-12.yml").write_text('id: P-12\ntitle: "Validator Cache"\nentity_key: "cache.validator"\n',encoding="utf-8")
     results.write_text(json.dumps([{"valid":True,"status":"valid","proposal_id":"P-12","checks":{"V-01":"PASS"},"reasons":[]}]),encoding="utf-8")
     rows,_=triage.load_validated(self.r);self.assertEqual(rows[0]["proposal_id"],"P-12")
+
   def test_invalid_priority_fails_closed(self):
     self.inp([p(13,"Bad priority")]);triage.run(self.r);q=self.queued()[0];d=json.loads(q.read_text());d["priority"]["final_priority_score"]=101;q.write_text(json.dumps(d),encoding="utf-8")
     with self.assertRaises(ValueError):triage.verify(self.r)
