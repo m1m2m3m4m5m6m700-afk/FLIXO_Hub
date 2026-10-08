@@ -173,3 +173,5 @@ test('economy settlement is exact-SHA and requires an independent verifier', () 
 
   assert.equal(assertExactSha(SHA), SHA);
 });
+
+await import('./agent-economy-settlement-sql-contract.test.mjs');
