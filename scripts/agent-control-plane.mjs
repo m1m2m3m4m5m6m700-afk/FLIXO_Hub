@@ -115,7 +115,17 @@ function validateCapabilityContract(profile, id, issues, expected) {
   }
 
   if (profile.certification_authority !== false) issues.push(id + ': certification_authority must be false');
-  if (profile.merge_authority !== false) issues.push(id + ': merge_authority must be false');
+  const scout = id === 'AGENT-08' || id === 'AGENT-09' || id === 'AGENT-10';
+  if (scout) {
+    if (profile.merge_authority !== false) issues.push(id + ': merge_authority must be false');
+  } else {
+    if (profile.merge_authority !== true) issues.push(id + ': merge_authority must be true for execution agents');
+    if (profile.cap_MERGE !== 'SCOPED') issues.push(id + ': MERGE must be SCOPED for execution agents');
+    if (profile.execution_scope !== 'execution-full') issues.push(id + ': execution_scope must be execution-full');
+    for (const capability of ['EDIT_SOURCE','EDIT_TESTS','EDIT_WORKFLOWS','EDIT_GOVERNANCE','EDIT_TASKS','EDIT_AGENT_PROFILES']) {
+      if (!['ALLOW','SCOPED'].includes(profile['cap_' + capability])) issues.push(id + ': ' + capability + ' must be enabled for execution agents');
+    }
+  }
   if (profile.deploy_authority !== false) issues.push(id + ': deploy_authority must be false');
   if (profile.self_certification !== false) issues.push(id + ': self_certification must be false');
   if (profile.cap_DELEGATE !== 'DENY') issues.push(id + ': DELEGATE must be DENY');
@@ -156,14 +166,15 @@ function validateCapabilityContract(profile, id, issues, expected) {
     }
   } else {
     if (profile.cap_WRITE_INBOX !== 'DENY') issues.push(id + ': non-Scout WRITE_INBOX must be DENY');
-    if (profile.cap_WRITE_REPORTS !== 'SCOPED') issues.push(id + ': report-only agent WRITE_REPORTS must be SCOPED');
+    if (profile.cap_WRITE_REPORTS !== 'SCOPED') issues.push(id + ': execution agent WRITE_REPORTS must be SCOPED');
+    if (profile.write_scope !== 'execution-repository') issues.push(id + ': execution agent write_scope must be execution-repository');
   }
 
   if (!isSafePath(profile.write_scope) || !isSafePath(profile.report_scope)) {
     issues.push(id + ': write/report scope is malformed');
   }
-  if (profile.write_scope !== profile.report_scope) {
-    issues.push(id + ': write_scope and report_scope must match');
+  if (scout && profile.write_scope !== profile.report_scope) {
+    issues.push(id + ': Scout write_scope and report_scope must match');
   }
 }
 

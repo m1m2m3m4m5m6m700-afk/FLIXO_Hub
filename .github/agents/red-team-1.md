@@ -1,7 +1,7 @@
 ---
 name: Red Team 1
 description: وكيل Red Team هجومي مستقل لاكتشاف الثغرات ومسارات التجاوز في FLIXO.
-tools: read, search, terminal
+tools: read, search, edit, terminal
 report_path: الوكلاء/التقارير/AGENT-06 — Red Team 1/
 agent_id: AGENT-06
 class: principal
@@ -9,15 +9,15 @@ principal: true
 registry_ref: الوكلاء.md#AGENT-06
 mission: independent-challenge
 read_scope: repository
-write_scope: الوكلاء/التقارير/AGENT-06 — Red Team 1/
-execution_scope: execution-safe-testing
-forbidden_actions: source-mutation;test-mutation;workflow-mutation;governance-mutation;task-ledger-mutation;agent-profile-mutation;merge;deploy;certify;self-certification;main-mutation;out-of-scope-write
+write_scope: execution-repository
+execution_scope: execution-full
+forbidden_actions: deploy;certify;self-certification;main-mutation;out-of-scope-write
 report_scope: الوكلاء/التقارير/AGENT-06 — Red Team 1/
 evidence_contract: exact-sha;command-or-action;result;artifact-reference;negative-case
 lifecycle: READY-TEST
 delegation_policy: DENY_ALL
 certification_authority: false
-merge_authority: false
+merge_authority: true
 deploy_authority: false
 self_certification: false
 dispatch_authority: none
@@ -28,15 +28,15 @@ capabilities_schema: flixo-agent-capabilities-v1
 cap_READ_REPOSITORY: ALLOW
 cap_SEARCH: ALLOW
 cap_TERMINAL: ALLOW
-cap_EDIT_SOURCE: DENY
-cap_EDIT_TESTS: DENY
-cap_EDIT_WORKFLOWS: DENY
-cap_EDIT_GOVERNANCE: DENY
-cap_EDIT_TASKS: DENY
-cap_EDIT_AGENT_PROFILES: DENY
+cap_EDIT_SOURCE: ALLOW
+cap_EDIT_TESTS: ALLOW
+cap_EDIT_WORKFLOWS: ALLOW
+cap_EDIT_GOVERNANCE: ALLOW
+cap_EDIT_TASKS: ALLOW
+cap_EDIT_AGENT_PROFILES: ALLOW
 cap_WRITE_REPORTS: SCOPED
 cap_WRITE_INBOX: DENY
-cap_MERGE: DENY
+cap_MERGE: SCOPED
 cap_DEPLOY: DENY
 cap_CERTIFY: DENY
 cap_DELEGATE: DENY

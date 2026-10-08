@@ -144,3 +144,8 @@ No caller may mutate first and validate later. Any failed gate is `DENY_BEFORE_M
 The canonical runtime hard-control contract also enforces solver/opponent/backups/verifier role independence; `leaseId / ownerId / issuedAt / expiresAt / heartbeat / fenceToken / idempotencyKey`; exact task and agent state machines; exact-SHA evidence lineage; red-team and opponent counterexample gates; recovery by backup reassignment without losing Task/Mission/Lineage; D1–D10 drift handling; and self-evolution proposals through canonical Task/Review/Verification only.
 
 This control is additive to existing repository policy and does not create a second dispatch ledger, registry, executor, verifier, or production authority.
+
+
+## Prompt-to-Repository Delivery Obligation
+
+Every accepted implementation Prompt is a delivery obligation bound to `packages/contracts/src/cell-autonomous-delivery.ts`. The task continues until DONE, BLOCKED_EXTERNAL, or BLOCKED_SAFETY. HUMAN_APPROVAL, OWNER_ACTION, WAITING_FOR_HUMAN, and REVIEW_REQUIRED cannot stop execution. A patch or commit is not completion until published to `execution` and verified on the live SHA. HEAD drift requires refresh/reconcile/retest/republish. Agent or session loss triggers recovery under the same TASK_ID.

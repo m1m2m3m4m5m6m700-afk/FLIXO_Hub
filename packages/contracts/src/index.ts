@@ -163,3 +163,5 @@ export type {
   GateAResult,
   MvpTruthRecord,
 } from "./truth-contracts";
+
+export * from "./cell-autonomous-delivery";
