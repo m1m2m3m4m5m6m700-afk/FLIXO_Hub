@@ -49,3 +49,10 @@
 .developer-platform-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
 .developer-platform-secondary-button{display:inline-flex;min-height:44px;align-items:center;padding:0 14px;border:1px solid #2a3d4c;border-radius:12px;color:#dbe7ee;text-decoration:none;font-weight:800}
 .developer-platform-secondary-button:hover{border-color:#67e8f9}
+
+.developer-platform-field{display:grid;gap:7px}
+.developer-platform-field span{color:#93a2b0;font-size:.78rem;font-weight:800}
+.developer-platform-field input,.developer-platform-field select,.developer-platform-field textarea{width:100%;min-height:44px;border:1px solid #2a3d4c;border-radius:11px;background:#071018;color:#dce8ef;padding:10px 11px;outline:0}
+.developer-platform-field textarea{resize:vertical;min-height:130px}
+.developer-platform-field-wide{display:grid;margin-top:12px}
+.developer-platform-proposal-status{margin-top:14px;padding:12px;border:1px solid #294555;border-radius:11px;color:#bfeaf3;background:#0b1a22;font-weight:800}
