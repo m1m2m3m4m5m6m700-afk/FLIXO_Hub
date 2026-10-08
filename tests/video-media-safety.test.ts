@@ -150,6 +150,6 @@ test('buildVideoFixture defaults to the canonical bounded duration constant', ()
 test('crop fixture is spatially color-distinct at the canonical crop sample points', () => {
   const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
   const fixture = readFileSync(resolve(root, 'tests/video/shared-video-fixture.ts'), 'utf8');
-  assert.match(fixture, /fillStyle = ['"]#22c55e['"][\\s\\S]*fillRect\\(30, 30, 90, 120\\)/u);
-  assert.match(fixture, /fillStyle = ['"]#3b82f6['"][\\s\\S]*fillRect\\(120, 30, 90, 120\\)/u);
+  assert.ok(fixture.includes("context.fillStyle = '#22c55e';") && fixture.includes('context.fillRect(30, 30, 90, 120);'));
+  assert.ok(fixture.includes("context.fillStyle = '#3b82f6';") && fixture.includes('context.fillRect(120, 30, 90, 120);'));
 });
