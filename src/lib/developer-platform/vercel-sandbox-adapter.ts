@@ -25,16 +25,25 @@ export type VercelSandboxSession = {
   stop(): Promise<unknown>;
 };
 
+export type VercelNetworkPolicy =
+  | Readonly<{ mode: 'deny-all' }>
+  | Readonly<{ mode: 'custom'; allowedDomains: readonly string[] }>;
+
 export type VercelSandboxClient = Readonly<{
   create(input: Readonly<{
     name: string;
     persistent: false;
     timeout: number;
-    networkPolicy: PlatformExecutionRequest['network'];
+    networkPolicy: VercelNetworkPolicy;
     resources: Readonly<{ vcpus: number; memory: number }>;
-    source?: PlatformExecutionRequest['source'];
+    source: NonNullable<PlatformExecutionRequest['source']>;
   }>): Promise<VercelSandboxSession>;
 }>;
+
+function mapNetworkPolicy(request: PlatformExecutionRequest): VercelNetworkPolicy {
+  if (request.network.mode === 'NONE') return { mode: 'deny-all' };
+  return { mode: 'custom', allowedDomains: request.network.hosts };
+}
 
 type ActiveExecution = Readonly<{
   executionId: string;
@@ -94,6 +103,9 @@ export class VercelSandboxExecutionProvider implements ExecutionProvider {
     if (!request.source) {
       throw new Error('VERCEL_SANDBOX_SOURCE_REQUIRED');
     }
+    if (request.source.revision !== request.sourceSha) {
+      throw new Error('VERCEL_SANDBOX_SOURCE_SHA_MISMATCH');
+    }
 
     const executionId = [
       'vercel',
@@ -106,7 +118,7 @@ export class VercelSandboxExecutionProvider implements ExecutionProvider {
       name: executionId.replace(/[^A-Za-z0-9_-]/g, '-').slice(0, 120),
       persistent: false,
       timeout: request.limits.timeoutMs,
-      networkPolicy: request.network,
+      networkPolicy: mapNetworkPolicy(request),
       resources: {
         vcpus,
         memory: providerMemoryMb,
@@ -125,6 +137,18 @@ export class VercelSandboxExecutionProvider implements ExecutionProvider {
       });
 
       const [stdout, stderr] = await Promise.all([result.stdout(), result.stderr()]);
+      const totalOutputBytes = Buffer.byteLength(stdout) + Buffer.byteLength(stderr);
+      if (totalOutputBytes > request.limits.outputMb * 1024 * 1024) {
+        return {
+          executionId,
+          sourceSha: request.sourceSha,
+          conclusion: 'FAIL',
+          exitCode: result.exitCode,
+          stdout: '',
+          stderr: 'OUTPUT_LIMIT_EXCEEDED',
+          artifacts: [],
+        };
+      }
       const artifacts: ExecutionArtifact[] = [];
       if (stdout.length > 0) {
         const digest = createHash('sha256').update(stdout).digest('hex');
