@@ -108,6 +108,8 @@ export function validateContributionProposal(
   currentSha: string,
 ): boolean {
   return (
+    /^[0-9a-f]{40}$/i.test(currentSha) &&
+    /^[0-9a-f]{40}$/i.test(proposal.sourceSha) &&
     proposal.proposalId.length >= 3 &&
     proposal.contributorId.length >= 2 &&
     proposal.summary.trim().length >= 8 &&
