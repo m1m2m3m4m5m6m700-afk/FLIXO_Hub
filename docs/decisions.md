@@ -37,3 +37,18 @@ Date: 2026-10-08
 Status: ACCEPTED
 Decision: A stage is not complete from source inspection alone. Build/test/network/browser evidence is generated against the exact commit under review and is invalidated by later execution mutations.
 Consequence: Every Stage 1 change will trigger fresh targeted tests and CI evidence before stage closure.
+
+
+## Decision 006 — Stage 1 uses a dedicated Hub route boundary
+
+Date: 2026-10-08
+Status: ACCEPTED
+Decision: Expose the new Hub surface at /hub, /hub/privacy, /en/hub, and /en/hub/privacy rather than replacing the existing canonical homepage or ten-tool MVP during the first migration stage.
+Consequence: Stage 1 can be measured and evolved independently without silently changing existing product/runtime authority.
+
+## Decision 007 — Stage 1 has no new runtime dependency
+
+Date: 2026-10-08
+Status: ACCEPTED
+Decision: Core worker/OPFS/feature detection is implemented with browser platform APIs and existing React infrastructure. Vitest is required by the target contract, but is not admitted into the lockfile until package installation and transitive-license evidence can be generated in an environment with package-registry access. The Stage 1 repository contract suite therefore uses the existing Node test runner for deterministic CI coverage while Vitest admission remains an explicit follow-up gate.
+Consequence: No unverified or partially locked dependency enters the repository.
