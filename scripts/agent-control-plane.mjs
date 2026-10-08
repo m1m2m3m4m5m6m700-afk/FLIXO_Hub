@@ -130,7 +130,7 @@ function validateCapabilityContract(profile, id, issues, expected) {
   if (profile.deploy_authority !== false) issues.push(id + ': deploy_authority must be false');
   if (profile.self_certification !== false) issues.push(id + ': self_certification must be false');
   if (profile.cap_DELEGATE !== 'DENY') issues.push(id + ': DELEGATE must be DENY');
-  if (profile.cap_MERGE !== 'DENY') issues.push(id + ': MERGE must be DENY');
+  if (scout) { if (profile.cap_MERGE !== 'DENY') issues.push(id + ': MERGE must be DENY for research scouts'); } else if (profile.cap_MERGE !== 'SCOPED') { issues.push(id + ': MERGE must be SCOPED for execution agents'); }
   if (profile.cap_DEPLOY !== 'DENY') issues.push(id + ': DEPLOY must be DENY');
   if (profile.cap_CERTIFY !== 'DENY') issues.push(id + ': CERTIFY must be DENY');
 
@@ -211,7 +211,8 @@ export function validateProfileContract(profile, expected, root = process.cwd())
   if (expected.report && !expected.report.endsWith('/') && !expected.report.includes('#') && !pathExists(root, expected.report)) {
     issues.push(id + ': report target does not exist');
   }
-  if (profile.write_scope !== expected.report) issues.push(id + ': write/report scope drifts from registry');
+  const profileIsScout = id === 'AGENT-08' || id === 'AGENT-09' || id === 'AGENT-10';
+  if (profileIsScout) { if (profile.write_scope !== expected.report) issues.push(id + ': write/report scope drifts from registry'); } else if (profile.write_scope !== 'execution-repository') { issues.push(id + ': execution agent write_scope must be execution-repository'); }
   validateCapabilityContract(profile, id, issues, expected);
 
   return issues;

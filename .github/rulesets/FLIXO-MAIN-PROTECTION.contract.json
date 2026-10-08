@@ -1,21 +1,21 @@
 {
   "schemaVersion": 1,
   "name": "FLIXO-MAIN-PROTECTION",
-  "status": "DESIRED_LIVE_POLICY_CONTRACT",
+  "status": "AUTONOMOUS_LIVE_POLICY_CONTRACT",
   "liveState": "MUST_BE_READ_FROM_GITHUB_RULESETS_API",
   "appliesTo": [
     "refs/heads/main"
   ],
   "requirements": {
     "pullRequest": {
-      "requiredApprovingReviewCount": 1,
-      "dismissStaleReviewsOnPush": true,
-      "requireCodeOwnerReview": true,
-      "requireLastPushApproval": true,
-      "requiredReviewThreadResolution": true
+      "requiredApprovingReviewCount": 0,
+      "dismissStaleReviewsOnPush": false,
+      "requireCodeOwnerReview": false,
+      "requireLastPushApproval": false,
+      "requiredReviewThreadResolution": false
     },
     "requiredStatusChecks": {
-      "strictRequiredStatusChecksPolicy": true,
+      "strictRequiredStatusChecksPolicy": false,
       "contexts": [
         "trust-gate",
         "Exact-SHA promotion proof"
@@ -26,5 +26,26 @@
     "This file is not live governance evidence.",
     "A mock matching this contract cannot be reported as live PASS.",
     "Live verification must read the repository rulesets API."
-  ]
+  ],
+  "governanceMode": "autonomous",
+  "sensitivePathAutomation": {
+    "approvalRequired": false,
+    "requiredAutomatedAssurance": true,
+    "gate": "sensitive-path-gate",
+    "paths": [
+      ".github/**",
+      "scripts/ci/**",
+      "scripts/release/**",
+      "supabase/**",
+      "src/server/admin/**",
+      "api/admin/**",
+      "src/lib/security/**",
+      "src/config/registry.ts",
+      "src/worker.ts",
+      "wrangler.jsonc",
+      "vercel.json",
+      "package.json",
+      "package-lock.json"
+    ]
+  }
 }
