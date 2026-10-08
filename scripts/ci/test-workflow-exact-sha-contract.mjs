@@ -82,10 +82,15 @@ test('execution-only assurance lanes deduplicate by branch while promotion lanes
   assert.match(video, /cancel-in-progress: true/u);
 });
 
-test('canonical CI uses execution push as the single release verification trigger', async () => {
+test('canonical CI verifies execution pushes and the canonical execution-to-main promotion PR', async () => {
   const workflow = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
-  assert.doesNotMatch(workflow, /pull_request:\s*\n\s*branches:\s*\[main\]/u);
   assert.match(workflow, /push:\s*\n\s*branches:\s*\[main, execution\]/u);
+  assert.match(workflow, /pull_request:\s*\n\s*branches:\s*\[main\]/u);
+  assert.match(
+    workflow,
+    /github\.event\.pull_request\.head\.ref == 'execution' && github\.event\.pull_request\.head\.repo\.full_name == github\.repository/u,
+    'pull_request verification must remain restricted to the canonical execution branch',
+  );
 });
 
 test('canonical CI consumes security assurance as reusable jobs', async () => {
