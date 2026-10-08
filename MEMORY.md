@@ -33,3 +33,14 @@
 - Approved-branch merge.
 - Automatic downgrade enforcement.
 - agent-blocked channel enforcement.
+
+
+### v1.4.1 Governance Implementation Draft
+- Admission Gate: .github/workflows/agent-governance-admission.yml.
+- Admission implementation: scripts/ci/admission-gate.mjs.
+- Downgrade telemetry: scripts/ci/agent-governance-metrics.mjs.
+- Governance contract tests: scripts/ci/test-admission-gate.mjs and scripts/ci/test-agent-governance-metrics.mjs.
+- Admission remains execution-only, read-only, exact-SHA bound.
+- Automatic downgrade enforcement begins only after the 10-completed-PR floor.
+- Main strict governance remains externally blocked according to the live ruleset state recorded in Issue #1125.
+- This memory entry is draft evidence only and does not establish ACTIVE authority.
