@@ -51,8 +51,8 @@ The available GitHub connector exposes read-only ruleset administration, so live
 
 1. Agents publish changes to `execution` using non-force, race-safe mutation.
 2. CI runs against the exact candidate SHA.
-3. The protected PR may merge automatically once required checks pass.
-4. No human review or approval is required.
+3. The protected PR may merge only when all required checks and the live GitHub governance conditions are satisfied, including any independent approval required by the active ruleset.
+4. Conversational approval is not an implementation prerequisite; release approval is a distinct live governance control enforced by GitHub.
 5. After merge, the post-merge report records source SHA, merge SHA, base SHA, checks, actor, and change summary.
 
 A moving `execution` HEAD invalidates older SHA-specific evidence.
