@@ -4,7 +4,10 @@ type DemoMessage =
   | { kind: 'result'; taskId: string; result: { byteLength: number; checksum: number } }
   | { kind: 'error'; taskId: string; error: string };
 
-const ctx = self as DedicatedWorkerGlobalScope;
+const ctx = self as unknown as {
+  onmessage: ((event: MessageEvent<DemoEnvelope>) => void) | null;
+  postMessage: (message: DemoMessage) => void;
+};
 
 ctx.onmessage = (event: MessageEvent<DemoEnvelope>) => {
   const data = event.data;
