@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
@@ -32,4 +33,9 @@ test("continuous discovery has isolated validation and publication surfaces",()=
   assert.match(c,/.agent-intelligence\/snapshots\/\*\.json/u);
   assert.doesNotMatch(c,/.agent-intelligence\/inbox\/\*\.yaml/u);
   assert.doesNotMatch(c,/git push origin main|git push origin execution/u);
+});
+
+test("scout boundary verifier accepts Windows CRLF profile files",()=>{
+  const output=execFileSync(process.execPath,["scripts/verify-scout-boundary.mjs"],{encoding:"utf8"});
+  assert.match(output,/SCOUT_BOUNDARY=PASS/u);
 });
