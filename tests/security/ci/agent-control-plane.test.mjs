@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { execFileSync } from 'node:child_process';
 import {
   AGENT_CAPABILITIES,
   auditAgentControlPlane,
@@ -11,6 +12,15 @@ import {
 import { readFileSync } from 'node:fs';
 
 const ROOT = process.cwd();
+
+test('profile frontmatter parser accepts Windows CRLF without changing field values', () => {
+  const content = ['---', 'name: Example Agent', 'tools: ["read", "search"]', 'lifecycle: READY-TEST', '---', 'body'].join('\r\n');
+  assert.deepEqual(parseProfileFrontmatter(content), {
+    name: 'Example Agent',
+    tools: ['read', 'search'],
+    lifecycle: 'READY-TEST',
+  });
+});
 
 test('canonical registry is the only identity authority and contains 10 principals + one support role', () => {
   const registry = loadCanonicalRegistry(ROOT);
@@ -113,4 +123,9 @@ test('execution agents are autonomous-capable while research scouts remain restr
     assert.equal(profile.merge_authority, false, id);
     assert.equal(profile.cap_MERGE, 'DENY', id);
   }
+});
+
+test('agent profile verifier allows explicit documentation of forbidden paths while enforcing actual scopes', () => {
+  const output = execFileSync(process.execPath, ['scripts/verify-agent-profiles.mjs'], { encoding: 'utf8' });
+  assert.match(output, /CANONICAL_AGENT_REGISTRY_OK=10 SUPPORTING=1 PROFILES=11/u);
 });
