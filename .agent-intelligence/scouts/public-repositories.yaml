@@ -1,0 +1,27 @@
+{
+  "format": "flixo-public-repo-discovery-v1",
+  "version": 1,
+  "max_repositories_per_query": 8,
+  "max_selected_repositories": 6,
+  "max_files_per_repository": 4,
+  "queries": [
+    {
+      "role": "ARCHITECTURE",
+      "query": "browser local media processing architecture",
+      "repo_refs": ["src/config/registry.ts", "src/lib/execution/canonical-executor.ts", "src/lib/contracts/tool-output-contracts.ts"],
+      "topics": ["architecture", "ports-adapters", "workers", "media-pipeline", "browser-local"]
+    },
+    {
+      "role": "TECHNOLOGY",
+      "query": "browser image video processing wasm web workers",
+      "repo_refs": ["package.json", "src/lib/execution/canonical-executor.ts", "src/lib/video/video-executor.ts"],
+      "topics": ["webassembly", "web-workers", "webcodecs", "ffmpeg", "image-processing"]
+    },
+    {
+      "role": "ECOSYSTEM",
+      "query": "open source image video processing library",
+      "repo_refs": ["package.json", "src/config/registry.ts"],
+      "topics": ["image", "video", "media", "tooling", "open-source"]
+    }
+  ]
+}
