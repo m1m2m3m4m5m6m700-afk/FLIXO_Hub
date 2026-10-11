@@ -1,8 +1,8 @@
 ﻿import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
-const LEDGER = "المهام.md";
-const PROMPTS = "مهام هيرميس.md";
+const LEDGER = "FLIXO-Tasks.md";
+const PROMPTS = "مهاتام.md";
 
 function sectionBetween(source, startMarker, endMarker) {
   const start = source.indexOf(startMarker);
@@ -47,7 +47,7 @@ export function buildDispatchPlan({ ledger, prompts, branch, head, gitStatus }) 
   const promptIds = parsePromptIds(prompts);
   const count = ledger.match(/\*\*ACTIVE TASK COUNT:\*\*\s*(\d+)/u)?.[1];
   const closed = new Set(
-    [...sectionBetween(ledger, "## CLOSED TASK REGISTER", "## HERMES EXECUTION CONTRACT").matchAll(/\|\s*(EXEC-[A-Z0-9-]+)\s*\|/gu)]
+    [...sectionBetween(ledger, "## CLOSED TASK REGISTER", "# ACTIVE DISPATCH QUEUE").matchAll(/\|?\s*(EXEC-[A-Z0-9-]+)\s*\|/gu)]
       .map((match) => match[1]),
   );
 
