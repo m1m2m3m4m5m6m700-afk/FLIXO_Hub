@@ -9,7 +9,7 @@ import {
   guardianDecision,
   isMemoryActionable,
   scoreFrontier,
-} from "../../packages/contracts/src/cell-control-plane.ts";
+} from "../../../packages/contracts/src/cell-control-plane.ts";
 
 test("task state machine rejects illegal promotion bypass", () => {
   assert.throws(() => assertTransition("TASK", "RUNNING", "PROMOTED"), /INVALID_TASK_TRANSITION/);

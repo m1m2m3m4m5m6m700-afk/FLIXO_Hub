@@ -55,8 +55,8 @@ export function reconcileAutonomousDelivery(r:AutonomousTaskDelivery,liveSha:str
 export function recordAutonomousPublication(r:AutonomousTaskDelivery,branch:string,publishedSha:string){
   if(branch!=="execution") throw new Error("PUBLICATION_BRANCH_DENIED");
   if(!r.implemented) throw new Error("PUBLICATION_REQUIRES_IMPLEMENTATION");
-  if(!SHA.test(publishedSha)||publishedSha!==r.currentSha) throw new Error("PUBLICATION_SHA_MISMATCH");
-  return freeze({...transition(r,"VERIFYING"),publishedSha,verifiedSha:null});
+  if(!SHA.test(publishedSha)||publishedSha!==r.candidateSha) throw new Error("PUBLICATION_SHA_MISMATCH");
+  return freeze({...transition(r,"VERIFYING"),currentSha:publishedSha,publishedSha,verifiedSha:null});
 }
 export function recordAutonomousVerification(r:AutonomousTaskDelivery,verifiedSha:string,liveSha:string,requiredPaths:readonly string[],observedPaths:readonly string[]){
   if(!["VERIFYING","RECONCILING"].includes(r.state)) throw new Error("VERIFICATION_NOT_ALLOWED");
