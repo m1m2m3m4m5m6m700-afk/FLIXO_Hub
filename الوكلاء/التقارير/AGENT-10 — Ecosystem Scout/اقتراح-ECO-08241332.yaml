@@ -1,0 +1,26 @@
+id: "ECO-08241332"
+category: "ecosystem"
+title: "Public repository pattern: ManojKumarPatnaik/Major-project-list — README.md"
+status: "candidate"
+entity_key: "public-repo:6f7d95a43ee9c4fd7e2a892ef08797799718ac4b9de3d295"
+lifecycle:
+  created_at: "2026-10-11T08:24:13Z"
+  expires_at: "2026-10-25T08:24:13Z"
+  last_viewed_by_human: "2026-10-11T08:24:13Z"
+source:
+  snapshot_id: "snap-20261011T082412924473Z-d34d528559ff130c"
+  vendor_affiliated: false
+evidence:
+  quote: "# Major-project-list\n- **Find PI to the Nth Digit** - Enter a number and have the program generate PI up to that many decimal places. Keep a limit to how far the program will go.\n- **Find e to the Nth Digit** - Just like the previous problem, but with e instead of PI. Enter a number and have the program generate e up to that many decimal places. Keep a limit to how far the program will go.\n- **Fibonacci Sequence** - Enter a number and have the program generate the Fibonacci sequence to that number or to the Nth number.\n- **Prime Factorization** - Have the user enter a number and find all Prime Factors (if there are any) and display them.\n- **Next Prime Number** - Have the program find prime numbers until the user chooses to stop asking for the next one.\n- **Find Cost of Tile to Cover W x H Floor** - Calculate the total cost of the tile it would take to cover a floor plan of width and height, using a cost entered by the user.\n- **Mortgage Calculator** - Calculate the monthly payments of a fixed-term mortgage over given Nth terms at a given interest rate. Also, figure out how long it will take the user to pay back the loan. For added complexity, add an option for users to select the"
+inference:
+  current_state:
+    repo_refs:
+      - "package.json"
+      - "src/config/registry.ts"
+  proposal: "Study the repository pattern from ManojKumarPatnaik/Major-project-list at README.md and adapt only the underlying engineering idea to FLIXO. Signals: browser-local-file, pipeline, observability. License: MIT; adaptation mode: PERMISSIVE_REFERENCE_ADAPTABLE. Preserve FLIXO canonical registry, executor, output contracts, verification gates, and local-data boundary."
+  rollback: "Revert the FLIXO-native adapter or contract change and restore the prior canonical execution path."
+triage:
+  impact_score: 0
+  complexity_score: 0
+  final_priority_score: 0
+  lane: "ecosystem"

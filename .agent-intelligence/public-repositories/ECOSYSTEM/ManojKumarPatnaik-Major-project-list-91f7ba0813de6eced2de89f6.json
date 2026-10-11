@@ -1,0 +1,63 @@
+{
+  "adaptation": {
+    "copy_source_code": false,
+    "mode": "REFERENCE_AND_ADAPT",
+    "proposal_id": "ECO-08241332",
+    "target_repo_refs": [
+      "package.json",
+      "src/config/registry.ts"
+    ]
+  },
+  "discovered_at": "2026-10-11T08:24:13Z",
+  "discovery_score": 83,
+  "license_mode": "PERMISSIVE_REFERENCE_ADAPTABLE",
+  "pattern_signals": [
+    "browser-local-file",
+    "pipeline",
+    "observability"
+  ],
+  "query": "open source image video processing library",
+  "repository": {
+    "archived": false,
+    "default_branch": "main",
+    "fork": false,
+    "full_name": "ManojKumarPatnaik/Major-project-list",
+    "head_sha": "1bc6f5724b21b57c98318f662003b68e2ab091f3",
+    "html_url": "https://github.com/ManojKumarPatnaik/Major-project-list",
+    "license_spdx": "MIT",
+    "name": "Major-project-list",
+    "owner": "ManojKumarPatnaik",
+    "pushed_at": "2025-07-29T10:22:11Z",
+    "stars": 255
+  },
+  "role": "ECOSYSTEM",
+  "schema": "flixo-public-repository-intelligence-v1",
+  "score_evidence": [
+    "license",
+    "documentation"
+  ],
+  "selected_files": [
+    {
+      "path": "README.md",
+      "selection_score": 120,
+      "sha256": "d34d528559ff130c3b3ee91adb6a739549ae52bb3bc70f002b000285cd3376d0",
+      "snapshot_id": "snap-20261011T082412924473Z-d34d528559ff130c",
+      "url": "https://raw.githubusercontent.com/ManojKumarPatnaik/Major-project-list/1bc6f5724b21b57c98318f662003b68e2ab091f3/README.md"
+    },
+    {
+      "path": ".devcontainer/.devcontainer/devcontainer.json",
+      "selection_score": 0,
+      "sha256": "6cf760613075e47b8adb0c552014fedd3dc99b540c2f3f161c99df72994db645",
+      "snapshot_id": "snap-20261011T082413052253Z-6cf760613075e47b",
+      "url": "https://raw.githubusercontent.com/ManojKumarPatnaik/Major-project-list/1bc6f5724b21b57c98318f662003b68e2ab091f3/.devcontainer/.devcontainer/devcontainer.json"
+    },
+    {
+      "path": ".devcontainer/devcontainer.json",
+      "selection_score": 0,
+      "sha256": "3eaf033fb30213153f6fc5bd05169e1dffecbe7ec45e75bbc87b70a39ae8279f",
+      "snapshot_id": "snap-20261011T082413184992Z-3eaf033fb3021315",
+      "url": "https://raw.githubusercontent.com/ManojKumarPatnaik/Major-project-list/1bc6f5724b21b57c98318f662003b68e2ab091f3/.devcontainer/devcontainer.json"
+    }
+  ],
+  "status": "DISCOVERED"
+}

@@ -1,0 +1,10 @@
+{
+  "snapshot_id": "snap-20261011T082416165212Z-e9f71709da4945d1",
+  "captured_at": "2026-10-11T08:24:16Z",
+  "url": "https://raw.githubusercontent.com/Ranjan2104/Object-Detection-OpenCV/005c37cbb1d377e42d9866912ba423dc4c44ddfe/.idea/misc.xml",
+  "source_type": "repository",
+  "stability": "stable",
+  "vendor_affiliated": false,
+  "evidence_kind": "fact",
+  "content": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<project version=\"4\">\n<component name=\"ProjectRootManager\" version=\"2\" project-jdk-name=\"Python 3.8\" project-jdk-type=\"Python SDK\" />\n</project>"
+}

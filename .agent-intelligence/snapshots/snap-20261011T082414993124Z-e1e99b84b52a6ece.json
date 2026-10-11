@@ -1,0 +1,10 @@
+{
+  "snapshot_id": "snap-20261011T082414993124Z-e1e99b84b52a6ece",
+  "captured_at": "2026-10-11T08:24:14Z",
+  "url": "https://raw.githubusercontent.com/mahdiasd/ComposeFilePicker/47947c843dc4c94255fc7cd01fe30bc18761e7e0/ComposeFilePicker/src/main/AndroidManifest.xml",
+  "source_type": "repository",
+  "stability": "stable",
+  "vendor_affiliated": false,
+  "evidence_kind": "fact",
+  "content": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\">\n<uses-permission android:name=\"android.permission.READ_MEDIA_IMAGES\" />\n<uses-permission android:name=\"android.permission.READ_MEDIA_VIDEO\" />\n<uses-permission android:name=\"android.permission.READ_MEDIA_AUDIO\" />\n<uses-permission android:name=\"android.permission.READ_MEDIA_VISUAL_USER_SELECTED\" />\n<uses-permission android:name=\"android.permission.READ_EXTERNAL_STORAGE\"\nandroid:maxSdkVersion=\"32\" />\n</manifest>"
+}

@@ -1,0 +1,26 @@
+id: "ECO-08241526"
+category: "ecosystem"
+title: "Public repository pattern: mahdiasd/ComposeFilePicker — README.md"
+status: "candidate"
+entity_key: "public-repo:d28704d6ba9f111f4d6d2d509a592018d1c3b201182a03ca"
+lifecycle:
+  created_at: "2026-10-11T08:24:15Z"
+  expires_at: "2026-10-25T08:24:15Z"
+  last_viewed_by_human: "2026-10-11T08:24:15Z"
+source:
+  snapshot_id: "snap-20261011T082414871217Z-3b4c0b99c29a8231"
+  vendor_affiliated: false
+evidence:
+  quote: "# 📁 Jetpack Compose File Picker Library\nWelcome to the **Jetpack Compose File Picker Library**! This library provides a customizable and easy-to-use file picker dialog for Jetpack Compose applications. It seamlessly supports Android versions from **API 21 (Lollipop)** to **API 34 (Android 14)**, handling different behaviors based on the Android version:\n- For **Android 11 (API 30)** and above, it utilizes the modern **[Photo Picker Api](https://developer.android.com/training/data-storage/shared/photopicker)** for image and video selection.\n- For devices below **Android 11**, it gracefully lists photos and videos within the dialog.\n---\n---\n## 📱 Screenshots\n| | | |\n|-----------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------|\n| ![Image Picker](https://github.com/mahdiasd/ComposeFilePicker/blob/main/screenshots/Screenshot_20241209_110701_Media%20picker.jpg) | ![Audio Picker](https://github."
+inference:
+  current_state:
+    repo_refs:
+      - "package.json"
+      - "src/config/registry.ts"
+  proposal: "Study the repository pattern from mahdiasd/ComposeFilePicker at README.md and adapt only the underlying engineering idea to FLIXO. Signals: webcodecs, browser-local-file, security, architecture-contract. License: Apache-2.0; adaptation mode: PERMISSIVE_REFERENCE_ADAPTABLE. Preserve FLIXO canonical registry, executor, output contracts, verification gates, and local-data boundary."
+  rollback: "Revert the FLIXO-native adapter or contract change and restore the prior canonical execution path."
+triage:
+  impact_score: 0
+  complexity_score: 0
+  final_priority_score: 0
+  lane: "ecosystem"

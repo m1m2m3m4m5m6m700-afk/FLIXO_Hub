@@ -1,0 +1,71 @@
+{
+  "adaptation": {
+    "copy_source_code": false,
+    "mode": "REFERENCE_AND_ADAPT",
+    "proposal_id": "ECO-08241526",
+    "target_repo_refs": [
+      "package.json",
+      "src/config/registry.ts"
+    ]
+  },
+  "discovered_at": "2026-10-11T08:24:15Z",
+  "discovery_score": 72,
+  "license_mode": "PERMISSIVE_REFERENCE_ADAPTABLE",
+  "pattern_signals": [
+    "webcodecs",
+    "browser-local-file",
+    "security",
+    "architecture-contract"
+  ],
+  "query": "open source image video processing library",
+  "repository": {
+    "archived": false,
+    "default_branch": "main",
+    "fork": false,
+    "full_name": "mahdiasd/ComposeFilePicker",
+    "head_sha": "47947c843dc4c94255fc7cd01fe30bc18761e7e0",
+    "html_url": "https://github.com/mahdiasd/ComposeFilePicker",
+    "license_spdx": "Apache-2.0",
+    "name": "ComposeFilePicker",
+    "owner": "mahdiasd",
+    "pushed_at": "2024-12-12T06:45:57Z",
+    "stars": 8
+  },
+  "role": "ECOSYSTEM",
+  "schema": "flixo-public-repository-intelligence-v1",
+  "score_evidence": [
+    "license",
+    "documentation"
+  ],
+  "selected_files": [
+    {
+      "path": "README.md",
+      "selection_score": 120,
+      "sha256": "3b4c0b99c29a82314f5c683e9b0bd3c97b1db193ca657ecb11fa7cae8064a8bf",
+      "snapshot_id": "snap-20261011T082414871217Z-3b4c0b99c29a8231",
+      "url": "https://raw.githubusercontent.com/mahdiasd/ComposeFilePicker/47947c843dc4c94255fc7cd01fe30bc18761e7e0/README.md"
+    },
+    {
+      "path": "ComposeFilePicker/src/main/AndroidManifest.xml",
+      "selection_score": 45,
+      "sha256": "e1e99b84b52a6eceb977bcfa4b97486c49f5dcfc223a3a882d1b0f6dd06ae4bd",
+      "snapshot_id": "snap-20261011T082414993124Z-e1e99b84b52a6ece",
+      "url": "https://raw.githubusercontent.com/mahdiasd/ComposeFilePicker/47947c843dc4c94255fc7cd01fe30bc18761e7e0/ComposeFilePicker/src/main/AndroidManifest.xml"
+    },
+    {
+      "path": "ComposeFilePicker/src/main/java/github/mahdiasd/composefilepicker/screens/AudioListContent.kt",
+      "selection_score": 45,
+      "sha256": "b85c3b0a08dbb72048f0adbd38aacb185a8060b3203681013a1c9502cb56df0c",
+      "snapshot_id": "snap-20261011T082415122351Z-b85c3b0a08dbb720",
+      "url": "https://raw.githubusercontent.com/mahdiasd/ComposeFilePicker/47947c843dc4c94255fc7cd01fe30bc18761e7e0/ComposeFilePicker/src/main/java/github/mahdiasd/composefilepicker/screens/AudioListContent.kt"
+    },
+    {
+      "path": "ComposeFilePicker/src/main/java/github/mahdiasd/composefilepicker/screens/MediaItem.kt",
+      "selection_score": 45,
+      "sha256": "5455483a87481f61e547fa3262b4ff3fbe27445cb5f5f66e516483ace6aff872",
+      "snapshot_id": "snap-20261011T082415255134Z-5455483a87481f61",
+      "url": "https://raw.githubusercontent.com/mahdiasd/ComposeFilePicker/47947c843dc4c94255fc7cd01fe30bc18761e7e0/ComposeFilePicker/src/main/java/github/mahdiasd/composefilepicker/screens/MediaItem.kt"
+    }
+  ],
+  "status": "DISCOVERED"
+}

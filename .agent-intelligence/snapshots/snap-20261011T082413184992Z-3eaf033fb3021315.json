@@ -1,0 +1,10 @@
+{
+  "snapshot_id": "snap-20261011T082413184992Z-3eaf033fb3021315",
+  "captured_at": "2026-10-11T08:24:13Z",
+  "url": "https://raw.githubusercontent.com/ManojKumarPatnaik/Major-project-list/1bc6f5724b21b57c98318f662003b68e2ab091f3/.devcontainer/devcontainer.json",
+  "source_type": "repository",
+  "stability": "stable",
+  "vendor_affiliated": false,
+  "evidence_kind": "fact",
+  "content": "{\n\"image\": \"mcr.microsoft.com/devcontainers/universal:2\",\n\"features\": {}\n}"
+}

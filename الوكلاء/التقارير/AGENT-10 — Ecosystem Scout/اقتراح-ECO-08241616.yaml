@@ -1,0 +1,26 @@
+id: "ECO-08241616"
+category: "ecosystem"
+title: "Public repository pattern: Ranjan2104/Object-Detection-OpenCV — README.md"
+status: "candidate"
+entity_key: "public-repo:8e1034546d46a2eab3e6b99a4ab2b08e0ec3baa8c7b500a4"
+lifecycle:
+  created_at: "2026-10-11T08:24:16Z"
+  expires_at: "2026-10-25T08:24:16Z"
+  last_viewed_by_human: "2026-10-11T08:24:16Z"
+source:
+  snapshot_id: "snap-20261011T082415762853Z-076d536ad899df75"
+  vendor_affiliated: false
+evidence:
+  quote: "# Object Detection-OpenCV\nOpenCV is the huge open-source library for computer vision, machine learning, and image processing and now it plays a major role in real-time operation which is very important in today’s systems. By using it, one can process images and videos to identify objects, faces, or even the handwriting of a human. Object Detection is a computer technology related to computer vision, image processing, and deep learning that deals with detecting instances of objects in images and videos. We will do object detection in this article using something known as haar cascades.\n![image](https://user-images.githubusercontent.com/60054130/124584160-8b058e80-de71-11eb-880a-fe0b8448cef3.png)"
+inference:
+  current_state:
+    repo_refs:
+      - "package.json"
+      - "src/config/registry.ts"
+  proposal: "Study the repository pattern from Ranjan2104/Object-Detection-OpenCV at README.md and adapt only the underlying engineering idea to FLIXO. Signals: browser-local-file. License: GPL-3.0; adaptation mode: REFERENCE_ONLY_REVIEW_REQUIRED. Preserve FLIXO canonical registry, executor, output contracts, verification gates, and local-data boundary."
+  rollback: "Revert the FLIXO-native adapter or contract change and restore the prior canonical execution path."
+triage:
+  impact_score: 0
+  complexity_score: 0
+  final_priority_score: 0
+  lane: "ecosystem"

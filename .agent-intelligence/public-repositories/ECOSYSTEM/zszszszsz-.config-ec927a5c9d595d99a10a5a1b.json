@@ -1,0 +1,55 @@
+{
+  "adaptation": {
+    "copy_source_code": false,
+    "mode": "REFERENCE_AND_ADAPT",
+    "proposal_id": "ECO-08241396",
+    "target_repo_refs": [
+      "package.json",
+      "src/config/registry.ts"
+    ]
+  },
+  "discovered_at": "2026-10-11T08:24:13Z",
+  "discovery_score": 76,
+  "license_mode": "PERMISSIVE_REFERENCE_ADAPTABLE",
+  "pattern_signals": [
+    "browser-local-file",
+    "queue-worker"
+  ],
+  "query": "open source image video processing library",
+  "repository": {
+    "archived": false,
+    "default_branch": "master",
+    "fork": false,
+    "full_name": "zszszszsz/.config",
+    "head_sha": "01321b662d57edf5c0e1274c5232b96cf2001b1e",
+    "html_url": "https://github.com/zszszszsz/.config",
+    "license_spdx": "MIT",
+    "name": ".config",
+    "owner": "zszszszsz",
+    "pushed_at": "2023-10-05T22:52:42Z",
+    "stars": 361
+  },
+  "role": "ECOSYSTEM",
+  "schema": "flixo-public-repository-intelligence-v1",
+  "score_evidence": [
+    "license",
+    "documentation"
+  ],
+  "selected_files": [
+    {
+      "path": "README.md",
+      "selection_score": 120,
+      "sha256": "68f2db7e1deb66266027415a68b22057ac5fec575d4309b06def102c21a9d04e",
+      "snapshot_id": "snap-20261011T082413827196Z-68f2db7e1deb6626",
+      "url": "https://raw.githubusercontent.com/zszszszsz/.config/01321b662d57edf5c0e1274c5232b96cf2001b1e/README.md"
+    },
+    {
+      "path": ".github/workflows/build-openwrt.yml",
+      "selection_score": 0,
+      "sha256": "7b21a2d41d08c15fbd98d48eb391ff05552369b6a841fe3d7f8244c89ea9d388",
+      "snapshot_id": "snap-20261011T082413964029Z-7b21a2d41d08c15f",
+      "url": "https://raw.githubusercontent.com/zszszszsz/.config/01321b662d57edf5c0e1274c5232b96cf2001b1e/.github/workflows/build-openwrt.yml"
+    }
+  ],
+  "status": "DISCOVERED"
+}

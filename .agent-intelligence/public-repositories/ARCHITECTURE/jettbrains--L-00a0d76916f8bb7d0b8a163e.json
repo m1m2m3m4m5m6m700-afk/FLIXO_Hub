@@ -1,0 +1,55 @@
+{
+  "adaptation": {
+    "copy_source_code": false,
+    "mode": "REFERENCE_ONLY",
+    "proposal_id": "ARCH-08241162",
+    "target_repo_refs": [
+      "src/config/registry.ts",
+      "src/lib/execution/canonical-executor.ts",
+      "src/lib/contracts/tool-output-contracts.ts"
+    ]
+  },
+  "discovered_at": "2026-10-11T08:24:11Z",
+  "discovery_score": 88,
+  "license_mode": "REFERENCE_ONLY_REVIEW_REQUIRED",
+  "pattern_signals": [
+    "webassembly",
+    "browser-local-file",
+    "pipeline",
+    "testing",
+    "security",
+    "architecture-contract",
+    "queue-worker",
+    "observability"
+  ],
+  "query": "browser local media processing architecture",
+  "repository": {
+    "archived": false,
+    "default_branch": "master",
+    "fork": false,
+    "full_name": "jettbrains/-L-",
+    "head_sha": "57ef56b8454bf2e3de6ab1608df005b682a8e5aa",
+    "html_url": "https://github.com/jettbrains/-L-",
+    "license_spdx": "GPL-3.0",
+    "name": "-L-",
+    "owner": "jettbrains",
+    "pushed_at": "2021-08-18T13:41:54Z",
+    "stars": 161
+  },
+  "role": "ARCHITECTURE",
+  "schema": "flixo-public-repository-intelligence-v1",
+  "score_evidence": [
+    "license",
+    "documentation"
+  ],
+  "selected_files": [
+    {
+      "path": "README.md",
+      "selection_score": 120,
+      "sha256": "b7382e0b90756389962abb2f1f6d36dd91188566664605dd929d4a9cca8f31bb",
+      "snapshot_id": "snap-20261011T082411613590Z-b7382e0b90756389",
+      "url": "https://raw.githubusercontent.com/jettbrains/-L-/57ef56b8454bf2e3de6ab1608df005b682a8e5aa/README.md"
+    }
+  ],
+  "status": "DISCOVERED"
+}
