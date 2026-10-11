@@ -126,7 +126,7 @@ jobs:
           echo "EXECUTION_SHA=$EXECUTION_SHA" >> "$GITHUB_ENV"
       - name: Acquire public repository intelligence
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python3 .agent-intelligence/scripts/discover_public_repositories.py
       - name: Run infinite Scouts and snapshots
         run: python3 .agent-intelligence/scripts/run_scouts.py
@@ -155,7 +155,7 @@ jobs:
       - name: Append-only scout branch publication
         shell: bash
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           git add "الوكلاء/التقارير/AGENT-08 — Architecture Scout" "الوكلاء/التقارير/AGENT-09 — Technology Scout" "الوكلاء/التقارير/AGENT-10 — Ecosystem Scout" .agent-intelligence/snapshots .agent-intelligence/public-repositories

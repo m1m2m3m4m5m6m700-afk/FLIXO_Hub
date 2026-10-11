@@ -79,7 +79,7 @@ for(const p of profiles){
 }
 for(const f of readdirSync(join(root,".agent-intelligence","inbox"))) if(f!==".gitkeep"&&f!=="README.md") fail("inbox is deny-only; unexpected artifact: "+f);
 for(const f of readdirSync(join(root,".agent-intelligence","snapshots"))) if(!f.endsWith(".json")&&!f.endsWith(".raw")&&!f.endsWith(".txt")&&f!==".gitkeep"&&f!=="README.md") fail("invalid snapshot artifact: "+f);
-const workflow=readFileSync(join(root,".github/workflows/continuous-discovery.yml"),"utf8");
+const workflow=readFileSync(join(root,".github/workflows/continuous-discovery.yml"),"utf8").replace(/\r\n/g,"\n");
 if(!workflow.includes("schedule:")||!workflow.includes("workflow_dispatch:")||!workflow.includes("pull_request:")) fail("workflow triggers incomplete");
 if(!workflow.includes("permissions:\n  contents: read")) fail("workflow default permission must be read");
 if(!workflow.includes("contents: write")) fail("publish job write permission missing");
