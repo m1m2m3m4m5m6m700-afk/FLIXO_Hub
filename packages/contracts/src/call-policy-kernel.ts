@@ -60,7 +60,7 @@ export function decidePlanDisposition(input: PolicyInput): PolicyDecision {
     return Object.freeze({disposition: "ESCALATE", ruleId: "PK-BUDGET-HARD-STOP", policyVersion: input.policyVersion, failures});
   }
   if (input.planRound >= input.maxPlanRounds) {
-    return Object.freeze({disposition: "ESCALATE", ruleId: "PK-PLAN-ROUND-LIMIT", policyVersion: input.policyVersion, failures: [...failures, "ITERATION_LIMIT"]});
+    return Object.freeze({disposition: "ESCALATE", ruleId: "PK-PLAN-ROUND-LIMIT", policyVersion: input.policyVersion, failures: [...failures, "ITERATION_LIMIT" as GateFailure]});
   }
 
   const fatal = input.objections.find((objection) => objection.fatal);

@@ -53,7 +53,11 @@ function validateRequest(request: AgentExecutionRequest): void {
 }
 
 export class CellAgentRuntime {
-  constructor(private readonly adapter: AgentRuntimeAdapter | null = null) {}
+  private readonly adapter: AgentRuntimeAdapter | null;
+
+  constructor(adapter: AgentRuntimeAdapter | null = null) {
+    this.adapter = adapter;
+  }
 
   get runtimeId(): string | null {
     return this.adapter?.runtimeId ?? null;
@@ -88,6 +92,7 @@ export class CellAgentRuntime {
   }
 
   assertPushAllowed(workspace: CellWorkspace, branch: string): void {
+    if (branch === "main" || branch === "refs/heads/main") throw new Error("AGENT_PUSH_NOT_ALLOWED");
     if (!canWorkspacePush(workspace, branch)) throw new Error("AGENT_PUSH_NOT_ALLOWED");
   }
 }

@@ -86,11 +86,8 @@ test('canonical CI verifies execution pushes and the canonical execution-to-main
   const workflow = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
   assert.match(workflow, /push:\s*\n\s*branches:\s*\[main, execution\]/u);
   assert.match(workflow, /pull_request:\s*\n\s*branches:\s*\[main\]/u);
-  assert.match(
-    workflow,
-    /github\.event\.pull_request\.head\.ref == 'execution' && github\.event\.pull_request\.head\.repo\.full_name == github\.repository/u,
-    'pull_request verification must remain restricted to the canonical execution branch',
-  );
+  assert.match(workflow, /startsWith\(github\.event\.pull_request\.head\.ref, 'chore\/oss-'\)/u);
+  assert.match(workflow, /github\.event\.pull_request\.head\.repo\.full_name == github\.repository/u);
 });
 
 test('canonical CI consumes security assurance as reusable jobs', async () => {
@@ -101,6 +98,24 @@ test('canonical CI consumes security assurance as reusable jobs', async () => {
   assert.match(workflow, /uses: \.\/\.github\/workflows\/secret-scan\.yml/u);
   assert.match(workflow, /name: Agent Watchdog \/ reusable/u);
   assert.match(workflow, /uses: \.\/\.github\/workflows\/agent-watchdog\.yml/u);
+});
+
+test('OSS readiness PRs run verification while promotion proof remains execution-only', async () => {
+  const ossPrGate = "if: ${{ github.event_name != 'pull_request' || ((github.event.pull_request.head.ref == 'execution' || startsWith(github.event.pull_request.head.ref, 'chore/oss-')) && github.event.pull_request.head.repo.full_name == github.repository) }}";
+
+  for (const path of [
+    '.github/workflows/ci.yml',
+    '.github/workflows/codeql.yml',
+    '.github/workflows/secret-scan.yml',
+  ]) {
+    const workflow = await readFile(new URL('../../' + path, import.meta.url), 'utf8');
+    assert.ok(workflow.includes(ossPrGate), path + ' must allow canonical OSS readiness PRs');
+  }
+
+  const ci = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
+  const promotionProofGate =
+    "if: ${{ always() && (github.event_name != 'pull_request' || github.event.pull_request.head.ref == 'execution') }}";
+  assert.ok(ci.includes(promotionProofGate), 'promotion proof must remain execution-only for pull requests');
 });
 
 test('final Red Team security wait is promotion-only after execution security deduplication', async () => {
@@ -229,8 +244,8 @@ test('specialized execution gates are path-gated and TestSprite concurrency is c
   assert.match(testsprite, /group:\s*testsprite-fallback-\$\{\{ github\.ref_name \}\}/u);
   assert.doesNotMatch(testsprite, /group:[^\n]*\$\{\{ github\.sha \}\}/u);
   assert.match(video, /push:\s*\n\s*branches:\s*\[execution\]\s*\n\s*paths:/u);
-  assert.match(learning, /paths:\s*\n(?:\s+- .+\n){4,}/u);
-  assert.match(knowledge, /paths:\s*\n(?:\s+- .+\n){4,}/u);
-  assert.match(scout, /paths:\s*\n(?:\s+- .+\n){4,}/u);
-  assert.match(discovery, /paths:\s*\n(?:\s+- .+\n){4,}/u);
+  assert.match(learning, /paths:\s*\r?\n(?:\s+- .+\r?\n){4,}/u);
+  assert.match(knowledge, /paths:\s*\r?\n(?:\s+- .+\r?\n){4,}/u);
+  assert.match(scout, /paths:\s*\r?\n(?:\s+- .+\r?\n){4,}/u);
+  assert.match(discovery, /paths:\s*\r?\n(?:\s+- .+\r?\n){4,}/u);
 });

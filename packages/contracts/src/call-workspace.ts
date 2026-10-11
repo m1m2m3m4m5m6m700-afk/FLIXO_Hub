@@ -18,11 +18,11 @@ export function validateCellWorkspace(workspace: CellWorkspace): void {
   if (!workspace.agentId.trim()) throw new Error("WORKSPACE_AGENT_REQUIRED");
   if (!SHA.test(workspace.baseSha)) throw new Error("WORKSPACE_BASE_SHA_INVALID");
   if (!workspace.filesystemRoot.trim()) throw new Error("WORKSPACE_ROOT_REQUIRED");
-  if (workspace.network === "DENY" && workspace.pushTargets.length > 0) {
-    throw new Error("WORKSPACE_NETWORK_PUSH_CONFLICT");
-  }
   if (workspace.pushTargets.some((target) => target === "main" || target === "refs/heads/main")) {
     throw new Error("WORKSPACE_MAIN_PUSH_FORBIDDEN");
+  }
+  if (workspace.network === "DENY" && workspace.pushTargets.length > 0) {
+    throw new Error("WORKSPACE_NETWORK_PUSH_CONFLICT");
   }
   if (new Set(workspace.capabilities).size !== workspace.capabilities.length) {
     throw new Error("WORKSPACE_CAPABILITY_DUPLICATE");

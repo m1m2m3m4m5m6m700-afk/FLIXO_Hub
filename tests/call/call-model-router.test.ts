@@ -8,8 +8,8 @@ import {
 } from "../../packages/contracts/src/index.ts";
 
 test("CALL has the complete declared model pool", () => {
-  assert.equal(CALL_MODEL_CATALOG.length, 57);
-  assert.equal(new Set(CALL_MODEL_CATALOG.map((m) => m.modelId)).size, 57);
+  assert.equal(CALL_MODEL_CATALOG.length, 65);
+  assert.equal(new Set(CALL_MODEL_CATALOG.map((m) => m.modelId)).size, 65);
 });
 
 test("GLM-5.3 is the sole CALL Master", () => {

@@ -657,7 +657,7 @@ export class CellLifecycleRuntime {
   }
 
   recordEvidence(input: Omit<CellEvidence, "sequence" | "taskId" | "assignmentId">): CellEvidence {
-    this.requireStage("FALSIFYING", "RECONCILING", "ARBITRATING", "RED_TEAM");
+    this.requireStage("FALSIFYING", "RECONCILING", "ARBITRATING", "RED_TEAM", "VERIFICATION_PENDING");
     if (!this.admission) throw new Error("CELL_ADMISSION_REQUIRED");
     if (input.candidateSha !== input.sourceSha) {
       throw new Error("CELL_EVIDENCE_SHA_MISMATCH");

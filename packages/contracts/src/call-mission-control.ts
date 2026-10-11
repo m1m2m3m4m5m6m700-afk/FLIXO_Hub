@@ -56,7 +56,10 @@ export function remainingBudget(record: MissionControlRecord): MissionBudget {
 
 export function budgetExhausted(record: MissionControlRecord): boolean {
   const remaining = remainingBudget(record);
-  return (record.budget.wallclockMs > 0 && remaining.wallclockMs <= 0) ||\n    (record.budget.agentRuns > 0 && remaining.agentRuns <= 0) ||\n    (record.budget.retries > 0 && remaining.retries <= 0) ||\n    (record.budget.externalCalls > 0 && remaining.externalCalls <= 0);
+  return (record.budget.wallclockMs > 0 && remaining.wallclockMs <= 0) ||
+    (record.budget.agentRuns > 0 && remaining.agentRuns <= 0) ||
+    (record.budget.retries > 0 && remaining.retries <= 0) ||
+    (record.budget.externalCalls > 0 && remaining.externalCalls <= 0);
 }
 
 export function terminateMission(
