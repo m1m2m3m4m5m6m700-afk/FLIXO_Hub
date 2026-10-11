@@ -106,10 +106,20 @@ def canonical_report_root(root, report_root):
         raise ValueError("discovery inbox deny-only violation: "+",".join(sorted(unexpected)))
     return canonical
 
+def scout_manifest_paths(manifest_dir):
+    paths=[]
+    for path in sorted(Path(manifest_dir).glob("*.yaml")):
+        try: header=json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc: raise ValueError(f"invalid Scout YAML/JSON-subset manifest: {path}") from exc
+        if header.get("format")=="flixo-public-repo-discovery-v1":
+            continue
+        paths.append(path)
+    return paths
+
 def run(root,manifest_dir,report_root,snapshots_dir,opener=None):
     canonical_root=canonical_report_root(Path(root),report_root)
     store=SnapshotStore(snapshots_dir,opener=opener); outputs=[]
-    for mp in sorted(Path(manifest_dir).glob("*.yaml")):
+    for mp in scout_manifest_paths(manifest_dir):
         manifest=parse_manifest(mp)
         for source in manifest["sources"]:
             snapshot=store.fetch_and_store(source["url"],source.get("source_type","official_docs"),source.get("stability","stable"),source.get("vendor_affiliated",False),source.get("evidence_kind","documentation"))

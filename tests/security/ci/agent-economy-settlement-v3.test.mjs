@@ -10,7 +10,7 @@ test('successful reward ledger records pre-settlement balance as post balance mi
     sql,
     /case when upper\(trim\(p_outcome\)\) = 'SUCCESS' then v_after_balance - v_total else v_after_balance end/u,
   );
-  assert.match(sql, /balance_after,\s*\n\s*v_after_balance,/u);
+  assert.match(sql, /end,\s*\n\s*v_after_balance,\s*\n\s*v_task\.exact_sha,/u);
 });
 
 test('failed settlement preserves the unchanged wallet balance in both ledger endpoints', () => {
