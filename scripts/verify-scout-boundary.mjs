@@ -24,7 +24,7 @@ if(!exists(reportCenter)) fail("missing canonical report center");
 for(const [file,role] of Object.entries(scouts)){
   const path=join(agentsDir,file);
   if(!exists(path)) fail("missing profile: "+file);
-  const content=readFileSync(path,"utf8");
+  const content=readFileSync(path,"utf8").replace(/\r\n?/gu,"\n");
   if(!content.startsWith("---\n")) fail(file+": missing frontmatter");
   if(!content.includes('tools: ["read", "search", "edit"]')) fail(file+": tools must be exactly read/search/edit");
   if(!content.includes("target: github-copilot")) fail(file+": wrong target");
