@@ -62,7 +62,7 @@ class DiscoveryTests(unittest.TestCase):
 
     def test_proposal_shape_quote_and_entity_key(self):
         m=self.m(); src=m["sources"][0]; s=SnapshotStore(self.snaps,opener=lambda *a,**k:resp(b"Unique evidence")).fetch_and_store(src["url"],src["source_type"],src["stability"],src["vendor_affiliated"],src["evidence_kind"])
-        p=build_proposal(self.root,m,src,s); self.assertEqual(p["status"],"candidate"); self.assertEqual(p["entity_key"],"test-pattern::architecture"); self.assertIn(p["evidence"]["quote"],Path(s.text_path).read_text())
+        p=build_proposal(self.root,m,src,s); self.assertEqual(p["status"],"inbox"); self.assertEqual(p["entity_key"],"test-pattern::architecture"); self.assertIn(p["evidence"]["quote"],Path(s.text_path).read_text())
         self.assertEqual(p["triage"]["lane"],"architecture")
     def test_malformed_output_rejected(self):
         m=self.m(); src=m["sources"][0]; s=SnapshotStore(self.snaps,opener=lambda *a,**k:resp(b"Evidence")).fetch_and_store(src["url"])

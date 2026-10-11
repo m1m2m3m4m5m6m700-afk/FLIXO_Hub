@@ -16,8 +16,12 @@ The edit tool is limited by the agent role and protected by CI. Any Scout branch
 
 ## Write boundary
 
-The Scout's only writable repository surface is the append-only inbox:
-`.agent-intelligence/inbox/*.yaml`.
+Scout reports are written only to the canonical report center:
+`الوكلاء/التقارير/AGENT-08 — Architecture Scout/`,
+`الوكلاء/التقارير/AGENT-09 — Technology Scout/`, and
+`الوكلاء/التقارير/AGENT-10 — Ecosystem Scout/`.
+
+The continuous acquisition pipeline may additionally publish derived public-repository intelligence under `.agent-intelligence/public-repositories/**` and immutable source snapshots under `.agent-intelligence/snapshots/**`. Neither surface is an execution authority.
 
 External evidence is first materialized as immutable snapshots by `.agent-intelligence/scripts/fetch_snapshot.py`; Scouts do not mutate snapshots.
 
@@ -38,7 +42,7 @@ The Execution Agent independently verifies every proposal against the current SH
 
 ## Concurrency
 
-Scouts publish independent raw proposal artifacts to the append-only inbox. They never overwrite another proposal artifact.
+Scouts publish independent raw proposal artifacts to their canonical report directories. Public-repository acquisition uses immutable repository/head-SHA indexes and never overwrites an existing intelligence record.
 
 Concurrent Scout branches may conflict. Conflict is fail-closed and must be reconciled rather than silently overwritten.
 

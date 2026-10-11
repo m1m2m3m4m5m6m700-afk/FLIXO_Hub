@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "branches": {"main": "main", "base": "base", "lab": "lab", "agentPattern": "agent/<role>/<card>-<slug>"},
+  "limits": {"maxRetries": 3, "maxPlanRounds": 3, "maxWallclockMs": 3600000, "maxAgentRuns": 32, "maxExternalCalls": 64},
+  "attack": {"opponentRequired": true, "redTeamRequired": true, "independentVerificationRequired": true},
+  "calibration": {"minRuns": 2, "maxFailureRate": 0.5},
+  "pairs": {"requireDistinctIdentities": true, "requireIndependentStart": true},
+  "roles": ["builder","explorer","adv-builder","adv-explorer","steward","adv-steward","integrator"],
+  "attestation": {"algorithm": "HMAC-SHA256", "environment": "CI_ONLY"}
+}
