@@ -1,12 +1,12 @@
 # FLIXO — المهام.md
-## Canonical Agent Task Ledger
+## Derived Companion Task Ledger Snapshot (Non-dispatchable)
 
 REVISION: 007
 BASELINE_SHA: 10d8b862
 LAST_REVIEWED_UTC: 2026-10-07T16:05Z
-STATUS_OF_FILE: canonical-dispatch-index
+STATUS_OF_FILE: derived-companion-snapshot-non-dispatchable
 
-هذا file هو **مرجع التكليف التشغيلي الوحيد للوكnoء** داخل مستودع FLIXO.
+This file is a derived, non-dispatchable companion snapshot. The sole canonical dispatch ledger is the Arabic-named task file; never claim, schedule, or close work from this copy. Synchronization requires an explicit reconciliation task.
 
 قواعد السلطة:
 - mission القابلة للتنفيذ توجد فقط داخل **ACTIVE DISPATCH QUEUE**.
@@ -256,7 +256,7 @@ Provider compliance ليس FLIXO certification. القانون يقيّم حسب
 |---|---|---|---|
 | EXEC-LEAD-PERSISTENT-MEMORY-001 | STATE.md + MEMORY.md + DECISIONS.md | 64587c0a20075a352ff2617785f6739009f413ee | 2026-10-08T14:21:07Z |
 
-# ACTIVE DISPATCH QUEUE
+# REFERENCE TASK QUEUE SNAPSHOT (NON-DISPATCHABLE)
 
 **ACTIVE TASK COUNT:** 33
 **BASELINE_SHA (at dispatch):** 10d8b862
@@ -803,7 +803,7 @@ proof:
 
 ---
 
-# END ACTIVE DISPATCH QUEUE
+# END REFERENCE TASK QUEUE SNAPSHOT
 
 # 26. CONSOLIDATED REFERENCE APPENDICES
 

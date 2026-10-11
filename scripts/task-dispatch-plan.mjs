@@ -1,7 +1,7 @@
 ﻿import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
-const LEDGER = "FLIXO-Tasks.md";
+const LEDGER = "\u0627\u0644\u0645\u0647\u0627\u0645.md";
 const PROMPTS = "مهام هيرميس.md";
 
 function sectionBetween(source, startMarker, endMarker) {
