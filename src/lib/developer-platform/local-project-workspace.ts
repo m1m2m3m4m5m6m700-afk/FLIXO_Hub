@@ -17,8 +17,10 @@ export function normalizeProjectPath(input: string): string {
     !normalized ||
     normalized.length > 512 ||
     normalized.startsWith('/') ||
-    normalized.includes('\\0') ||
-    /[\\x00-\\x1F\\x7F]/u.test(normalized) ||
+    normalized.includes('\0') ||
+    normalized.split('').some(
+      (ch) => ch.charCodeAt(0) <= 0x1f || ch.charCodeAt(0) === 0x7f,
+    ) ||
     segments.some((segment) => segment === '' || segment === '.' || segment === '..')
   ) {
     throw new Error('INVALID_PROJECT_PATH');

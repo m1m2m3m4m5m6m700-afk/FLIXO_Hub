@@ -240,8 +240,7 @@ export class CellLivenessRuntime {
         this.persist(this.clock());
       }
     }, this.heartbeatIntervalMs);
-    const unref = (timer as unknown as { unref?: () => void }).unref;
-    unref?.();
+    (timer as unknown as { unref?: () => void }).unref?.();
     this.timer = timer;
   }
 

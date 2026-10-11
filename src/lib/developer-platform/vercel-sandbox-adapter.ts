@@ -53,8 +53,11 @@ type ActiveExecution = Readonly<{
 export class VercelSandboxExecutionProvider implements ExecutionProvider {
   readonly id = 'vercel-sandbox';
   private readonly active = new Map<string, ActiveExecution>();
+  private readonly client: VercelSandboxClient | null;
 
-  constructor(private readonly client: VercelSandboxClient | null) {}
+  constructor(client: VercelSandboxClient | null) {
+    this.client = client;
+  }
 
   getStatus(): ProviderStatus {
     if (!this.client) {

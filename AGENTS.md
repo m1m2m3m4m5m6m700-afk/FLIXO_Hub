@@ -11,6 +11,10 @@ Runtime authority is limited to:
 Agents may prepare, implement, test, review, and document changes. Agents do not create a second registry, second executor authority, provider-controlled execution path, or certification authority.
 
 
+## Repository Navigation and English Documentation
+
+`docs/REPOSITORY-STRUCTURE.md` is the English directory/authority map. `EXECUTION.md` documents the task lifecycle and completion/removal protocol. `docs/ENGLISH-MIGRATION-PLAN.md` governs the staged English migration. These guides improve navigation but do not replace canonical runtime contracts or task authority. Do not run `translate.py`; it can delete source files and apply unsafe broad substitutions.
+
 ## Official Lead Agent Working Document
 
 `docs/FLIXO-LEAD-AGENT-WORKING-CONTRACT-v1.1.md` is the canonical working contract and explicit/core-memory document for the lead agent. It governs lead-agent behavior, memory discipline, evidence claims, task completion, escalation, and stop conditions within its stated scope. It does not create a second task ledger, registry, executor, verifier, certification authority, or governance-bypass path; executable hard-control and live GitHub protection remain enforcement mechanisms.

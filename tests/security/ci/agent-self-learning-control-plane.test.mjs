@@ -324,7 +324,7 @@ test('context compiler treats SHA-less failures as warnings', async () => {
 
 test('external knowledge snapshot suite remains candidate-only and passes its security contract', async () => {
   const { spawnSync } = await import('node:child_process');
-  const result = spawnSync('python3', ['-m', 'unittest', 'tests/agent-intelligence/test_discovery.py'], {
+  const result = spawnSync(process.execPath, ['scripts/run-python.mjs', '-m', 'unittest', 'tests/agent-intelligence/test_discovery.py'], {
     cwd: process.cwd(),
     encoding: 'utf8',
     stdio: 'pipe',
@@ -370,7 +370,7 @@ test('shared memory adapter gates executable retrieval by PROMOTED + current SHA
 
 test('memory lifecycle TTL and suppression suite is green', async () => {
   const { spawnSync } = await import('node:child_process');
-  const result = spawnSync('python3', ['-c', [
+  const result = spawnSync(process.execPath, ['scripts/run-python.mjs', '-c', [
     'import importlib.util, pathlib, unittest',
     'p=pathlib.Path("tests/security/ci/agent-3-triage.test.py")',
     'spec=importlib.util.spec_from_file_location("agent3_triage", p)',

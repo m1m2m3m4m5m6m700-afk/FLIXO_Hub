@@ -2,6 +2,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { join, relative } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { submitMemoryProposal } from './shared-memory.mjs';
 
 const REPORT_CENTER = 'الوكلاء/التقارير';
@@ -41,7 +42,8 @@ function canonicalReportFiles(root = REPORT_CENTER) {
 function parseStrictCandidate(path) {
   const text = readFileSync(path, 'utf8');
   if (!text.includes('status: candidate')) throw new Error(path + ': candidate lifecycle required');
-  const json = execFileSync('python3', [
+  const json = execFileSync(process.execPath, [
+    fileURLToPath(new URL('../run-python.mjs', import.meta.url)),
     '.agent-intelligence/scripts/parse-strict-proposal.py',
     path,
   ], { encoding: 'utf8' });

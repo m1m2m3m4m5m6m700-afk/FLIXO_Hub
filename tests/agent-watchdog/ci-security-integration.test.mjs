@@ -102,7 +102,7 @@ test('RUNNER_WATCHDOG_CONTRACT: current watchdog surfaces are present after inte
     ['watchdog/package.json', /@flixo\/agent-watchdog/u],
     ['watchdog/src/lib/runtime.ts', /loadConfig[\s\S]*authAgent/u],
     ['watchdog/test/contract.test.ts', /AUTH_FAIL_CLOSED=PASS/u],
-    ['src/lib/cell/watchdog.ts', /startCellWatchdog[\s\S]*timedOut/u],
+    ['packages/contracts/src/cell-liveness.ts', /export class CellLivenessRuntime[\s\S]*heartbeat[\s\S]*workerStatus/u],
   ];
   for (const [rel, marker] of required) {
     const abs = path.join(ROOT, rel);
@@ -111,9 +111,13 @@ test('RUNNER_WATCHDOG_CONTRACT: current watchdog surfaces are present after inte
   }
 });
 test('NO_SECOND_AUTHORITY_AND_CODEOWNERS: canonical authority is not redefined', () => {
-  for (const r of [path.join(ROOT,'watchdog'),path.join(ROOT,'src','lib','cell')]) if (fs.existsSync(r)) for (const x of fs.readdirSync(r,{recursive:true}).map(String).filter((x)=>/\.(?:mjs|js|ts)$/i.test(x))) {
-    const t=fs.readFileSync(path.join(r,x),'utf8'); assert.doesNotMatch(t,/\b(?:TOOL_REGISTRY|TOOL_CATALOG|executeCanonicalTool)\b/);
+  const legacyCell = path.join(ROOT, 'src', 'lib', 'cell');
+  assert.equal(fs.existsSync(legacyCell), false, 'legacy CELL implementation must stay retired');
+  for (const r of [path.join(ROOT, 'watchdog')]) if (fs.existsSync(r)) for (const x of fs.readdirSync(r, { recursive: true }).map(String).filter((x) => /\.(?:mjs|js|ts)$/i.test(x))) {
+    const t = fs.readFileSync(path.join(r, x), 'utf8');
+    assert.doesNotMatch(t, /\b(?:TOOL_REGISTRY|TOOL_CATALOG|executeCanonicalTool)\b/);
   }
-  const c=fs.readFileSync(path.join(ROOT,'.github','CODEOWNERS'),'utf8');
-  assert.match(c,new RegExp('^/watchdog/\\s+@'+OWNER+'$','m')); assert.match(c,new RegExp('^/src/lib/cell/\\s+@'+OWNER+'$','m'));
+  const c = fs.readFileSync(path.join(ROOT, '.github', 'CODEOWNERS'), 'utf8');
+  assert.match(c, new RegExp('^/watchdog/\\s+@' + OWNER + '$', 'm'));
+  assert.match(c, new RegExp('^/packages/contracts/src/cell-\\*\\*\\s+@' + OWNER + '$', 'm'));
 });

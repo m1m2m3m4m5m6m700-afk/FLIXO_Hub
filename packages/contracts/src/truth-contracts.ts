@@ -177,13 +177,13 @@ export function invalidateAfterCandidateShaChange(previousCandidateSha: string, 
     status: "REQUALIFICATION_REQUIRED",
     previousCandidateSha, newCandidateSha,
     invalidatedEvidenceIds: Object.freeze([...evidenceIds]),
-    requiredActions: Object.freeze([...DOWNSTREAM_GATES.map((gate) => ({
+    requiredActions: Object.freeze(["candidate-regeneration", ...DOWNSTREAM_GATES.map((gate) => ({
       "candidate-admission":"candidate-admission-rerun",
       "red-team":"red-team-rerun",
       "independent-verification":"independent-verification-rerun",
       "certification":"certification-rerun",
       "promotion":"promotion-rerun",
-    } as const)[gate]), "candidate-regeneration"] as CandidateShaInvalidation["requiredActions"]),
+    } as const)[gate])] as CandidateShaInvalidation["requiredActions"]),
   });
 }
 

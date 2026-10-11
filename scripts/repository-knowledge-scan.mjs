@@ -576,7 +576,8 @@ export function buildKnowledgeSnapshot({
 export function collect() {
   const sha = sh('git', ['rev-parse', 'HEAD']);
   const branch = sh('git', ['branch', '--show-current']) || 'detached';
-  const files = sh('git', ['ls-files', '-z']).split('\0').filter(Boolean);
+  const files = sh('git', ['ls-files', '-z']).split('\0').filter(Boolean)
+    .filter(path => existsSync(join(root, path)));
   const fileSet = new Set(files);
   const entries = [];
   let sourceTextFiles = 0;

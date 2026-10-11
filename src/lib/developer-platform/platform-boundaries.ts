@@ -153,11 +153,13 @@ export type RepositoryTransport = Readonly<{
 
 export class GovernedGitHubRepositoryProvider implements RepositoryProvider {
   readonly id = 'github' as const;
+  private readonly transport: RepositoryTransport;
+  private readonly authority: RepositoryAuthorityContext;
 
-  constructor(
-    private readonly transport: RepositoryTransport,
-    private readonly authority: RepositoryAuthorityContext,
-  ) {}
+  constructor(transport: RepositoryTransport, authority: RepositoryAuthorityContext) {
+    this.transport = transport;
+    this.authority = authority;
+  }
 
   async getSnapshot(repository: string, branch: string): Promise<RepositorySnapshot> {
     const remote = await this.transport.getSnapshot(repository, branch);

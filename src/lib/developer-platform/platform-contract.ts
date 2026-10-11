@@ -162,7 +162,7 @@ export function evaluatePlatformExecution(
   currentSha: string,
   authority: PlatformExecutionAuthorityContext,
 ): PlatformExecutionDecision {
-  if (authority.source !== 'CANONICAL_CELL_RUNTIME' || !authority.envelope || !authority.currentSha || !authority.task) {
+  if (!authority || authority.source !== 'CANONICAL_CELL_RUNTIME' || !authority.envelope || !authority.currentSha || !authority.task) {
     return { admitted: false, code: 'INVALID_AUTHORITY_CONTEXT' };
   }
   const task = authority.task;
@@ -213,7 +213,7 @@ export function evaluatePlatformExecution(
   if (!request.cwd.startsWith(authority.cwdRoot) || request.cwd.includes('..')) return { admitted: false, code: 'INVALID_CWD' };
   if (!validNetworkRequest(request.network, authority.networkPolicy)) return { admitted: false, code: 'INVALID_NETWORK_POLICY' };
 
-  const withinLimits =
+  const limitsWellFormed =
     Number.isInteger(request.limits.timeoutMs) &&
     Number.isInteger(request.limits.memoryMb) &&
     Number.isInteger(request.limits.cpuSeconds) &&
@@ -222,12 +222,14 @@ export function evaluatePlatformExecution(
     request.limits.memoryMb >= 64 &&
     request.limits.cpuSeconds >= 1 &&
     request.limits.outputMb >= 1 &&
-    request.limits.timeoutMs <= authority.resourceLimits.timeoutMs &&
-    request.limits.memoryMb <= authority.resourceLimits.memoryMb &&
-    request.limits.cpuSeconds <= authority.resourceLimits.cpuSeconds &&
-    request.limits.outputMb <= authority.resourceLimits.outputMb &&
     isPositiveFinite(request.limits.timeoutMs);
-  if (!withinLimits) return { admitted: false, code: 'INVALID_LIMITS' };
+  if (!limitsWellFormed) return { admitted: false, code: 'INVALID_LIMITS' };
+  if (
+    request.limits.timeoutMs > authority.resourceLimits.timeoutMs ||
+    request.limits.memoryMb > authority.resourceLimits.memoryMb ||
+    request.limits.cpuSeconds > authority.resourceLimits.cpuSeconds ||
+    request.limits.outputMb > authority.resourceLimits.outputMb
+  ) return { admitted: false, code: 'RESOURCE_DRIFT' };
   if (!isSubset(request.environmentKeys, authority.allowedEnvironmentKeys)) return { admitted: false, code: 'INVALID_ENVIRONMENT_KEYS' };
   if (!isSubset(request.expectedArtifacts, authority.allowedArtifactKinds)) return { admitted: false, code: 'INVALID_ARTIFACT_REQUEST' };
 

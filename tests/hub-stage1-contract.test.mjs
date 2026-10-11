@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import ts from 'typescript';
 
 const hubFiles = [
   'src/core/feature-detection.ts',
@@ -18,10 +19,45 @@ test('Hub processing surface has no direct network transport', () => {
   }
 });
 
+function usesPersistentIdentifierStorage(source, path) {
+  const scriptKind = path.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
+  const file = ts.createSourceFile(path, source, ts.ScriptTarget.Latest, true, scriptKind);
+  const forbiddenKeys = new Set(['localStorage', 'sessionStorage']);
+  let found = false;
+
+  function visit(node) {
+    if (ts.isIdentifier(node) && forbiddenKeys.has(node.text)) found = true;
+
+    if (
+      ts.isPropertyAccessExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      node.expression.text === 'document' &&
+      node.name.text === 'cookie'
+    ) found = true;
+
+    if (ts.isElementAccessExpression(node) && node.argumentExpression) {
+      const key = ts.isStringLiteralLike(node.argumentExpression) || ts.isIdentifier(node.argumentExpression)
+        ? node.argumentExpression.text
+        : '';
+      if (forbiddenKeys.has(key)) found = true;
+      if (
+        key === 'cookie' &&
+        ts.isIdentifier(node.expression) &&
+        node.expression.text === 'document'
+      ) found = true;
+    }
+
+    ts.forEachChild(node, visit);
+  }
+
+  visit(file);
+  return found;
+}
+
 test('Hub processing surface has no persistent identifier storage', () => {
   for (const path of hubFiles) {
     const source = readFileSync(path, 'utf8');
-    assert.doesNotMatch(source, /\b(?:localStorage|sessionStorage|document\.cookie)\b/u, path);
+    assert.equal(usesPersistentIdentifierStorage(source, path), false, path);
   }
 });
 

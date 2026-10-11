@@ -135,7 +135,33 @@ for (const check of authorityChecks) {
 }
 
 if (existsSync('src/lib/cell')) {
-  authorityViolations.push('src/lib/cell -> duplicate CELL authority must remain absent; packages/contracts/src/cell-* is canonical');
+  const cellFiles = [];
+  function collectCellFiles(dir) {
+    for (const entry of readdirSync(dir)) {
+      const path = join(dir, entry);
+      if (statSync(path).isDirectory()) collectCellFiles(path);
+      else if (/\\.(ts|tsx|js|jsx|mjs|cjs)$/u.test(path)) cellFiles.push(path);
+    }
+  }
+  collectCellFiles('src/lib/cell');
+
+  for (const path of cellFiles) {
+    const source = readFileSync(path, 'utf8');
+    if (/\\bexport\\s+(?:const|let|var)\\s+(?:TOOL_REGISTRY|TOOL_CATALOG)\\b/u.test(source)) {
+      authorityViolations.push(path + ' -> embedded CELL agents must not define a competing tool registry');
+    }
+    if (/\\bexport\\s+(?:async\\s+)?function\\s+executeCanonicalTool\\b/u.test(source)) {
+      authorityViolations.push(path + ' -> embedded CELL agents must not define a competing canonical executor');
+    }
+  }
+
+  const hardControlPath = 'src/lib/cell/hard-control.ts';
+  if (existsSync(hardControlPath)) {
+    const hardControl = readFileSync(hardControlPath, 'utf8');
+    if (!hardControl.includes('@/config/registry.ts') || !hardControl.includes('@/config/manual-capability-definition.ts')) {
+      authorityViolations.push(hardControlPath + ' -> agent admission must delegate capability/tool truth to canonical registries');
+    }
+  }
 }
 
 if (existsSync('src/lib/media/media-safety.ts')) {

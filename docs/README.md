@@ -4,6 +4,9 @@ This directory is the documentation index for developers, contributors, operator
 
 ## Start here
 
+- [Repository structure and authority map](REPOSITORY-STRUCTURE.md) — directory layout, canonical sources of truth, and safe navigation.
+- [Execution plan](../EXECUTION.md) — task lifecycle, acceptance, and task-removal protocol.
+- [English migration plan](ENGLISH-MIGRATION-PLAN.md) — staged documentation/path migration and localization safeguards.
 - [Repository README](../README.md) — product purpose, quick start, architecture, and current boundaries.
 - [Contributing](../CONTRIBUTING.md) — branch policy, evidence, certification, and contribution rules.
 - [Support](../SUPPORT.md) — help routing and public issue guidance.

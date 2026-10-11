@@ -104,9 +104,12 @@ test('platform execution rejects parent traversal and invalid network hosts', ()
   );
 });
 
-test('platform execution rejects oversized resource requests', () => {
+test('platform execution distinguishes invalid limits from authority resource drift', () => {
   const oversized = { ...baseRequest(), limits: { ...DEFAULT_PROGRAMMING_LIMITS, memoryMb: 8192 } };
-  assert.deepEqual(evaluatePlatformExecution(oversized, SHA, authority()), { admitted: false, code: 'INVALID_LIMITS' });
+  assert.deepEqual(evaluatePlatformExecution(oversized, SHA, authority()), { admitted: false, code: 'RESOURCE_DRIFT' });
+
+  const malformed = { ...baseRequest(), limits: { ...DEFAULT_PROGRAMMING_LIMITS, memoryMb: 32 } };
+  assert.deepEqual(evaluatePlatformExecution(malformed, SHA, authority()), { admitted: false, code: 'INVALID_LIMITS' });
 });
 
 test('platform execution rejects invalid environment keys and artifact kinds', () => {
