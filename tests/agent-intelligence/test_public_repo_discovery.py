@@ -198,10 +198,6 @@ export function safe() { return 'data'; }
         self.assertFalse((self.root / "SHOULD_NOT_EXIST").exists())
 
 
-if __name__ == "__main__":
-    unittest.main()
-)
-
         indexes = list((self.index_root / "TECHNOLOGY").glob("*.json"))
         self.assertEqual(len(indexes), 1)
         index = json.loads(indexes[0].read_text(encoding="utf-8"))
