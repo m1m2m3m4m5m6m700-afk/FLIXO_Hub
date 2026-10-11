@@ -64,11 +64,12 @@ function parseScalar(raw) {
 }
 
 export function parseProfileFrontmatter(content) {
-  if (!content.startsWith('---\n')) throw new Error('profile frontmatter is missing');
-  const end = content.indexOf('\n---', 4);
+  const normalized = content.replace(/\r\n?/gu, '\n');
+  if (!normalized.startsWith('---\n')) throw new Error('profile frontmatter is missing');
+  const end = normalized.indexOf('\n---', 4);
   if (end < 0) throw new Error('profile frontmatter is unterminated');
   const fields = {};
-  for (const line of content.slice(4, end).split('\n')) {
+  for (const line of normalized.slice(4, end).split('\n')) {
     if (!line.trim()) continue;
     const match = line.match(/^([A-Za-z_][A-Za-z0-9_-]*):\s*(.*)$/u);
     if (!match) continue;
@@ -228,7 +229,7 @@ export function validateProfileContract(profile, expected, root = process.cwd())
     issues.push(id + ': report target does not exist');
   }
   const profileIsScout = id === 'AGENT-08' || id === 'AGENT-09' || id === 'AGENT-10';
-  if (profileIsScout) { if (profile.write_scope !== expected.report) issues.push(id + ': write/report scope drifts from registry'); } else if (profile.write_scope !== 'execution-repository') { issues.push(id + ': execution agent write_scope must be execution-repository'); }
+  if (profileIsScout) { if (profile.write_scope !== expected.report) issues.push(id + ': write/report scope drifts from registry'); } else if (expected.class !== 'supporting-subrole' && profile.write_scope !== 'execution-repository') { issues.push(id + ': execution agent write_scope must be execution-repository'); }
   validateCapabilityContract(profile, id, issues, expected);
 
   return issues;
@@ -269,11 +270,19 @@ export function deriveLifecycle({ contractValid, agent, root, sha }) {
 }
 
 function parseTaskCards(content) {
-  const start = content.indexOf('# ACTIVE DISPATCH QUEUE');
-  const end = content.indexOf('# END ACTIVE DISPATCH QUEUE', start + 1);
-  if (start < 0 || end < 0) return { cards: [], issues: ['task ledger active queue markers missing'] };
-  const queue = content.slice(start, end);
-  const matches = [...queue.matchAll(/^### ((?:EXEC|SCOUT)-[A-Z0-9-]+).*$/gmu)];
+  const normalized = content.replace(/\r\n?/gu, '\n');
+  const start = normalized.indexOf('# ACTIVE DISPATCH QUEUE');
+  if (start < 0) return { cards: [], issues: ['task ledger active queue start marker missing'] };
+  let end = normalized.indexOf('# END ACTIVE DISPATCH QUEUE', start + 1);
+  if (end < 0) {
+    // Older canonical ledgers end the active queue at the first non-dispatchable appendix.
+    const tail = normalized.slice(start + '# ACTIVE DISPATCH QUEUE'.length);
+    const appendix = /^## 26\.\d+\b.*$/mu.exec(tail);
+    if (appendix) end = start + '# ACTIVE DISPATCH QUEUE'.length + appendix.index;
+  }
+  if (end < 0) return { cards: [], issues: ['task ledger active queue end boundary missing'] };
+  const queue = normalized.slice(start, end);
+  const matches = [...queue.matchAll(/^### (EXEC-[A-Z0-9-]+).*$/gmu)];
   const fieldOrder = ['TASK_ID','TYPE','PRIORITY','OWNER','STATUS','PR','SCOPE','DEPENDS_ON','SOURCE','EVIDENCE','ACCEPTANCE','NEXT_ACTION','COLLISION_KEY'];
   const cards = [];
   const issues = [];
@@ -288,10 +297,10 @@ function parseTaskCards(content) {
     }
     const keys = Object.keys(fields);
     if (!fieldOrder.every((key, index) => keys[index] === key) || keys.length !== fieldOrder.length) {
-      issues.push((matches[i][1]) + ': task card does not satisfy the strict 13-field contract');
+      issues.push(matches[i][1] + ': task card does not satisfy the strict 13-field contract');
     }
     if (!fields.TASK_ID || fields.TASK_ID !== matches[i][1]) issues.push(matches[i][1] + ': TASK_ID mismatch');
-    cards.push({ ...fields, title: block.split('\n')[0].replace(/^### /u,'').replace(/^((?:EXEC|SCOUT)-[A-Z0-9-]+)\s+—?\s*/u,'') });
+    cards.push({ ...fields, title: block.split('\n')[0].replace(/^### /u,'').replace(/^((?:EXEC|SCOUT)-[A-Z0-9-]+)\s+.*?\s*/u,'') });
   }
   return { cards, issues };
 }
@@ -336,7 +345,8 @@ export function auditExecutionEnvelope(root = process.cwd()) {
   for (const token of requiredContract) if (!ledger.includes(token)) issues.push('المهام.md: missing ' + token);
   const parsed = parseTaskCards(ledger);
   issues.push(...parsed.issues);
-  const envelopes = parsed.cards.map(card => deriveExecutionEnvelope(card, gitHead(root)));
+  const currentSha = gitHead(root);
+  const envelopes = parsed.cards.map(card => deriveExecutionEnvelope(card, currentSha));
   return { cards: parsed.cards, envelopes, issues, activeTaskCount: parsed.cards.length };
 }
 

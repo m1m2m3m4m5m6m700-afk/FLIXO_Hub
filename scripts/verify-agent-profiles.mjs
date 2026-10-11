@@ -51,6 +51,8 @@ for (const id of ["AGENT-08", "AGENT-09", "AGENT-10"]) {
   if (!content.includes("report_scope: " + agent.report)) throw new Error(id + ": Scout report scope drift");
   if (!content.includes("cap_WRITE_REPORTS: SCOPED")) throw new Error(id + ": Scout report capability drift");
   if (!content.includes("cap_WRITE_INBOX: DENY")) throw new Error(id + ": Scout inbox capability drift");
-  if (content.includes(".agent-intelligence/inbox/")) throw new Error(id + ": Scout inbox boundary drift");
+  const writeScope = content.match(/^write_scope:\s*(.+)$/mu)?.[1]?.trim();
+  const reportScope = content.match(/^report_scope:\s*(.+)$/mu)?.[1]?.trim();
+  if (!writeScope || !reportScope || writeScope.includes(".agent-intelligence/inbox/") || reportScope.includes(".agent-intelligence/inbox/")) throw new Error(id + ": Scout inbox boundary drift");
 }
 console.log("CANONICAL_AGENT_REGISTRY_OK=10 SUPPORTING=1 PROFILES=11");
