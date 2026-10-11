@@ -54,7 +54,6 @@ if (new Set(ids).size !== ids.length || tasks.some((task) => !task.id || task.id
 let sections = promptSections(prompts);
 let sectionIds = sections.map((section) => section.id);
 if (new Set(sectionIds).size !== sectionIds.length) fail("DUPLICATE_HERMES_PROMPT_ID");
-const missing = tasks.filter((task) => !sectionIds.includes(task.id));
 const extra = sectionIds.filter((id) => !ids.includes(id));
 if (extra.length) fail("EXTRA_HERMES_PROMPTS " + extra.join(","));
 
