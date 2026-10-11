@@ -124,3 +124,19 @@ test("Hermes prompt task-card fields are synchronized to the canonical ledger", 
   const taskCount = parseActiveTasks(readFileSync(ledgerPath, "utf8")).tasks.length;
   assert.ok(result.includes("TASKS=" + taskCount));
 });
+
+
+test("active queue parser ignores marker text mentioned in policy prose", () => {
+  const ledger = [
+    "## CLOSED TASK REGISTER",
+    "| TASK_ID | CLOSE_REF | COMMIT_SHA | CLOSED_UTC |",
+    "## HERMES EXECUTION CONTRACT",
+    "- The literal text `# ACTIVE DISPATCH QUEUE` may be discussed here.",
+    card("EXEC-DECOY-001"),
+    "# ACTIVE DISPATCH QUEUE",
+    "**ACTIVE TASK COUNT:** 1",
+    card("EXEC-REAL-001"),
+    "# END ACTIVE DISPATCH QUEUE",
+  ].join("\n");
+  assert.deepEqual(parseActiveTasks(ledger).tasks.map((task) => task.id), ["EXEC-REAL-001"]);
+});
