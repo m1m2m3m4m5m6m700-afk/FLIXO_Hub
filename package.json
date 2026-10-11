@@ -45,8 +45,8 @@
     "verify:live-governance": "node scripts/ci/verify-live-governance.mjs",
     "verify:global-evidence": "node scripts/ci/verify-evidence-chain.mjs",
     "test:global-platform": "node --test tests/security/ci/global-baseline-contract.test.mjs tests/security/ci/live-governance-contract.test.mjs tests/security/ci/evidence-chain-contract.test.mjs && node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/release/global-capability-contract.test.ts",
-    "test:proposal-integrity": "python3 .agent-intelligence/scripts/test_validate.py && python3 .agent-intelligence/schemas/test_schema.py",
-    "validate:proposals": "python3 .agent-intelligence/scripts/validate.py --all --json",
+    "test:proposal-integrity": "node scripts/run-python.mjs .agent-intelligence/scripts/test_validate.py && node scripts/run-python.mjs .agent-intelligence/schemas/test_schema.py",
+    "validate:proposals": "node scripts/run-python.mjs .agent-intelligence/scripts/validate.py --all --json",
     "verify:agent-control-plane": "node scripts/agent-control-plane.mjs",
     "test:agent-control-plane": "node --test tests/security/ci/agent-control-plane.test.mjs",
     "test:agent-report-routing": "node --test tests/security/ci/agent-report-routing.test.mjs",
@@ -68,7 +68,7 @@
     "discover:public-repos": "node scripts/run-python.mjs .agent-intelligence/scripts/discover_public_repositories.py",
     "test:discovery": "node scripts/run-python.mjs -m unittest discover -s tests/agent-intelligence -p \"test_*.py\"",
     "test:call-protocol": "node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/call/call-protocol-contract.test.ts tests/call/gate-a-harness.test.ts tests/call/call-agent-runtime.test.ts tests/call/call-model-router.test.ts tests/call/call-collaboration.test.ts tests/call/call-hard-case-benchmark.test.ts tests/call/call-xp-incentives.test.ts",
-    "test:call-lab": "python3 agent-lab/tools/lab_tool.py validate --templates && python3 agent-lab/tools/lab_tool.py ledger-verify",
+    "test:call-lab": "node scripts/run-python.mjs agent-lab/tools/lab_tool.py validate --templates && node scripts/run-python.mjs agent-lab/tools/lab_tool.py ledger-verify",
     "test:legal": "node --test tests/legal-license.test.ts tests/footer-attribution.test.ts"
   },
   "dependencies": {
