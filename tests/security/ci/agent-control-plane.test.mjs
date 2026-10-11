@@ -22,6 +22,15 @@ test('profile frontmatter parser accepts Windows CRLF without changing field val
   });
 });
 
+test('profile frontmatter parser accepts legacy CR-only line endings', () => {
+  const content = ['---', 'name: Example Agent', 'tools: ["read", "search"]', 'lifecycle: READY-TEST', '---', 'body'].join('\r');
+  assert.deepEqual(parseProfileFrontmatter(content), {
+    name: 'Example Agent',
+    tools: ['read', 'search'],
+    lifecycle: 'READY-TEST',
+  });
+});
+
 test('canonical registry is the only identity authority and contains 10 principals + one support role', () => {
   const registry = loadCanonicalRegistry(ROOT);
   assert.equal(registry.officialAgentCount, 10);
