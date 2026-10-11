@@ -154,8 +154,7 @@ class PublicRepositoryDiscoveryTests(unittest.TestCase):
 
         reports = list((self.root / "الوكلاء/التقارير/AGENT-09 — Technology Scout").glob("اقتراح-*.yaml"))
         self.assertEqual(len(reports), 1)
-        self.assertRegex(reports[0].read_text(encoding="utf-8"), r'(?m)^status:\s+"?inbox"?\s*
-
+        self.assertRegex(reports[0].read_text(encoding="utf-8"), r'(?m)^status:\s+"?inbox"?\s*$')
         indexes = list((self.index_root / "TECHNOLOGY").glob("*.json"))
         self.assertEqual(len(indexes), 1)
         index = json.loads(indexes[0].read_text(encoding="utf-8"))

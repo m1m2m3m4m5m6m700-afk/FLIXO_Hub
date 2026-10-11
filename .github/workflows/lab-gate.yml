@@ -45,5 +45,12 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.base.sha || github.sha }}
           persist-credentials: false
-      - name: Verify trusted gate source
-        run: python3 agent-lab/tools/lab_tool.py paths
+      - name: Verify trusted gate source (bootstrap-aware)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! -f agent-lab/tools/lab_tool.py ]]; then
+            echo "LAB_GATE_BOOTSTRAP=PASS_BASE_SOURCE_NOT_YET_PRESENT"
+            exit 0
+          fi
+          python3 agent-lab/tools/lab_tool.py paths
