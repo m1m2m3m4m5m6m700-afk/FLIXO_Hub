@@ -66,7 +66,9 @@
     "test:developer-workspace": "node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/developer-workspace-contract.test.ts",
     "test:developer-platform": "node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/developer-platform-contract.test.ts tests/developer-platform-hard-control.test.ts tests/developer-platform-vercel-adapter.test.ts tests/developer-platform-client-factory.test.ts tests/developer-platform-execution-service.test.ts",
     "discover:public-repos": "node scripts/run-python.mjs .agent-intelligence/scripts/discover_public_repositories.py",
-    "test:discovery": "node scripts/run-python.mjs -m unittest discover -s tests/agent-intelligence -p \"test_*.py\""
+    "test:discovery": "node scripts/run-python.mjs -m unittest discover -s tests/agent-intelligence -p \"test_*.py\"",
+    "test:call-protocol": "node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/call/call-protocol-contract.test.ts tests/call/gate-a-harness.test.ts tests/call/call-agent-runtime.test.ts tests/call/call-model-router.test.ts tests/call/call-collaboration.test.ts tests/call/call-hard-case-benchmark.test.ts tests/call/call-xp-incentives.test.ts",
+    "test:call-lab": "python3 agent-lab/tools/lab_tool.py validate --templates && python3 agent-lab/tools/lab_tool.py ledger-verify"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",
