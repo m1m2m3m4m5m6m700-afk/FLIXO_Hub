@@ -2,7 +2,7 @@
 import { readFileSync } from "node:fs";
 
 const LEDGER = "FLIXO-Tasks.md";
-const PROMPTS = "مهاتام.md";
+const PROMPTS = "مهام هيرميس.md";
 
 function sectionBetween(source, startMarker, endMarker) {
   const start = source.indexOf(startMarker);
