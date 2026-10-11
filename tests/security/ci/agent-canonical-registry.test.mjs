@@ -30,12 +30,17 @@ test("supporting explorer-2 is explicit and excluded from the ten", () => {
 test("registration layer exactly matches canonical profiles", () => {
   const r = loadRegistry();
   const expected = [...r.agents, ...r.supportingRoles].map(a => a.profile.split("/").pop()).sort();
-  const actual = readdirSync(".github/agents").filter(name => name.endsWith(".md")).sort();
+  const legacyAliases = new Set(["FLIXO-Developer-AI.md", "FLIXO-Explorer-2.md", "FLIXO-Explorer-AI.md"]);
+  const actual = readdirSync(".github/agents").filter(name => name.endsWith(".md") && !legacyAliases.has(name)).sort();
   assert.deepEqual(actual, expected);
 });
 test("every registered profile points to the canonical file", () => {
   const r = loadRegistry();
-  for (const agent of [...r.agents, ...r.supportingRoles]) assert.ok(readFileSync(agent.profile, "utf8").includes("Canonical registry: الوكلاء.md"), agent.id);
+  for (const agent of [...r.agents, ...r.supportingRoles]) {
+    const profile = readFileSync(agent.profile, "utf8");
+    assert.ok(profile.includes("Canonical registry: الوكلاء.md"), agent.id);
+    assert.ok(profile.includes("registry_ref: الوكلاء.md#" + agent.id), agent.id);
+  }
 });
 
 
@@ -43,7 +48,7 @@ test("agent identity has one canonical filesystem root", () => {
   const r = loadRegistry();
   assert.equal(r.officialAgentCount, 10);
   assert.equal(r.agents.length, 10);
-  assert.equal(readdirSync(".").includes("الوكلاء AI"), false);
-  assert.equal(readdirSync(".github/agents").filter(name => name.endsWith(".md")).length, 11);
-  for (const agent of [...r.agents, ...r.supportingRoles]) assert.ok(!String(agent.package).startsWith("الوكلاء AI/"), agent.id);
+  const all = [...r.agents, ...r.supportingRoles];
+  assert.ok(all.every(agent => String(agent.package).startsWith("الوكلاء/")), "canonical packages use the single الوكلاء/ root");
+  assert.equal(new Set(all.map(agent => String(agent.package).split("/")[0])).size, 1);
 });

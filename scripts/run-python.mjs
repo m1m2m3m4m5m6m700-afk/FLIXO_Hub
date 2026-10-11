@@ -1,10 +1,15 @@
 #!/usr/bin/env node
 import { spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 
 const args = process.argv.slice(2);
 if (args.length === 0) {
   console.error('Usage: node scripts/run-python.mjs <script-or-python-args>');
   process.exit(2);
+}
+if (!args[0].startsWith('-') && !existsSync(args[0])) {
+  console.error(`Python script not found: ${args[0]}`);
+  process.exit(66);
 }
 const configured = process.env.FLIXO_PYTHON;
 const candidates = configured

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import test from "node:test";
 import {
   CellLifecycleRuntime,
@@ -8,6 +9,7 @@ import {
 } from "../../../packages/contracts/src/cell-lifecycle.ts";
 import { createCellContextArtifact } from "../../../packages/contracts/src/cell-context.ts";
 import { CellRuntime } from "../../../packages/contracts/src/cell-runtime.ts";
+import type { CanonicalTaskContext } from "../../../packages/contracts/src/call-context.ts";
 import { createCanonicalCellAssignment } from "../../../packages/contracts/src/cell-assignment.ts";
 
 const SHA = "a".repeat(40);
@@ -75,6 +77,18 @@ function makeEnvelope(): CellAdmissionEnvelope {
     verificationPolicy,
     independencePolicy,
     verifierId: "verifier-100",
+  };
+}
+
+function makeCanonicalTaskContext(envelope: CellAdmissionEnvelope): CanonicalTaskContext {
+  return {
+    missionId: envelope.missionId,
+    taskId: envelope.taskId,
+    objective: envelope.objective,
+    acceptanceCriteria: envelope.acceptanceCriteria,
+    constraints: envelope.constraints,
+    oppositionPlanHash: createHash("sha256").update(JSON.stringify(envelope.oppositionPlan)).digest("hex"),
+    startingSha: envelope.startingSha,
   };
 }
 
@@ -152,24 +166,37 @@ test("CELL opponent start derives the hash from admission context, not caller in
 });
 
 
-test("CELL runtime executes one canonical flow from admission through frontier", () => {
+test("CELL runtime executes one canonical flow from admission through frontier", async () => {
   const rt = new CellRuntime(() => 1000);
   const envelope = makeEnvelope();
 
   rt.admitCell(envelope);
+  rt.registerTask(envelope.taskId);
+  rt.transitionTask(envelope.taskId, "READY");
+  rt.assignTaskTeam(envelope.taskId, {
+    assignmentId: envelope.assignment.assignmentId,
+    solverAgentId: envelope.assignment.solverId,
+    backupSolverAgentId: envelope.assignment.backupSolverId,
+    opponentAgentId: envelope.assignment.opponentId,
+    backupOpponentAgentId: envelope.assignment.backupOpponentId,
+    verifierAgentId: envelope.verifierId,
+    escalationTargetAgentId: "arbiter-100",
+    startingSha: envelope.startingSha,
+    currentSha: envelope.currentSha,
+  }, SHA);
   assert.equal(rt.getCellLifecycleSnapshot().stage, "ADMITTED");
 
   rt.lockCellPair();
   assert.equal(rt.getCellLifecycleSnapshot().stage, "PAIR_LOCKED");
 
-  rt.startCellOpponent("opponent-100", SHA);
+  await rt.startCellOpponent("opponent-100", SHA, makeCanonicalTaskContext(envelope), "cell-policy-v1");
   assert.equal(rt.getCellLifecycleSnapshot().stage, "OPPONENT_STARTED");
 
   rt.discloseCellSolverResult(SHA);
   let snapshot = rt.getCellLifecycleSnapshot();
   assert.equal(snapshot.stage, "SOLVING");
   assert.ok(snapshot.opponentStartSequence! < snapshot.solverDisclosureSequence!);
-  assert.equal(snapshot.opponentContextHash, "c".repeat(64));
+  assert.match(snapshot.opponentContextHash ?? "", /^[0-9a-f]{64}$/u);
   assert.equal(snapshot.opponentStartedAtMs, 1000);
 
   rt.beginCellFalsification();
@@ -361,12 +388,25 @@ test("CELL arbitration prevents self-adjudication and requires recorded evidence
   assert.equal(lifecycle.getStage(), "RECONCILING");
 });
 
-test("CELL lifecycle stays exact-SHA and fail-closed across promotion and learning", () => {
+test("CELL lifecycle stays exact-SHA and fail-closed across promotion and learning", async () => {
   const rt = new CellRuntime();
   const envelope = makeEnvelope();
   rt.admitCell(envelope);
+  rt.registerTask(envelope.taskId);
+  rt.transitionTask(envelope.taskId, "READY");
+  rt.assignTaskTeam(envelope.taskId, {
+    assignmentId: envelope.assignment.assignmentId,
+    solverAgentId: envelope.assignment.solverId,
+    backupSolverAgentId: envelope.assignment.backupSolverId,
+    opponentAgentId: envelope.assignment.opponentId,
+    backupOpponentAgentId: envelope.assignment.backupOpponentId,
+    verifierAgentId: envelope.verifierId,
+    escalationTargetAgentId: "arbiter-100",
+    startingSha: envelope.startingSha,
+    currentSha: envelope.currentSha,
+  }, SHA);
   rt.lockCellPair();
-  rt.startCellOpponent("opponent-100", SHA);
+  await rt.startCellOpponent("opponent-100", SHA, makeCanonicalTaskContext(envelope), "cell-policy-v1");
   assert.throws(() => rt.discloseCellSolverResult("b".repeat(40)), /CELL_SOLVER_DISCLOSURE_SHA_DRIFT/);
 
   rt.discloseCellSolverResult(SHA);
@@ -677,7 +717,8 @@ test("CELL opponent independence proof is immutable, timestamped, and verifier-b
   lifecycle.redTeamReview({ redTeamId: "red-proof", redTeamAgentId: "red-proof-agent", attackSurfaceChecks: ["independence"], findings: [], passed: true });
   assert.throws(() => lifecycle.independentlyVerify({ verificationId: "verify-proof-bad", verifierId: "other-verifier", evidenceIds: ["e-proof-claim"], checks: ["context"], passed: true }), /CELL_VERIFIER_ADMISSION_MISMATCH/);
   const verification = lifecycle.independentlyVerify({ verificationId: "verify-proof", verifierId: "verifier-100", evidenceIds: ["e-proof-claim", "e-proof-counter"], checks: ["context", "ordering", "sha"], passed: true });
-  assert.equal(verification.opponentContextHash, "d".repeat(64));
+  assert.equal(verification.opponentContextHash, lifecycle.snapshot().opponentContextHash);
+  assert.match(verification.opponentContextHash, /^[0-9a-f]{64}$/u);
   assert.equal(verification.opponentStartedAtMs, 4321);
 });
 
