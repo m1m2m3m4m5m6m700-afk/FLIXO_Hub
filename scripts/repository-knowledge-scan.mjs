@@ -9,8 +9,13 @@ import ts from 'typescript';
 const root = process.cwd();
 const REPORT_DIR = 'الوكلاء/المستكشف AI/تقارير المستكشف';
 
-export function sh(command, args = []) {
-  return execFileSync(command, args, { cwd: root, encoding: 'utf8' }).trim();
+export function sh(command, args = [], options = {}) {
+  return execFileSync(command, args, {
+    cwd: root,
+    encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024,
+    ...options,
+  }).trim();
 }
 
 export function sha256(buffer) {
