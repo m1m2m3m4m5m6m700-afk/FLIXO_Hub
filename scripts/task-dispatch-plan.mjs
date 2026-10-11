@@ -5,15 +5,26 @@ const LEDGER = "\u0627\u0644\u0645\u0647\u0627\u0645.md";
 const PROMPTS = "مهام هيرميس.md";
 
 function sectionBetween(source, startMarker, endMarker) {
-  const start = source.indexOf(startMarker);
-  if (start < 0) throw new Error("Missing section marker: " + startMarker);
-  const end = source.indexOf(endMarker, start + startMarker.length);
-  if (end < 0) throw new Error("Missing section marker: " + endMarker);
-  return source.slice(start + startMarker.length, end);
+  const lines = source.split(/\r?\n/u);
+  const start = lines.findIndex((line) => line.trim() === startMarker);
+  if (start < 0) throw new Error("Missing standalone section marker: " + startMarker);
+  const end = lines.findIndex((line, index) => index > start && line.trim() === endMarker);
+  if (end < 0) throw new Error("Missing standalone section marker: " + endMarker);
+  return lines.slice(start + 1, end).join("\n");
+}
+
+function sectionUntilNextHeading(source, marker) {
+  const lines = source.split(/\r?\n/u);
+  const start = lines.findIndex((line) => line.trim() === marker);
+  if (start < 0) throw new Error("Missing standalone section marker: " + marker);
+  let end = lines.findIndex((line, index) => index > start && /^#{1,2}\s/u.test(line));
+  if (end < 0) end = lines.length;
+  return lines.slice(start + 1, end).join("\n");
 }
 
 export function parseActiveTasks(source) {
   const active = sectionBetween(source, "# ACTIVE DISPATCH QUEUE", "# END ACTIVE DISPATCH QUEUE");
+  if (/^## .*NON-DISPATCHABLE/imu.test(active)) throw new Error("Non-dispatchable section appears inside active queue");
   const chunks = active.split(/(?=^### EXEC-[A-Z0-9-]+.*$)/gm).filter((chunk) => /^### EXEC-[A-Z0-9-]+/u.test(chunk));
   const tasks = chunks.map((chunk) => {
     const headingId = chunk.match(/^### (EXEC-[A-Z0-9-]+)/u)?.[1] ?? null;
@@ -47,7 +58,7 @@ export function buildDispatchPlan({ ledger, prompts, branch, head, gitStatus }) 
   const promptIds = parsePromptIds(prompts);
   const count = ledger.match(/\*\*ACTIVE TASK COUNT:\*\*\s*(\d+)/u)?.[1];
   const closed = new Set(
-    [...sectionBetween(ledger, "## CLOSED TASK REGISTER", "# ACTIVE DISPATCH QUEUE").matchAll(/\|?\s*(EXEC-[A-Z0-9-]+)\s*\|/gu)]
+    [...sectionUntilNextHeading(ledger, "## CLOSED TASK REGISTER").matchAll(/\|?\s*(EXEC-[A-Z0-9-]+)\s*\|/gu)]
       .map((match) => match[1]),
   );
 

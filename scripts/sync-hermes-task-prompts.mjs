@@ -55,7 +55,15 @@ let sections = promptSections(prompts);
 let sectionIds = sections.map((section) => section.id);
 if (new Set(sectionIds).size !== sectionIds.length) fail("DUPLICATE_HERMES_PROMPT_ID");
 const extra = sectionIds.filter((id) => !ids.includes(id));
-if (extra.length) fail("EXTRA_HERMES_PROMPTS " + extra.join(","));
+if (extra.length && !writeMode) fail("EXTRA_HERMES_PROMPTS " + extra.join(","));
+if (writeMode && extra.length) {
+  const staleSections = sections.filter((section) => extra.includes(section.id)).sort((left, right) => right.start - left.start);
+  for (const section of staleSections) {
+    prompts = prompts.slice(0, section.start) + prompts.slice(section.end);
+  }
+  sections = promptSections(prompts);
+  sectionIds = sections.map((section) => section.id);
+}
 
 if (writeMode) {
   for (let i = sections.length - 1; i >= 0; i--) {
