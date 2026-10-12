@@ -22,7 +22,8 @@ test('EXECUTION_CREDENTIAL_ISOLATION: execution write authority is bounded', () 
       assert.match(t, /scout\/discovery-\$GITHUB_RUN_ID/);
       assert.match(t, /الوكلاء\/التقارير\/AGENT-08 — Architecture Scout/);
       assert.match(t, /\.agent-intelligence\/snapshots/);
-      assert.match(t, /GITHUB_TOKEN:\s*\$\{\{\s*github\.token\s*\}\}/);\n      assert.doesNotMatch(t, /secrets\.(?:SUPABASE|TESTSPRITE)/i);
+      assert.match(t, /GITHUB_TOKEN:\s*\$\{\{\s*github\.token\s*\}\}/);
+      assert.doesNotMatch(t, /secrets\.(?:SUPABASE|TESTSPRITE)/i);
     }
     if (n === 'triage-and-clean.yml') { assert.match(t, /HEAD:execution/); assert.match(t, /git diff --name-only/); assert.match(t, /review-queue|graveyard|handoffs/); }
   }
