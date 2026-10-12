@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import "./verify-infinite-discovery.test.mjs";
 
 const scouts=[
   ".github/agents/flixo-scout-architecture.agent.md",
