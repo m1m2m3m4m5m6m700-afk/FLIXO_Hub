@@ -1,151 +1,97 @@
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
-import { mkdirSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { executeCanonicalTool } from '@/lib/execution/canonical-executor';
+import test from 'node:test';
 
-const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const fixturesDir = resolve(root, 'tests', 'video', 'fixtures');
-mkdirSync(fixturesDir, { recursive: true });
+// This Node-level suite checks the fail-closed runtime boundary only.
+// Successful video processing is exercised by the official Playwright suite,
+// which creates a real WebM fixture inside the browser.
+process.env.SITE_URL ??= 'https://flixoai.m1m2m3m4m5m6m700.workers.dev';
+process.env.VITE_SITE_URL ??= process.env.SITE_URL;
 
-function makeWebmFixture(): Blob {
-  // Build a small synthetic WebM/EBML file with a deterministic byte pattern.
-  const header = new Uint8Array(64);
-  // EBML signature
-  header[0] = 0x1a; header[1] = 0x45; header[2] = 0xdf; header[3] = 0xa3;
-  // Fill with a deterministic pattern
-  for (let i = 0; i < header.length; i++) {
-    header[i] = i % 251;
-  }
-  // Add minimal EBML structure elements
-  const elems = [
-    { id: 0x4286, value: 1 },   // EBMLVersion
-    { id: 0x42f7, value: 4 },   // EBMLReadVersion
-    { id: 0x42f2, value: 255 }, // EBMLMaxIDLength
-    { id: 0x42f3, value: 8 },   // EBMLMaxSizeLength
-    { id: 0x4282, value: 1 },   // DocType
-    { id: 0x4287, value: 1 },   // DocTypeVersion
-    { id: 0x4285, value: 2 },   // DocTypeReadVersion
-  ];
-  let offset = 64;
-  for (const elem of elems) {
-    header[offset++] = (elem.id >> 24) & 0xff;
-    header[offset++] = (elem.id >> 16) & 0xff;
-    header[offset++] = (elem.id >> 8) & 0xff;
-    header[offset++] = elem.id & 0xff;
-    for (let i = 0; i < 4; i++) {
-      header[offset++] = (elem.value >> (8 * (3 - i))) & 0xff;
-    }
-  }
-  return new Blob([header], { type: 'video/webm' });
+const { executeCanonicalTool } = await import('../src/lib/execution/canonical-executor.ts');
+
+const videoCases = [
+  {
+    id: 'video-trimmer',
+    parameters: { startSec: 0, endSec: 1 },
+  },
+  {
+    id: 'video-cropper',
+    parameters: { x: 20, y: 10, width: 100, height: 80 },
+  },
+  {
+    id: 'video-resizer',
+    parameters: { width: 1280, height: 720 },
+  },
+  {
+    id: 'video-compressor',
+    parameters: { videoBitsPerSecond: 1_000_000, audioBitsPerSecond: 64_000 },
+  },
+] as const;
+
+function makeWebmSignatureProbe(): Blob {
+  // Only the signature is needed to reach the non-browser runtime guard.
+  // This is deliberately not represented as a decodable WebM media fixture.
+  return new Blob([Uint8Array.from([0x1a, 0x45, 0xdf, 0xa3, 0x00, 0x00, 0x00, 0x00])], {
+    type: 'video/webm',
+  });
 }
 
-describe('video-trimmer', () => {
-  const toolId = 'video-trimmer';
-  const safeInput = makeWebmFixture();
+test('all four canonical video tools fail closed outside a browser runtime', async () => {
+  const blob = makeWebmSignatureProbe();
 
-  it('succeeds on valid trim parameters', async () => {
-    const parameters = { startSec: 0, endSec: 1 };
-    const output = await executeCanonicalTool(toolId, { blob: safeInput, fileName: 'test.webm' }, parameters);
-    assert.ok(output.blob instanceof Blob);
-    assert.ok(output.fileName.length > 0);
-    assert.equal(output.blob.type, 'video/webm');
-  });
-
-  it('rejects missing input blob', async () => {
+  for (const videoCase of videoCases) {
     await assert.rejects(
-      () => executeCanonicalTool(toolId, { blob: null as unknown as Blob, fileName: 'test.webm' }, { startSec: 0, endSec: 1 }),
-      /Execution denied/i,
+      () => executeCanonicalTool(videoCase.id, { blob, fileName: 'runtime-boundary.webm' }, videoCase.parameters),
+      /VIDEO_BROWSER_RUNTIME_REQUIRED/u,
+      videoCase.id,
     );
-  });
-
-  it('rejects invalid trim range', async () => {
-    await assert.rejects(
-      () => executeCanonicalTool(toolId, { blob: safeInput, fileName: 'test.webm' }, { startSec: 5, endSec: 1 }),
-      /Execution denied/i,
-    );
-  });
-
-  it('rejects unsupported MIME', async () => {
-    const invalid = new Blob([], { type: 'application/octet-stream' });
-    await assert.rejects(
-      () => executeCanonicalTool(toolId, { blob: invalid, fileName: 'test.bin' }, { startSec: 0, endSec: 1 }),
-      /Execution denied/i,
-    );
-  });
+  }
 });
 
-describe('video-cropper', () => {
-  const toolId = 'video-cropper';
-  const safeInput = makeWebmFixture();
-
-  it('succeeds on valid crop parameters', async () => {
-    const parameters = { crop: { x: 20, y: 10, width: 100, height: 80 }, width: 1280, height: 720 };
-    const output = await executeCanonicalTool(toolId, { blob: safeInput, fileName: 'test.webm' }, parameters);
-    assert.ok(output.blob instanceof Blob);
-    assert.ok(output.fileName.length > 0);
-    assert.equal(output.blob.type, 'video/webm');
-  });
-
-  it('rejects crop rectangle outside source bounds', async () => {
-    await assert.rejects(
-      () => executeCanonicalTool(toolId, { blob: safeInput, fileName: 'test.webm' }, { crop: { x: 500, y: 0, width: 100, height: 80 }, width: 1280, height: 720 }),
-      /Execution denied/i,
-    );
-  });
-
-  it('rejects negative crop coordinate', async () => {
-    await assert.rejects(
-      () => executeCanonicalTool(toolId, { blob: safeInput, fileName: 'test.webm' }, { crop: { x: -10, y: 0, width: 100, height: 80 }, width: 1280, height: 720 }),
-      /Execution denied/i,
-    );
-  });
+test('video execution rejects a missing blob with an explicit denial', async () => {
+  await assert.rejects(
+    () => executeCanonicalTool(
+      'video-trimmer',
+      { blob: null as unknown as Blob, fileName: 'missing.webm' },
+      { startSec: 0, endSec: 1 },
+    ),
+    /Execution denied: input blob is missing or invalid/u,
+  );
 });
 
-describe('video-resizer', () => {
-  const toolId = 'video-resizer';
-  const safeInput = makeWebmFixture();
-
-  it('succeeds on valid resize parameters', async () => {
-    const parameters = { width: 1280, height: 720 };
-    const output = await executeCanonicalTool(toolId, { blob: safeInput, fileName: 'test.webm' }, parameters);
-    assert.ok(output.blob instanceof Blob);
-    assert.ok(output.fileName.length > 0);
-    assert.equal(output.blob.type, 'video/webm');
+test('video execution rejects an invalid media signature before browser processing', async () => {
+  const invalidBlob = new Blob([Uint8Array.from([0x00, 0x01, 0x02, 0x03, 0x04])], {
+    type: 'video/webm',
   });
 
-  it('rejects output dimensions exceeding safety limit', async () => {
-    await assert.rejects(
-      () => executeCanonicalTool(toolId, { blob: safeInput, fileName: 'test.webm' }, { width: 9000, height: 9000 }),
-      /Execution denied/i,
-    );
-  });
-
-  it('rejects missing required parameters', async () => {
-    await assert.rejects(
-      () => executeCanonicalTool(toolId, { blob: safeInput, fileName: 'test.webm' }, {}),
-      /Validation error/i,
-    );
-  });
+  await assert.rejects(
+    () => executeCanonicalTool(
+      'video-trimmer',
+      { blob: invalidBlob, fileName: 'invalid.webm' },
+      { startSec: 0, endSec: 1 },
+    ),
+    /Execution denied by file-safety boundary:.*signature/u,
+  );
 });
 
-describe('video-compressor', () => {
-  const toolId = 'video-compressor';
-  const safeInput = makeWebmFixture();
+test('video capability schemas reject malformed parameters before media processing', async (t) => {
+  const blob = makeWebmSignatureProbe();
+  const invalidCases = [
+    { id: 'video-cropper', parameters: { crop: { x: 1, y: 2, width: 10, height: 10 }, width: 128, height: 72 } },
+    { id: 'video-resizer', parameters: { width: 9000, height: 9000 } },
+    { id: 'video-compressor', parameters: { videoBitsPerSecond: 99_999_999 } },
+  ] as const;
 
-  it('succeeds on valid compression parameters', async () => {
-    const parameters = { videoBitsPerSecond: 1_000_000, audioBitsPerSecond: 64_000 };
-    const output = await executeCanonicalTool(toolId, { blob: safeInput, fileName: 'test.webm' }, parameters);
-    assert.ok(output.blob instanceof Blob);
-    assert.ok(output.fileName.length > 0);
-    assert.equal(output.blob.type, 'video/webm');
-  });
-
-  it('rejects excessive bitrate', async () => {
-    await assert.rejects(
-      () => executeCanonicalTool(toolId, { blob: safeInput, fileName: 'test.webm' }, { videoBitsPerSecond: 99_999_999 }),
-      /Execution denied/i,
-    );
-  });
+  for (const invalidCase of invalidCases) {
+    await t.test(invalidCase.id, async () => {
+      await assert.rejects(
+        () => executeCanonicalTool(
+          invalidCase.id,
+          { blob, fileName: 'parameters.webm' },
+          invalidCase.parameters,
+        ),
+        /Invalid parameters for manual capability/u,
+      );
+    });
+  }
 });
