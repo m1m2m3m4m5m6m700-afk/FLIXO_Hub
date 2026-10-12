@@ -1,10 +1,14 @@
 # FLIXO Legal / External Launch Blockers
 
-These items require owner or external-account action and must not be represented as complete by repository automation.
+These items require owner, legal, or external-account evidence and must not be represented as complete by repository automation.
 
-## Repository code license
+## Code license and proposed network attribution
 
-No repository code license has been selected. Do not create or imply MIT, Apache-2.0, or another code license until the owner makes that decision.
+The repository's current code-license declaration is **AGPL-3.0-only**, as represented by `LICENSE`, `LICENSES/AGPL-3.0-only.txt`, `package.json`, and the SPDX headers. This records the current repository state; it does not replace owner/legal approval of the public-release licensing policy.
+
+Public-launch license approval: PENDING.
+
+The proposed network-facing requirement to display **"Powered by FLIXO Hub"** with a repository link remains a separate unresolved term. Do not assume it is automatically granted by AGPL-3.0-only or that it is legally compatible merely because it is described as a Section 7(b)-style term. Owner/legal review must approve the exact wording, scope, and treatment of third-party dependencies before release. Do not change the canonical license text or mark this blocker resolved without that review.
 
 ## Public support contact
 
@@ -16,8 +20,8 @@ GitHub private vulnerability reporting/security-advisory capability must be enab
 
 ## Search Console / analytics
 
-External ownership verification, Search Console registration, sitemap submission, analytics provider configuration and legal consent requirements must be completed in the relevant external accounts.
+External ownership verification, Search Console registration, sitemap submission, analytics provider configuration, and legal consent requirements must be completed in the relevant external accounts.
 
 ## Distribution accounts
 
-Product Hunt, Hacker News, Reddit, X, LinkedIn, YouTube and email delivery require account-level actions. Repository automation can prepare content and runbooks but cannot treat those external actions as completed without evidence.
+Product Hunt, Hacker News, Reddit, X, LinkedIn, YouTube, and email delivery require account-level actions. Repository automation can prepare content and runbooks but cannot treat those external actions as completed without evidence.
