@@ -23,11 +23,11 @@ jobs:
       VITE_RUNTIME_ORIGIN: http://127.0.0.1:3000
       VITE_TEST_ORIGIN: http://127.0.0.1:3000
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 1
-      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -48,7 +48,7 @@ jobs:
         run: npm run test:e2e -- --project=chromium tests/official/video-media-assurance.spec.ts
       - name: Upload exact video assurance evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: flixo-video-assurance-${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
           path: |
