@@ -50,12 +50,8 @@ function firstDiff(a, b) {
   return 'lengths differ: a=' + a.length + ' b=' + b.length;
 }
 
-function strip(s, n) {
-  return s.substring(0, n).replace(/\r/g, '');
-}
-
-export function sh(command, args = []) {
-  return execFileSync(command, args, { cwd: root, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 }).trim();
+export function sh(command, args = [], cwd = root) {
+  return execFileSync(command, args, { cwd, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 }).trim();
 }
 
 export function outputEvidenceStem(sha, variant) {
@@ -329,73 +325,92 @@ export function collectSemanticDiff(mainRef = 'refs/remotes/origin/main', execut
 }
 export function collectGitRefSnapshot(
   ref = process.env.GITHUB_REF === 'refs/heads/main' ? 'HEAD' : 'refs/remotes/origin/main',
+  workingDirectory = root,
 ) {
   try {
+    const git = args => sh('git', args, workingDirectory);
     let resolvedRef;
     try {
-      resolvedRef = sh('git', ['rev-parse', ref]);
+      resolvedRef = git(['rev-parse', ref]);
     } catch {
       const configuredMainSha = process.env.FLIXO_KNOWLEDGE_MAIN_SHA;
       if (configuredMainSha && /^[0-9a-f]{40}$/.test(configuredMainSha)) {
         resolvedRef = configuredMainSha;
       } else if (ref !== 'refs/heads/main') {
         try {
-          resolvedRef = sh('git', ['rev-parse', 'FETCH_HEAD']);
+          resolvedRef = git(['rev-parse', 'FETCH_HEAD']);
         } catch {
           if (process.env.GITHUB_REF === 'refs/heads/main') {
-            resolvedRef = sh('git', ['rev-parse', 'HEAD']);
+            resolvedRef = git(['rev-parse', 'HEAD']);
           } else {
-            resolvedRef = sh('git', ['rev-parse', 'refs/heads/main']);
+            resolvedRef = git(['rev-parse', 'refs/heads/main']);
           }
         }
       } else {
         throw new Error('main branch reference is unavailable');
       }
     }
-    // Batched git snapshot: single ls-tree (paths) + single ls-files (sizes) +
-    // one grep -n piped through awk. Replaces ~1,476 per-file `git show`
-    // spawns (measured ~28s) with a ~2s equivalent.
-    const trackedPaths = sh('git', ['ls-tree', '-r', '-z', '--name-only', resolvedRef]).split('\0').filter(Boolean);
+    // Read metadata from the resolved Git tree, then stream blob contents in one cat-file batch.
+    // Every metric stays bound to resolvedRef rather than the mutable working index.
+    const treeOutput = execFileSync('git', ['ls-tree', '-r', '-l', '-z', resolvedRef], {
+      cwd: workingDirectory, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024,
+    });
+    const treeEntries = treeOutput.split('\0').filter(Boolean).map(record => {
+      const tab = record.indexOf('\t');
+      if (tab < 0) throw new Error('invalid git ls-tree record');
+      const metadata = record.slice(0, tab).split(/\s+/);
+      const [mode, type, objectSha, sizeText] = metadata;
+      return { mode, type, objectSha, size: /^\d+$/.test(sizeText || '') ? Number(sizeText) : null };
+    });
+    const blobEntries = treeEntries.filter(entry => entry.type === 'blob');
+    const blobInput = blobEntries.map(entry => entry.objectSha).join('\n') + (blobEntries.length ? '\n' : '');
+    const batchOutput = blobEntries.length
+      ? execFileSync('git', ['cat-file', '--batch'], {
+          cwd: workingDirectory, input: Buffer.from(blobInput, 'utf8'), maxBuffer: 256 * 1024 * 1024,
+        })
+      : Buffer.alloc(0);
+    let outputOffset = 0;
     let bytes = 0;
-    let emptyFiles = 0;
-    for (const line of sh('git', ['ls-files', '-s']).split('\n').filter(Boolean)) {
-      const tab = line.indexOf('\t');
-      if (tab < 0) continue;
-      const head = line.slice(0, tab).trim().split(/\s+/);
-      if (head.length < 3) continue;
-      const size = Number(head[2]);
-      const path = line.slice(tab + 1);
-      bytes += size;
-      if (size === 0) emptyFiles++;
-    }
-    const grepScript = `
-      git grep -I -n "" ${resolvedRef} -- . |
-      awk -F: '{
-        if ($2 + 0 > lines[$1] + 0) lines[$1] = $2 + 0;
-        files[$1] = 1;
+    let textFiles = 0;
+    let binaryFiles = treeEntries.length - blobEntries.length;
+    let textLines = 0;
+    for (const entry of blobEntries) {
+      const headerEnd = batchOutput.indexOf(0x0a, outputOffset);
+      if (headerEnd < 0) throw new Error('git cat-file batch header missing');
+      const header = batchOutput.subarray(outputOffset, headerEnd).toString('utf8').split(' ');
+      const reportedSha = header[0];
+      const reportedType = header[1];
+      const contentSize = Number(header[2]);
+      if (reportedSha !== entry.objectSha || reportedType !== 'blob' || !Number.isSafeInteger(contentSize) || contentSize < 0) {
+        throw new Error('git cat-file batch response does not match tree object');
       }
-      END {
-        n = 0;
-        for (k in files) n++;
-        t = 0;
-        for (k in lines) t += lines[k];
-        print "TOTAL_LINES=" t;
-        print "TOTAL_FILES=" n;
-      }'
-    `;
-    const grepSummary = sh('sh', ['-c', grepScript]).trim().split('\n').map(line => Number(line.split('=')[1]));
-    const resolvedTextLines = grepSummary[0] ?? 0;
-    const textFilesWithLines = grepSummary[1] ?? 0;
-    const trackedFiles = trackedPaths.length;
-    const computedBinaryFiles = trackedFiles - textFilesWithLines - emptyFiles;
+      const contentStart = headerEnd + 1;
+      const contentEnd = contentStart + contentSize;
+      if (contentEnd >= batchOutput.length || batchOutput[contentEnd] !== 0x0a) {
+        throw new Error('git cat-file batch content length mismatch');
+      }
+      const content = batchOutput.subarray(contentStart, contentEnd);
+      if (entry.size !== null && entry.size !== contentSize) throw new Error('git tree object size mismatch');
+      bytes += contentSize;
+      if (!looksText(content)) {
+        binaryFiles++;
+      } else {
+        textFiles++;
+        const normalized = content.toString('utf8').replace(/\r\n/g, '\n');
+        textLines += normalized === '' ? 0 : (normalized.endsWith('\n') ? normalized.slice(0, -1).split('\n').length : normalized.split('\n').length);
+      }
+      outputOffset = contentEnd + 1;
+    }
+    const trackedFiles = treeEntries.length;
+    if (textFiles + binaryFiles !== trackedFiles) throw new Error('Git snapshot file accounting mismatch');
     return {
       ref,
       resolvedRef,
       sha: resolvedRef,
       trackedFiles,
-      textFiles: textFilesWithLines + emptyFiles,
-      binaryFiles: computedBinaryFiles,
-      textLines: resolvedTextLines,
+      textFiles,
+      binaryFiles,
+      textLines,
       bytes,
       readable: true,
     };
@@ -776,7 +791,7 @@ export function collect() {
     throw err;
   }
 
-  const outputStem = outputEvidenceStem(sha);
+
   const taskFindings = [];
   for (const entry of model.sourceEntries) {
     const sourceLines = readFileSync(join(root, entry.path), 'utf8').replace(/\r\n/g, '\n').split('\n');
