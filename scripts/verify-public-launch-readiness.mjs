@@ -34,8 +34,8 @@ if (!/Status: NOT CERTIFIED/.test(certificate)) {
   console.error('[launch-readiness] BLOCKED: certificate template state is invalid.');
   process.exit(1);
 }
-if (!/No repository code license has been selected/.test(blockers)) {
-  console.error('[launch-readiness] BLOCKED: legal blocker ledger changed unexpectedly.');
+if (!/Public-launch license approval: PENDING/.test(blockers)) {
+  console.error('[launch-readiness] BLOCKED: owner/legal license approval must remain explicit until resolved.');
   process.exit(1);
 }
 
