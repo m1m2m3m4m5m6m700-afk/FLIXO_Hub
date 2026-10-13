@@ -335,6 +335,11 @@ jobs:
             files="$(git diff --name-only "${{ github.event.pull_request.base.sha }}" "$EXPECTED_SHA")"
           elif [ "$GITHUB_EVENT_NAME" = "merge_group" ]; then
             files="$(git diff --name-only HEAD^ HEAD)"
+          elif [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            git fetch --no-tags origin refs/heads/execution:refs/remotes/origin/execution
+            base="$(git merge-base origin/execution "$EXPECTED_SHA")"
+            test -n "$base"
+            files="$(git diff --name-only "$base" "$EXPECTED_SHA")"
           elif [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
             files="$(git diff-tree --root --name-only -r "$EXPECTED_SHA")"
           else

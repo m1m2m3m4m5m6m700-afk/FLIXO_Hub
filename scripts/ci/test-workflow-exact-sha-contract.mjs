@@ -249,3 +249,15 @@ test('specialized execution gates are path-gated and TestSprite concurrency is c
   assert.match(scout, /paths:\s*\r?\n(?:\s+- .+\r?\n){4,}/u);
   assert.match(discovery, /paths:\s*\r?\n(?:\s+- .+\r?\n){4,}/u);
 });
+
+test('workflow_dispatch sensitive-path classification uses a real execution merge base', async () => {
+  const workflow = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
+  const start = workflow.indexOf('      - name: Classify changed paths');
+  const end = workflow.indexOf('      - name: Ordinary path fast path', start);
+  assert.ok(start >= 0 && end > start, 'sensitive-path classifier block must exist');
+  const classifier = workflow.slice(start, end);
+  assert.ok(classifier.includes('elif [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ];'));
+  assert.ok(classifier.includes('git fetch --no-tags origin refs/heads/execution:refs/remotes/origin/execution'));
+  assert.ok(classifier.includes('base="$(git merge-base origin/execution "$EXPECTED_SHA")"'));
+  assert.ok(classifier.includes('files="$(git diff --name-only "$base" "$EXPECTED_SHA")"'));
+});

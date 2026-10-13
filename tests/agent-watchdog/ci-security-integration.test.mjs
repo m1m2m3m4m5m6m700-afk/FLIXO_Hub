@@ -62,7 +62,10 @@ test('SECRET_ISOLATION_AND_REGRESSION: provider secrets stay off generic executi
   const p = read('patch-capsule-controller.yml');
   assert.match(p, /ref: main/u);
   assert.match(p, /FLIXO_TARGET_BRANCH: execution/u);
-  assert.match(p, /secrets\.GITHUB_TOKEN/u);
+  assert.doesNotMatch(p, /secrets\.GITHUB_TOKEN/u);
+  assert.equal((p.match(/GITHUB_TOKEN:\s*\$\{\{\s*github\.token\s*\}\}/gu) || []).length, 2);
+  assert.match(p, /permissions:\s*\r?\n\s*contents:\s*read/u);
+  assert.match(p, /reconcile-and-publish:[\s\S]*?permissions:\s*\r?\n\s*contents:\s*write/u);
   assert.match(p, /secrets\.SUPABASE_URL/u);
   assert.doesNotMatch(p, /push:\s*[\s\S]{0,160}?branches:\s*\[?execution\]?/u);
 });
