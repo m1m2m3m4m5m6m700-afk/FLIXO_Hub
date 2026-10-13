@@ -11,7 +11,7 @@ for (let i = activeStart + 1; i < activeEnd; i++) {
     const id = lines[i].match(/^### (EXEC-[A-Z0-9-]+)/)?.[1] ?? '?';
     const status = lines[i].match(/\*\*STATUS:\*\* (\w+)/)?.[1] ?? '?';
     const type = lines[i].match(/\*\*TYPE:\*\* (\w+)/)?.[1] ?? '?';
-    const title = lines[i].replace(/^### [^\-]+ — /, '').replace(/\s*$/, '');
+    const title = lines[i].replace(/^### EXEC-[A-Z0-9-]+ ? /u, '').trim();
     console.log(id + '|' + type + '|' + status + '|' + title);
   }
 }
