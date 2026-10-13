@@ -1,6 +1,6 @@
 # FLIXO Hub
 
-[![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![License: AGPL-3.0-only](https://img.shields.io/badge/License-AGPL--3.0--only-blue.svg)](LICENSE)
 
 FLIXO Hub is an open-source, browser-first AI toolbox and governed developer platform for privacy-preserving local workflows, deterministic file processing, and autonomous multi-agent development control.
 
