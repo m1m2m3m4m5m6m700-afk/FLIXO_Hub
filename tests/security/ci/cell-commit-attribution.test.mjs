@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import test from "node:test";
 import {
   isCellAttributionPath,
@@ -58,4 +59,19 @@ test("classifies only canonical CELL surfaces", () => {
   assert.equal(isCellAttributionPath("docs/CELL-HARD-CONTROL-CONTRACT.md"), true);
   assert.equal(isCellAttributionPath(".github/workflows/agent-watchdog.yml"), false);
   assert.equal(isCellAttributionPath("scripts/agent-learning/parser.mjs"), false);
+});
+
+test("CLI entrypoint executes when launched with a relative path", () => {
+  const sha = "a".repeat(40);
+  const output = execFileSync(process.execPath, ["scripts/ci/cell-commit-attribution.mjs"], {
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      CELL_ATTRIBUTION_BASE_SHA: sha,
+      CELL_ATTRIBUTION_HEAD_SHA: sha,
+    },
+  });
+  assert.match(output, /CELL_COMMIT_ATTRIBUTION=PASS/u);
+  assert.match(output, new RegExp("BASELINE_SHA=" + sha));
+  assert.match(output, new RegExp("HEAD_SHA=" + sha));
 });

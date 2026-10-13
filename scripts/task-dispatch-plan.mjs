@@ -1,7 +1,8 @@
 ﻿import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
-const LEDGER = "\u0627\u0644\u0645\u0647\u0627\u0645.md";
+export const CANONICAL_LEDGER_PATH = "\u0627\u0644\u0645\u0647\u0627\u0645.md";
+const LEDGER = CANONICAL_LEDGER_PATH;
 const PROMPTS = "مهام هيرميس.md";
 
 function sectionBetween(source, startMarker, endMarker) {

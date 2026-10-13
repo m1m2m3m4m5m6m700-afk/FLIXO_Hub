@@ -1,8 +1,9 @@
 import { readFileSync, writeFileSync, readdirSync } from "node:fs";
-import { parseActiveTasks, parsePromptIds } from "./task-dispatch-plan.mjs";
+import { CANONICAL_LEDGER_PATH, parseActiveTasks, parsePromptIds } from "./task-dispatch-plan.mjs";
 
-const ledgerPath = readdirSync(".").find((name) => name.endsWith(".md") && name !== "FLIXO-Tasks.md" && readFileSync(name, "utf8").includes("Canonical Agent Task Ledger"));
-const promptsPath = readdirSync(".").find((name) => name.endsWith(".md") && readFileSync(name, "utf8").includes("Hermes Execution Prompt Queue"));
+const ledgerPath = CANONICAL_LEDGER_PATH;
+const promptCandidates = readdirSync(".").filter((name) => name.endsWith(".md") && readFileSync(name, "utf8").includes("Hermes Execution Prompt Queue"));
+const promptsPath = promptCandidates.length === 1 ? promptCandidates[0] : null;
 const fields = ["TASK_ID", "TYPE", "PRIORITY", "OWNER", "STATUS", "PR", "SCOPE", "DEPENDS_ON", "SOURCE", "EVIDENCE", "ACCEPTANCE", "NEXT_ACTION", "COLLISION_KEY"];
 const writeMode = process.argv.includes("--write");
 const fail = (message) => { console.error("HERMES_PROMPT_SYNC=FAIL " + message); process.exit(1); };
