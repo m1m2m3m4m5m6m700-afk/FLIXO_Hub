@@ -23,6 +23,8 @@ test('EXECUTION_CREDENTIAL_ISOLATION: execution write authority is bounded', () 
       assert.match(t, /الوكلاء\/التقارير\/AGENT-08 — Architecture Scout/);
       assert.match(t, /\.agent-intelligence\/snapshots/);
       assert.doesNotMatch(t, /secrets\.[A-Z0-9_]+/);
+      assert.match(t, /GITHUB_TOKEN:.*github\.token/);
+      assert.match(t, /GH_TOKEN:.*github\.token/);
     }
     if (n === 'triage-and-clean.yml') { assert.match(t, /HEAD:execution/); assert.match(t, /git diff --name-only/); assert.match(t, /review-queue|graveyard|handoffs/); }
   }
@@ -113,6 +115,10 @@ test('RUNNER_WATCHDOG_CONTRACT: current watchdog surfaces are present after inte
 test('NO_SECOND_AUTHORITY_AND_CODEOWNERS: canonical authority is not redefined', () => {
   const legacyCell = path.join(ROOT, 'src', 'lib', 'cell');
   assert.equal(fs.existsSync(legacyCell), false, 'legacy CELL implementation must stay retired');
+  const canonicalExecutor = fs.readFileSync(path.join(ROOT, 'src', 'lib', 'execution', 'canonical-executor.ts'), 'utf8');
+  const guardrailBarrel = fs.readFileSync(path.join(ROOT, 'src', 'lib', 'execution', 'guardrails', 'index.ts'), 'utf8');
+  assert.match(canonicalExecutor, /guardrails\/index\.ts/);
+  assert.doesNotMatch(guardrailBarrel, /\b(?:attenuateAuthority|canDelegate|canTransition|transitionCell)\b/);
   for (const r of [path.join(ROOT, 'watchdog')]) if (fs.existsSync(r)) for (const x of fs.readdirSync(r, { recursive: true }).map(String).filter((x) => /\.(?:mjs|js|ts)$/i.test(x))) {
     const t = fs.readFileSync(path.join(r, x), 'utf8');
     assert.doesNotMatch(t, /\b(?:TOOL_REGISTRY|TOOL_CATALOG|executeCanonicalTool)\b/);
