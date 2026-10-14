@@ -37,6 +37,19 @@ const required = new Set(manifest.required_fields ?? []);
 const statuses = new Set(manifest.review_status_values ?? []);
 const seen = new Set();
 
+function isValidCalendarDate(value) {
+  if (typeof value !== 'string') return false;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/u.exec(value);
+  if (!match) return false;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (year < 1 || month < 1 || month > 12 || day < 1) return false;
+  const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const daysInMonth = [31, leapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  return day <= daysInMonth[month - 1];
+}
+
 for (const [index, entry] of manifest.entries.entries()) {
   if (!entry || typeof entry !== 'object') { fail(`entry[${index}] is not an object.`); continue; }
   for (const field of required) {
@@ -45,9 +58,7 @@ for (const [index, entry] of manifest.entries.entries()) {
   if (typeof entry.model !== 'string' || !entry.model.trim()) fail(`entry[${index}] model is empty.`);
   if (typeof entry.source !== 'string' || !/^https:\/\//u.test(entry.source)) fail(`entry[${index}] source must be HTTPS.`);
   if (typeof entry.license_file !== 'string' || !entry.license_file.trim()) fail(`entry[${index}] license_file is empty.`);
-  if (typeof entry.download_date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/u.test(entry.download_date)) fail(`entry[${index}] download_date must be YYYY-MM-DD.`);
-  const downloadDateTs = Date.parse(entry.download_date);
-  if (Number.isNaN(downloadDateTs)) fail(`entry[${index}] download_date is not a valid calendar date.`);
+  if (!isValidCalendarDate(entry.download_date)) fail(`entry[${index}] download_date must be a real calendar date in YYYY-MM-DD format.`);
   const approvedLicenses = new Set(policy.license_classes.approved_for_initial_review);
   const prohibitedLicenses = new Set(policy.license_classes.prohibited_by_default);
   if (prohibitedLicenses.has(entry.license)) fail(`entry[${index}] uses a prohibited license class.`);
