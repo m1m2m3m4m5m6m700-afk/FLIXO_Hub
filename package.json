@@ -93,9 +93,10 @@
     "eslint-config-prettier": "^10.1.1",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.3",
+    "gitleaks": "^1.0.0",
     "globals": "^15.15.0",
-    "typescript-eslint": "^8.56.1",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.56.1"
   },
   "workspaces": [
     "packages/contracts"
