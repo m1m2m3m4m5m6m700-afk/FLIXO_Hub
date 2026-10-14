@@ -18,6 +18,8 @@ const getImageAccessibilityIssues = (
   return img.hasAttribute('alt') ? [] : ['visible image missing alt'];
 };
 const sharedPhrases = new Set(['FLIXO AI Tools', 'FLIXO Hub', 'FLIXO home']);
+// This exact visible attribution is mandated by ADDITIONAL-TERMS.md and must stay untranslated.
+const legallyRequiredFixedEnglishPhrases = new Set(['Powered by FLIXO Hub']);
 
 const technicalCapabilityPhrase = /^(?:WebGPU|WASM|CPU)(?:\s+(?:WebGPU|WASM|CPU))*$/u;
 const technicalCodecPhrase = /^(?:WebP|JPG|PNG|JPEG|GIF|SVG)(?:\s+(?:WebP|JPG|PNG|JPEG|GIF|SVG))*$/u;
@@ -31,7 +33,7 @@ const technicalHexColor = /^#[0-9A-Fa-f]{3,8}$/u;
 const normalize = (value: string | null | undefined) => (value ?? '').replace(/\s+/gu, ' ').trim();
 const sharedOnly = (value: string) => {
   const normalized = normalize(value);
-  if (sharedPhrases.has(normalized) || technicalCapabilityPhrase.test(normalized) || technicalCodecPhrase.test(normalized) || technicalHashPhrase.test(normalized) || technicalRatioValue.test(normalized) || technicalRatioList.test(normalized) || technicalCaseNames.has(normalized) || technicalCaseList.test(normalized) || technicalHexColor.test(normalized)) return true;
+  if (legallyRequiredFixedEnglishPhrases.has(normalized) || sharedPhrases.has(normalized) || technicalCapabilityPhrase.test(normalized) || technicalCodecPhrase.test(normalized) || technicalHashPhrase.test(normalized) || technicalRatioValue.test(normalized) || technicalRatioList.test(normalized) || technicalCaseNames.has(normalized) || technicalCaseList.test(normalized) || technicalHexColor.test(normalized)) return true;
   return normalized.split(/\s+/u).filter(Boolean).every((word) => sharedTerms.has(word.replace(/[^\p{L}\p{N}]+/gu, '')));
 };
 
