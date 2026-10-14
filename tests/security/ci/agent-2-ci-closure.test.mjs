@@ -102,6 +102,16 @@ test('CI promotion workflow contains live lineage and exact security-gate semant
   assert.ok(workflow.includes('test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"'));
 });
 
+test('strict release verification requires an admitted model before trust and promotion', async () => {
+  const workflow = await readFile(path.join(ROOT, '.github/workflows/ci.yml'), 'utf8');
+  assert.match(workflow, /^  model-admission:\r?\n/mu);
+  assert.ok(workflow.includes('node scripts/model-license-gate.mjs --require-entry'));
+  assert.ok(workflow.includes('needs: [verify, hub-stage1, browser, branch-policy, coverage, red-team, codeql, secret-scan, agent-watchdog, sensitive-path-gate, model-admission]'));
+  assert.ok(workflow.includes('MODEL_ADMISSION_RESULT: ${{ needs.model-admission.result }}'));
+  assert.ok(workflow.includes('test "$MODEL_ADMISSION_RESULT" = success'));
+  assert.match(workflow, /MODEL_ADMISSION_REQUIRED:.*inputs\.strict_governance == true/u);
+});
+
 test('execution TestSprite lane is unprivileged and exact-SHA', async () => {
   const workflow = await readFile(path.join(ROOT, '.github/workflows/testsprite-execution.yml'), 'utf8');
   assert.doesNotMatch(workflow, /TESTSPRITE_API_KEY|TESTSPRITE_PROJECT_ID|\$\{\{\s*secrets\./u);
