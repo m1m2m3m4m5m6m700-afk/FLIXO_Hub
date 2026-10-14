@@ -46,7 +46,9 @@ test("real canonical ledger and Hermes prompt IDs match exactly", () => {
   const parsed = parseActiveTasks(ledger);
   const ids = parsed.tasks.map((task) => task.id);
   const promptIds = parsePromptIds(prompts);
-  assert.equal(ids.length, 36);
+  const declaredCount = ledger.match(/\*\*ACTIVE TASK COUNT:\*\*\s*(\d+)/u)?.[1];
+  assert.ok(declaredCount, "canonical ledger must declare ACTIVE TASK COUNT");
+  assert.equal(Number(declaredCount), ids.length);
   assert.equal(promptIds.length, ids.length);
   assert.equal(new Set(ids).size, ids.length);
   assert.deepEqual([...promptIds].sort(), [...ids].sort());
@@ -119,5 +121,22 @@ test("overlapping path scopes block concurrent dispatch even with different coll
 test("Hermes prompt task-card fields are synchronized to the canonical ledger", () => {
   const result = execFileSync(process.execPath, ["scripts/sync-hermes-task-prompts.mjs"], { encoding: "utf8" });
   assert.match(result, /HERMES_PROMPT_SYNC=PASS/u);
-  assert.match(result, /TASKS=36/u);
+  const taskCount = parseActiveTasks(readFileSync(ledgerPath, "utf8")).tasks.length;
+  assert.ok(result.includes("TASKS=" + taskCount));
+});
+
+
+test("active queue parser ignores marker text mentioned in policy prose", () => {
+  const ledger = [
+    "## CLOSED TASK REGISTER",
+    "| TASK_ID | CLOSE_REF | COMMIT_SHA | CLOSED_UTC |",
+    "## HERMES EXECUTION CONTRACT",
+    "- The literal text `# ACTIVE DISPATCH QUEUE` may be discussed here.",
+    card("EXEC-DECOY-001"),
+    "# ACTIVE DISPATCH QUEUE",
+    "**ACTIVE TASK COUNT:** 1",
+    card("EXEC-REAL-001"),
+    "# END ACTIVE DISPATCH QUEUE",
+  ].join("\n");
+  assert.deepEqual(parseActiveTasks(ledger).tasks.map((task) => task.id), ["EXEC-REAL-001"]);
 });

@@ -85,7 +85,7 @@ test('execution-only assurance lanes deduplicate by branch while promotion lanes
 test('canonical CI verifies execution pushes and the canonical execution-to-main promotion PR', async () => {
   const workflow = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
   assert.match(workflow, /push:\s*\n\s*branches:\s*\[main, execution\]/u);
-  assert.match(workflow, /pull_request:\s*\n\s*branches:\s*\[main\]/u);
+  assert.match(workflow, /pull_request:\s*\n\s*branches:\s*\[main, execution\]/u);
   assert.match(workflow, /startsWith\(github\.event\.pull_request\.head\.ref, 'chore\/oss-'\)/u);
   assert.match(workflow, /github\.event\.pull_request\.head\.repo\.full_name == github\.repository/u);
 });
@@ -101,7 +101,7 @@ test('canonical CI consumes security assurance as reusable jobs', async () => {
 });
 
 test('OSS readiness PRs run verification while promotion proof remains execution-only', async () => {
-  const ossPrGate = "if: ${{ github.event_name != 'pull_request' || ((github.event.pull_request.head.ref == 'execution' || startsWith(github.event.pull_request.head.ref, 'chore/oss-')) && github.event.pull_request.head.repo.full_name == github.repository) }}";
+  const ossPrGate = "if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && (github.event.pull_request.base.ref == 'execution' || github.event.pull_request.head.ref == 'execution' || startsWith(github.event.pull_request.head.ref, 'chore/oss-'))) }}";
 
   for (const path of [
     '.github/workflows/ci.yml',

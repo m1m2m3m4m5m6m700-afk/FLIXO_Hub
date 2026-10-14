@@ -111,6 +111,37 @@ test('scanner exposes a read-only main branch snapshot', () => {
   assert.ok(snapshot.textFiles > 0);
 });
 
+test('Git ref snapshot metrics come from the target tree and count text, binary, empty, and CRLF files', async () => {
+  const { mkdtempSync, rmSync, writeFileSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const dir = mkdtempSync(join(tmpdir(), 'flixo-git-snapshot-'));
+  try {
+    const git = args => execFileSync('git', args, { cwd: dir, encoding: 'utf8', stdio: 'pipe' });
+    git(['init', '-b', 'main']);
+    git(['config', 'user.name', 'Snapshot Test']);
+    git(['config', 'user.email', 'snapshot-test@example.invalid']);
+    git(['config', 'core.autocrlf', 'false']);
+    writeFileSync(join(dir, 'text.txt'), 'alpha\n\nbeta\n', 'utf8');
+    writeFileSync(join(dir, 'empty.txt'), Buffer.alloc(0));
+    writeFileSync(join(dir, 'binary.bin'), Buffer.from([0, 1, 2, 255]));
+    writeFileSync(join(dir, 'invalid-utf8.bin'), Buffer.from([0xc3, 0x28]));
+    writeFileSync(join(dir, 'crlf.txt'), Buffer.from([65, 13, 10, 66, 13, 10]));
+    git(['add', '--all']);
+    git(['commit', '-m', 'snapshot fixture']);
+    writeFileSync(join(dir, 'text.txt'), 'uncommitted working-tree content differs from HEAD', 'utf8');
+    const snapshot = collectGitRefSnapshot('HEAD', dir);
+    assert.equal(snapshot.readable, true, snapshot.error);
+    assert.equal(snapshot.trackedFiles, 5);
+    assert.equal(snapshot.textFiles, 3);
+    assert.equal(snapshot.binaryFiles, 2);
+    assert.equal(snapshot.textLines, 5);
+    assert.equal(snapshot.bytes, 24);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('AST analysis exposes declarations, calls, and control-flow without regex-only parsing', () => {
   const facts = extractAstFacts('src/sample.ts', [
     'export function run(input: string) {',

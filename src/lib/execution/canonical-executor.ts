@@ -103,6 +103,9 @@ async function preflightInput(
   signal?: AbortSignal,
 ): Promise<void> {
   assertNotAborted(signal);
+  if (!input || !(input.blob instanceof Blob)) {
+    throw new Error('Execution denied: input blob is missing or invalid.');
+  }
   const tool = getToolById(toolId);
   if (!tool) throw new Error('Execution denied: unknown canonical tool.');
   if (input.blob.size <= 0 || input.blob.size > maxBytes) {

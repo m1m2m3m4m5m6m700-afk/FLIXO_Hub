@@ -13,7 +13,8 @@ test('controller publication contract is execution-only, non-force, and controll
   assert.ok(!script.includes('--force-with-lease'));
   assert.ok(!script.includes("['--force'"));
   assert.ok(!script.includes('refs/heads/main'));
-  assert.ok(script.includes("git', ['push', '--porcelain', 'origin'"));
+  assert.ok(script.includes("const CANONICAL_GIT_REMOTE = 'https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub.git'"));
+  assert.ok(script.includes("git', ['push', '--porcelain', CANONICAL_GIT_REMOTE"));
   assert.ok(script.includes("git(['rev-parse', 'HEAD^']"));
   assert.ok(script.includes("function createCandidateCommit"));
   assert.ok(script.includes("p_reconciled_candidate_sha: candidateSha"));
@@ -21,7 +22,8 @@ test('controller publication contract is execution-only, non-force, and controll
   assert.ok(script.includes("flix_controller_push_queue_controller_decide"));
   assert.ok(script.includes("ALREADY_PUBLISHED_RECOVERY"));
   assert.ok(workflow.includes('contents: write'));
-  assert.ok(workflow.includes('ref: execution'));
+  assert.ok(workflow.includes('ref: main'), 'controller code must be checked out from trusted main');
+  assert.ok(workflow.includes('FLIXO_TARGET_BRANCH: execution'), 'publication target must remain execution-only');
   assert.ok(!workflow.includes('create_branch'));
   assert.ok(!workflow.includes('git switch -c'));
   assert.ok(!workflow.includes('git checkout -b'));

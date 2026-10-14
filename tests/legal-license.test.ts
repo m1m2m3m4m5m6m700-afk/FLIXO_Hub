@@ -24,3 +24,12 @@ test('REUSE license text is byte-identical to LICENSE', () => {
     readFileSync('LICENSE'),
   );
 });
+
+test('README badge and package metadata agree with the committed AGPL license', () => {
+  const packageJson = JSON.parse(readFileSync('package.json', 'utf8'));
+  const readme = readFileSync('README.md', 'utf8');
+
+  assert.equal(packageJson.license, 'AGPL-3.0-only');
+  assert.match(readme, /\[!\[License: AGPL-3\.0-only\]/u);
+  assert.doesNotMatch(readme, /License: Apache-2\.0/u);
+});

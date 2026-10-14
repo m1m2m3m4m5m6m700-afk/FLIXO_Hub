@@ -30,9 +30,10 @@ test("supporting explorer-2 is explicit and excluded from the ten", () => {
 test("registration layer exactly matches canonical profiles", () => {
   const r = loadRegistry();
   const expected = [...r.agents, ...r.supportingRoles].map(a => a.profile.split("/").pop()).sort();
-  const legacyAliases = new Set(["FLIXO-Developer-AI.md", "FLIXO-Explorer-2.md", "FLIXO-Explorer-AI.md"]);
-  const actual = readdirSync(".github/agents").filter(name => name.endsWith(".md") && !legacyAliases.has(name)).sort();
-  assert.deepEqual(actual, expected);
+  const actual = readdirSync(".github/agents").filter(name => name.endsWith(".md")).sort();
+  assert.deepEqual(actual, expected, "only registry-listed profiles may be active");
+  const archivedAliases = readdirSync("docs/archive/agent-profile-aliases").filter(name => name.endsWith(".md") && name !== "README.md").sort();
+  assert.deepEqual(archivedAliases, ["FLIXO-Developer-AI.md", "FLIXO-Explorer-2.md", "FLIXO-Explorer-AI.md"]);
 });
 test("every registered profile points to the canonical file", () => {
   const r = loadRegistry();

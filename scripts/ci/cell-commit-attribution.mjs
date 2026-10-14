@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 export const CELL_ATTRIBUTION_PATH_PATTERNS = Object.freeze([
   /^packages\/contracts\/src\/cell[^/]*\.(?:ts|tsx)$/u,
@@ -70,14 +72,14 @@ function main() {
   const base = process.env.CELL_ATTRIBUTION_BASE_SHA ?? baseline;
   if (!base) throw new Error("ATTRIBUTION_BASELINE_MISSING");
   const result = validateCommitRecords(commitRecordsBetween(base, head), taskIdsFromLedger(ledger));
+  console.log("BASELINE_SHA=" + base);
+  console.log("HEAD_SHA=" + head);
   if (!result.pass) {
     console.error("CELL_COMMIT_ATTRIBUTION=FAIL");
     for (const failure of result.failures) console.error(failure);
     process.exit(1);
   }
   console.log("CELL_COMMIT_ATTRIBUTION=PASS");
-  console.log("BASELINE_SHA=" + base);
-  console.log("HEAD_SHA=" + head);
 }
 
-if (process.argv[1] && new URL(import.meta.url).pathname.endsWith(process.argv[1].replaceAll("\\", "/"))) main();
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main();

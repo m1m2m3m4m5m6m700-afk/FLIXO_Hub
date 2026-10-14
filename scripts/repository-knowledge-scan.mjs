@@ -11,6 +11,14 @@ import ts from 'typescript';
 const root = process.cwd();
 const REPORT_DIR = 'الوكلاء AI/المستكشف AI/تقارير المستكشف';
 const MODEL_VERSION = 'flixo-world-model-v1';
+
+/**
+ * Evidence filename stem for the current run. Immutable evidence is identity-keyed
+ * by SHA; the fast batched algorithm must never overwrite a previously produced
+ * snapshot, so a run flagged with --variant stores the new evidence under a
+ * <sha>-<variant>.stem. Without --variant the scanner keeps the original contract:
+ * one identity-keyed file per SHA.
+ */
 function stableGeneratedAt(worldModelPath) {
   if (!existsSync(worldModelPath)) return new Date().toISOString();
   const existing = JSON.parse(readFileSync(worldModelPath, 'utf8'));
@@ -18,8 +26,36 @@ function stableGeneratedAt(worldModelPath) {
   return existing.generated_at;
 }
 
-export function sh(command, args = []) {
-  return execFileSync(command, args, { cwd: root, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 }).trim();
+function extractField(jsonString, field) {
+  const key = JSON.stringify(field) + ':';
+  const idx = jsonString.indexOf(key);
+  if (idx === -1) return undefined;
+  let i = idx + key.length;
+  let depth = 1;
+  while (i < jsonString.length && depth > 0) {
+    if (jsonString[i] === '{') depth++;
+    else if (jsonString[i] === '}') depth--;
+    i++;
+  }
+  return jsonString.substring(idx + key.length + 1, i - 1);
+}
+
+function firstDiff(a, b) {
+  const max = Math.min(a.length, b.length);
+  for (let i = 0; i < max; i++) {
+    if (a[i] !== b[i]) {
+      return 'at ' + i + ' (a=' + JSON.stringify(a.substring(Math.max(0, i - 20), i + 20)) + ' b=' + JSON.stringify(b.substring(Math.max(0, i - 20), i + 20)) + ')';
+    }
+  }
+  return 'lengths differ: a=' + a.length + ' b=' + b.length;
+}
+
+export function sh(command, args = [], cwd = root) {
+  return execFileSync(command, args, { cwd, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 }).trim();
+}
+
+export function outputEvidenceStem(sha, variant) {
+  return variant ? sha + '-' + variant : sha;
 }
 
 export function sha256(buffer) {
@@ -289,52 +325,89 @@ export function collectSemanticDiff(mainRef = 'refs/remotes/origin/main', execut
 }
 export function collectGitRefSnapshot(
   ref = process.env.GITHUB_REF === 'refs/heads/main' ? 'HEAD' : 'refs/remotes/origin/main',
+  workingDirectory = root,
 ) {
   try {
+    const git = args => sh('git', args, workingDirectory);
     let resolvedRef;
     try {
-      resolvedRef = sh('git', ['rev-parse', ref]);
+      resolvedRef = git(['rev-parse', ref]);
     } catch {
       const configuredMainSha = process.env.FLIXO_KNOWLEDGE_MAIN_SHA;
       if (configuredMainSha && /^[0-9a-f]{40}$/.test(configuredMainSha)) {
         resolvedRef = configuredMainSha;
       } else if (ref !== 'refs/heads/main') {
         try {
-          resolvedRef = sh('git', ['rev-parse', 'FETCH_HEAD']);
+          resolvedRef = git(['rev-parse', 'FETCH_HEAD']);
         } catch {
           if (process.env.GITHUB_REF === 'refs/heads/main') {
-            resolvedRef = sh('git', ['rev-parse', 'HEAD']);
+            resolvedRef = git(['rev-parse', 'HEAD']);
           } else {
-            resolvedRef = sh('git', ['rev-parse', 'refs/heads/main']);
+            resolvedRef = git(['rev-parse', 'refs/heads/main']);
           }
         }
       } else {
         throw new Error('main branch reference is unavailable');
       }
     }
-    const paths = sh('git', ['ls-tree', '-r', '-z', '--name-only', resolvedRef]).split('\0').filter(Boolean);
-    let textFiles = 0;
-    let binaryFiles = 0;
-    let textLines = 0;
+    // Read metadata from the resolved Git tree, then stream blob contents in one cat-file batch.
+    // Every metric stays bound to resolvedRef rather than the mutable working index.
+    const treeOutput = execFileSync('git', ['ls-tree', '-r', '-l', '-z', resolvedRef], {
+      cwd: workingDirectory, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024,
+    });
+    const treeEntries = treeOutput.split('\0').filter(Boolean).map(record => {
+      const tab = record.indexOf('\t');
+      if (tab < 0) throw new Error('invalid git ls-tree record');
+      const metadata = record.slice(0, tab).split(/\s+/);
+      const [mode, type, objectSha, sizeText] = metadata;
+      return { mode, type, objectSha, size: /^\d+$/.test(sizeText || '') ? Number(sizeText) : null };
+    });
+    const blobEntries = treeEntries.filter(entry => entry.type === 'blob');
+    const blobInput = blobEntries.map(entry => entry.objectSha).join('\n') + (blobEntries.length ? '\n' : '');
+    const batchOutput = blobEntries.length
+      ? execFileSync('git', ['cat-file', '--batch'], {
+          cwd: workingDirectory, input: Buffer.from(blobInput, 'utf8'), maxBuffer: 256 * 1024 * 1024,
+        })
+      : Buffer.alloc(0);
+    let outputOffset = 0;
     let bytes = 0;
-
-    for (const path of paths) {
-      const buffer = Buffer.from(sh('git', ['show', `${resolvedRef}:${path}`]), 'utf8');
-      bytes += buffer.length;
-      if (!looksText(buffer)) {
-        binaryFiles++;
-        continue;
+    let textFiles = 0;
+    let binaryFiles = treeEntries.length - blobEntries.length;
+    let textLines = 0;
+    for (const entry of blobEntries) {
+      const headerEnd = batchOutput.indexOf(0x0a, outputOffset);
+      if (headerEnd < 0) throw new Error('git cat-file batch header missing');
+      const header = batchOutput.subarray(outputOffset, headerEnd).toString('utf8').split(' ');
+      const reportedSha = header[0];
+      const reportedType = header[1];
+      const contentSize = Number(header[2]);
+      if (reportedSha !== entry.objectSha || reportedType !== 'blob' || !Number.isSafeInteger(contentSize) || contentSize < 0) {
+        throw new Error('git cat-file batch response does not match tree object');
       }
-      textFiles++;
-      const normalized = buffer.toString('utf8').replace(/\r\n/g, '\n');
-      textLines += normalized === '' ? 0 : (normalized.endsWith('\n') ? normalized.slice(0, -1).split('\n').length : normalized.split('\n').length);
+      const contentStart = headerEnd + 1;
+      const contentEnd = contentStart + contentSize;
+      if (contentEnd >= batchOutput.length || batchOutput[contentEnd] !== 0x0a) {
+        throw new Error('git cat-file batch content length mismatch');
+      }
+      const content = batchOutput.subarray(contentStart, contentEnd);
+      if (entry.size !== null && entry.size !== contentSize) throw new Error('git tree object size mismatch');
+      bytes += contentSize;
+      if (!looksText(content)) {
+        binaryFiles++;
+      } else {
+        textFiles++;
+        const normalized = content.toString('utf8').replace(/\r\n/g, '\n');
+        textLines += normalized === '' ? 0 : (normalized.endsWith('\n') ? normalized.slice(0, -1).split('\n').length : normalized.split('\n').length);
+      }
+      outputOffset = contentEnd + 1;
     }
-
+    const trackedFiles = treeEntries.length;
+    if (textFiles + binaryFiles !== trackedFiles) throw new Error('Git snapshot file accounting mismatch');
     return {
       ref,
       resolvedRef,
       sha: resolvedRef,
-      trackedFiles: paths.length,
+      trackedFiles,
       textFiles,
       binaryFiles,
       textLines,
@@ -683,7 +756,7 @@ export function collect() {
     ? 'CAN_COMPLETE'
     : 'CAN_COMPLETE_WITH_LIMITATIONS';
 
-  const reportPath = join(reportDir, sha + '.md');
+  const reportPath = join(reportDir, outputEvidenceStem(sha) + '.md');
   const worldModel = buildKnowledgeSnapshot({
     sha,
     branch,
@@ -699,7 +772,25 @@ export function collect() {
     generatedAt,
   });
   validateKnowledgeSnapshot(worldModel, { currentSha: sha, now: Date.now() });
-  writeImmutableFile(worldModelPath, JSON.stringify(worldModel, null, 2) + '\n');
+  try {
+    writeImmutableFile(worldModelPath, JSON.stringify(worldModel, null, 2) + '\n');
+  } catch (err) {
+    if (err.code === 'EEXIST') {
+      const existing = readFileSync(worldModelPath, 'utf8');
+      const newContent = JSON.stringify(worldModel, null, 2) + '\n';
+      if (existing === newContent) {
+        return { created: false, identical: true };
+      }
+      console.error('=== DIAG: worldModel differs from existing file ===');
+      console.error('DIAG existing.length=' + existing.length + ' new.length=' + newContent.length);
+      console.error('DIAG existing.generated_at=' + JSON.stringify(extractField(existing, 'generated_at')));
+      console.error('DIAG new.generated_at=' + JSON.stringify(extractField(newContent, 'generated_at')));
+      console.error('DIAG firstDiff=' + firstDiff(existing, newContent));
+      throw err;
+    }
+    throw err;
+  }
+
 
   const taskFindings = [];
   for (const entry of model.sourceEntries) {
@@ -792,7 +883,7 @@ export function collect() {
     '',
     '## World Model',
     '- Model version: ' + MODEL_VERSION,
-    '- Snapshot JSON: ' + REPORT_DIR + '/' + sha + '.json',
+    '- Snapshot JSON: ' + REPORT_DIR + '/' + outputEvidenceStem(sha) + '.json',
     '- Repository world model layers: file index, symbols, imports/dependencies, calls, control flow, authority graph, task graph, semantic main↔execution diff.',
     '- Authority graph nodes/edges: ' + authorityGraph.nodes.length + '/' + authorityGraph.edges.length,
     '- Call graph edges: ' + callGraph.length,
