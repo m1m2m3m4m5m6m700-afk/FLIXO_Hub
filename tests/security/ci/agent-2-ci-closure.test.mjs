@@ -163,7 +163,7 @@ test('CodeQL persists exact-SHA SARIF as durable evidence when GitHub default se
   assert.ok(!workflow.includes('wait-for-processing: true'));
 });
 
-test('production deployment keeps source immutable and artifact-bound', async () => {
+test('production deployment keeps source immutable and verifies live exact-SHA provenance', async () => {
   const workflow = await readFile(path.join(ROOT, '.github/workflows/ci.yml'), 'utf8');
   assert.ok(workflow.includes('RELEASE_SOURCE_PURITY=PASS'));
   assert.ok(workflow.includes('build-provenance.json'));
@@ -171,6 +171,16 @@ test('production deployment keeps source immutable and artifact-bound', async ()
   assert.ok(!workflow.includes('path.write_text('));
   assert.ok(!workflow.includes("EMBEDDED_DEPLOYMENT_SHA = '$DEPLOYMENT_SHA'"));
   assert.ok(workflow.includes('FLIXO_DEPLOYMENT_SHA:${{ github.sha }}'));
+  const marker = '      - name: Verify deployed build provenance for exact SHA';
+  const markerIndex = workflow.indexOf(marker);
+  assert.ok(markerIndex >= 0, 'production must verify the live provenance endpoint');
+  const nextStep = workflow.indexOf('      - name:', markerIndex + marker.length);
+  const block = workflow.slice(markerIndex, nextStep > 0 ? nextStep : workflow.length);
+  assert.ok(block.includes('/__flixo/build-provenance.json'), 'production probe must use the canonical provenance path');
+  assert.ok(block.includes('PRODUCTION_BUILD_PROVENANCE=PASS'), 'provenance verification must emit durable pass evidence');
+  assert.ok(block.includes('application/json*'), 'HTML SPA fallback must not satisfy JSON provenance');
+  assert.ok(block.includes('.candidateSha == $sha'), 'live candidate SHA must match the deployed SHA');
+  assert.ok(block.includes('.sourceTreeSha'), 'live provenance must validate source tree identity');
 });
 
 async function collectWorkflowFiles(dir, output = []) {
