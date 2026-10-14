@@ -33,4 +33,4 @@ scripts/ci/test-auto-repair-chair1-audit.mjs:93
 .env.example:70
 
 # L01: Matched value resolves to a Git commit SHA, not a Cloudflare API key
-المهات.md:27
+المهام.md:27
