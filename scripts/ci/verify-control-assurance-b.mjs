@@ -5,15 +5,25 @@ import { join } from 'node:path';
 
 const ROOT = process.cwd();
 const SHA_RE = /^[0-9a-f]{40}$/i;
-const CI_GATE_NAMES = Object.freeze([
-  'KNOWLEDGE-CONSISTENCY','WORLD-MODEL-INTEGRITY','MEMORY-INTEGRITY',
-  'MEMORY-SHA-FRESHNESS','LEARNING-ANTI-POISONING','FALSIFICATION-NETWORK','REPORT-ROUTING',
-  'DISCOVERY-BOUNDARY','AGENT-BEHAVIOR','LEARNING-REGRESSION',
+export const CONTROL_ASSURANCE_B_GATES = Object.freeze([
+  'EXACT-SHA-CLOSURE',
+  'DISCOVERY-BOUNDARY',
+  'FALSIFICATION-NETWORK',
+  'REPORT-ROUTING',
+  'EXPLORATION-SCHEDULER',
+  'WORLD-MODEL-INTEGRITY',
+  'KNOWLEDGE-CONSISTENCY',
+  'MEMORY-INTEGRITY',
+  'MEMORY-SHA-FRESHNESS',
+  'LEARNING-ANTI-POISONING',
+  'AGENT-BEHAVIOR',
+  'LEARNING-REGRESSION',
+  'COUNCIL-INTEGRATION',
+  'WAKE-LEASE-RECOVERY',
+  'PATCH-CAPSULE-CAS',
+  'OBSERVABILITY',
+  'AGENT-MASTERY',
 ]);
-const OPERATIONAL_GATES = Object.freeze([
-  'COUNCIL-INTEGRATION','WAKE-LEASE-RECOVERY','PATCH-CAPSULE-CAS','EXACT-SHA-CLOSURE',
-]);
-export const CONTROL_ASSURANCE_B_GATES = Object.freeze([...CI_GATE_NAMES, ...OPERATIONAL_GATES]);
 
 function gitHead(root = ROOT) {
   return execFileSync('git', ['rev-parse','HEAD'], { cwd: root, encoding: 'utf8' }).trim();
@@ -45,6 +55,7 @@ export function evaluateControlAssuranceB({
   root = ROOT,
   currentSha = gitHead(root),
   expectedSha = process.env.EXPECTED_SHA || process.env.GITHUB_SHA || currentSha,
+  verifyLiveExecution = process.env.GITHUB_ACTIONS === 'true',
 } = {}) {
   const workflow = read(root,'.github/workflows/continuous-discovery.yml');
   const verifier = read(root,'scripts/verify-infinite-discovery.mjs');
@@ -67,7 +78,7 @@ export function evaluateControlAssuranceB({
     assert(SHA_RE.test(currentSha),'current execution HEAD is not exact');
     assert(!expectedSha || SHA_RE.test(expectedSha),'expected SHA is not exact');
     assert(currentSha.toLowerCase() === expectedSha.toLowerCase(),'tested SHA != current execution HEAD');
-    if (process.env.GITHUB_ACTIONS === 'true') {
+    if (verifyLiveExecution) {
       const live = liveExecutionHead(root);
       assert(SHA_RE.test(live),'live execution ref did not resolve to an exact SHA');
       assert(live.toLowerCase() === currentSha.toLowerCase(),'live execution branch drifted during verification');

@@ -99,7 +99,7 @@ test('CI promotion workflow contains live lineage and exact security-gate semant
   assert.match(workflow, /pull_request:\s*\n\s*branches:\s*\[main\]/u);
   assert.match(workflow, /github\.event\.pull_request\.head\.ref == 'execution'/u);
   assert.match(workflow, /github\.event\.pull_request\.head\.repo\.full_name == github\.repository/u);
-  assert.match(workflow, /git rev-parse HEAD\) = "\$EXPECTED_SHA"/u);
+  assert.ok(workflow.includes('test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"'));
 });
 
 test('execution TestSprite lane is unprivileged and exact-SHA', async () => {
@@ -116,7 +116,9 @@ test('privileged controller is schedule-only and main-anchored', async () => {
   assert.match(workflow, /ref: main/u);
   assert.match(workflow, /persist-credentials: false/u);
   assert.match(workflow, /permissions:\s*\n\s*contents: read/u);
-  assert.doesNotMatch(workflow, /permissions:\s*\n\s*contents: write/u);
+  assert.match(workflow, /^permissions:\r?\n  contents: read$/mu);
+  assert.match(workflow, /^  reconcile-and-publish:\r?\n(?:.*\r?\n){0,5}    permissions:\r?\n      contents: write$/mu);
+  assert.equal([...workflow.matchAll(/^[ \t]*contents:[ \t]*write[ \t]*$/gmu)].length, 1);
 });
 
 test('controller isolates mutable execution from privileged verification', async () => {
