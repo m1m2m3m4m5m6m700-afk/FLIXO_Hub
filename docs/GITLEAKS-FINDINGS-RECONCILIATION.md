@@ -1,11 +1,13 @@
 # Gitleaks Findings Reconciliation — Evidence-Aligned Draft
 
-**Status:** TRIAGE IN PROGRESS — NOT A RELEASE CERTIFICATE  
-**Assessment date:** 2026-10-13  
-**Candidate SHA:** `6e8eb56c79afcf4af011ffa213175ac20bdd71b7`  
-**CI run:** [38358221403](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/38358221403)  
-**Gitleaks job:** [115167044750](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/38358221403/job/115167044750)  
-**Scanner version:** 8.24.3  
+| Field | Value |
+|---|---|
+| Status | TRIAGE IN PROGRESS; NOT A RELEASE CERTIFICATE |
+| Assessment date | 2026-10-13 |
+| Candidate SHA assessed | `6e8eb56c79afcf4af011ffa213175ac20bdd71b7` |
+| CI run | [38358221403](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/38358221403) |
+| Gitleaks job | [115167044750](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/38358221403/job/115167044750) |
+| Scanner version | 8.24.3 |
 **Finding records:** 21
 
 ## Evidence rules
