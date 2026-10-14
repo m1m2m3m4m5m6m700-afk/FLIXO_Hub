@@ -113,44 +113,57 @@ test('model-license-gate: gate script exits zero', () => {
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 });
-test('model-license-gate: download_date must be YYYY-MM-DD at the script level', () => {
+test('model-license-gate: download_date rejects impossible calendar dates', () => {
   const manifestPath = pathResolve('docs/MODEL_LICENSE_MANIFEST.json');
-  const original = readFileSync(manifestPath);
-  const bad = JSON.parse(original);
-  bad.entries = [
-    {
-      model: 'demo',
-      version: '0.1.0',
-      provider: 'unit',
-      deployment_mode: 'local',
-      supported_tasks: ['text'],
-      source: 'https://example.test/license.md',
-      license: 'MIT',
-      license_file: 'https://example.test/LICENSE',
-      artifact_sha256: 'a'.repeat(64),
-      download_date: '0000-00-00',
-      commercial_use: false,
-      fine_tuning: false,
-      redistribution: false,
-      distillation: false,
-      adapter_policy: 'default',
-      acceptable_use_policy: 'https://example.test/AUP',
-      trademark_restrictions: 'none',
-      training_data_restrictions: 'none',
-      provenance_status: 'KNOWN',
-      FLIXO_owned_layer: false,
-      fallback_models: [],
-      review_status: 'BLOCKED',
-      lifecycle_status: 'CANDIDATE',
-    },
+  const original = readFileSync(manifestPath, 'utf8');
+  const invalidDates = [
+    '0000-00-00',
+    '2026-02-31',
+    '2025-02-29',
+    '2026-13-01',
+    '2026-04-31',
+    '2026-00-15',
+    'not-a-date',
   ];
-  withManifestOverrides(`${JSON.stringify(bad, null, 2)}\n`, () => {
-    const r = spawnSync(process.execPath, [pathResolve('scripts/model-license-gate.mjs')], {
-      encoding: 'utf8',
+
+  for (const downloadDate of invalidDates) {
+    const bad = JSON.parse(original);
+    bad.entries = [
+      {
+        model: 'demo',
+        version: '0.1.0',
+        provider: 'unit',
+        deployment_mode: 'local',
+        supported_tasks: ['text'],
+        source: 'https://example.test/license.md',
+        license: 'MIT',
+        license_file: 'https://example.test/LICENSE',
+        artifact_sha256: 'a'.repeat(64),
+        download_date: downloadDate,
+        commercial_use: false,
+        fine_tuning: false,
+        redistribution: false,
+        distillation: false,
+        adapter_policy: 'default',
+        acceptable_use_policy: 'https://example.test/AUP',
+        trademark_restrictions: 'none',
+        training_data_restrictions: 'none',
+        provenance_status: 'KNOWN',
+        FLIXO_owned_layer: false,
+        fallback_models: [],
+        review_status: 'BLOCKED',
+        lifecycle_status: 'CANDIDATE',
+      },
+    ];
+
+    withManifestOverrides(JSON.stringify(bad, null, 2) + '\n', () => {
+      const result = spawnSync(process.execPath, [pathResolve('scripts/model-license-gate.mjs')], {
+        encoding: 'utf8',
+      });
+      assert.equal(result.status, 1, 'invalid date ' + downloadDate + ' must exit non-zero');
+      assert.match(result.stderr, /download_date/i, 'error must identify download_date');
     });
-    assert.equal(r.status, 1, 'invalid download_date must exit non-zero');
-    assert.match(r.stderr, /download_date/i, 'error must name the date field');
-  });
+  }
 });
 
 test('model-license-gate: --require-entry accepts a single evidenced model', () => {
