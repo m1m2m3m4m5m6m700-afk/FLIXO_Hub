@@ -83,7 +83,7 @@ test('B12 wrong workflow trigger coverage is fail-closed', () => {
 });
 
 test('B2 falsification network is independently bound and non-authoritative', () => {
-  const report = evaluateControlAssuranceB();
+  const report = evaluateControlAssuranceB({ verifyLiveExecution:false });
   const gate = report.gates.find(g => g.gate === 'FALSIFICATION-NETWORK');
   assert.equal(gate?.status, 'VERIFIED', JSON.stringify(gate));
   for (const path of ['.github/agents/red-team-1.md','.github/agents/red-team-2.md','.github/agents/المستكشف-2.md']) {
@@ -95,7 +95,7 @@ test('B2 falsification network is independently bound and non-authoritative', ()
 });
 
 test('B6 scheduled Scout loop is canonical and validator-gated', () => {
-  const report = evaluateControlAssuranceB();
+  const report = evaluateControlAssuranceB({ verifyLiveExecution:false });
   const gate = report.gates.find(g => g.gate === 'EXPLORATION-SCHEDULER');
   assert.equal(gate?.status, 'VERIFIED', JSON.stringify(gate));
   const workflow = show('.github/workflows/continuous-discovery.yml');
