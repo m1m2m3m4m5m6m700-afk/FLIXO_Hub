@@ -1,9 +1,8 @@
 # CELL — COMMIT ATTRIBUTION BASELINE
 
 Status: ACTIVE ENFORCEMENT BASELINE
-BASELINE_SHA: 755f958d4ccac15357c95f3e338dfa4fa7d509d7
+BASELINE_SHA: 3f1cf5ec3cbdeac4aea9dad7c1ccd036bf0448da
 
-Reconciliation record (2026-10-14): commit `755f958d4ccac15357c95f3e338dfa4fa7d509d7` is a pre-enforcement execution-ecosystem ledger bootstrap dated 2026-10-11. It predates the active task-attribution ratchet but falls inside the older baseline range and has no TASK_ID in its message. Git history is preserved. The baseline now starts at that exact legacy commit; every subsequent commit remains subject to the existing fail-closed TASK_ID check. This reconciliation changes the enforcement boundary only for this documented legacy commit and does not suppress any secret-scanning finding or weaken product/security gates.
 
 من هذه النقطة، كل commit جديد خاص بخط CELL يجب أن يحمل TASK_ID صالحًا ظاهرًا داخل ACTIVE DISPATCH QUEUE في المهام.md.
 
