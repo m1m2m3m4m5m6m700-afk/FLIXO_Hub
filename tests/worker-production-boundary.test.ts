@@ -94,7 +94,7 @@ test('production worker serves JSON build provenance only when the exact deploye
   });
 
   assert.equal(response.status, 200);
-  assert.match(response.headers.get('content-type') ?? '', /application\\/json/u);
+  assert.match(response.headers.get('content-type') ?? '', /application\/json/u);
   assert.equal(response.headers.get('cache-control'), 'no-store, max-age=0');
   assert.equal(response.headers.get('x-flixo-deployment-sha'), deploymentSha);
   assert.deepEqual(await response.json(), provenance);
@@ -113,7 +113,7 @@ test('production worker rejects SPA HTML fallback at the build provenance path',
   });
 
   assert.equal(response.status, 404);
-  assert.match(response.headers.get('content-type') ?? '', /application\\/json/u);
+  assert.match(response.headers.get('content-type') ?? '', /application\/json/u);
   assert.equal((await response.json() as { error: string }).error, 'BUILD_PROVENANCE_NOT_AVAILABLE_OR_MISMATCHED');
 });
 
