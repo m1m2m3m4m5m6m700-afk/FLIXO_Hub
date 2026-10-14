@@ -597,8 +597,14 @@ jobs:
         run: |
           set -euo pipefail
           provenance_url="$FLIXOAI_PRODUCTION_ORIGIN/__flixo/build-provenance.json?__flixo_sha=$DEPLOYMENT_SHA&__flixo_verify=$GITHUB_RUN_ID"
-          response_meta="$(curl --silent --show-error --location --compressed --retry 10 --retry-delay 3 --retry-all-errors --max-time 30 -H 'Cache-Control: no-cache, no-store' -o /tmp/flixo-production-provenance.json -w '%{http_code}\t%{content_type}' "$provenance_url")"
-          IFS=
+          response_meta="$(curl --silent --show-error --location --compressed --retry 10 --retry-delay 3 --retry-all-errors --max-time 30 -H 'Cache-Control: no-cache, no-store' -o /tmp/flixo-production-provenance.json -w '%{http_code}|%{content_type}' "$provenance_url")"
+          status="$(printf '%s' "$response_meta" | cut -d '|' -f 1)"
+          content_type="$(printf '%s' "$response_meta" | cut -d '|' -f 2)"
+          echo "HTTP=$status CONTENT_TYPE=$content_type"
+          test "$status" = "200"
+          [[ "$content_type" == application/json* ]]
+          jq -e --arg repo "$GITHUB_REPOSITORY" --arg sha "$DEPLOYMENT_SHA" '.repository == $repo and .candidateSha == $sha and (.sourceTreeSha | type == "string" and test("^[a-f0-9]{40}$")) and (.buildRunId | type == "string" and test("^[0-9]+$"))' /tmp/flixo-production-provenance.json > /dev/null
+          echo "PRODUCTION_BUILD_PROVENANCE=PASS"
 
       - name: Install Node dependencies for production browser verification
         run: npm ci --prefer-offline --no-audit --no-fund
