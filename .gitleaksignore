@@ -6,25 +6,3 @@ a3ae8f4ff039cf5d3e9bb702a34d03042b28411b:docs/CELL-HARD-CONTROL-CONTRACT.md:gene
 d034d5a06bdedf2c924bfd86a700d00461b46ca0:.env.example:generic-api-key:70
 # L01: immutable commit SHA, not an API key.
 112bc0d8d4d104a4ade23aef8daf69a09379a9cc:المهام.md:cloudflare-api-key:27
-# T01: descriptive adversarial-test signing-key fixture; not an issued provider credential.
-a4d85af76b8dc19116ebb1043fb1cafeb36fbe54:scripts/ci/test-chair1-central-lease-adversarial.mjs:generic-api-key:18
-# T02: explicitly named test approval-key fixture; not an issued credential.
-9ed9a5f1a518defb915f1391a0c03f7e6d925a44:scripts/ci/test-auto-repair-chair1-audit.mjs:generic-api-key:93
-# S01-S08: single-object signed hero-image URLs captured from publicly rendered external project HTML. The URLs are visible to anonymous page visitors and are not FLIXO provider/app credentials; keep suppressions limited to each historical commit, file, rule, and line.
-22803fbfb34b2c289691661584fcd49c67cb7b27:.agent-intelligence/snapshots/snap-20261011T082418575122Z-26ed84629c54cd2b.raw:jwt:46
-7fe2ddda73d86d2a2f520c8eb8492be505ef7bea:.agent-intelligence/snapshots/snap-20261011T072103080190Z-f2651c8711530f9b.raw:jwt:46
-a69ae8296541d64d31e32af472fdbd68cf745092:.agent-intelligence/snapshots/snap-20261008T081451844708Z-1c2a43ab506560f0.raw:jwt:46
-1f3cf3639a7ea33ec9fa0b51a4f2b070f3e3a6fb:.agent-intelligence/snapshots/snap-20261008T080826962747Z-1c2a43ab506560f0.raw:jwt:46
-e184f1fd3c0a627748181b5d3f5b4450dffd6fe6:.agent-intelligence/snapshots/snap-20261007T211848104231Z-f4a3e6fed48fa5bd.raw:jwt:46
-24b9e2197b68f62076cd8d16be83b9cfe9fb1ff2:.agent-intelligence/snapshots/snap-20261007T054700585464Z-82830ecb6dcd500e.raw:jwt:46
-397d114aa3d2003cc86fc5c9797c65d873e6ca60:.agent-intelligence/snapshots/snap-20261007T054437818957Z-82830ecb6dcd500e.raw:jwt:46
-ef02b027b68338c10504ce529e918366eb5e1b6f:.agent-intelligence/snapshots/snap-20261007T054338433788Z-e6913b6950195f34.raw:jwt:46
-# H01-H08: non-secret auth_hydro_click_hmac telemetry values embedded in public GitHub HTML captures; anonymous page markup exposes them and they are not repository credentials. These are exact historical fingerprints only.
-22803fbfb34b2c289691661584fcd49c67cb7b27:.agent-intelligence/snapshots/snap-20261011T082417623298Z-6c333177c5a8c3ed.raw:generic-api-key:291
-7fe2ddda73d86d2a2f520c8eb8492be505ef7bea:.agent-intelligence/snapshots/snap-20261011T072102257271Z-c7d769e7591b4def.raw:generic-api-key:291
-a69ae8296541d64d31e32af472fdbd68cf745092:.agent-intelligence/snapshots/snap-20261008T081451283223Z-9266a477fa16baf3.raw:generic-api-key:291
-1f3cf3639a7ea33ec9fa0b51a4f2b070f3e3a6fb:.agent-intelligence/snapshots/snap-20261008T080825664757Z-a315600dfe8285bf.raw:generic-api-key:291
-e184f1fd3c0a627748181b5d3f5b4450dffd6fe6:.agent-intelligence/snapshots/snap-20261007T211847075160Z-b4428f2b76ee1153.raw:generic-api-key:291
-24b9e2197b68f62076cd8d16be83b9cfe9fb1ff2:.agent-intelligence/snapshots/snap-20261007T054659727323Z-5cd4a3fcacf87b17.raw:generic-api-key:291
-397d114aa3d2003cc86fc5c9797c65d873e6ca60:.agent-intelligence/snapshots/snap-20261007T054437361425Z-cebbdf8315977995.raw:generic-api-key:291
-ef02b027b68338c10504ce529e918366eb5e1b6f:.agent-intelligence/snapshots/snap-20261007T054337769456Z-80e37c9c24a66d9f.raw:generic-api-key:291
