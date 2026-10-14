@@ -72,12 +72,13 @@ jobs:
       - name: Model license and admission gate
         run: npm run test:model-license
       - name: Run npm test
+        id: npm_test
         shell: bash
         run: |
           set -o pipefail
           npm test 2>&1 | tee npm-test.log
       - name: Upload npm test failure evidence
-        if: failure()
+        if: failure() && steps.npm_test.outcome == 'failure'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: flixo-npm-test-failure-${{ github.run_id }}
