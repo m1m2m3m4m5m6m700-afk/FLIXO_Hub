@@ -69,3 +69,82 @@ test('production worker rejects identity when the exact versioned asset does not
   });
   assert.equal(response.status, 404);
 });
+
+
+test('production worker serves JSON build provenance only when the exact deployed SHA matches', async () => {
+  const deploymentSha = 'a'.repeat(40);
+  const sourceTreeSha = 'b'.repeat(40);
+  const provenance = {
+    repository: 'm1m2m3m4m5m6m700-afk/FLIXO_Hub',
+    candidateSha: deploymentSha,
+    sourceTreeSha,
+    buildRunId: '12345',
+  };
+  const response = await worker.fetch(new Request('https://flixoai.example/__flixo/build-provenance.json'), {
+    FLIXO_DEPLOYMENT_SHA: deploymentSha,
+    ASSETS: {
+      fetch: async (request) => {
+        assert.equal(new URL(request.url).pathname, '/__flixo/build-provenance.json');
+        return new Response(JSON.stringify(provenance), {
+          status: 200,
+          headers: { 'content-type': 'application/json; charset=utf-8' },
+        });
+      },
+    },
+  });
+
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get('content-type') ?? '', /application\\/json/u);
+  assert.equal(response.headers.get('cache-control'), 'no-store, max-age=0');
+  assert.equal(response.headers.get('x-flixo-deployment-sha'), deploymentSha);
+  assert.deepEqual(await response.json(), provenance);
+});
+
+test('production worker rejects SPA HTML fallback at the build provenance path', async () => {
+  const deploymentSha = 'a'.repeat(40);
+  const response = await worker.fetch(new Request('https://flixoai.example/__flixo/build-provenance.json'), {
+    FLIXO_DEPLOYMENT_SHA: deploymentSha,
+    ASSETS: {
+      fetch: async () => new Response('<!doctype html><html></html>', {
+        status: 200,
+        headers: { 'content-type': 'text/html; charset=utf-8' },
+      }),
+    },
+  });
+
+  assert.equal(response.status, 404);
+  assert.match(response.headers.get('content-type') ?? '', /application\\/json/u);
+  assert.equal((await response.json() as { error: string }).error, 'BUILD_PROVENANCE_NOT_AVAILABLE_OR_MISMATCHED');
+});
+
+test('production worker rejects provenance for a different candidate or invalid source tree', async () => {
+  const deploymentSha = 'a'.repeat(40);
+  const candidates = [
+    {
+      repository: 'm1m2m3m4m5m6m700-afk/FLIXO_Hub',
+      candidateSha: 'b'.repeat(40),
+      sourceTreeSha: 'c'.repeat(40),
+      buildRunId: '12345',
+    },
+    {
+      repository: 'm1m2m3m4m5m6m700-afk/FLIXO_Hub',
+      candidateSha: deploymentSha,
+      sourceTreeSha: 'not-a-sha',
+      buildRunId: '12345',
+    },
+  ];
+
+  for (const provenance of candidates) {
+    const response = await worker.fetch(new Request('https://flixoai.example/__flixo/build-provenance.json'), {
+      FLIXO_DEPLOYMENT_SHA: deploymentSha,
+      ASSETS: {
+        fetch: async () => new Response(JSON.stringify(provenance), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
+      },
+    });
+    assert.equal(response.status, 404);
+  }
+});
+
