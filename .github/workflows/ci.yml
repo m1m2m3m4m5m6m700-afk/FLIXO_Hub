@@ -598,7 +598,7 @@ jobs:
           set -euo pipefail
           provenance_url="$FLIXOAI_PRODUCTION_ORIGIN/__flixo/build-provenance.json?__flixo_sha=$DEPLOYMENT_SHA&__flixo_verify=$GITHUB_RUN_ID"
           response_meta="$(curl --silent --show-error --location --compressed --retry 10 --retry-delay 3 --retry-all-errors --max-time 30 -H 'Cache-Control: no-cache, no-store' -o /tmp/flixo-production-provenance.json -w '%{http_code}\t%{content_type}' "$provenance_url")"
-          status="\${response_meta%%
+          IFS=
 
       - name: Install Node dependencies for production browser verification
         run: npm ci --prefer-offline --no-audit --no-fund
@@ -628,38 +628,7 @@ jobs:
           name: flixoai-production-evidence-${{ github.sha }}
           path: flixoai-production-evidence.json
           if-no-files-found: error
-          retention-days: 30\t'*}"
-          content_type="\${response_meta#*
-
-      - name: Install Node dependencies for production browser verification
-        run: npm ci --prefer-offline --no-audit --no-fund
-
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
-
-      - name: Verify deployed production UI
-        env:
-          EXPECTED_SHA: ${{ github.sha }}
-          PLAYWRIGHT_TEST_BASE_URL: ${{ env.FLIXOAI_PRODUCTION_ORIGIN }}
-          PLAYWRIGHT_REUSE_SERVER: "true"
-        run: npm run test:e2e -- --project=chromium tests/official/production-browser-smoke.spec.ts tests/official/mvp-10-release-verification.spec.ts
-
-      - name: Write deployment evidence
-        if: always()
-        shell: bash
-        run: |
-          set -euo pipefail
-          status="${{ job.status }}"
-          printf '{"worker":"flixoai","origin":"%s","sha":"%s","status":"%s"}\n' "$FLIXOAI_PRODUCTION_ORIGIN" "$DEPLOYMENT_SHA" "$status" > flixoai-production-evidence.json
-
-      - name: Upload deployment evidence
-        if: always()
-        uses: actions/upload-artifact@615b319bd27bb32c3d64dca6b6ed6974d5fbe653 # v6.0.0
-        with:
-          name: flixoai-production-evidence-${{ github.sha }}
-          path: flixoai-production-evidence.json
-          if-no-files-found: error
-          retention-days: 30\t'}"
+          retention-days: 30\t' read -r status content_type <<< "$response_meta"
           echo "HTTP=$status CONTENT_TYPE=$content_type"
           test "$status" = "200"
           [[ "$content_type" == application/json* ]]
