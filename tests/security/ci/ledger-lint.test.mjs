@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
-import { lintLedger } from '../../../scripts/ci/ledger-lint.mjs';
+import { lintLedger, parseActiveTasks } from '../../../scripts/ci/ledger-lint.mjs';
 
 test('active task ledger satisfies the 13-field contract', () => {
   const result = lintLedger(readFileSync('المهام.md', 'utf8'));
@@ -10,7 +10,14 @@ test('active task ledger satisfies the 13-field contract', () => {
   const declared = ledgerSource.match(/\*\*ACTIVE TASK COUNT:\*\*\s*(\d+)/u);
   assert.ok(declared, 'ledger declares ACTIVE TASK COUNT');
   assert.equal(result.taskCount, Number(declared[1]));
-  assert.equal(result.inProgressCount, 0);
+  assert.equal(result.inProgressCount, 1);
+  assert.deepEqual(
+    parseActiveTasks(ledgerSource)
+      .filter((task) => task.fields.get('STATUS') === 'IN_PROGRESS')
+      .map((task) => task.id),
+    ['EXEC-HERMES-PUBLISHABLE-MVP-001'],
+    'only the active release mission may be IN_PROGRESS',
+  );
 });
 
 test('ledger linter rejects duplicate IDs, invalid dependencies, and owner-action PR values', () => {

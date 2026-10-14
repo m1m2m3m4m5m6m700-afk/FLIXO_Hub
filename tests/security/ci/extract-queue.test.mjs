@@ -1,15 +1,12 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
-const ledgerPath = readdirSync(repositoryRoot).find((name) => name.endsWith(".md")
-  && name !== "FLIXO-Tasks.md"
-  && readFileSync(resolve(repositoryRoot, name), "utf8").includes("Canonical Agent Task Ledger"));
-assert.ok(ledgerPath, "canonical ledger should exist");
+const ledgerPath = "المهام.md";
 const ledger = readFileSync(resolve(repositoryRoot, ledgerPath), "utf8");
 const declaredCount = Number(ledger.match(/\*\*ACTIVE TASK COUNT:\*\*\s*(\d+)/u)?.[1]);
 const output = execFileSync(process.execPath, ["scripts/extract-queue.mjs"], {
