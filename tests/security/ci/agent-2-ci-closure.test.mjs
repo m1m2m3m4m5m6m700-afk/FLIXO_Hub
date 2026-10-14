@@ -104,7 +104,7 @@ test('CI promotion workflow contains live lineage and exact security-gate semant
 
 test('strict release verification requires an admitted model before trust and promotion', async () => {
   const workflow = await readFile(path.join(ROOT, '.github/workflows/ci.yml'), 'utf8');
-  assert.match(workflow, /^  model-admission:\r?\n/mu);
+  assert.match(workflow, /^\x20{2}model-admission:\r?\n/mu);
   assert.ok(workflow.includes('node scripts/model-license-gate.mjs --require-entry'));
   assert.ok(workflow.includes('needs: [verify, hub-stage1, browser, branch-policy, coverage, red-team, codeql, secret-scan, agent-watchdog, sensitive-path-gate, model-admission]'));
   assert.ok(workflow.includes('MODEL_ADMISSION_RESULT: ${{ needs.model-admission.result }}'));
