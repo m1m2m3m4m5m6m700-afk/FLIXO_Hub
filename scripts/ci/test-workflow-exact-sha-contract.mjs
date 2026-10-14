@@ -60,7 +60,7 @@ test('FLIXO CI protects every candidate-sensitive checkout and identity stamp', 
   );
 
   const exactRefCount = workflow.split('          ref: ' + EXACT_HEAD_EXPRESSION).length - 1;
-  assert.equal(exactRefCount, 8, 'all eight candidate-sensitive CI checkouts must use the exact PR head SHA');
+  assert.equal(exactRefCount, 9, 'all nine candidate-sensitive CI checkouts must use the exact PR head SHA');
 
   assert.ok(
     workflow.includes('          BUILD_SHA: ' + EXACT_HEAD_EXPRESSION),
@@ -150,7 +150,7 @@ test('all candidate-sensitive CI checkouts explicitly disable credential persist
   const workflow = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
   const blocks = workflow.split(/\n[ ]{6}- (?:name:[^\n]+\n[ ]{8})?uses: actions\/checkout@/u).slice(1);
   const candidateBlocks = blocks.filter((block) => block.includes('ref: ' + EXACT_HEAD_EXPRESSION));
-  assert.equal(candidateBlocks.length, 8, 'all eight candidate-sensitive CI checkouts must remain identifiable');
+  assert.equal(candidateBlocks.length, 9, 'all nine candidate-sensitive CI checkouts must remain identifiable');
   for (const block of candidateBlocks) {
     assert.match(block, /persist-credentials:\s*false\b/u);
     assert.doesNotMatch(block, /persist-credentials:\s*true\b/u);
