@@ -287,6 +287,37 @@ export function collectSemanticDiff(mainRef = 'refs/remotes/origin/main', execut
     return { readable: false, mainSha: null, executionSha: null, changedFiles: [], sourceChanges: [], summary: { added: 0, removed: 0, modified: 0, semanticSourceChanges: 0 }, error: String(error) };
   }
 }
+function readGitBlobBatch(objectIds) {
+  const buffers = [];
+  for (let offset = 0; offset < objectIds.length; offset += 64) {
+    const chunk = objectIds.slice(offset, offset + 64);
+    const output = execFileSync('git', ['cat-file', '--batch'], {
+      cwd: root,
+      input: Buffer.from(chunk.join('\n') + '\n', 'utf8'),
+      maxBuffer: 128 * 1024 * 1024,
+    });
+    let cursor = 0;
+    for (const expectedId of chunk) {
+      const headerEnd = output.indexOf(0x0a, cursor);
+      if (headerEnd < 0) throw new Error('git cat-file batch returned a truncated header');
+      const header = output.subarray(cursor, headerEnd).toString('ascii');
+      const match = header.match(/^([0-9a-f]{40}) blob (\d+)$/);
+      if (!match || match[1] !== expectedId) throw new Error('git cat-file batch returned an unexpected object header');
+      const size = Number(match[2]);
+      const contentStart = headerEnd + 1;
+      const contentEnd = contentStart + size;
+      if (!Number.isSafeInteger(size) || size < 0 || contentEnd > output.length) {
+        throw new Error('git cat-file batch returned an invalid object size');
+      }
+      buffers.push(output.subarray(contentStart, contentEnd));
+      cursor = contentEnd;
+      if (output[cursor] === 0x0a) cursor++;
+    }
+    if (cursor !== output.length) throw new Error('git cat-file batch returned unexpected trailing data');
+  }
+  return buffers;
+}
+
 export function collectGitRefSnapshot(
   ref = process.env.GITHUB_REF === 'refs/heads/main' ? 'HEAD' : 'refs/remotes/origin/main',
 ) {
@@ -312,14 +343,19 @@ export function collectGitRefSnapshot(
         throw new Error('main branch reference is unavailable');
       }
     }
-    const paths = sh('git', ['ls-tree', '-r', '-z', '--name-only', resolvedRef]).split('\0').filter(Boolean);
+    const treeEntries = sh('git', ['ls-tree', '-r', '-z', resolvedRef]).split('\0').filter(Boolean);
+    const objectIds = treeEntries.map(entry => {
+      const match = entry.match(/^\d+ blob ([0-9a-f]{40})\t/);
+      if (!match) throw new Error('git ls-tree returned an invalid blob entry');
+      return match[1];
+    });
+    const blobs = readGitBlobBatch(objectIds);
     let textFiles = 0;
     let binaryFiles = 0;
     let textLines = 0;
     let bytes = 0;
 
-    for (const path of paths) {
-      const buffer = Buffer.from(sh('git', ['show', `${resolvedRef}:${path}`]), 'utf8');
+    for (const buffer of blobs) {
       bytes += buffer.length;
       if (!looksText(buffer)) {
         binaryFiles++;
@@ -334,7 +370,7 @@ export function collectGitRefSnapshot(
       ref,
       resolvedRef,
       sha: resolvedRef,
-      trackedFiles: paths.length,
+      trackedFiles: treeEntries.length,
       textFiles,
       binaryFiles,
       textLines,
