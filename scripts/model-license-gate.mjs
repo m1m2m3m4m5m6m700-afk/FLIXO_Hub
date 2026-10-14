@@ -45,7 +45,7 @@ for (const [index, entry] of manifest.entries.entries()) {
   if (typeof entry.model !== 'string' || !entry.model.trim()) fail(`entry[${index}] model is empty.`);
   if (typeof entry.source !== 'string' || !/^https:\/\//u.test(entry.source)) fail(`entry[${index}] source must be HTTPS.`);
   if (typeof entry.license_file !== 'string' || !entry.license_file.trim()) fail(`entry[${index}] license_file is empty.`);
-  if (typeof entry.download_date !== 'string' || !/^\\d{4}-\\d{2}-\\d{2}$/u.test(entry.download_date)) fail(`entry[${index}] download_date must be YYYY-MM-DD.`);
+  if (typeof entry.download_date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/u.test(entry.download_date)) fail(`entry[${index}] download_date must be YYYY-MM-DD.`);
   const approvedLicenses = new Set(policy.license_classes.approved_for_initial_review);
   const prohibitedLicenses = new Set(policy.license_classes.prohibited_by_default);
   if (prohibitedLicenses.has(entry.license)) fail(`entry[${index}] uses a prohibited license class.`);

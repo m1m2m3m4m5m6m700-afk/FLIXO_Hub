@@ -22,7 +22,7 @@
     "test": "npm run test:legal && npm run test:proposal-integrity && npm run validate:proposals && node --test tests/security/ci/ledger-lint.test.mjs && npm run test:global-platform && npm run verify:architecture && npm run verify:contracts && node --test tests/security/ci/route-generation-contract.test.mjs && npm run test:model-license && npm run test:governance-cli && node --test src/server/admin/execution-policy.test.ts && node --test tests/security/ci/testsprite-fallback.test.mjs && npm run test:repository-knowledge && npm run test:agent-training && npm run verify:agents && npm run verify:i18n && npm run typecheck && npm run lint && npm run test:control-plane-contracts && npm run test:registry-gates && npm run test:core",
     "ci": "npm run test && npm run build",
     "test:task-dispatch-plan": "node --test tests/security/ci/task-dispatch-plan.test.mjs",
-    "test:model-license": "node scripts/model-license-gate.mjs",
+    "test:model-license": "node scripts/model-license-gate.mjs && node --test tests/security/ci/model-license-gate.test.mjs",
     "test:model-license:release": "node scripts/model-license-gate.mjs --require-entry",
     "verify:architecture": "node scripts/verify-architecture.mjs",
     "verify:contracts": "node scripts/verify-contract-boundary.mjs",
