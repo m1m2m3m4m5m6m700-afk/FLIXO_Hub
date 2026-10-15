@@ -26,7 +26,7 @@ async function waitForServer(origin, child) {
     try {
       const response = await fetch(origin + '/');
       if (response.ok) return;
-    } catch { continue; }
+    } catch { await delay(100); continue; }
     await delay(100);
   }
   throw new Error('Local package server did not become ready');
