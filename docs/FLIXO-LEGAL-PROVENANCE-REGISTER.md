@@ -18,6 +18,10 @@ This register is an evidence checklist for the proposed Apache-2.0 release. A re
 | Per-file SPDX/REUSE metadata | Compare file headers and REUSE annotations against verified ownership and third-party licensing | IN PROGRESS | No blanket Apache annotation until the file-level inventory supports it |
 | Release distribution | Confirm the published source/artifact carries the license and all applicable notices | NOT VERIFIED | Verify the exact promoted SHA and artifact contents |
 
+## Preliminary dependency metadata finding
+
+A preliminary parse of `package-lock.json` blob `0f0a737172da27fa4d8b2012ef054edc06295eaa` found 263 non-link package entries. Two entries require manual review because license metadata is absent: `@flixo/contracts@0.1.0` and an `extraneous` `@flixo/agent-runtime@0.1.0` lock entry with no matching package manifest at the expected path. This is a preliminary metadata finding, not a completed compatibility audit. The new CI inventory is intended to reproduce it and fail closed until the unknown entries are resolved; do not invent license declarations to make the check green.
+
 ## Required audit procedure
 
 1. Export the full repository file list at the release candidate SHA, including hidden files, vendored code, assets, generated files, submodules, and nested packages.
