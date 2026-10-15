@@ -48,6 +48,37 @@ async function main() {
     manifest.icons = [{ src: '/flixo-icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' }];
     await writeFile(manifestPath, JSON.stringify(manifest, null, 2) + '\\n', 'utf8');
   }
+  const localModeBanner = String.raw`(() => {
+  if (document.querySelector('[data-flixo-local-mode]')) return;
+  const locale = location.pathname.split('/').filter(Boolean)[0] || document.documentElement.lang || 'en';
+  const isArabic = locale.toLowerCase() === 'ar' || document.documentElement.dir === 'rtl';
+  const banner = document.createElement('aside');
+  banner.dataset.flixoLocalMode = 'true';
+  banner.setAttribute('role', 'status');
+  banner.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;z-index:2147483000;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;border:1px solid #2a756a;border-radius:12px;background:#0c191b;color:#e7ecf2;box-shadow:0 8px 30px #0006;font:13px/1.5 system-ui,sans-serif;direction:' + (isArabic ? 'rtl' : 'ltr');
+  const message = document.createElement('span');
+  message.textContent = isArabic
+    ? 'نسخة محلية: الأدوات المدعومة تعمل داخل المتصفح. خدمات الحساب والسحابة والذكاء الاصطناعي المستضاف غير متاحة.'
+    : 'Local edition: supported tools run in your browser. Accounts, cloud services, and hosted AI are unavailable.';
+  const close = document.createElement('button');
+  close.type = 'button';
+  close.textContent = isArabic ? 'إخفاء' : 'Dismiss';
+  close.setAttribute('aria-label', isArabic ? 'إخفاء تنبيه الوضع المحلي' : 'Dismiss local mode notice');
+  close.style.cssText = 'flex:none;border:1px solid #3ecfb2;border-radius:8px;padding:5px 9px;background:transparent;color:#3ecfb2;cursor:pointer;font:inherit';
+  close.addEventListener('click', () => banner.remove());
+  banner.append(message, close);
+  document.body.append(banner);
+})();
+`;
+  await writeFile(resolve(siteOutput, 'flixo-local-offline-banner.js'), localModeBanner, 'utf8');
+  for (const file of await walk(siteOutput)) {
+    if (extname(file).toLowerCase() !== '.html') continue;
+    let html = await readFile(file, 'utf8');
+    if (html.includes('/flixo-local-offline-banner.js')) continue;
+    if (!/<\/head>/iu.test(html)) throw new Error('Cannot inject local-mode notice into ' + relative(root, file));
+    html = html.replace(/<\/head>/iu, '  <script src="/flixo-local-offline-banner.js" defer></script>\n</head>');
+    await writeFile(file, html, 'utf8');
+  }
   const copiedFiles = await walk(siteOutput);
   for (const file of copiedFiles) {
     if (extname(file).toLowerCase() === '.html') assertLocalResourceReferences(await readFile(file, 'utf8'), file);
