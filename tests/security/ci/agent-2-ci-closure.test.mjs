@@ -96,7 +96,7 @@ test('CI promotion workflow contains live lineage and exact security-gate semant
     'GITHUB_EVENT_PATH:', 'verify-promotion-lineage.mjs', 'EXPECTED_SHA:',
     'FLIXO CodeQL', 'FLIXO Secret Scan',
   ]) assert.ok(workflow.includes(token), 'missing CI token: ' + token);
-  assert.match(workflow, /pull_request:\s*\n\s*branches:\s*\[main\]/u);
+  assert.match(workflow, /pull_request:\s*\n\s*branches:\s*\[main, execution\]/u);
   assert.match(workflow, /github\.event\.pull_request\.head\.ref == 'execution'/u);
   assert.match(workflow, /github\.event\.pull_request\.head\.repo\.full_name == github\.repository/u);
   assert.ok(workflow.includes('test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"'));
