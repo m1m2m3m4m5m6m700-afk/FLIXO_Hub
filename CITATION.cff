@@ -6,7 +6,7 @@ authors:
   - name: "FLIXO Hub Maintainers"
 url: "https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub"
 repository-code: "https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub"
-license: "Apache-2.0"
+license: "AGPL-3.0-only"
 keywords:
   - artificial intelligence
   - ai agents
