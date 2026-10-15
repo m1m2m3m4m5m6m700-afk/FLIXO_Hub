@@ -78,7 +78,8 @@
     "package:local": "node scripts/package-local-site.mjs",
     "build:local": "npm run build && npm run package:local",
     "test:local-offline": "node --test tests/local-offline-server.test.mjs",
-    "verify:local-offline": "node scripts/verify-local-offline-package.mjs"
+    "verify:local-offline": "node scripts/verify-local-offline-package.mjs",
+    "test:local-offline-browser": "node scripts/test-local-offline-browser.mjs"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",
