@@ -104,5 +104,5 @@
   "workspaces": [
     "packages/contracts"
   ],
-  "license": "AGPL-3.0-only"
+  "license": "Apache-2.0"
 }
