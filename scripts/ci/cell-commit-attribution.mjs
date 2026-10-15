@@ -80,7 +80,7 @@ function main() {
     trustedMainCommitShas.add(mainSha);
     try {
       const ancestry = execFileSync("git", ["rev-list", mainSha], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
-      for (const sha of ancestry.split(/\\r?\\n/u).filter(Boolean)) trustedMainCommitShas.add(sha);
+      for (const sha of ancestry.split(/\r?\n/u).filter(Boolean)) trustedMainCommitShas.add(sha);
     } catch {
       // Keep only the exact, independently resolved main tip trusted if shallow history is unavailable.
     }
