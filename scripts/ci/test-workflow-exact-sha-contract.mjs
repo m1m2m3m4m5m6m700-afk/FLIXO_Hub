@@ -85,7 +85,7 @@ test('execution-only assurance lanes deduplicate by branch while promotion lanes
 test('canonical CI verifies candidate and execution pushes plus the canonical execution-to-main promotion PR', async () => {
   const workflow = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
   assert.match(workflow, /push:\s*\n\s*branches:\s*\[main, execution, 'agent\/\*\*'\]/u);
-  assert.match(workflow, /pull_request:\s*\n\s*branches:\s*\[main\]/u);
+  assert.match(workflow, /pull_request:\s*\n\s*branches:\s*\[main, execution\]/u);
   assert.match(workflow, /startsWith\(github\.event\.pull_request\.head\.ref, 'chore\/oss-'\)/u);
   assert.match(workflow, /github\.event\.pull_request\.head\.repo\.full_name == github\.repository/u);
 });
@@ -100,24 +100,22 @@ test('canonical CI consumes security assurance as reusable jobs', async () => {
   assert.match(workflow, /uses: \.\/\.github\/workflows\/agent-watchdog\.yml/u);
 });
 
-test('OSS readiness PRs run verification while promotion proof remains execution-only', async () => {
-  const ossPrGate = "if: ${{ github.event_name != 'pull_request' || ((github.event.pull_request.head.ref == 'execution' || startsWith(github.event.pull_request.head.ref, 'chore/oss-')) && github.event.pull_request.head.repo.full_name == github.repository) }}";
+test('execution-bound PRs run canonical validation and security scans; promotion proof remains execution-only', async () => {
+  const ci = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
+  const codeql = await readFile(new URL('../../.github/workflows/codeql.yml', import.meta.url), 'utf8');
+  const secretScan = await readFile(new URL('../../.github/workflows/secret-scan.yml', import.meta.url), 'utf8');
 
-  for (const path of [
-    '.github/workflows/ci.yml',
-    '.github/workflows/codeql.yml',
-    '.github/workflows/secret-scan.yml',
-  ]) {
-    const workflow = await readFile(new URL('../../' + path, import.meta.url), 'utf8');
-    assert.ok(workflow.includes(ossPrGate), path + ' must allow canonical OSS readiness PRs');
+  assert.match(ci, /github\\.event\\.pull_request\\.base\\.ref == 'execution'/u, 'canonical CI must validate PRs targeting execution');
+  assert.match(codeql, /github\\.event\\.pull_request\\.base\\.ref == 'execution'/u, 'CodeQL must run for execution-bound PRs');
+  assert.match(secretScan, /github\\.event\\.pull_request\\.base\\.ref == 'execution'/u, 'secret scanning must run for execution-bound PRs');
+  for (const workflow of [ci, codeql, secretScan]) {
+    assert.match(workflow, /github\\.event\\.pull_request\\.head\\.repo\\.full_name == github\\.repository/u, 'PR validation must remain same-repository only');
   }
 
-  const ci = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
   const promotionProofGate =
     "if: ${{ always() && ((github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/execution')) || (github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'execution' && github.event.pull_request.base.ref == 'main' && github.event.pull_request.head.repo.full_name == github.repository)) }}";
   assert.ok(ci.includes(promotionProofGate), 'promotion proof must be limited to canonical execution-to-main promotion PRs and protected branch pushes');
 });
-
 test('final Red Team security wait is promotion-only after execution security deduplication', async () => {
   const workflow = await readFile(new URL('../../.github/workflows/final-red-team.yml', import.meta.url), 'utf8');
   const marker = '      - name: Wait for exact-SHA security workflows on promotion PRs';
