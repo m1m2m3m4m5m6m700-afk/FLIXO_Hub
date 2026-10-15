@@ -106,3 +106,23 @@ At the refreshed `execution` SHA, `src/worker.ts` declares an asset binding and 
 ## Terminal decision
 
 `BLOCKED_WITH_EVIDENCE`. No deployment-readiness certificate is issued. Mandatory reasons include the currently empty production model manifest/no real artifact digest or runtime evidence, unresolved legal rights and independent reviews, the failed task-registration CI invariant, and the absence of current exact-SHA deployment/post-deployment evidence. The main ruleset reads strict from the current API; issue #1125 requires reconciliation rather than repeating stale values.
+
+
+## Latest release checkpoint — exact promotion candidate `c740451b7c72e3c7f58c6e59f22588ccbda036b1`
+
+- **Refreshed UTC:** 2026-10-15, based on the GitHub Actions and ref APIs as last queried for this checkpoint.
+- **Current `main`:** `29f2e0fe045689337a1483ed98d087b736ff6afc`.
+- **Current `execution`:** `c740451b7c72e3c7f58c6e59f22588ccbda036b1`, the squash merge from PR #1332 only.
+- **Open promotion PR #1308** now has exact head `c740451b7c72e3c7f58c6e59f22588ccbda036b1` and base `29f2e0fe045689337a1483ed98d087b736ff6afc`. Its fresh CI run [#38782443480](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/38782443480) is running. At the last job snapshot:
+  - **FAIL:** Production model admission — job “Require one exact production-admitted model”; the production manifest still has `entries: []`.
+  - **PASS:** Branch policy, Red Team regression, typecheck/lint/core contracts/build, Gitleaks/Secret Scan, CodeQL, Watchdog security integration, sensitive-path assurance, exact-SHA internal coverage, Hub Stage 1.
+  - **IN PROGRESS:** Chromium browser smoke.
+  - Therefore `trust-gate`, final promotion proof, and production deploy cannot be considered passes. The prior run #38750511769 is a historical SHA result; run #38782443480 is the current release-head evidence.
+- PR #1332’s governance-only clarification was merged into `execution` at `c740451b7c72e3c7f58c6e59f22588ccbda036b1` after its exact-head checks, including trust-gate, passed in [run #38781812393](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/38781812393). It authorizes a narrow four-file atomic registration transaction and does not relax prompt equality or any release gate.
+- PR #1333 is the resulting exact four-file registration transaction, head `6e3ab64ae51ff9d78f9263029be94a4640e943f4`. On that candidate the canonical active count and generated Hermes prompts both equal 39, the new release task has exactly 13 synchronized fields, and the fixed `38` literals were replaced with derived counts. [CI run #38782686547](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/38782686547) is still IN_PROGRESS; registration is not accepted until every required job passes on that exact head.
+- PR #1323’s code candidate `dbe2583df4fd00b87f729d8565b3d0f0f817bf23` passed technical CI, Chromium, coverage, Hub Stage 1 and trust-gate in run #38781515366. Its corrected built distribution artifact `11996287162` was downloaded and inspected: ZIP SHA-256 `149404c915d7869fe68fab9c0d1d62707570cc03223dc4c552c99fa8270233c3`; embedded candidate SHA and source tree match the run; the notices report records 50 external runtime packages, one private workspace separately tracked with rights unverified, one exact-version isarray MIT fallback, and zero runtime packages without any copied license/notice text. A later documentation-only head `ee205ea91e1b57185aade132a8d32fc43fc6a318` updates the legal register with these hashes and has its own CI [run #38782344886](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/38782344886) still in progress. Those artifact and CI results do not close authorship/relicensing rights, dependency compatibility, third-party/copy-source provenance, bundle/NOTICE review, or independent legal review.
+- PR #1329 attestation-template reconciliation passed technical CI on its own SHA, but is still an open PR and not a certificate. All model/production promotion/deployment jobs were skipped on that execution-target PR.
+
+### Updated terminal decision
+
+`BLOCKED_WITH_EVIDENCE`. The current main-bound candidate has a fresh, explicit strict-model-admission failure; the actual production model manifest is empty. The registration and legal-evidence PRs have technical validation in progress on newer SHAs. No protected promotion, production deployment, post-deployment identity/browser receipt, independent rights review, or final certification has occurred. Do not merge PR #1308, publish, or issue a certificate until the strict model gate and every other mandatory gate pass on the exact candidate SHA.
