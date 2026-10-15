@@ -177,12 +177,12 @@ self.addEventListener('fetch', (event) => {
   // Hash the complete distributable package except the checksum file itself.
   const packageHashes = [];
   for (const file of await walk(output)) {
-    const path = relative(output, file).split('\\\\').join('/');
+    const path = relative(output, file).split('\\').join('/');
     if (path === 'SHA256SUMS.txt') continue;
     packageHashes.push(createHash('sha256').update(await readFile(file)).digest('hex') + '  ' + path);
   }
   packageHashes.sort();
-  await writeFile(resolve(output, 'SHA256SUMS.txt'), packageHashes.join('\\n') + '\\n', 'utf8');
+  await writeFile(resolve(output, 'SHA256SUMS.txt'), packageHashes.join('\n') + '\n', 'utf8');
   process.stdout.write('Local site package created: ' + relative(root, output) + '\n');
   process.stdout.write('Static files: ' + copiedFiles.length + '\n');
   process.stdout.write('Source SHA: ' + sha + '\n');
