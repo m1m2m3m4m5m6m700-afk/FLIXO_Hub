@@ -55,5 +55,8 @@ test('ledger linter rejects duplicate IDs, invalid dependencies, and owner-actio
 test('ledger lint CLI executes with a relative path on Windows', () => {
   const output = execFileSync(process.execPath, ['scripts/ci/ledger-lint.mjs'], { encoding: 'utf8' });
   assert.match(output, /LEDGER_LINT=PASS/u);
-  assert.match(output, /ACTIVE_TASKS=38/u);
+  const ledgerSource = readFileSync('المهام.md', 'utf8');
+  const declaredCount = ledgerSource.match(/\*\*ACTIVE TASK COUNT:\*\*\s*(\d+)/u);
+  assert.ok(declaredCount, 'ledger declares ACTIVE TASK COUNT');
+  assert.match(output, new RegExp('ACTIVE_TASKS=' + Number(declaredCount[1]) + '\\b', 'u'));
 });
