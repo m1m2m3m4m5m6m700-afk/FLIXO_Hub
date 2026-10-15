@@ -23,6 +23,14 @@ The live `execution` HEAD may move while an agent is preparing a repair.
 - No temporary or third development branch is permitted.
 - The Patch Capsule workflow is documented in `docs/AGENT-PATCH-CAPSULE-AND-CAS.md`.
 
+## Contribution rights and provenance
+
+By submitting a contribution, contributors must ensure they are authorized to submit it and that it may be distributed under the repository's declared license, Apache-2.0, unless the contribution is explicitly identified and approved under separate compatible terms. Contributors must preserve third-party copyright, license, patent, trademark, and attribution notices and identify the source, version, and license of copied or adapted material. Do not submit code, datasets, media, model weights, or other assets unless the applicable rights and terms are known.
+
+If an employer, client, contractor agreement, or another rights holder may own the work, obtain authorization before submission. A pull request, account ownership, or ability to push code is not evidence of copyright ownership. Maintainers may request provenance evidence, reject unclear material, or require it to be replaced.
+
+These prospective contribution rules do not retroactively establish rights in existing commits. Existing contributions remain subject to the separate [copyright and license provenance register](docs/FLIXO-LEGAL-PROVENANCE-REGISTER.md). The register must not be marked complete until the supporting evidence has been reviewed independently.
+
 ## Delivery lifecycle
 
 `Implement → Verify → Certify → Freeze → Promote`
