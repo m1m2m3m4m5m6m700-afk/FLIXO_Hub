@@ -2,10 +2,10 @@
 import test from "node:test";
 import { readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
-import { buildDispatchPlan, parseActiveTasks, parsePromptIds } from "../../../scripts/task-dispatch-plan.mjs";
+import { CANONICAL_LEDGER_PATH, CANONICAL_PROMPTS_PATH, buildDispatchPlan, parseActiveTasks, parsePromptIds } from "../../../scripts/task-dispatch-plan.mjs";
 
-const ledgerPath = "المهام.md";
-const promptsPath = "مهام هيرميس.md";
+const ledgerPath = CANONICAL_LEDGER_PATH;
+const promptsPath = CANONICAL_PROMPTS_PATH;
 
 function card(id, { status = "QUEUED", dep = "none", key = id, scope = "src/example" } = {}) {
   return [
@@ -46,7 +46,7 @@ test("real canonical ledger and Hermes prompt IDs match exactly", () => {
   const parsed = parseActiveTasks(ledger);
   const ids = parsed.tasks.map((task) => task.id);
   const promptIds = parsePromptIds(prompts);
-  assert.equal(ids.length, 36);
+  assert.equal(ids.length, 38);
   assert.equal(promptIds.length, ids.length);
   assert.equal(new Set(ids).size, ids.length);
   assert.deepEqual([...promptIds].sort(), [...ids].sort());
@@ -119,5 +119,5 @@ test("overlapping path scopes block concurrent dispatch even with different coll
 test("Hermes prompt task-card fields are synchronized to the canonical ledger", () => {
   const result = execFileSync(process.execPath, ["scripts/sync-hermes-task-prompts.mjs"], { encoding: "utf8" });
   assert.match(result, /HERMES_PROMPT_SYNC=PASS/u);
-  assert.match(result, /TASKS=36/u);
+  assert.match(result, /TASKS=38/u);
 });

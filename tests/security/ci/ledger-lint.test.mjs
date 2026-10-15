@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { lintLedger } from '../../../scripts/ci/ledger-lint.mjs';
 
 test('active task ledger satisfies the 13-field contract', () => {
@@ -48,4 +49,11 @@ test('ledger linter rejects duplicate IDs, invalid dependencies, and owner-actio
   assert.ok(result.failures.some((f) => f.startsWith('IN_PROGRESS_COLLISION:')));
   assert.ok(result.failures.some((f) => f.startsWith('EXEC-OWNER-002:OWNER_ACTION_PR_MUST_BE_NA')));
   assert.ok(result.failures.some((f) => f.startsWith('EXEC-TEST-003:MISSING_DEPENDENCY:')));
+});
+
+
+test('ledger lint CLI executes with a relative path on Windows', () => {
+  const output = execFileSync(process.execPath, ['scripts/ci/ledger-lint.mjs'], { encoding: 'utf8' });
+  assert.match(output, /LEDGER_LINT=PASS/u);
+  assert.match(output, /ACTIVE_TASKS=38/u);
 });

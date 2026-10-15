@@ -4,6 +4,7 @@ import { expect, test } from '@playwright/test';
 
 const locales = ['ar', 'en', 'fr'] as const;
 const repositoryUrl = 'https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub';
+const sourceLabels: Record<(typeof locales)[number], string> = { ar: 'المصدر', en: 'Source', fr: 'Source' };
 
 test.describe('FLIXO attribution footer', () => {
   for (const locale of locales) {
@@ -16,7 +17,7 @@ test.describe('FLIXO attribution footer', () => {
         footer.getByRole('link', { name: 'Powered by FLIXO Hub' }),
       ).toHaveAttribute('href', repositoryUrl);
       await expect(
-        footer.getByRole('link', { name: 'Source' }),
+        footer.getByRole('link', { name: sourceLabels[locale] }),
       ).toHaveAttribute('href', repositoryUrl);
     });
   }

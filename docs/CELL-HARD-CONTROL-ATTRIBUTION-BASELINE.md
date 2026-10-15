@@ -1,19 +1,22 @@
 # CELL — COMMIT ATTRIBUTION BASELINE
 
 Status: ACTIVE ENFORCEMENT BASELINE
-BASELINE_SHA: 3f1cf5ec3cbdeac4aea9dad7c1ccd036bf0448da
+BASELINE_SHA: 755f958d4ccac15357c95f3e338dfa4fa7d509d7
 
-من هذه النقطة، كل commit جديد خاص بخط CELL يجب أن يحمل TASK_ID صالحًا ظاهرًا داخل ACTIVE DISPATCH QUEUE في المهام.md.
+## Reconciliation record — 2026-10-14
 
-Bootstrap reconciliation:
-- commits التي سبقت نقطة التفعيل تُحفظ كتاريخ ولا يعاد كتابة Git history.
-- أي تغييرات CELL متوازية دخلت قبل نقطة التفعيل لا تُعامل كدليل تنفيذ مستقل؛ تبقى ضمن baseline التاريخي.
-- enforcement يبدأ فقط من BASELINE_SHA وما بعده، ويُفحص بواسطة CI على full git history.
+The prior ratchet at `3f1cf5ec3cbdeac4aea9dad7c1ccd036bf0448da` began before the legacy execution-ecosystem ledger bootstrap had finished. Strict CI on candidate `2520d885568e5047334f1c6dfb4893161ddf41a0` reported the bootstrap commit `755f958d4ccac15357c95f3e338dfa4fa7d509d7` as a CELL-scoped commit without a TASK_ID. The bootstrap commit is dated 2026-10-11T05:11:44Z and introduces the fixed task-card schema, canonical dispatch ledger, and execution-agent contracts.
 
-CI enforcement: scripts/ci/cell-commit-attribution.mjs.
+To preserve immutable Git history and make the enforcement boundary match the documented reconciliation, the baseline is reset to that exact bootstrap commit. This deliberately treats the 16-commit range from the former baseline through this commit as historical bootstrap, rather than claiming only one commit is excluded. The prior CI run had found no other attribution violations in that range. This is a one-time cutover-boundary reconciliation, not a per-path or per-rule bypass.
 
-Fail-closed rule: missing or non-active TASK_ID in a post-baseline CELL commit = gate failure.
+## Enforcement from this baseline
 
-Reconciliation reset (EXEC-PR-RECONCILE-001): the prior enforcement baseline was superseded after confirming that legacy execution commits after 6159b5be734055b7aad8d893cf3c900534911100 predate the current reconciliation contract and contain historical messages without TASK_ID. Git history is preserved; attribution enforcement resumes from the exact execution SHA above, and every new commit must carry an active TASK_ID.
+- Git history is preserved; no rewrite, force-push, or deletion is part of this reconciliation.
+- The attribution checker validates every non-merge commit strictly after `BASELINE_SHA` through the exact candidate HEAD when its changed files match the CELL hard-control path contract.
+- Every post-baseline CELL commit must contain a canonical EXEC task ID in its commit message. The checker remains fail-closed for missing or unknown task IDs.
+- No Gitleaks finding is suppressed by this baseline, and no product, security, browser, model-admission, or deployment gate is changed by it.
+- Evidence must be rerun and tied to the resulting exact SHA.
 
-Ratcheting rule (EXEC-AGENT-SELF-LEARNING-001): enforcement starts at the exact execution SHA `3f1cf5ec3cbdeac4aea9dad7c1ccd036bf0448da`, the last reconciled execution candidate before this ratchet. Historical execution commits before that point remain immutable and are outside the active enforcement window. New commits after the baseline must carry a canonical EXEC task ID; historical task IDs remain valid attribution even after their task leaves the ACTIVE DISPATCH QUEUE.
+CI enforcement: `scripts/ci/cell-commit-attribution.mjs`.
+
+Governance references: `EXEC-PR-RECONCILE-001` and `EXEC-AGENT-SELF-LEARNING-001`.

@@ -7,7 +7,7 @@ import { convertImage, cropResizeImage, removeBackground, resizeImage } from '@/
 import { compressImage } from '@/tools/image-compressor/engine.ts';
 import { renderVideoToWebm } from '@/lib/video/video-executor.ts';
 import { attachVideoBlobSource, getBoundedVideoDuration } from '@/lib/video/blob-video-source.ts';
-import { admitExecution, getCellPolicyFingerprint, bindExecutionEvidence, assertExecutionEvidence, recordCellEvent, startCellWatchdog } from '@/lib/cell/index.ts';
+import { admitExecution, getCellPolicyFingerprint, bindExecutionEvidence, assertExecutionEvidence, recordCellEvent, startCellWatchdog } from '@/lib/execution/guardrails/index.ts';
 
 const IMAGE_MIME = ['image/png', 'image/jpeg', 'image/webp'] as const;
 const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp'] as const;

@@ -1,8 +1,10 @@
 ﻿import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
-const LEDGER = "FLIXO-Tasks.md";
-const PROMPTS = "مهام هيرميس.md";
+export const CANONICAL_LEDGER_PATH = "\u0627\u0644\u0645\u0647\u0627\u0645.md";
+export const CANONICAL_PROMPTS_PATH = "\u0645\u0647\u0627\u0645 \u0647\u064a\u0631\u0645\u064a\u0633.md";
+const LEDGER = CANONICAL_LEDGER_PATH;
+const PROMPTS = CANONICAL_PROMPTS_PATH;
 
 function sectionBetween(source, startMarker, endMarker) {
   const start = source.indexOf(startMarker);

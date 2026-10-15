@@ -16,6 +16,8 @@ jobs:
     name: Reconcile durable patch capsule onto live execution
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    permissions:
+      contents: write
     env:
       FLIXO_CANONICAL_CONTROLLER: assistantController
       FLIXO_TARGET_BRANCH: execution
@@ -34,7 +36,7 @@ jobs:
 
       - name: Validate controller credentials
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY || secrets.SUPABASE_SERVICE_ROLE_KEY }}
         shell: bash
@@ -65,7 +67,7 @@ jobs:
         if: steps.capsule.outputs.QUEUE_EMPTY != 'true'
         env:
           QUEUE_ID: ${{ steps.capsule.outputs.queue_id }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY || secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |

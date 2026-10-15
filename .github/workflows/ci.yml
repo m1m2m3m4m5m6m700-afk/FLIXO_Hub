@@ -2,7 +2,7 @@ name: FLIXO CI
 
 on:
   push:
-    branches: [main, execution]
+    branches: [main, execution, 'agent/**']
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -72,12 +72,13 @@ jobs:
       - name: Model license and admission gate
         run: npm run test:model-license
       - name: Run npm test
+        id: npm_test
         shell: bash
         run: |
           set -o pipefail
           npm test 2>&1 | tee npm-test.log
       - name: Upload npm test failure evidence
-        if: failure()
+        if: failure() && steps.npm_test.outcome == 'failure'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: flixo-npm-test-failure-${{ github.run_id }}
@@ -335,6 +336,11 @@ jobs:
             files="$(git diff --name-only "${{ github.event.pull_request.base.sha }}" "$EXPECTED_SHA")"
           elif [ "$GITHUB_EVENT_NAME" = "merge_group" ]; then
             files="$(git diff --name-only HEAD^ HEAD)"
+          elif [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            git fetch --no-tags origin refs/heads/execution:refs/remotes/origin/execution
+            base="$(git merge-base origin/execution "$EXPECTED_SHA")"
+            test -n "$base"
+            files="$(git diff --name-only "$base" "$EXPECTED_SHA")"
           elif [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
             files="$(git diff-tree --root --name-only -r "$EXPECTED_SHA")"
           else
@@ -367,9 +373,28 @@ jobs:
           npm run verify:governance
           npm audit --omit=dev --audit-level=high
 
+  model-admission:
+    name: Production model admission (strict release mode)
+    if: ${{ github.event_name == 'merge_group' || (github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main') || github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && inputs.strict_governance == true) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: '22'
+      - name: Require one exact production-admitted model
+        run: node scripts/model-license-gate.mjs --require-entry
+
   trust-gate:
     name: trust-gate
-    needs: [verify, hub-stage1, browser, branch-policy, coverage, red-team, codeql, secret-scan, agent-watchdog, sensitive-path-gate]
+    needs: [verify, hub-stage1, browser, branch-policy, coverage, red-team, codeql, secret-scan, agent-watchdog, sensitive-path-gate, model-admission]
     if: ${{ always() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -386,6 +411,8 @@ jobs:
           SECRET_SCAN_RESULT: ${{ needs.secret-scan.result }}
           AGENT_WATCHDOG_RESULT: ${{ needs.agent-watchdog.result }}
           SENSITIVE_RESULT: ${{ needs.sensitive-path-gate.result }}
+          MODEL_ADMISSION_RESULT: ${{ needs.model-admission.result }}
+          MODEL_ADMISSION_REQUIRED: ${{ github.event_name == 'merge_group' || (github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main') || github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && inputs.strict_governance == true) }}
         run: |
           set -euo pipefail
           test "$VERIFY_RESULT" = success
@@ -398,12 +425,15 @@ jobs:
           test "$SECRET_SCAN_RESULT" = success
           test "$AGENT_WATCHDOG_RESULT" = success
           test "$SENSITIVE_RESULT" = success
+          if [[ "$MODEL_ADMISSION_REQUIRED" == "true" ]]; then
+            test "$MODEL_ADMISSION_RESULT" = success
+          fi
           echo 'TRUST_GATE=PASS'
 
   promotion-proof:
     name: Exact-SHA promotion proof
     needs: [trust-gate]
-    if: ${{ always() && (github.event_name != 'pull_request' || github.event.pull_request.head.ref == 'execution') }}
+    if: ${{ always() && ((github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/execution')) || (github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'execution' && github.event.pull_request.base.ref == 'main' && github.event.pull_request.head.repo.full_name == github.repository)) }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -561,6 +591,20 @@ jobs:
           test "$root_status" = "200"
           grep -Eiq '<html[[:space:]>]' /tmp/flixo-production.html
           echo "PRODUCTION_IDENTITY=PASS"
+
+      - name: Verify deployed build provenance for exact SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          provenance_url="$FLIXOAI_PRODUCTION_ORIGIN/__flixo/build-provenance.json?__flixo_sha=$DEPLOYMENT_SHA&__flixo_verify=$GITHUB_RUN_ID"
+          response_meta="$(curl --silent --show-error --location --compressed --retry 10 --retry-delay 3 --retry-all-errors --max-time 30 -H 'Cache-Control: no-cache, no-store' -o /tmp/flixo-production-provenance.json -w '%{http_code}|%{content_type}' "$provenance_url")"
+          status="$(printf '%s' "$response_meta" | cut -d '|' -f 1)"
+          content_type="$(printf '%s' "$response_meta" | cut -d '|' -f 2)"
+          echo "HTTP=$status CONTENT_TYPE=$content_type"
+          test "$status" = "200"
+          [[ "$content_type" == application/json* ]]
+          jq -e --arg repo "$GITHUB_REPOSITORY" --arg sha "$DEPLOYMENT_SHA" '.repository == $repo and .candidateSha == $sha and (.sourceTreeSha | type == "string" and test("^[a-f0-9]{40}$")) and (.buildRunId | type == "string" and test("^[0-9]+$"))' /tmp/flixo-production-provenance.json > /dev/null
+          echo "PRODUCTION_BUILD_PROVENANCE=PASS"
 
       - name: Install Node dependencies for production browser verification
         run: npm ci --prefer-offline --no-audit --no-fund

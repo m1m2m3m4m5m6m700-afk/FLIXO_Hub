@@ -60,7 +60,7 @@ test('FLIXO CI protects every candidate-sensitive checkout and identity stamp', 
   );
 
   const exactRefCount = workflow.split('          ref: ' + EXACT_HEAD_EXPRESSION).length - 1;
-  assert.equal(exactRefCount, 8, 'all eight candidate-sensitive CI checkouts must use the exact PR head SHA');
+  assert.equal(exactRefCount, 9, 'all nine candidate-sensitive CI checkouts must use the exact PR head SHA');
 
   assert.ok(
     workflow.includes('          BUILD_SHA: ' + EXACT_HEAD_EXPRESSION),
@@ -82,9 +82,9 @@ test('execution-only assurance lanes deduplicate by branch while promotion lanes
   assert.match(video, /cancel-in-progress: true/u);
 });
 
-test('canonical CI verifies execution pushes and the canonical execution-to-main promotion PR', async () => {
+test('canonical CI verifies candidate and execution pushes plus the canonical execution-to-main promotion PR', async () => {
   const workflow = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
-  assert.match(workflow, /push:\s*\n\s*branches:\s*\[main, execution\]/u);
+  assert.match(workflow, /push:\s*\n\s*branches:\s*\[main, execution, 'agent\/\*\*'\]/u);
   assert.match(workflow, /pull_request:\s*\n\s*branches:\s*\[main\]/u);
   assert.match(workflow, /startsWith\(github\.event\.pull_request\.head\.ref, 'chore\/oss-'\)/u);
   assert.match(workflow, /github\.event\.pull_request\.head\.repo\.full_name == github\.repository/u);
@@ -114,8 +114,8 @@ test('OSS readiness PRs run verification while promotion proof remains execution
 
   const ci = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
   const promotionProofGate =
-    "if: ${{ always() && (github.event_name != 'pull_request' || github.event.pull_request.head.ref == 'execution') }}";
-  assert.ok(ci.includes(promotionProofGate), 'promotion proof must remain execution-only for pull requests');
+    "if: ${{ always() && ((github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/execution')) || (github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'execution' && github.event.pull_request.base.ref == 'main' && github.event.pull_request.head.repo.full_name == github.repository)) }}";
+  assert.ok(ci.includes(promotionProofGate), 'promotion proof must be limited to canonical execution-to-main promotion PRs and protected branch pushes');
 });
 
 test('final Red Team security wait is promotion-only after execution security deduplication', async () => {
@@ -150,7 +150,7 @@ test('all candidate-sensitive CI checkouts explicitly disable credential persist
   const workflow = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
   const blocks = workflow.split(/\n[ ]{6}- (?:name:[^\n]+\n[ ]{8})?uses: actions\/checkout@/u).slice(1);
   const candidateBlocks = blocks.filter((block) => block.includes('ref: ' + EXACT_HEAD_EXPRESSION));
-  assert.equal(candidateBlocks.length, 8, 'all eight candidate-sensitive CI checkouts must remain identifiable');
+  assert.equal(candidateBlocks.length, 9, 'all nine candidate-sensitive CI checkouts must remain identifiable');
   for (const block of candidateBlocks) {
     assert.match(block, /persist-credentials:\s*false\b/u);
     assert.doesNotMatch(block, /persist-credentials:\s*true\b/u);
@@ -248,4 +248,16 @@ test('specialized execution gates are path-gated and TestSprite concurrency is c
   assert.match(knowledge, /paths:\s*\r?\n(?:\s+- .+\r?\n){4,}/u);
   assert.match(scout, /paths:\s*\r?\n(?:\s+- .+\r?\n){4,}/u);
   assert.match(discovery, /paths:\s*\r?\n(?:\s+- .+\r?\n){4,}/u);
+});
+
+test('workflow_dispatch sensitive-path classification uses a real execution merge base', async () => {
+  const workflow = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
+  const start = workflow.indexOf('      - name: Classify changed paths');
+  const end = workflow.indexOf('      - name: Ordinary path fast path', start);
+  assert.ok(start >= 0 && end > start, 'sensitive-path classifier block must exist');
+  const classifier = workflow.slice(start, end);
+  assert.ok(classifier.includes('elif [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ];'));
+  assert.ok(classifier.includes('git fetch --no-tags origin refs/heads/execution:refs/remotes/origin/execution'));
+  assert.ok(classifier.includes('base="$(git merge-base origin/execution "$EXPECTED_SHA")"'));
+  assert.ok(classifier.includes('files="$(git diff --name-only "$base" "$EXPECTED_SHA")"'));
 });
