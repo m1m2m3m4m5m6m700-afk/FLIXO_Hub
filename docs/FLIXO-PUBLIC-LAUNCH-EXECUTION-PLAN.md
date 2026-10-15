@@ -27,7 +27,7 @@
 - [x] Inspected `docs/FLIXO-PUBLIC-RELEASE-MANIFEST.md`: candidate SHA, current workflow run, deployment ID, and immutable production identity are still `REQUIRED`; status is candidate/not certified.
 - [x] Inspected `docs/FLIXO-PUBLIC-LAUNCH-CERTIFICATE-TEMPLATE.md`: status is NOT CERTIFIED and all release identity fields remain required.
 - [x] Inspected `scripts/verify-public-launch-readiness.mjs`: structural verification explicitly says external account/legal actions and exact-SHA evidence are still required.
-- [x] Found a documentation inconsistency requiring resolution: the README claims Apache-2.0, while `docs/FLIXO-LEGAL-LAUNCH-BLOCKERS.md` says no repository code license has been selected. Do not silently choose a license; obtain owner decision and reconcile LICENSE, README, metadata, and legal blocker ledger.
+- [x] Confirmed a release-blocking license inconsistency: `LICENSE` contains AGPL-3.0 text, `CITATION.cff` declares Apache-2.0, the previous README claimed Apache-2.0, and `docs/FLIXO-LEGAL-LAUNCH-BLOCKERS.md` says no repository code license has been selected. No license was chosen by this work. The homepage wording is being corrected to disclose the mismatch; maintainer decision and full reconciliation remain required.
 - [x] Found that `docs/FLIXO-PUBLIC-LAUNCH-EXECUTION-PLAN.md` was referenced by README but was not present on `execution` at baseline. This plan is being added at that path to restore the intended link.
 - [ ] Re-run all baseline observations against the final candidate SHA before certification.
 
@@ -149,7 +149,7 @@
 | --- | --- | --- | --- | --- |
 | REL-001 | No current exact-SHA release evidence assembled | Cannot certify or claim 100% | Establish candidate SHA and collect fresh CI/security/browser/deployment evidence | OPEN |
 | REL-002 | Release manifest has REQUIRED identity placeholders | Cannot establish release lineage | Populate only after observing actual run/deployment identifiers | OPEN |
-| REL-003 | Code license status contradicts README claim | Legal/public-launch risk | Obtain explicit owner decision; reconcile all surfaces consistently | OPEN |
+| REL-003 | `LICENSE` says AGPL-3.0, `CITATION.cff` says Apache-2.0, and legal blocker says license unselected | Legal/public-launch risk | Obtain explicit owner decision; reconcile LICENSE, README, citation metadata, and blocker ledger consistently | OPEN |
 | REL-004 | External security/support/search/analytics settings not verified | Public launch operations incomplete | Verify live settings and record evidence or owner action | OPEN |
 | REL-005 | PR #1312 has unresolved automated review findings | README change not yet accepted | Review findings, fix factual/link issues, and verify checks | OPEN |
 | REL-006 | Launch plan link was missing on baseline `execution` | Broken project navigation and missing tracking artifact | Add this plan and verify the URL | IN PROGRESS |
