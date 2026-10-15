@@ -23,7 +23,7 @@
     "ci": "npm run test && npm run build",
     "test:task-dispatch-plan": "node --test tests/security/ci/task-dispatch-plan.test.mjs",
     "test:model-bundle-manifest": "node --test tests/security/ci/model-bundle-manifest.test.mjs",
-    "test:model-license": "node scripts/model-license-gate.mjs && node --test tests/security/ci/model-license-gate.test.mjs",
+    "test:model-license": "npm run test:model-bundle-manifest && node scripts/model-license-gate.mjs && node --test tests/security/ci/model-license-gate.test.mjs",
     "test:model-license:release": "node scripts/model-license-gate.mjs --require-entry",
     "verify:architecture": "node scripts/verify-architecture.mjs",
     "verify:contracts": "node scripts/verify-contract-boundary.mjs",
