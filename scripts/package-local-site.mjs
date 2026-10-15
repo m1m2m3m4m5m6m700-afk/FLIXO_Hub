@@ -145,10 +145,12 @@ self.addEventListener('fetch', (event) => {
     '  pause',
     '  exit /b 1',
     ')',
-    'start "FLIXO Hub browser" http://127.0.0.1:4173/',
-    'echo Starting FLIXO Hub locally at http://127.0.0.1:4173/',
-    'echo Keep this window open while using the website. Press Ctrl+C to stop it.',
-    'node server.mjs',
+    'start "FLIXO Hub server" /min cmd /k "cd /d ""%~dp0"" && node server.mjs"',
+    'timeout /t 2 /nobreak >nul',
+    'start "" http://127.0.0.1:4173/',
+    'echo FLIXO Hub is served locally at http://127.0.0.1:4173/',
+    'echo Keep the FLIXO Hub server window open while using the website.',
+    'echo Close that server window or press Ctrl+C in it to stop the local server.',
     'pause',
     ''
   ].join('\r\n');
