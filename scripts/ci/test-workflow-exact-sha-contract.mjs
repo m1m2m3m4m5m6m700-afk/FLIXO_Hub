@@ -261,3 +261,34 @@ test('workflow_dispatch sensitive-path classification uses a real execution merg
   assert.ok(classifier.includes('base="$(git merge-base origin/execution "$EXPECTED_SHA")"'));
   assert.ok(classifier.includes('files="$(git diff --name-only "$base" "$EXPECTED_SHA")"'));
 });
+
+test('execution-targeted same-repository PRs must satisfy all execution trust gates', async () => {
+  const workflow = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
+  const start = workflow.indexOf('  trust-gate:');
+  const end = workflow.indexOf('\n  promotion-proof:', start);
+  assert.ok(start >= 0 && end > start, 'trust gate block must exist');
+  const gate = workflow.slice(start, end);
+
+  assert.ok(gate.includes("PR_BASE_REF: ${{ github.event.pull_request.base.ref || '' }}"), 'trust gate must inspect the PR base branch');
+  assert.ok(gate.includes("PR_HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name || '' }}"), 'trust gate must inspect the PR source repository');
+  assert.ok(
+    gate.includes('if [ "$EVENT_NAME" = "pull_request" ] && [ "$PR_BASE_REF" = "execution" ] && [ "$PR_HEAD_REPO" = "$GITHUB_REPOSITORY" ]; then'),
+    'same-repository PRs targeting execution must use the full required-gate path',
+  );
+  for (const result of [
+    'VERIFY_RESULT', 'HUB_STAGE1_RESULT', 'BROWSER_RESULT', 'COVERAGE_RESULT',
+    'RED_TEAM_RESULT', 'BRANCH_RESULT', 'CODEQL_RESULT', 'SECRET_SCAN_RESULT',
+    'AGENT_WATCHDOG_RESULT', 'SENSITIVE_RESULT',
+  ]) {
+    assert.ok(gate.includes(`test "$${result}" = success`), `execution trust gate must require ${result}=success`);
+  }
+  assert.ok(
+    gate.includes('[ "$PR_BASE_REF" != "execution" ]'),
+    'worker/diagnostic PR skip policy must not swallow execution-targeted PRs',
+  );
+  assert.ok(
+    gate.includes("echo 'TRUST_GATE=PASS_EXECUTION_PR'"),
+    'execution-targeted PR success must be explicit and auditable',
+  );
+});
+
