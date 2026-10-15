@@ -37,17 +37,18 @@ async function main() {
 
   const manifest = (await readFile(resolve(output, 'SHA256SUMS.txt'), 'utf8')).trim().split(/\r?\n/u);
   const manifestMap = new Map(manifest.map((line) => {
-    const match = /^([a-f0-9]{64})  site\/(.+)$/u.exec(line);
+    const match = /^([a-f0-9]{64})  (.+)$/u.exec(line);
     assert.ok(match, 'invalid SHA256SUMS.txt row: ' + line);
     return [match[2], match[1]];
   }));
-  assert.equal(manifestMap.size, files.length, 'every packaged site file must have exactly one hash');
-  for (const file of files) {
-    const path = rel(file, site);
+  const packageFiles = (await walk(output)).filter((file) => rel(file, output) !== 'SHA256SUMS.txt');
+  assert.equal(manifestMap.size, packageFiles.length, 'every distributable package file must have exactly one hash');
+  for (const file of packageFiles) {
+    const path = rel(file, output);
     const actual = createHash('sha256').update(await readFile(file)).digest('hex');
-    assert.equal(manifestMap.get(path), actual, 'SHA-256 mismatch for site/' + path);
+    assert.equal(manifestMap.get(path), actual, 'SHA-256 mismatch for ' + path);
   }
-  process.stdout.write('Local offline package verified: ' + files.length + ' files, ' + expected.length + ' precached resources, all SHA-256 hashes valid; API endpoints excluded.\n');
+  process.stdout.write('Local offline package verified: ' + packageFiles.length + ' package files, ' + expected.length + ' precached resources, all SHA-256 hashes valid; API endpoints excluded.\n');
 }
 main().catch((error) => {
   process.stderr.write('[verify-local-offline-package] FAIL: ' + (error?.stack || error) + '\n');
