@@ -24,12 +24,21 @@ CI run `38763039401` for candidate SHA `73c26cff4dd40db3a4fde170c65452f65c735a83
 
 ## License-expression triage from the retained inventory
 
-The exact-SHA report contains 12 distinct license expressions across 262 package entries. The largest groups are MIT (205 entries), Apache-2.0 (19), ISC (12), and MPL-2.0 (12). Three items require explicit human triage before distribution clearance:
-- `jszip@3.10.1` declares `(MIT OR GPL-3.0-or-later)`; confirm the actual upstream license files and the selected permitted option in the shipped artifact.
-- `lightningcss@1.33.0` and platform packages declare MPL-2.0 and are marked development-only in the lockfile; determine whether their code or notices are included in distributed artifacts.
-- `isbot@5.2.1` declares `Unlicense`; verify the upstream license text and preserve any relevant provenance.
+The exact-SHA report contains 12 distinct license expressions across 262 package entries. The largest groups are MIT (205 entries), Apache-2.0 (19), ISC (12), and MPL-2.0 (12). The following non-baseline expressions require explicit package/archive and distribution-scope triage before clearance:
 
-This triage is based on package-lock metadata, not a legal determination. Review actual package archives, transitive notices, build output, and any copied assets before marking these items cleared.
+| Locked package(s) | Expression | Scope in lockfile | Required manual check |
+|---|---|---|---|
+| `jszip@3.10.1` | `MIT OR GPL-3.0-or-later` | Runtime | Inspect the exact 3.10.1 archive, preserve its license/copyright files, and document the chosen MIT option if that is the selected distribution basis. Verify the shipped bundle and notices reflect the selected option. |
+| `pako@1.0.11` | `MIT AND Zlib` | Runtime | Inspect the exact archive and preserve both required license texts/notices as applicable to the distribution. |
+| `isbot@5.2.1` | `Unlicense` | Runtime | Inspect the exact archive and package origin/provenance; retain the license text and document how it is presented in source/binary distributions. |
+| `lightningcss@1.33.0` plus 11 platform packages | `MPL-2.0` | Development-only; platform packages optional | Determine whether the CSS build tooling or any MPL-covered source/binary is shipped, not merely used during build. Inspect exact archive notices and bundle contents before deciding distribution obligations. |
+| `caniuse-lite@1.0.30001809` | `CC-BY-4.0` | Development-only | Inspect the exact package and data origin; determine whether attribution is required for bundled data and place required attribution in the correct distribution surface. |
+| `minimatch@10.2.6` | `BlueOak-1.0.0` | Development-only | Inspect the exact version's license text and confirm the package remains excluded from the delivered artifact or preserve its applicable notices. |
+| `tslib@2.8.1` | `0BSD` | Runtime | Verify the exact archive's license text and preserve provenance metadata in the inventory/notices if required by the distribution scheme. |
+
+The inventory also includes standard MIT, Apache-2.0, ISC, BSD-2-Clause and BSD-3-Clause expressions; presence of a permissive SPDX label does not establish copyright ownership, component provenance, or compatibility of every copied file. The inventory's `METADATA_PRESENT_NOT_LEGAL_CLEARANCE` status remains controlling for every package.
+
+This triage is based on package-lock metadata, not a legal determination. Review actual package archives, transitive notices, generated bundles, copied assets and the intended distribution format before marking any item cleared.
 
 ## Preliminary dependency metadata finding
 
