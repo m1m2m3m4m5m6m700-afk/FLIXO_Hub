@@ -85,7 +85,7 @@ test('execution-only assurance lanes deduplicate by branch while promotion lanes
 test('canonical CI verifies candidate and execution pushes plus the canonical execution-to-main promotion PR', async () => {
   const workflow = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
   assert.match(workflow, /push:\s*\n\s*branches:\s*\[main, execution, 'agent\/\*\*'\]/u);
-  assert.match(workflow, /pull_request:\s*\n\s*branches:\s*\[main\]/u);
+  assert.match(workflow, /pull_request:\s*\n\s*branches:\s*\[main, execution\]/u);
   assert.match(workflow, /startsWith\(github\.event\.pull_request\.head\.ref, 'chore\/oss-'\)/u);
   assert.match(workflow, /github\.event\.pull_request\.head\.repo\.full_name == github\.repository/u);
 });
