@@ -11,7 +11,7 @@ export function buildLicenseInventory(lock) {
   const unresolved = [];
 
   for (const [lockPath, entry] of Object.entries(lock.packages)) {
-    if (!lockPath || entry?.link) continue;
+    if (!lockPath || entry?.link || entry?.extraneous) continue;
     const name = entry.name || lockPath.split('node_modules/').at(-1);
     if (!name || !entry.version) continue;
 
@@ -43,7 +43,7 @@ export function buildLicenseInventory(lock) {
 
   packages.sort((a, b) => a.name.localeCompare(b.name) || a.version.localeCompare(b.version));
   unresolved.sort((a, b) => a.name.localeCompare(b.name) || a.version.localeCompare(b.version));
-  return { schemaVersion: 1, lockfileVersion: lock.lockfileVersion, packageCount: packages.length, unresolvedCount: unresolved.length, packages, unresolved };
+  return { schemaVersion: 1, lockfileVersion: lock.lockfileVersion, packageCount: packages.length, ignoredLinkCount: Object.values(lock.packages).filter((entry) => entry?.link).length, ignoredExtraneousCount: Object.values(lock.packages).filter((entry) => entry?.extraneous).length, unresolvedCount: unresolved.length, packages, unresolved };
 }
 
 function renderMarkdown(report) {
@@ -54,6 +54,8 @@ function renderMarkdown(report) {
     '',
     '- Package entries: ' + report.packageCount,
     '- Entries requiring manual license review: ' + report.unresolvedCount,
+    '- Ignored workspace links: ' + report.ignoredLinkCount,
+    '- Ignored stale extraneous lock entries: ' + report.ignoredExtraneousCount,
     '',
     '> This report inventories package-lock metadata only. It does not establish license compatibility, copyright ownership, NOTICE compliance, or permission to redistribute. Review every license expression and bundled asset before release.',
     '',
