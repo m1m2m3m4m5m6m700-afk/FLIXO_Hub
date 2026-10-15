@@ -191,12 +191,12 @@ For every work session:
 - Updated `.github/workflows/agent-watchdog.yml` to permit the watchdog suite for execution-bound PRs while retaining the `execution`-to-`main` promotion identity checks.
 - Updated `scripts/ci/test-workflow-exact-sha-contract.mjs` to assert the new execution-PR trigger and security scan coverage.
 - Candidate commit history includes `d29b985383de98b1ba3b1aa68349b9649891d272`, `dcb9d45954a4e494b552120af089c09f1d09b730`, `ba937e2068be967380c79a90069b8bb5ad252ce4`, `3315b256e79ca596302d349df64549963cb9f59a`, `aea50b0a9f7fe79e2acb4b98bd0498f71fed7c40`, and `f4f97dfbdeb4bcdb18e1ddfe8081c086996a9534`.
-- Verification status: the workflow file contents were read back from GitHub, but a CI run for this branch has not been independently retrieved. The available commit-run query only exposes pull-request-triggered runs; do not mark CI PASS based on this.
-- Pull-request creation through the connected GitHub action was blocked by platform safety checks. The branch is not yet represented by a reviewable PR; maintainer action is required to open/review it, then confirm all contract tests pass.
+- Historical note: the initial branch read-back did not show a CI run. A follow-up reviewable PR was subsequently created as #1314 and its final head passed CI run #38744669546 before merge to `execution`.
+- Historical note: PR creation for the first draft was blocked at that point; a later PR (#1314) was created through the authorized GitHub connector, passed exact-head CI, and was merged to `execution`. No direct `main` write occurred.
 - This change does not resolve production model admission, legal license selection, main branch ruleset verification, exact-SHA promotion proof, or deployed production identity. No deployment or certificate was issued.
 - Follow-up: corrected the newly added contract-test regular-expression escaping in commit `5fe8ddc12c81fbef1793fb601a1e5010609b57c5`. GitHub read-back checks confirm the trigger, same-repository guards, execution-base gates, watchdog boundary, and retained promotion-proof assertion are present. This is static content verification only, not a successful Node test run or CI run.
-- Follow-up PR created: [#1315](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/pull/1315), draft, base `execution`, head `5fe8ddc12c81fbef1793fb601a1e5010609b57c5`. It contains the CI trigger/security-scan/watchdog changes and the corrected exact-SHA contract test.
-- PR #1315 currently has no reviews, no review threads, no commit status checks, and the available workflow-run lookup returned no runs. Do not merge based on static read-back alone. The existing base workflow trigger may prevent the PR event from invoking the updated workflow until the change is integrated through an approved path.
+- Follow-up PR [#1315](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/pull/1315) was created as a draft and later closed after its Agent Watchdog fix was ported into the primary CI repair PR #1314.
+- At the time of its check, PR #1315 had no reviews or runs; it is no longer active and was closed as superseded. The authoritative integration path is PR #1314 and its exact-head passing run #38744669546.
 - Static contract checks performed against GitHub-read-back content: CI trigger includes `main, execution`; CI/CodeQL/secret-scan same-repository gates reference base `execution`; watchdog allows execution-bound PRs while preserving the main-promotion head check; exact-SHA promotion-proof assertion remains in the contract test. These are not substitutes for executing `node --test scripts/ci/test-workflow-exact-sha-contract.mjs` or the full CI suite.
 
 ## License acquisition closeout — 2026-10-15
@@ -207,7 +207,7 @@ For every work session:
 
 ## Latest CI repair state — 2026-10-15
 
-- Primary CI repair PR: [#1314](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/pull/1314), current head `b8038bcef7ddf209a5ce541105ff5c001289342b`, base `execution`. Previous run [38742691481](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/38742691481) failed the trust gate because Agent Watchdog was skipped when the gate expected success. The watchdog workflow condition and exact-SHA boundary were updated in the primary PR. A successful CI run on the new head has not been verified.
+- Primary CI repair PR [#1314](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/pull/1314) was merged to `execution` as `b89c82fb52f40ee13b2151f98c644d3003f1de02` after exact-head run [38744669546](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/38744669546) passed. This validates the integration CI repair only, not production launch readiness.
 - Duplicate PR #1315 was closed after its watchdog fix was ported to #1314. No PR was merged to `main`, and no deployment or release certificate was issued.
 
 
@@ -238,3 +238,13 @@ Next required events before certification:
 5. Complete owner-side external launch operations and review dependency/security alerts.
 
 No source changed on `main` as part of this work. There is no production deployment ID, release tag, verified post-deployment provenance receipt or official certificate yet.
+
+## Follow-up homepage PR — 2026-10-15
+
+- PR [#1318](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/pull/1318) refreshes the homepage from the latest `execution` base, removes the Apache-2.0 badge/direct licensing assertion, and accurately discloses the unresolved AGPLv3 vs Apache-2.0 metadata mismatch. It changes only README.md.
+- The earlier PR #1312 was closed as superseded because its head was based on an outdated integration SHA. PR #1318 CI run [38747102461](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/38747102461) is still in progress at the last check. This docs change does not itself grant a license or clear the owner decision.
+
+## Main-bound release run disposition
+
+- The main-bound PR [#1308](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/pull/1308) remains open and unmerged. Its run [38746043460](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/38746043460) completed failure on candidate SHA `b89c82fb52f40ee13b2151f98c644d3003f1de02`: core build/tests, security scans, Red Team, browser smoke, coverage and Hub Stage 1 passed; strict model admission failed (`entries: []`); then `trust-gate` and exact-SHA promotion proof failed; production deployment was skipped.
+- The production Worker deployment block in `.github/workflows/ci.yml` is main-push-only and validates deployment identity plus JSON provenance and deployed Chromium checks. Those post-deployment checks have not run for this candidate, so no production deployment identity or certificate exists.
