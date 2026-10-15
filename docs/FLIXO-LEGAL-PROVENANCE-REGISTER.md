@@ -20,7 +20,7 @@ This register is an evidence checklist for the proposed Apache-2.0 release. A re
 
 ## Preliminary dependency metadata finding
 
-A preliminary parse of `package-lock.json` blob `0f0a737172da27fa4d8b2012ef054edc06295eaa` found 263 non-link package entries. Two entries require manual review because license metadata is absent: `@flixo/contracts@0.1.0` and an `extraneous` `@flixo/agent-runtime@0.1.0` lock entry with no matching package manifest at the expected path. This is a preliminary metadata finding, not a completed compatibility audit. The new CI inventory is intended to reproduce it and fail closed until the unknown entries are resolved; do not invent license declarations to make the check green.
+The initial inventory identified missing license metadata for the private workspace package `@flixo/contracts@0.1.0` and an obsolete `extraneous` lock entry for `@flixo/agent-runtime@0.1.0`. The candidate now declares `Apache-2.0` for the private contracts workspace in its package manifest and lockfile, consistent with the owner's selected project license. The inventory now excludes lock entries marked `extraneous` from the distributable dependency list and reports their count separately. These metadata fixes do not establish the legal provenance of all code inside the workspace, and CI must verify the exact resulting candidate.
 
 ## Required audit procedure
 
