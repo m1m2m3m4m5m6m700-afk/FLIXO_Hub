@@ -67,7 +67,7 @@ async function main(args) {
     }
   }
   const manifest = await buildManifest(input);
-  const json = `${JSON.stringify(manifest, null, 2)}\\n`;
+  const json = `${JSON.stringify(manifest, null, 2)}\n`;
   if (output) await fs.writeFile(path.resolve(output), json, { flag: 'wx' });
   else process.stdout.write(json);
 }
