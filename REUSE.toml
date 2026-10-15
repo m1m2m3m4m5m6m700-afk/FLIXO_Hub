@@ -4,4 +4,10 @@ version = 1
 path = "**"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 m1m2m3m4m5m6m700-afk and FLIXO Hub contributors"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "LICENSES/AGPL-3.0-only.txt"
+precedence = "override"
+SPDX-FileCopyrightText = "Free Software Foundation, Inc."
 SPDX-License-Identifier = "AGPL-3.0-only"
