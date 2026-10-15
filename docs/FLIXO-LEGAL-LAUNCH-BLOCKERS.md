@@ -85,3 +85,18 @@ These are inventory/provenance findings, not legal clearance. The source/license
 4. Independent formal review is absent.
 5. Exact-SHA promotion proof and production deployment are not demonstrated for this candidate. The current PR targets `execution`, so those production-only jobs are not expected to run on this PR event.
 6. Do not issue a release certificate until the release candidate SHA has all required gates run successfully and the production artifact is verified against that SHA.
+
+
+## Current candidate refresh — 2026-10-15
+
+Current candidate head checked against PR #1323: `a2885a11f85c212454d644205701c39ee6935727` (base `execution`). Exact-SHA CI run: https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/38767780141. The recorded workflow result is successful for the PR checks, including build/typecheck/lint, npm tests, production dependency audit, license metadata inventory, CodeQL, Gitleaks, security/red-team regression, exact-SHA contract checks, trust gate, and Chromium smoke.
+
+Retained artifact digests reported for this run:
+- Build: `sha256:91cd040effb10f5dd6d0f886187a1d0832165ed39f550d4f190fc4acc2531157`
+- Browser evidence: `sha256:cf9e155df8a7fea0a1a6d1d2a306ff1a4a6e5e8ff58bbebcd7f57ce3a65034ef`
+- Dependency license inventory: `sha256:42a9312796957b87138bb2659ab6a763a70ceae064094ebe97786229d111cb31`
+- CodeQL SARIF: `sha256:07db1be670835790455ba23d4375368ac382674bca6181f1e35fe522d909d300`
+- Exact-SHA coverage: `sha256:9c69c593c5f866a00158115ed78f9e926e4436031f14750b07c2e2f07f5f1e6d`
+- Hub Stage 1: `sha256:262cff31e589c1bedb8f4768f36c21627882131c7100a60616e88472d1b745ed`
+
+These successful PR checks do not close production-only gates: strict production model admission, exact-SHA promotion proof, and production exact-SHA deployment were skipped for this PR event. The PR remains open and its formal review list is empty. `docs/MODEL_LICENSE_MANIFEST.json` still has `entries: []`. This update records evidence only; it does not assert legal clearance, model admission, promotion, or production release.
