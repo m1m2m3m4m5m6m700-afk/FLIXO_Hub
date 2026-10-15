@@ -22,6 +22,8 @@
 ## Current baseline and confirmed observations
 
 - [x] Confirmed repository and integration branch names: `execution` and `main`.
+- [x] Recorded live refs: `execution` = `23ee6b28df01ef01e7c2999cd02d08519278969c`; `main` = `29f2e0fe045689337a1483ed98d087b736ff6afc` (observed 2026-10-15). These are baseline identities, not certified release identities.
+- [x] Inspected [CI run 38712763299](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/38712763299) for `execution` SHA `23ee6b28df01ef01e7c2999cd02d08519278969c`: core typecheck/lint/contracts/build, npm test, audit, CodeQL, secret scan, Red Team, coverage, Hub Stage 1, and Chromium browser smoke passed. Production model admission failed; `trust-gate` and `Exact-SHA promotion proof` failed; production deployment was skipped. This candidate is NOT GREEN.
 - [x] Inspected `package.json` on `execution`: the project declares Node.js `22.x`; `npm run build` includes typecheck, lint, Vite build, and build-artifact generation.
 - [x] Inspected `.github/workflows/ci.yml`: CI includes contract/security checks, `npm test`, production dependency audit, build provenance, Hub Stage 1 contract, and Chromium E2E evidence.
 - [x] Inspected `docs/FLIXO-PUBLIC-RELEASE-MANIFEST.md`: candidate SHA, current workflow run, deployment ID, and immutable production identity are still `REQUIRED`; status is candidate/not certified.
@@ -158,6 +160,8 @@
 | REL-005 | PR #1312 has unresolved automated review findings | README change not yet accepted | Review findings, fix factual/link issues, and verify checks | OPEN |
 | REL-006 | Launch plan link was missing on baseline `execution` | Broken project navigation and missing tracking artifact | Add this plan and verify the URL | IN PROGRESS |
 | REL-007 | Main protection ruleset has historical reports of missing strict review controls; live API read is denied (403) | Production promotion/certification may be blocked | Repository owner/admin must verify and enforce required approvals, stale-review dismissal, Code Owner review, latest-push approval, thread resolution, and strict required checks; attach live evidence | BLOCKED_EXTERNAL |
+| REL-008 | Production model admission failed: `docs/MODEL_LICENSE_MANIFEST.json` has `entries: []`; strict release gate requires at least one evidenced model | `trust-gate` and exact-SHA promotion proof fail; deployment job skipped | Maintainer/model owner must select a specific candidate, then verify exact version, immutable artifact SHA-256, license text, terms/AUP, provenance, compatibility, security/evaluation evidence, and human approval before registering PASS + ACTIVE | OPEN / OWNER DECISION |
+| REL-009 | Windows Desktop Commander devices are offline; current connection cannot run commands on the working copy | Cannot independently run local targeted commands from this session | Bring authorized device online or rely on fresh CI runs and recorded artifacts; do not claim local execution occurred | BLOCKED_EXTERNAL |
 
 ## Update protocol
 
