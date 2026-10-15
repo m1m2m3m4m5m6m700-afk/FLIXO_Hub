@@ -31,6 +31,7 @@ The generated runtime bundle has no required external product/service connection
 ## Acceptance gates before calling this edition complete
 
 - Build and package scripts succeed on the same exact source SHA.
+- The generated service-worker cache list covers all static files, excludes API paths, and passes SHA-256 verification.
 - Every emitted HTML/CSS resource reference is local or embedded.
 - Local smoke test confirms home page and nested SPA routes return successfully.
 - API routes fail closed; no external network connection is made during core local workflows.
