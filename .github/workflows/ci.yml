@@ -111,6 +111,8 @@ jobs:
         env:
           FLIXO_TARGET_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
         run: npm run package:local
+      - name: Verify local offline site package
+        run: npm run verify:local-offline
       - name: Upload local offline site package
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
