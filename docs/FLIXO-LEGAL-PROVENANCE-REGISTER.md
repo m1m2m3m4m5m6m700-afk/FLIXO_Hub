@@ -92,4 +92,23 @@ The first artifact's generated report listed 51 runtime entries but reported two
 - `@flixo/contracts@0.1.0` is a private workspace whose declared metadata says Apache-2.0. It should be tracked separately from third-party packages. This distinction does **not** confirm rights to every file in that workspace.
 - `isarray@1.0.0` declared MIT but had no recognized root-level license file in the installed package. The official npm version page records the MIT text and copyright (2013 Julian Gruber): https://www.npmjs.com/package/isarray/v/1.0.0 .
 
-The legal candidate now proposes two bounded build-inventory corrections: classify private local workspaces separately with the rights-unverified status, and copy the exact-version isarray MIT text from an explicit pinned fallback only when both name/version and declared license match. The generator remains non-authoritative for compatibility and ownership. The updated script and tests must pass on a new exact candidate SHA; the earlier artifact remains historical and is not the corrected build artifact.
+The legal candidate implemented these two bounded corrections and they were verified in the resulting exact-SHA build artifact:
+- Private local workspace `@flixo/contracts@0.1.0` is listed separately with status `PRIVATE_WORKSPACE_NOT_THIRD_PARTY_RIGHTS_UNVERIFIED`; it is not misclassified as an external dependency. This does not verify the rights to code in the workspace.
+- The pinned `isarray@1.0.0` MIT license text is included as `THIRD-PARTY-LICENSES/isarray@1.0.0/LICENSE.txt`, only when the package version and declared MIT license match the explicit fallback rule. The generated report records `LICENSE_TEXT_FALLBACK_INCLUDED` and the source URL. It is not represented as proof that the installed package archive itself shipped the license text.
+
+### Corrected exact-SHA build artifact
+
+CI run [38781515366](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/38781515366) completed SUCCESS on candidate SHA `dbe2583df4fd00b87f729d8565b3d0f0f817bf23`, source tree `aa46a266a8105fc517e28f187e0038ef64677554`. Its build artifact ID is `11996287162`, name `flixo-build-38781515366`, archive SHA-256 `149404c915d7869fe68fab9c0d1d62707570cc03223dc4c552c99fa8270233c3`. The embedded `flixo-head-sha.txt` and `__flixo/build-provenance.json` match that exact candidate SHA and run ID.
+
+Hashes recomputed from the extracted ZIP:
+- `THIRD-PARTY-NOTICES.json`: SHA-256 `6f994fbc826711ff41a4502eaf73fc63a1a459c671dc9d73aa6bab2957ee6b6a`.
+- `THIRD-PARTY-NOTICES.md`: SHA-256 `9d4192d63e9f17a36c237d2096b525ce1ee59a1783bf3d9855ca26ca7a21d4ad`.
+- Root `LICENSE`: SHA-256 `52cedafb7048356c0da939b47eba4235637686f3687b8ec262288143ae61ec81`.
+- Copied isarray MIT text: SHA-256 `481e8559aad6c42a1a0f426f118a93d2baf6583736933943f717797f7a55abce`.
+- Copied JSZip license: SHA-256 `566c953c6090b1218ca6217dd7359d45dde46581968586dc607d59a78af6a9c4`.
+- Copied Pako license: SHA-256 `a04665b3b2de56c66730c1f720f528175739e4104f79073614aa611da1e85539`.
+- Copied isbot license: SHA-256 `472f8bb212250d2b07f2484f2bee03d65eec36a52902b80244e2e52f1990b090`.
+
+The new report records 50 external runtime-package entries, one private workspace tracked separately, 50 copied license/notice files, one package without a recognized source-root license/notice file, zero external package entries without any copied license/notice text, and one exact-version fallback. This materially closes the **mechanical notice-text omission** found in the earlier build only. It does not close license compatibility, ownership/relicensing authority, completeness of transitive or copied-source notices, bundled assets, or independent legal review.
+
+The release result remains blocked: the run's strict production model admission, exact-SHA promotion proof, and production exact-SHA deployment checks were skipped because this PR targets `execution`. No legal clearance, model admission, promotion, deployment, or certificate is implied.
