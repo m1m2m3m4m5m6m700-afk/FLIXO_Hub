@@ -10,7 +10,7 @@ permissions:
 jobs:
   agent-watchdog:
     name: Agent Watchdog CI / Security integration
-    if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.ref == 'execution' && github.event.pull_request.head.repo.full_name == github.repository) }}
+    if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && (github.event.pull_request.base.ref == 'execution' || (github.event.pull_request.base.ref == 'main' && github.event.pull_request.head.ref == 'execution'))) }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
@@ -30,9 +30,12 @@ jobs:
           test "$GITHUB_REPOSITORY" = "m1m2m3m4m5m6m700-afk/FLIXO_Hub"
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
           if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
-            test "${{ github.event.pull_request.base.ref }}" = "main"
-            test "${{ github.event.pull_request.head.ref }}" = "execution"
             test "${{ github.event.pull_request.head.repo.full_name }}" = "$GITHUB_REPOSITORY"
+            if [ "${{ github.event.pull_request.base.ref }}" = "main" ]; then
+              test "${{ github.event.pull_request.head.ref }}" = "execution"
+            else
+              test "${{ github.event.pull_request.base.ref }}" = "execution"
+            fi
           fi
 
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
