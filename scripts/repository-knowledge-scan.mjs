@@ -18,8 +18,13 @@ function stableGeneratedAt(worldModelPath) {
   return existing.generated_at;
 }
 
-export function sh(command, args = []) {
-  return execFileSync(command, args, { cwd: root, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 }).trim();
+export function sh(command, args = [], options = {}) {
+  return execFileSync(command, args, {
+    cwd: root,
+    encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024,
+    ...options,
+  }).trim();
 }
 
 export function sha256(buffer) {
@@ -250,9 +255,36 @@ function setDiff(before, after) {
   return { added: Array.from(b).filter(value => !a.has(value)).sort(), removed: Array.from(a).filter(value => !b.has(value)).sort() };
 }
 
+function resolveMainRef(preferred = 'refs/remotes/origin/main') {
+  const candidates = [preferred, 'origin/main', 'refs/heads/main', 'main'];
+  for (const candidate of candidates) {
+    try {
+      return sh('git', ['rev-parse', '--verify', candidate + '^{commit}']);
+    } catch {
+      // Try the next exact local/remote ref without turning absence into a false snapshot.
+    }
+  }
+  const configuredMainSha = process.env.FLIXO_KNOWLEDGE_MAIN_SHA || '';
+  if (/^[0-9a-f]{40}$/.test(configuredMainSha)) {
+    try {
+      return sh('git', ['rev-parse', '--verify', configuredMainSha + '^{commit}']);
+    } catch {
+      // A configured SHA is evidence only when its commit object is present locally.
+    }
+  }
+  if (process.env.GITHUB_REF === 'refs/heads/main') {
+    const head = sh('git', ['rev-parse', '--verify', 'HEAD^{commit}']);
+    const eventSha = process.env.GITHUB_SHA || '';
+    if (/^[0-9a-f]{40}$/.test(eventSha) && head === eventSha) return head;
+  }
+  return null;
+}
+
 export function collectSemanticDiff(mainRef = 'refs/remotes/origin/main', executionRef = 'HEAD') {
   try {
-    const main = collectGitRefIndex(mainRef);
+    const resolvedMainRef = resolveMainRef(mainRef);
+    if (!resolvedMainRef) throw new Error('main-ref-unavailable');
+    const main = collectGitRefIndex(resolvedMainRef);
     const execution = collectGitRefIndex(executionRef);
     const paths = new Set([...main.files.keys(), ...execution.files.keys()]);
     const changedFiles = [];
@@ -322,27 +354,8 @@ export function collectGitRefSnapshot(
   ref = process.env.GITHUB_REF === 'refs/heads/main' ? 'HEAD' : 'refs/remotes/origin/main',
 ) {
   try {
-    let resolvedRef;
-    try {
-      resolvedRef = sh('git', ['rev-parse', ref]);
-    } catch {
-      const configuredMainSha = process.env.FLIXO_KNOWLEDGE_MAIN_SHA;
-      if (configuredMainSha && /^[0-9a-f]{40}$/.test(configuredMainSha)) {
-        resolvedRef = configuredMainSha;
-      } else if (ref !== 'refs/heads/main') {
-        try {
-          resolvedRef = sh('git', ['rev-parse', 'FETCH_HEAD']);
-        } catch {
-          if (process.env.GITHUB_REF === 'refs/heads/main') {
-            resolvedRef = sh('git', ['rev-parse', 'HEAD']);
-          } else {
-            resolvedRef = sh('git', ['rev-parse', 'refs/heads/main']);
-          }
-        }
-      } else {
-        throw new Error('main branch reference is unavailable');
-      }
-    }
+    const resolvedRef = resolveMainRef(ref);
+    if (!resolvedRef) throw new Error('main-ref-unavailable');
     const treeEntries = sh('git', ['ls-tree', '-r', '-z', resolvedRef]).split('\0').filter(Boolean);
     const objectIds = treeEntries.map(entry => {
       const match = entry.match(/^\d+ blob ([0-9a-f]{40})\t/);
