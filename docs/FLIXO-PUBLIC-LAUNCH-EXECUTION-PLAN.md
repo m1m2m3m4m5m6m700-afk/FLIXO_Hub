@@ -130,7 +130,7 @@
 - Branch: `chore/release-readiness-plan-20261015`
 - [x] Plan file committed; PR #1313 opened to `execution`: https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/pull/1313
 - [ ] Verify this plan file is merged into `execution` and the canonical link is live.
-- [ ] Open a PR targeting `execution`; do not target `main` directly.
+- [x] Opened PR #1313 targeting `execution`; do not target `main` directly.
 - [ ] Run the available plan/launch verifier and record its actual result.
 - [ ] Keep this file updated with observed blockers and evidence URLs; do not mark gates complete based on assumptions.
 
@@ -162,6 +162,7 @@
 | REL-007 | Main protection ruleset has historical reports of missing strict review controls; live API read is denied (403) | Production promotion/certification may be blocked | Repository owner/admin must verify and enforce required approvals, stale-review dismissal, Code Owner review, latest-push approval, thread resolution, and strict required checks; attach live evidence | BLOCKED_EXTERNAL |
 | REL-008 | Production model admission failed: `docs/MODEL_LICENSE_MANIFEST.json` has `entries: []`; strict release gate requires at least one evidenced model | `trust-gate` and exact-SHA promotion proof fail; deployment job skipped | Maintainer/model owner must select a specific candidate, then verify exact version, immutable artifact SHA-256, license text, terms/AUP, provenance, compatibility, security/evaluation evidence, and human approval before registering PASS + ACTIVE | OPEN / OWNER DECISION |
 | REL-009 | Windows Desktop Commander devices are offline; current connection cannot run commands on the working copy | Cannot independently run local targeted commands from this session | Bring authorized device online or rely on fresh CI runs and recorded artifacts; do not claim local execution occurred | BLOCKED_EXTERNAL |
+| REL-010 | `.github/workflows/ci.yml` triggers `pull_request` only when the base branch is `main`, while the active documentation PRs target `execution`; their commit-associated runs are unrelated workflows, not the canonical release CI suite | Changes proposed for `execution` do not receive the canonical CI suite through the intended PR path | Repository maintainer must review and correct the workflow trigger policy so `execution` PRs get required validation, then prove the trigger with a fresh run; do not bypass attribution or governance | OPEN / WORKFLOW FIX REQUIRED |
 
 ## Update protocol
 
