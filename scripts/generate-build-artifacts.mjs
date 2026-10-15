@@ -21,6 +21,7 @@ const commands = [
     "--experimental-strip-types",
     "scripts/generate-static-route-entries.mjs",
   ],
+  ["scripts/generate-third-party-notices.mjs"],
 ];
 
 for (const args of commands) {

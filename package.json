@@ -70,7 +70,7 @@
     "test:discovery": "node scripts/run-python.mjs -m unittest discover -s tests/agent-intelligence -p \"test_*.py\"",
     "test:call-protocol": "node --import=./scripts/register-node-resolver.mjs --test --experimental-strip-types tests/call/call-protocol-contract.test.ts tests/call/gate-a-harness.test.ts tests/call/call-agent-runtime.test.ts tests/call/call-model-router.test.ts tests/call/call-collaboration.test.ts tests/call/call-hard-case-benchmark.test.ts tests/call/call-xp-incentives.test.ts",
     "test:call-lab": "node scripts/run-python.mjs agent-lab/tools/lab_tool.py validate --templates && node scripts/run-python.mjs agent-lab/tools/lab_tool.py ledger-verify",
-    "test:legal": "node --test tests/legal-license.test.ts tests/footer-attribution.test.ts tests/security/ci/legal-license-inventory.test.mjs",
+    "test:legal": "node --test tests/legal-license.test.ts tests/footer-attribution.test.ts tests/security/ci/legal-license-inventory.test.mjs tests/security/ci/third-party-notices.test.mjs",
     "test:admission-gate": "node --test scripts/ci/test-admission-gate.mjs",
     "test:agent-governance-metrics": "node --test scripts/ci/test-agent-governance-metrics.mjs",
     "governance:metrics": "node scripts/ci/agent-governance-metrics.mjs",
