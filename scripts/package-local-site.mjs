@@ -97,13 +97,6 @@ self.addEventListener('fetch', (event) => {
 `;
   await writeFile(resolve(siteOutput, 'sw.js'), offlineWorker, 'utf8');
   await cp(serverTemplate, resolve(output, 'server.mjs'));
-  const hashes = [];
-  for (const file of await walk(siteOutput)) {
-    const bytes = await readFile(file);
-    hashes.push(createHash('sha256').update(bytes).digest('hex') + '  site/' + relative(siteOutput, file).split('\\').join('/'));
-  }
-  hashes.sort();
-  await writeFile(resolve(output, 'SHA256SUMS.txt'), hashes.join('\n') + '\n', 'utf8');
   const sha = process.env.GITHUB_SHA || process.env.FLIXO_TARGET_SHA || 'LOCAL_BUILD_SHA_NOT_PROVIDED';
   const readme = [
     '# نسخة FLIXO Hub المحلية', '',
@@ -181,6 +174,15 @@ self.addEventListener('fetch', (event) => {
   ].join('\r\n');
   await writeFile(resolve(output, 'START-FLIXO.bat'), windowsLauncher, 'utf8');
   await writeFile(resolve(output, 'VERIFY-SHA256.ps1'), verifyScript, 'utf8');
+  // Hash the complete distributable package except the checksum file itself.
+  const packageHashes = [];
+  for (const file of await walk(output)) {
+    const path = relative(output, file).split('\\\\').join('/');
+    if (path === 'SHA256SUMS.txt') continue;
+    packageHashes.push(createHash('sha256').update(await readFile(file)).digest('hex') + '  ' + path);
+  }
+  packageHashes.sort();
+  await writeFile(resolve(output, 'SHA256SUMS.txt'), packageHashes.join('\\n') + '\\n', 'utf8');
   process.stdout.write('Local site package created: ' + relative(root, output) + '\n');
   process.stdout.write('Static files: ' + copiedFiles.length + '\n');
   process.stdout.write('Source SHA: ' + sha + '\n');
