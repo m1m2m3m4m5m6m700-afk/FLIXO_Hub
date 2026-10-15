@@ -101,7 +101,7 @@ test('canonical CI consumes security assurance as reusable jobs', async () => {
 });
 
 test('OSS readiness PRs run verification while promotion proof remains execution-only', async () => {
-  const ossPrGate = "if: ${{ github.event_name != 'pull_request' || ((github.event.pull_request.head.ref == 'execution' || startsWith(github.event.pull_request.head.ref, 'chore/oss-')) && github.event.pull_request.head.repo.full_name == github.repository) }}";
+  const ossPrGate = "if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && (github.event.pull_request.base.ref == 'execution' || github.event.pull_request.head.ref == 'execution' || startsWith(github.event.pull_request.head.ref, 'chore/oss-'))) }}";
 
   for (const path of [
     '.github/workflows/ci.yml',
