@@ -44,7 +44,7 @@ try {
   const context = await browser.newContext({ serviceWorkers: 'allow' });
   const externalRequests = [];
   context.on('request', (request) => {
-    if (!request.url().startsWith(origin + '/') && !request.url().startsWith(origin)) externalRequests.push(request.url());
+    if (new URL(request.url()).origin !== origin) externalRequests.push(request.url());
   });
   const page = await context.newPage();
   await page.goto(origin + '/ar', { waitUntil: 'domcontentloaded' });
@@ -60,7 +60,7 @@ try {
     return {
       keys,
       requestCount: requests.length,
-      hasEntryPoint: Boolean(await cache.match('/index.html')),
+      hasEntryPoint: Boolean(await cache.match(new URL('/index.html', location.origin).href)),
       hasAppAssets: requests.some((request) => new URL(request.url).pathname.startsWith('/assets/')),
       cachedApi: requests.some((request) => new URL(request.url).pathname.startsWith('/api/')),
     };
