@@ -417,9 +417,26 @@ jobs:
           MODEL_ADMISSION_REQUIRED: ${{ github.event_name == 'merge_group' || (github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main') || github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && inputs.strict_governance == true) }}
           EVENT_NAME: ${{ github.event_name }}
           PR_HEAD_REF: ${{ github.event.pull_request.head.ref || '' }}
+          PR_BASE_REF: ${{ github.event.pull_request.base.ref || '' }}
+          PR_HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name || '' }}
         run: |
           set -euo pipefail
-          if [ "$EVENT_NAME" = "pull_request" ] && [ "$PR_HEAD_REF" != "execution" ] && [[ ! "$PR_HEAD_REF" == chore/oss-* ]]; then
+          if [ "$EVENT_NAME" = "pull_request" ] && [ "$PR_BASE_REF" = "execution" ] && [ "$PR_HEAD_REPO" = "$GITHUB_REPOSITORY" ]; then
+            test "$VERIFY_RESULT" = success
+            test "$HUB_STAGE1_RESULT" = success
+            test "$BROWSER_RESULT" = success
+            test "$COVERAGE_RESULT" = success
+            test "$RED_TEAM_RESULT" = success
+            test "$BRANCH_RESULT" = success
+            test "$CODEQL_RESULT" = success
+            test "$SECRET_SCAN_RESULT" = success
+            test "$AGENT_WATCHDOG_RESULT" = success
+            test "$SENSITIVE_RESULT" = success
+            echo 'TRUST_GATE=PASS_EXECUTION_PR'
+            exit 0
+          fi
+
+          if [ "$EVENT_NAME" = "pull_request" ] && [ "$PR_BASE_REF" != "execution" ] && [ "$PR_HEAD_REF" != "execution" ] && [[ ! "$PR_HEAD_REF" == chore/oss-* ]]; then
             test "$VERIFY_RESULT" = skipped
             test "$HUB_STAGE1_RESULT" = skipped
             test "$BROWSER_RESULT" = skipped
