@@ -9,7 +9,7 @@ function sha256(buffer) {
 
 async function walk(root, current = root, files = []) {
   const entries = await fs.readdir(current, { withFileTypes: true });
-  entries.sort((a, b) => a.name.localeCompare(b.name, 'en'));
+  entries.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
   for (const entry of entries) {
     const absolute = path.join(current, entry.name);
     if (entry.isSymbolicLink()) {
@@ -34,7 +34,7 @@ export async function buildManifest(inputDirectory) {
   if (!rootStat.isDirectory()) throw new Error('model artifact input must be a directory');
 
   const files = await walk(root);
-  files.sort((a, b) => a.path.localeCompare(b.path, 'en'));
+  files.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
   if (files.length === 0) throw new Error('model artifact directory is empty');
 
   // The aggregate digest is SHA-256 over the canonical JSON array of sorted,
