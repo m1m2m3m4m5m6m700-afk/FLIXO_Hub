@@ -58,3 +58,18 @@ The initial inventory identified missing license metadata for the private worksp
 For PR #1323 candidate `a2885a11f85c212454d644205701c39ee6935727`, CI run [38767780141](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/38767780141) completed successfully for the listed PR-level engineering/security checks. The retained dependency inventory digest is `sha256:42a9312796957b87138bb2659ab6a763a70ceae064094ebe97786229d111cb31`; it remains metadata inventory evidence, not a legal compatibility opinion.
 
 The PR review list was checked and contains no submitted reviews. The production model manifest remains empty, and strict model admission, protected promotion proof, and production deployment were skipped on this execution-targeted PR. Accordingly, the register remains OPEN. Do not close ownership, third-party notices, dependency compatibility, distribution artifact, or independent review rows based on CI success alone.
+
+
+## Reproducible inventory artifact verification — 2026-10-15
+
+For candidate SHA `042d54baa164658c64f5a00a080cf63c8b4a5e7c`, CI run [38775574603](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/38775574603) succeeded on the execution-target PR. Artifact metadata returned by GitHub and independently recalculated hashes from the downloaded artifact agree:
+
+- Artifact name: `flixo-dependency-license-inventory-38775574603`; artifact ID `11993077999`.
+- ZIP SHA-256: `39df6c0b5b23ffcda145ff444443d7abadf7c09e93dcdae21260d22557a3484a`.
+- Extracted `dependency-license-inventory.json` SHA-256: `ea6705c99a2ace5bae9d2417da39dc1825cb338e16ac4f202011f6951e520de9`.
+- Extracted `dependency-license-inventory.md` SHA-256: `82a50d6c1be4315736e3ba9bdae652bedf523d7b0a40cb88d6d8c53bb6bcf01e`.
+- Inventory counts: 262 package entries; 1 workspace link ignored; 1 stale `extraneous` lock entry ignored; 0 unresolved metadata entries.
+
+The exact lockfile metadata also records `pako@1.0.11` as `(MIT AND Zlib)`, alongside `jszip@3.10.1` (`MIT OR GPL-3.0-or-later`), `isbot@5.2.1` (`Unlicense`), and 12 `lightningcss@1.33.0`/platform entries (`MPL-2.0`, marked development-only). These expressions and the status `METADATA_PRESENT_NOT_LEGAL_CLEARANCE` are preserved; no automated decision converts them to legally cleared status.
+
+The inventory's own warning remains controlling: metadata coverage is not an audit of ownership, license compatibility, notices, or inclusion in the shipped artifact. The exact package archives, their license texts, the actual production bundle, the applicable notices, and the reason for including each package still need human review. This section improves the evidence trail but **does not close** the dependency/license row or the overall register.
