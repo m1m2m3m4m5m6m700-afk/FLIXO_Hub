@@ -53,8 +53,7 @@ jobs:
           set -euo pipefail
           MAIN_SHA="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
           [[ "$MAIN_SHA" =~ ^[0-9a-f]{40}$ ]]
-          git fetch origin "$MAIN_SHA" --depth=1
-          git update-ref refs/remotes/origin/main "$MAIN_SHA"
+          git fetch origin refs/heads/main:refs/remotes/origin/main --depth=1
           test "$(git rev-parse refs/remotes/origin/main)" = "$MAIN_SHA"
           test "$MAIN_SHA" = "$(git ls-remote origin refs/heads/main | awk '{print $1}')"
           echo "FLIXO_KNOWLEDGE_MAIN_SHA=$MAIN_SHA" >> "$GITHUB_ENV"

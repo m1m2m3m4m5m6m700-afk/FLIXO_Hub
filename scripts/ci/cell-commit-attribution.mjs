@@ -33,9 +33,10 @@ export function validateCommitMessages(messages, allowedTaskIds) {
   return { pass: failures.length === 0, failures };
 }
 
-export function validateCommitRecords(records, allowedTaskIds) {
+export function validateCommitRecords(records, allowedTaskIds, trustedMainCommitShas = new Set()) {
   const failures = [];
   for (const record of records) {
+    if (trustedMainCommitShas.has(record.sha)) continue;
     if (!record.files.some(isCellAttributionPath)) continue;
     const result = validateCommitMessages([record.message], allowedTaskIds);
     failures.push(...result.failures.map((failure) => record.sha + ":" + failure));
@@ -73,7 +74,18 @@ function main() {
   if (!base) throw new Error("ATTRIBUTION_BASELINE_MISSING");
   console.log("BASELINE_SHA=" + base);
   console.log("HEAD_SHA=" + head);
-  const result = validateCommitRecords(commitRecordsBetween(base, head), taskIdsFromLedger(ledger));
+  const mainSha = process.env.FLIXO_KNOWLEDGE_MAIN_SHA ?? "";
+  const trustedMainCommitShas = new Set();
+  if (/^[0-9a-f]{40}$/u.test(mainSha)) {
+    trustedMainCommitShas.add(mainSha);
+    try {
+      const ancestry = execFileSync("git", ["rev-list", mainSha], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+      for (const sha of ancestry.split(/\\r?\\n/u).filter(Boolean)) trustedMainCommitShas.add(sha);
+    } catch {
+      // Keep only the exact, independently resolved main tip trusted if shallow history is unavailable.
+    }
+  }
+  const result = validateCommitRecords(commitRecordsBetween(base, head), taskIdsFromLedger(ledger), trustedMainCommitShas);
   if (!result.pass) {
     console.error("CELL_COMMIT_ATTRIBUTION=FAIL");
     for (const failure of result.failures) console.error(failure);
