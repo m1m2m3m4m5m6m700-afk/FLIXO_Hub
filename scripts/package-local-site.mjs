@@ -34,6 +34,20 @@ async function main() {
   await rm(output, { recursive: true, force: true });
   await mkdir(siteOutput, { recursive: true });
   await cp(dist, siteOutput, { recursive: true, force: true });
+  // Ensure the local PWA manifest has a real, self-hosted icon instead of empty icon entries.
+  const localIcon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#071116"/><path d="M104 140h70l82 134 82-134h70L280 380h-48z" fill="#3ecfb2"/><circle cx="382" cy="374" r="30" fill="#ff8b5e"/></svg>\\n';
+  await writeFile(resolve(siteOutput, 'flixo-icon.svg'), localIcon, 'utf8');
+  const manifestPath = resolve(siteOutput, 'manifest.webmanifest');
+  if (await stat(manifestPath).catch(() => null)) {
+    const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+    manifest.name = 'FLIXO Hub Offline';
+    manifest.short_name = 'FLIXO';
+    manifest.start_url = '/ar';
+    manifest.scope = '/';
+    manifest.id = '/';
+    manifest.icons = [{ src: '/flixo-icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' }];
+    await writeFile(manifestPath, JSON.stringify(manifest, null, 2) + '\\n', 'utf8');
+  }
   const copiedFiles = await walk(siteOutput);
   for (const file of copiedFiles) {
     if (extname(file).toLowerCase() === '.html') assertLocalResourceReferences(await readFile(file, 'utf8'), file);
