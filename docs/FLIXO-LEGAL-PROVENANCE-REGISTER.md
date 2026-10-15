@@ -22,6 +22,15 @@ This register is an evidence checklist for the proposed Apache-2.0 release. A re
 
 CI run `38763039401` for candidate SHA `73c26cff4dd40db3a4fde170c65452f65c735a83` completed the `Inventory dependency license metadata` step successfully and uploaded artifact `flixo-dependency-license-inventory-38763039401`. The retained report records 262 package entries, one workspace link ignored, one stale `extraneous` entry ignored, and zero entries with missing, `UNLICENSED`, or `SEE LICENSE IN` license metadata. This is a successful metadata completeness check only. It does not prove SPDX expressions are compatible with Apache-2.0, establish provenance or ownership, satisfy upstream NOTICE obligations, or audit bundled files.
 
+## License-expression triage from the retained inventory
+
+The exact-SHA report contains 12 distinct license expressions across 262 package entries. The largest groups are MIT (205 entries), Apache-2.0 (19), ISC (12), and MPL-2.0 (12). Three items require explicit human triage before distribution clearance:
+- `jszip@3.10.1` declares `(MIT OR GPL-3.0-or-later)`; confirm the actual upstream license files and the selected permitted option in the shipped artifact.
+- `lightningcss@1.33.0` and platform packages declare MPL-2.0 and are marked development-only in the lockfile; determine whether their code or notices are included in distributed artifacts.
+- `isbot@5.2.1` declares `Unlicense`; verify the upstream license text and preserve any relevant provenance.
+
+This triage is based on package-lock metadata, not a legal determination. Review actual package archives, transitive notices, build output, and any copied assets before marking these items cleared.
+
 ## Preliminary dependency metadata finding
 
 The initial inventory identified missing license metadata for the private workspace package `@flixo/contracts@0.1.0` and an obsolete `extraneous` lock entry for `@flixo/agent-runtime@0.1.0`. The candidate now declares `Apache-2.0` for the private contracts workspace in its package manifest and lockfile, consistent with the owner's selected project license. The inventory now excludes lock entries marked `extraneous` from the distributable dependency list and reports their count separately. These metadata fixes do not establish the legal provenance of all code inside the workspace, and CI must verify the exact resulting candidate.
