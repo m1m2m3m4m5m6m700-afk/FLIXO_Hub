@@ -177,9 +177,9 @@ For every work session:
 
 ## Live work items (2026-10-15)
 - [x] PR #1314 — CI trigger/trust-gate repair merged into `execution`; merge SHA `b89c82fb52f40ee13b2151f98c644d3003f1de02`. Exact-head CI run [38744669546](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/38744669546) passed on pre-merge SHA `e01dcca70f2b3659fa537108bd8f715d001a9593`.
-- [ ] PR #1313 — durable release plan, targets `execution`; still open.
-- [ ] PR #1312 — README/homepage update, targets `execution`; still open.
-- [ ] PR #1308 — protected release promotion, targets `main`, head `b89c82fb52f40ee13b2151f98c644d3003f1de02`; blocked, not merged. Run [38746043460](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/38746043460) completed FAILURE: strict model admission failed, therefore `trust-gate` and exact-SHA promotion proof failed; production deployment was skipped.
+- [x] PR #1318 — README/homepage refresh merged into `execution` as `f67bea2e082afb5a07a3333e58c685293e78755e` after run [38747102461](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/38747102461) passed all checks, including Chromium smoke. PR #1312 was closed as superseded.
+- [ ] PR #1313 — durable release plan, targets `execution`; open, exact-head run [38747281253](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/38747281253) has the core/security/coverage/Stage 1 checks PASS while Chromium smoke was still running at last check.
+- [ ] PR #1308 — protected release promotion, targets `main`, current head `f67bea2e082afb5a07a3333e58c685293e78755e`; blocked, not merged. Current run [38747919780](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/38747919780) has already failed strict model admission because `docs/MODEL_LICENSE_MANIFEST.json` remains empty; remaining jobs are running. Prior same-SHA-at-the-time run [38746043460](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/38746043460) completed failure at `trust-gate` and promotion proof, and skipped production deployment.
 
 ## Execution log
 
@@ -225,19 +225,20 @@ For every work session:
 
 Release certificate decision: **NOT CERTIFIED**.
 
-On the main-bound candidate SHA `b89c82fb52f40ee13b2151f98c644d3003f1de02`, run [38746043460](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/38746043460) completed with:
-- PASS: build/typecheck/lint/core contracts, full `npm test`, dependency audit, CodeQL, Secret Scan, Agent Watchdog, Red Team, Branch policy, Hub Stage 1 exact-SHA contract, sensitive-path assurance, exact-SHA coverage, Chromium browser smoke.
-- FAIL: strict production model admission, because `docs/MODEL_LICENSE_MANIFEST.json` has `entries: []`; `trust-gate` fails on `MODEL_ADMISSION_RESULT=failure`, and Exact-SHA promotion proof fails because it requires trust-gate success.
-- SKIPPED: production exact-SHA deployment, because promotion proof did not pass.
+The current `main`-bound candidate is `f67bea2e082afb5a07a3333e58c685293e78755e`; `main` remains unchanged at `29f2e0fe045689337a1483ed98d087b736ff6afc`.
 
-Next required events before certification:
-1. Product owner/authorized reviewer selects a specific production model and confirms deployment mode; exact immutable model artifact digest, model license/terms/AUP, provenance, compatibility, security/evaluation evidence and human approval must be attached to issue [#1317](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/issues/1317). Only then may the strict gate consider PASS/ACTIVE.
-2. Rights holder resolves the conflicting repo license sources through issue [#1316](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/issues/1316); the failed metadata-write attempt was not bypassed.
-3. The latest main-bound candidate must receive required protected human review and all checks must pass on the same final SHA.
-4. Only after an approved merge can the production deployment job execute. Then verify the Worker identity endpoint, JSON build-provenance endpoint, production smoke/browser receipt, and real deployment identity on that deployed SHA.
-5. Complete owner-side external launch operations and review dependency/security alerts.
+- Latest run: [38747919780](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/38747919780) is still running. Its strict production model admission job has already failed because `docs/MODEL_LICENSE_MANIFEST.json` has `entries: []`. Since the canonical trust gate requires model admission on a main-bound PR, this candidate cannot become promotable unless the required model evidence is legitimately admitted.
+- Prior candidate run [38746043460](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/38746043460) on SHA `b89c82fb52f40ee13b2151f98c644d3003f1de02` completed failure: strict model admission failed, `trust-gate` failed, Exact-SHA promotion proof failed, and production deployment was skipped.
+- Positive evidence retained: exact-SHA CI on the CI repair PR passed before integration (run [38744669546](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/38744669546)); the execution push run [38746033147](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/38746033147) also passed all execution-push gates including trust-gate and promotion proof, but it skipped production deployment because it was not a main push. The README refresh passed all PR gates in run [38747102461](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/38747102461) before merging into `execution`.
 
-No source changed on `main` as part of this work. There is no production deployment ID, release tag, verified post-deployment provenance receipt or official certificate yet.
+Required actions before certification:
+1. Product owner/authorized reviewer selects the production model and deployment mode, and issue [#1317](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/issues/1317) receives exact pinned revision, actual artifact SHA-256 evidence, license text, model terms/AUP, provenance, compatibility/security/task evaluation and explicit human approval. No model may be marked PASS/ACTIVE by automation alone.
+2. Rights holder resolves the conflicting code-license sources via issue [#1316](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/issues/1316). The README now discloses the contradiction but does not resolve the legal decision.
+3. The latest main-bound candidate must pass all required checks on the same final SHA and receive protected human review.
+4. After an approved merge, verify production immutable identity, JSON build provenance, live browser smoke and deployment receipt on that deployed SHA.
+5. Complete owner-side support-contact, private vulnerability-reporting, external ownership/Search Console/analytics/consent, rollback and dependency-alert closure.
+
+No source changed on `main`. There is no verified production deployment ID, release tag, post-deployment provenance receipt or official certificate.
 
 ## Follow-up homepage PR — 2026-10-15
 
