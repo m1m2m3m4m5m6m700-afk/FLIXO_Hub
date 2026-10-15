@@ -27,6 +27,7 @@
 - [x] Inspected `docs/FLIXO-PUBLIC-RELEASE-MANIFEST.md`: candidate SHA, current workflow run, deployment ID, and immutable production identity are still `REQUIRED`; status is candidate/not certified.
 - [x] Inspected `docs/FLIXO-PUBLIC-LAUNCH-CERTIFICATE-TEMPLATE.md`: status is NOT CERTIFIED and all release identity fields remain required.
 - [x] Inspected `scripts/verify-public-launch-readiness.mjs`: structural verification explicitly says external account/legal actions and exact-SHA evidence are still required.
+- [x] Located existing governance blocker records [#1125](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/issues/1125) and [#1059](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/issues/1059), which report that the `FLIXO-MAIN-PROTECTION` ruleset lacks required strict review controls. A fresh live read of the ruleset/branch protection was denied with GitHub API 403 `Resource not accessible by integration`; therefore current settings cannot be independently confirmed or changed through the present connection.
 - [x] Confirmed a release-blocking license inconsistency: `LICENSE` contains AGPL-3.0 text, `CITATION.cff` declares Apache-2.0, the previous README claimed Apache-2.0, and `docs/FLIXO-LEGAL-LAUNCH-BLOCKERS.md` says no repository code license has been selected. No license was chosen by this work. The homepage wording is being corrected to disclose the mismatch; maintainer decision and full reconciliation remain required.
 - [x] Found that `docs/FLIXO-PUBLIC-LAUNCH-EXECUTION-PLAN.md` was referenced by README but was not present on `execution` at baseline. This plan is being added at that path to restore the intended link.
 - [ ] Re-run all baseline observations against the final candidate SHA before certification.
@@ -97,6 +98,8 @@
 
 ### G. Certification and promotion
 
+**External hard blocker:** live branch protection/ruleset administration is not available through the current GitHub connection (403). Do not attempt a code-side workaround. A repository owner/admin must verify and, if still needed, correct the live ruleset according to the policy documented in issues #1125 and #1059. An independent eligible reviewer must provide any required approval; self-approval is not acceptable.
+
 - [ ] Independently review evidence lineage for the exact candidate SHA.
 - [ ] Confirm every required check is PASS (not skipped, stale, or unverifiable).
 - [ ] Update `docs/FLIXO-PUBLIC-RELEASE-MANIFEST.md` with verified identities and evidence references.
@@ -154,6 +157,7 @@
 | REL-004 | External security/support/search/analytics settings not verified | Public launch operations incomplete | Verify live settings and record evidence or owner action | OPEN |
 | REL-005 | PR #1312 has unresolved automated review findings | README change not yet accepted | Review findings, fix factual/link issues, and verify checks | OPEN |
 | REL-006 | Launch plan link was missing on baseline `execution` | Broken project navigation and missing tracking artifact | Add this plan and verify the URL | IN PROGRESS |
+| REL-007 | Main protection ruleset has historical reports of missing strict review controls; live API read is denied (403) | Production promotion/certification may be blocked | Repository owner/admin must verify and enforce required approvals, stale-review dismissal, Code Owner review, latest-push approval, thread resolution, and strict required checks; attach live evidence | BLOCKED_EXTERNAL |
 
 ## Update protocol
 
