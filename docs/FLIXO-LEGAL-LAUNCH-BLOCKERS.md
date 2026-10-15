@@ -9,6 +9,8 @@ https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/pull/1323
 
 The PR's CI checks, including Chromium Playwright E2E, passed on head SHA `192fb9d7204b0c314d91c20a563ef5367f572669`. This proves those checks for that candidate only; it does not prove contribution ownership, legal clearance, merge, promotion, or production deployment.
 
+The later candidate head SHA `2387afb7405fa2e961ac4491ba3ecb340a99459e` includes the legal provenance register's manual triage. CI run `38763409090` was still pending at the latest status check, so no complete CI result has been verified for that SHA. An earlier inventory step passed on SHA `73c26cff4dd40db3a4fde170c65452f65c735a83` and reported 262 package entries with no missing/UNLICENSED/SEE LICENSE IN metadata, but flagged license-expression and bundled-artifact review as still required.
+
 Still required:
 - Independent review of the license diff and repository-wide `REUSE.toml` annotations.
 - Contribution and copyright provenance review, including employer/contractor rights where applicable.
