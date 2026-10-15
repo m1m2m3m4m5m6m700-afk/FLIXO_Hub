@@ -79,3 +79,35 @@ test('current runtime JSZip and Pako lock entries have preserved upstream licens
     rmSync(outputDir, { recursive: true, force: true });
   }
 });
+
+test('private workspace packages are separated and exact-version license-text fallback is copied', () => {
+  const projectRoot = process.cwd();
+  const lock = JSON.parse(readFileSync(resolve(projectRoot, 'package-lock.json'), 'utf8'));
+  const outputDir = mkdtempSync(join(tmpdir(), 'flixo-notice-pinned-fallback-'));
+  try {
+    const report = generateThirdPartyNotices({ projectRoot, outputDir, lock });
+    const workspace = report.workspaces.find((item) => item.name === '@flixo/contracts' && item.version === '0.1.0');
+    const isarray = report.packages.find((item) => item.name === 'isarray' && item.version === '1.0.0');
+
+    assert.ok(workspace, 'the private local contracts workspace must be tracked separately');
+    assert.equal(workspace.status, 'PRIVATE_WORKSPACE_NOT_THIRD_PARTY_RIGHTS_UNVERIFIED');
+    assert.equal(report.packages.some((item) => item.name === '@flixo/contracts'), false);
+    assert.ok(isarray, 'the locked isarray runtime dependency must be inventoried');
+    assert.equal(isarray.status, 'LICENSE_TEXT_FALLBACK_INCLUDED');
+    assert.equal(isarray.licenseTextSource, 'https://www.npmjs.com/package/isarray/v/1.0.0');
+    assert.ok(isarray.licenseFiles.some((file) => file.endsWith('/LICENSE.txt')));
+    assert.equal(report.licenseTextFallbackCount, 1);
+    assert.equal(report.packageEntriesWithoutAnyCopiedLicenseOrNoticeFile, 0);
+    assert.equal(report.packageEntriesWithoutRootLicenseOrNoticeFile, 1);
+
+    const copiedText = readFileSync(join(outputDir, isarray.licenseFiles[0]), 'utf8');
+    const sourceText = readFileSync(resolve(projectRoot, 'LICENSES/third-party/isarray-1.0.0-MIT.txt'), 'utf8');
+    assert.equal(copiedText, sourceText);
+    assert.match(copiedText, /Copyright \(c\) 2013 Julian Gruber/u);
+    const markdown = readFileSync(join(outputDir, 'THIRD-PARTY-NOTICES.md'), 'utf8');
+    assert.match(markdown, /Private first-party workspace packages \(not third-party dependencies\)/u);
+    assert.match(markdown, /Exact-version license-text fallbacks included: 1/u);
+  } finally {
+    rmSync(outputDir, { recursive: true, force: true });
+  }
+});

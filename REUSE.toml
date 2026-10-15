@@ -20,3 +20,9 @@ path = "LICENSES/AGPL-3.0-only.txt"
 precedence = "override"
 SPDX-FileCopyrightText = "Free Software Foundation, Inc."
 SPDX-License-Identifier = "AGPL-3.0-only"
+
+[[annotations]]
+path = "LICENSES/third-party/isarray-1.0.0-MIT.txt"
+precedence = "override"
+SPDX-FileCopyrightText = "2013 Julian Gruber"
+SPDX-License-Identifier = "MIT"

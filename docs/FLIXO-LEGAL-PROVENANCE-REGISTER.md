@@ -82,3 +82,14 @@ For candidate SHA `042d54baa164658c64f5a00a080cf63c8b4a5e7c`, CI run [3877557460
 The exact lockfile metadata also records `pako@1.0.11` as `(MIT AND Zlib)`, alongside `jszip@3.10.1` (`MIT OR GPL-3.0-or-later`), `isbot@5.2.1` (`Unlicense`), and 12 `lightningcss@1.33.0`/platform entries (`MPL-2.0`, marked development-only). These expressions and the status `METADATA_PRESENT_NOT_LEGAL_CLEARANCE` are preserved; no automated decision converts them to legally cleared status.
 
 The inventory's own warning remains controlling: metadata coverage is not an audit of ownership, license compatibility, notices, or inclusion in the shipped artifact. The exact package archives, their license texts, the actual production bundle, the applicable notices, and the reason for including each package still need human review. This section improves the evidence trail but **does not close** the dependency/license row or the overall register.
+
+
+## Built distribution artifact inspection — candidate 042d54baa164658c64f5a00a080cf63c8b4a5e7c
+
+The archived CI build artifact `flixo-build-38775574603` (artifact ID `11992674751`) has SHA-256 `cce3259cee9516c6b20dcaa048b849beec42f5019c3b43af435a1539b13f2c2f`, matching the GitHub artifact API. Its embedded `flixo-head-sha.txt` and `__flixo/build-provenance.json` identify candidate `042d54baa164658c64f5a00a080cf63c8b4a5e7c`, tree `cf6df64566dc32e8761e306fe3405396e4cb9871`, run `38775574603`. The extracted build contains the root `LICENSE`, `THIRD-PARTY-NOTICES.json`, `THIRD-PARTY-NOTICES.md`, and 49 copied dependency license/notice files.
+
+The first artifact's generated report listed 51 runtime entries but reported two `NO_LICENSE_TEXT_FOUND` entries:
+- `@flixo/contracts@0.1.0` is a private workspace whose declared metadata says Apache-2.0. It should be tracked separately from third-party packages. This distinction does **not** confirm rights to every file in that workspace.
+- `isarray@1.0.0` declared MIT but had no recognized root-level license file in the installed package. The official npm version page records the MIT text and copyright (2013 Julian Gruber): https://www.npmjs.com/package/isarray/v/1.0.0 .
+
+The legal candidate now proposes two bounded build-inventory corrections: classify private local workspaces separately with the rights-unverified status, and copy the exact-version isarray MIT text from an explicit pinned fallback only when both name/version and declared license match. The generator remains non-authoritative for compatibility and ownership. The updated script and tests must pass on a new exact candidate SHA; the earlier artifact remains historical and is not the corrected build artifact.
