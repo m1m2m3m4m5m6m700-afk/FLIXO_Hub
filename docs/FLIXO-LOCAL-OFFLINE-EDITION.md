@@ -16,7 +16,7 @@ On a machine with the repository source, Node.js 22.x, and the project's npm dep
 4. Copy artifacts/flixo-local-site/ to the target computer.
 5. Run node server.mjs inside that directory and open http://127.0.0.1:4173.
 
-The generated package contains the built site/ directory, a dependency-free local HTTP server, an Arabic startup guide, and SHA-256 hashes for the static files. The package script fails closed if built HTML or CSS contains external runtime resource references.
+The generated package contains the built site/ directory, a dependency-free local HTTP server, an Arabic startup guide, and SHA-256 hashes for every distributable package file except the checksum manifest itself. The package script fails closed if built HTML or CSS contains external runtime resource references.
 
 ## Offline/security behavior
 
