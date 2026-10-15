@@ -54,6 +54,33 @@
 - Attempts to reach the canonical Cloudflare and Vercel public hostnames from the current execution environment failed at DNS resolution / URL access. This is an environment limitation, not proof that production is down. No current live reachability/browser or deployed SHA check can be claimed from that failure.
 - No successful exact-SHA production deployment run, immutable Cloudflare deployment identity, deployed artifact digest, post-deployment browser journey, production model inference, or rollback drill was found for the current candidate.
 
+## Immutable CI artifact registry
+
+The GitHub artifact API for [run #38775574603](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/38775574603) returned these retained artifacts. They bind to PR #1323 candidate SHA `042d54baa164658c64f5a00a080cf63c8b4a5e7c`, not to final `main` or current `execution`.
+
+| Artifact | Artifact ID | GitHub archive SHA-256 | Meaning / limitation |
+|---|---:|---|---|
+| Dependency license inventory | `11993077999` | `39df6c0b5b23ffcda145ff444443d7abadf7c09e93dcdae21260d22557a3484a` | ZIP checksum independently recalculated on the downloaded archive and matched the GitHub API digest. Inventory JSON SHA-256: `ea6705c99a2ace5bae9d2417da39dc1825cb338e16ac4f202011f6951e520de9`; Markdown SHA-256: `82a50d6c1be4315736e3ba9bdae652bedf523d7b0a40cb88d6d8c53bb6bcf01e`. |
+| Build artifact | `11992674751` | `cce3259cee9516c6b20dcaa048b849beec42f5019c3b43af435a1539b13f2c2f` | Successful build artifact on that PR SHA; not the final production artifact. |
+| Chromium browser evidence | `11994086143` | `0fc939789708480ce361a81f98b793240840b86673c159e00e9844231b94f92f` | Browser evidence archive on that PR SHA; not post-deployment verification. |
+| Exact-SHA coverage | `11993881365` | `5deca18c8bae91e28d072c5f51979aa339b917e1e54239f7c267311657009792` | Coverage archive on that PR SHA. |
+| CodeQL SARIF | `11992964209` | `5b20fab4b87ce26d9d3849bdd62cbdcb0b7f86f5a3c14da666c648544c517e94` | Security-analysis archive on that PR SHA. |
+| Gitleaks SARIF | `11992604555` | `6ef4b7d3253d5e48056a8d02f31c4bfc02a5c0bdd59f8a3c58b10f9b9a9d1ffd` | Secret-scan archive on that PR SHA. |
+
+The inventory lists 262 package-lock metadata entries, one ignored workspace link, one ignored stale extraneous lock entry, and zero unresolved/missing license metadata entries. Its generated report explicitly warns that metadata is not license compatibility, ownership, NOTICE compliance, or redistribution clearance.
+
+### Upstream dependency evidence gathered
+
+- [JSZip upstream repository](https://github.com/Stuk/jszip) states dual licensing under MIT or GPLv3. The pinned lockfile entry for `jszip@3.10.1` is `(MIT OR GPL-3.0-or-later)`. Project must preserve the actual v3.10.1 upstream license/copyright files and document the chosen MIT option in the shipped notices; upstream current branch or metadata alone is not proof the shipped archive is correct.
+- [Lightning CSS 1.33.0 upstream package metadata](https://github.com/parcel-bundler/lightningcss/blob/master/package.json) reports `MPL-2.0`. The exact run's inventory classifies `lightningcss@1.33.0` and its platform packages as development-only; confirm whether any source/binary code or required notices enter the distributed files before closing this item.
+- [isbot npm package metadata](https://www.npmjs.com/package/isbot?activeTab=readme) and [version record](https://secure.software/npm/packages/isbot/versions) identify `isbot@5.2.1` as Unlicense. The exact run's inventory provides registry resolution URL and package integrity `sha512-dJ+LpKyClQZ7NG+j3OensC/mAZkGpukE9YUrgPYvAZj2doVL0edfDgywTUh5CXa0o+nW9a1V9e5+CJTX8+SxRw==`. Still preserve and inspect the exact 5.2.1 archive LICENSE and package source before claiming complete provenance.
+
+These are source and metadata findings, not an independent legal opinion. Contributor/employer ownership, bundle membership, chosen compatible license, required notices, and distribution rights remain unresolved.
+
+### Model runtime architecture cross-check
+
+At the refreshed `execution` SHA, `src/worker.ts` declares an asset binding and deployment SHA only, and explicitly returns an API-not-found response for paths starting `/api/`. The inspected client intent path `src/lib/agent-guided-runtime.ts` routes through the local canonical tool registry, intent router, plan parser and canonical executor; no remote model invocation was identified in those files. This is a scope finding, not an automatic waiver of the repository's strict model-admission job. The release owner/maintainers must either supply actual production model/provider evidence required by the gate or make an authorized, documented architecture decision about model-gate applicability with an independently tested governance change. Do not fabricate a model entry or alter the gate solely to get a green result.
+
 ## Gate ledger
 
 | Gate | Status | Required closure evidence |
