@@ -162,7 +162,7 @@
 | REL-007 | Main protection ruleset has historical reports of missing strict review controls; live API read is denied (403) | Production promotion/certification may be blocked | Repository owner/admin must verify and enforce required approvals, stale-review dismissal, Code Owner review, latest-push approval, thread resolution, and strict required checks; attach live evidence | BLOCKED_EXTERNAL |
 | REL-008 | Production model admission failed: `docs/MODEL_LICENSE_MANIFEST.json` has `entries: []`; strict release gate requires at least one evidenced model | `trust-gate` and exact-SHA promotion proof fail; deployment job skipped | Maintainer/model owner must select a specific candidate, then verify exact version, immutable artifact SHA-256, license text, terms/AUP, provenance, compatibility, security/evaluation evidence, and human approval before registering PASS + ACTIVE | OPEN / OWNER DECISION |
 | REL-009 | Windows Desktop Commander devices are offline; current connection cannot run commands on the working copy | Cannot independently run local targeted commands from this session | Bring authorized device online or rely on fresh CI runs and recorded artifacts; do not claim local execution occurred | BLOCKED_EXTERNAL |
-| REL-010 | `.github/workflows/ci.yml` previously triggered `pull_request` only when the base branch was `main`; CodeQL, secret scan, and the exact-SHA workflow contract also encoded the old policy | Changes proposed for `execution` lacked a consistent canonical PR-triggered CI path | PR #1314 updates CI, CodeQL, secret scan, and exact-SHA contract tests. First run exposed stale assertions; those were updated. Latest head `8d360672452c599cf790ca74f54a1e9ff391c5f9`, FLIXO CI run `38742442175` is queued; inspect final results before merge | IN PROGRESS / VALIDATION PENDING |
+| REL-010 | `.github/workflows/ci.yml` previously triggered `pull_request` only when the base branch was `main`; CodeQL, secret scan, and the exact-SHA workflow contract also encoded the old policy | Changes proposed for `execution` lacked a consistent canonical PR-triggered CI path | PR #1314 updates CI, CodeQL, secret scan, and the exact-SHA plus Agent-2 CI closure contracts. First run exposed stale assertions; fixes were committed. Latest head `e10ede70d899b7f6463879f1db7fbff373ce3064`, FLIXO CI run `38742691481` is pending; inspect final results before merge | IN PROGRESS / VALIDATION PENDING |
 
 ## Update protocol
 
@@ -176,7 +176,7 @@ For every work session:
 
 
 ## Live work items (2026-10-15)
-- [ ] PR #1314 — CI workflow trigger correction, targets `execution`, head `8d360672452c599cf790ca74f54a1e9ff391c5f9`; FLIXO CI run `38742442175` is queued.
+- [ ] PR #1314 — CI workflow trigger correction, targets `execution`, head `e10ede70d899b7f6463879f1db7fbff373ce3064`; FLIXO CI run `38742691481` is pending.
 - [ ] PR #1313 — durable release plan, targets `execution`; not merged.
 - [ ] PR #1312 — README/homepage update, targets `execution`; not merged.
 
