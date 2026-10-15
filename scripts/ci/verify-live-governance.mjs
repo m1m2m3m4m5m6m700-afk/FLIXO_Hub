@@ -19,11 +19,21 @@ async function githubJson(path) {
 }
 
 function findRuleset(rulesets, branch) {
-  return rulesets.find((ruleset) =>
+  const matching = (rulesets ?? []).filter((ruleset) =>
     ruleset.enforcement === 'active' &&
     ruleset.target === 'branch' &&
     ruleset.conditions?.ref_name?.include?.includes('refs/heads/' + branch)
   );
+  if (matching.length === 0) return null;
+  return {
+    id: matching.map((ruleset) => ruleset.id).join(','),
+    name: matching.map((ruleset) => ruleset.name).join(' + '),
+    enforcement: 'active',
+    target: 'branch',
+    conditions: { ref_name: { include: ['refs/heads/' + branch] } },
+    rules: matching.flatMap((ruleset) => ruleset.rules ?? []),
+    bypass_actors: matching.flatMap((ruleset) => ruleset.bypass_actors ?? []),
+  };
 }
 
 export function validateGovernance(mainRuleset, executionRuleset) {
@@ -31,34 +41,44 @@ export function validateGovernance(mainRuleset, executionRuleset) {
   if (!mainRuleset) errors.push('main:ruleset-missing');
   if (!executionRuleset) errors.push('execution:ruleset-missing');
 
+  if ((mainRuleset?.bypass_actors ?? []).length > 0) errors.push('main:bypass-actors');
   const mainRules = new Set((mainRuleset?.rules ?? []).map((rule) => rule.type));
-  const mainPullRequest = mainRuleset?.rules?.find((rule) => rule.type === 'pull_request')?.parameters ?? {};
-  const mainChecks = mainRuleset?.rules?.find((rule) => rule.type === 'required_status_checks')?.parameters ?? {};
+  const mainPullRequests = (mainRuleset?.rules ?? []).filter((rule) => rule.type === 'pull_request').map((rule) => rule.parameters ?? {});
+  const mainStatusChecks = (mainRuleset?.rules ?? []).filter((rule) => rule.type === 'required_status_checks').map((rule) => rule.parameters ?? {});
 
   for (const rule of ['deletion', 'non_fast_forward', 'pull_request', 'required_status_checks']) {
     if (!mainRules.has(rule)) errors.push('main:rule-missing:' + rule);
   }
-  if (Number(mainPullRequest.required_approving_review_count) < 1) errors.push('main:review-count');
-  if (mainPullRequest.dismiss_stale_reviews_on_push !== true) errors.push('main:dismiss-stale');
-  if (mainPullRequest.require_code_owner_review !== true) errors.push('main:code-owner');
-  if (mainPullRequest.require_last_push_approval !== true) errors.push('main:last-push-approval');
-  if (mainPullRequest.required_review_thread_resolution !== true) errors.push('main:thread-resolution');
-  if (mainChecks.strict_required_status_checks_policy !== true) errors.push('main:strict-checks');
+  if (mainPullRequests.length === 0) errors.push('main:pull-request-rule');
+  if (Math.max(0, ...mainPullRequests.map((params) => Number(params.required_approving_review_count ?? 0))) < 1) errors.push('main:review-count');
+  if (!mainPullRequests.some((params) => params.dismiss_stale_reviews_on_push === true)) errors.push('main:dismiss-stale');
+  if (!mainPullRequests.some((params) => params.require_code_owner_review === true)) errors.push('main:code-owner');
+  if (!mainPullRequests.some((params) => params.require_last_push_approval === true)) errors.push('main:last-push-approval');
+  if (!mainPullRequests.some((params) => params.required_review_thread_resolution === true)) errors.push('main:thread-resolution');
+  if (mainStatusChecks.length === 0 || !mainStatusChecks.every((params) => params.strict_required_status_checks_policy === true)) errors.push('main:strict-checks');
 
-  const requiredChecks = new Set((mainChecks.required_status_checks ?? []).map((check) => check.context));
+  const requiredChecks = new Set(mainStatusChecks.flatMap((params) => (params.required_status_checks ?? []).map((check) => check.context)));
   for (const check of ['trust-gate', 'Exact-SHA promotion proof']) {
     if (!requiredChecks.has(check)) errors.push('main:required-check:' + check);
   }
 
+  if ((executionRuleset?.bypass_actors ?? []).length > 0) errors.push('execution:bypass-actors');
   const executionRules = new Set((executionRuleset?.rules ?? []).map((rule) => rule.type));
   for (const rule of ['deletion', 'non_fast_forward', 'pull_request', 'required_status_checks']) {
     if (!executionRules.has(rule)) errors.push('execution:rule-missing:' + rule);
   }
-  if (Number(executionRuleset?.rules?.find((rule) => rule.type === 'pull_request')?.parameters?.required_approving_review_count) < 1) {
-    errors.push('execution:review-count');
-  }
-  if (executionRuleset?.rules?.find((rule) => rule.type === 'required_status_checks')?.parameters?.strict_required_status_checks_policy !== true) {
-    errors.push('execution:strict-checks');
+  const executionPullRequests = (executionRuleset?.rules ?? []).filter((rule) => rule.type === 'pull_request').map((rule) => rule.parameters ?? {});
+  const executionStatusChecks = (executionRuleset?.rules ?? []).filter((rule) => rule.type === 'required_status_checks').map((rule) => rule.parameters ?? {});
+  if (executionPullRequests.length === 0) errors.push('execution:pull-request-rule');
+  if (Math.max(0, ...executionPullRequests.map((params) => Number(params.required_approving_review_count ?? 0))) < 1) errors.push('execution:review-count');
+  if (!executionPullRequests.some((params) => params.dismiss_stale_reviews_on_push === true)) errors.push('execution:dismiss-stale');
+  if (!executionPullRequests.some((params) => params.require_code_owner_review === true)) errors.push('execution:code-owner');
+  if (!executionPullRequests.some((params) => params.require_last_push_approval === true)) errors.push('execution:last-push-approval');
+  if (!executionPullRequests.some((params) => params.required_review_thread_resolution === true)) errors.push('execution:thread-resolution');
+  if (executionStatusChecks.length === 0 || !executionStatusChecks.every((params) => params.strict_required_status_checks_policy === true)) errors.push('execution:strict-checks');
+  const executionRequiredChecks = new Set(executionStatusChecks.flatMap((params) => (params.required_status_checks ?? []).map((check) => check.context)));
+  for (const check of ['trust-gate', 'Exact-SHA promotion proof']) {
+    if (!executionRequiredChecks.has(check)) errors.push('execution:required-check:' + check);
   }
 
   return { ok: errors.length === 0, errors };

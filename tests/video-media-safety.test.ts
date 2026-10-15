@@ -96,3 +96,66 @@ test('video legacy executor surface is absent and active UI remains canonical', 
   assert.match(ui, /executeCanonicalTool\(id/u);
   assert.doesNotMatch(ui, /video-tool-executors/u);
 });
+
+
+test('official video acceptance suites use one canonical shared fixture with bounded trim headroom', () => {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+  const fixture = readFileSync(resolve(root, 'tests/video/shared-video-fixture.ts'), 'utf8');
+  assert.match(fixture, /export async function buildVideoFixture/u);
+  assert.match(fixture, /VIDEO_FIXTURE_DURATION_MS\s*=\s*2_400/u);
+  assert.match(fixture, /VIDEO_FIXTURE_MIN_DURATION_MS\s*=\s*2_000/u);
+  assert.match(fixture, /durationMs\s*<\s*VIDEO_FIXTURE_MIN_DURATION_MS/u);
+  assert.match(fixture, /captureStream\(24\)/u);
+
+  const officialSuites = [
+    'tests/official/video-capability-acceptance.spec.ts',
+    'tests/official/video-media-assurance.spec.ts',
+    'tests/official/mvp-10-release-verification.spec.ts',
+  ] as const;
+  for (const suite of officialSuites) {
+    const source = readFileSync(resolve(root, suite), 'utf8');
+    assert.match(source, /from ['"]\.\.\/video\/shared-video-fixture['"]/u, suite);
+    assert.match(source, /buildVideoFixture\(/u, suite);
+    assert.doesNotMatch(source, /(?:async\s+)?function\s+videoFixture\b/u, suite);
+  }
+
+  const ui = readFileSync(resolve(root, 'src/tools/video-local/index.tsx'), 'utf8');
+  const fixtureDuration = Number(
+    fixture.match(/VIDEO_FIXTURE_DURATION_MS\s*=\s*(\d[\d_]*)/u)?.[1]?.replaceAll('_', '') ?? 0,
+  );
+  const endpointMs = Number(ui.match(/endSec:\s*(\d+(?:\.\d+)?)/u)?.[1] ?? 0) * 1000;
+  assert.ok(fixtureDuration >= endpointMs * 2);
+});
+test('shared fixture contract emits a bounded WebM artifact and rejects sub-minimum durations', () => {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+  const fixture = readFileSync(resolve(root, 'tests/video/shared-video-fixture.ts'), 'utf8');
+  assert.match(fixture, /new Blob\(chunks, \{ type: ['"]video\/webm['"] \}\)/u);
+  assert.match(fixture, /bytes\[0\]\s*!==\s*0x1a/u);
+  assert.match(fixture, /bytes\[1\]\s*!==\s*0x45/u);
+  assert.match(fixture, /bytes\[2\]\s*!==\s*0xdf/u);
+  assert.match(fixture, /bytes\[3\]\s*!==\s*0xa3/u);
+  assert.match(fixture, /VIDEO_FIXTURE_DURATION_MS\s*=\s*2_400/u);
+  assert.match(fixture, /durationMs\s*<\s*VIDEO_FIXTURE_MIN_DURATION_MS/u);
+});
+test('shared fixture default duration is the bounded acceptance baseline', () => {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+  const fixture = readFileSync(resolve(root, 'tests/video/shared-video-fixture.ts'), 'utf8');
+  const defaultDuration = fixture.match(/VIDEO_FIXTURE_DURATION_MS\s*=\s*(\d[\d_]*)/u)?.[1];
+  assert.equal(defaultDuration?.replaceAll('_', ''), '2400');
+});
+test('buildVideoFixture defaults to the canonical bounded duration constant', () => {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+  const fixture = readFileSync(resolve(root, 'tests/video/shared-video-fixture.ts'), 'utf8');
+  assert.match(fixture, /durationMs = VIDEO_FIXTURE_DURATION_MS/u);
+});
+test('crop fixture is spatially color-distinct at the canonical crop sample points', () => {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+  const fixture = readFileSync(resolve(root, 'tests/video/shared-video-fixture.ts'), 'utf8');
+  assert.ok(fixture.includes("context.fillStyle = '#22c55e';") && fixture.includes('context.fillRect(30, 30, 90, 120);'));
+  assert.ok(fixture.includes("context.fillStyle = '#3b82f6';") && fixture.includes('context.fillRect(120, 30, 90, 120);'));
+});
+test('video fixture contract closes its capture track after recording', () => {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+  const fixture = readFileSync(resolve(root, 'tests/video/shared-video-fixture.ts'), 'utf8');
+  assert.match(fixture, /stream\.getTracks\(\)\.forEach\(\(track\) => track\.stop\(\)\)/u);
+});

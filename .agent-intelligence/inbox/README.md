@@ -1,7 +1,17 @@
-# Proposal Inbox
+# مسار محظور — Agent Reports / Suggestions
 
-Agent-2 reads proposal YAML files from this directory.
+هذا المسار **ليس** مخزنًا لتقارير الوكلاء أو اقتراحاتهم أو نتائجهم.
 
-The inbox is untrusted input. No file here is executed.
-Accepted proposal extensions are .yml and .yaml.
-A symbolic link or unsupported file causes fail-closed validation.
+المسار الرسمي الوحيد:
+`الوكلاء/التقارير/<AGENT-ID> — <اسم الوكيل>/`
+
+يحظر على الوكلاء كتابة:
+- التقارير
+- الاقتراحات والتوصيات
+- نتائج البحث والاستكشاف
+- نتائج الاختبارات والتحليلات
+- التسليمات والـhandoffs
+
+أي محاولة للكتابة هنا تُعامل كـ`REPORT-ROUTING-VIOLATION` وتفشل مغلقًا.
+
+يمكن للأنظمة الأمنية الاحتفاظ بهذا المسار كـdeny-marker / compatibility barrier فقط؛ لا يُستخدم كقناة تشغيلية.

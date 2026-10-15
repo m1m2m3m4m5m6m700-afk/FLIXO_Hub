@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use FLIXO Hub in research, education, or technical work, please cite the software repository."
+type: software
+title: "FLIXO Hub"
+authors:
+  - name: "FLIXO Hub Maintainers"
+url: "https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub"
+repository-code: "https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub"
+license: "Apache-2.0"
+keywords:
+  - artificial intelligence
+  - ai agents
+  - multi-agent systems
+  - developer tools
+  - local-first
+  - privacy
+  - deterministic execution
+  - browser automation

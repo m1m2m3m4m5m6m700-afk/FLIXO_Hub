@@ -4,7 +4,10 @@ import { applyBasicImageEffect, cropResizeImage, flipImage, imageInfo, rasterToS
 import { executeCanonicalTool } from '../../lib/execution/canonical-executor';
 import { recognizeWithOcrWorker } from './ocr-worker-client';
 import { assertImageCropperOutputIntegrity } from '../image-cropper/output-integrity';
-import { validateFileSafety } from '../../lib/contracts/file-safety';
+import { assertRasterOutput, readRasterHeaderDimensions, validateFileSafety } from '../../lib/contracts/file-safety';
+import { assertToolOutputContract } from '../../lib/contracts/tool-output';
+import { getToolOutputContract } from '../../lib/contracts/tool-output-contracts';
+import { AI_IMAGE_GENERATOR_OUTPUT_CONTRACT } from '../../lib/contracts/external-output-contracts';
 import { validateUploadBoundary } from '../../lib/contracts/upload-boundary';
 import { LOCALE_METADATA, isLocale } from '../../lib/i18n';
 import { getToolSeo } from '../../lib/seo/tool-seo';
@@ -81,6 +84,7 @@ const UI_COPY: Record<string, UiCopy> = {
 };
 
 function baseName(name: string) { return name.replace(/\.[^.]+$/, '') || 'flixo-image'; }
+function outputExtension(mime: string): 'png' | 'jpg' | 'webp' { return mime === 'image/jpeg' ? 'jpg' : mime === 'image/webp' ? 'webp' : 'png'; }
 
 async function validateSharedImageInput(file: File, toolId: SharedImageToolId) {
   const allowedMime = DEFINITIONS[toolId].accept.split(',');
@@ -93,9 +97,12 @@ async function validateSharedImageInput(file: File, toolId: SharedImageToolId) {
     const boundary = validateUploadBoundary({ name: file.name, mime: file.type, bytes }, { ...basePolicy, allowedExtensions: rasterPolicy.extensions, signatures: rasterPolicy.signatures });
     if (!boundary.safe) throw new Error(`Input rejected by Upload Security Boundary: ${boundary.failures.join('; ')}`);
   }
-  const sourceInfo = await imageInfo(file);
-  const dimensionCheck = validateFileSafety({ name: file.name, mime: file.type, bytes: file.size, width: sourceInfo.width, height: sourceInfo.height }, basePolicy);
-  if (!dimensionCheck.safe) throw new Error(`Input rejected by File Safety: ${dimensionCheck.failures.join('; ')}`);
+  if (rasterPolicy) {
+    const headerDimensions = await readRasterHeaderDimensions(file, file.type);
+    if (!headerDimensions) throw new Error('Input rejected by File Safety: raster dimensions could not be determined before decode.');
+    const dimensionCheck = validateFileSafety({ name: file.name, mime: file.type, bytes: file.size, width: headerDimensions.width, height: headerDimensions.height }, basePolicy);
+    if (!dimensionCheck.safe) throw new Error(`Input rejected by File Safety: ${dimensionCheck.failures.join('; ')}`);
+  }
 }
 
 async function preprocessForOcr(file: File): Promise<Blob> {
@@ -164,8 +171,12 @@ export function ImageToolPage({ toolId }: Props) {
         if (!response.ok) throw new Error('AI image endpoint is not configured or returned an error.');
         const blob = await response.blob();
         if (!blob.type.startsWith('image/')) throw new Error('AI endpoint did not return an image.');
+        await assertRasterOutput(blob, blob.type);
+        const header = new Uint8Array(await blob.slice(0, 64).arrayBuffer());
         const info = await imageInfo(blob);
-        replaceResult(await createResult(blob, `flixo-ai-${info.width}x${info.height}.png`, info));
+        const aiFileName = `flixo-ai-${info.width}x${info.height}.${outputExtension(blob.type)}`;
+        assertToolOutputContract(AI_IMAGE_GENERATOR_OUTPUT_CONTRACT, { mimeType: blob.type, byteLength: blob.size, bytes: header, filename: aiFileName, dimensions: info });
+        replaceResult(await createResult(blob, aiFileName, info));
         return;
       }
       if (toolId === 'image-upscaler') { const factor = Number(scale); if (!Number.isFinite(factor) || factor < 1 || factor > 8) throw new Error('Scale must be between 1 and 8.'); }
@@ -196,7 +207,15 @@ export function ImageToolPage({ toolId }: Props) {
         fileName = output.fileName;
       }
       else { blob = await rasterToSvg(file, Number(columns) || 48); fileName += '.svg'; }
-      if (blob.type.startsWith('image/') && !info) info = await imageInfo(blob);
+      if (blob.type.startsWith('image/')) {
+        if (!info) info = await imageInfo(blob);
+        const contractId = toolId === 'crop-resize' ? 'image-cropper' : toolId;
+        const contract = getToolOutputContract(contractId);
+        if (contract) {
+          const header = new Uint8Array(await blob.slice(0, 64).arrayBuffer());
+          assertToolOutputContract(contract, { mimeType: blob.type, byteLength: blob.size, bytes: header, filename: fileName, dimensions: info });
+        }
+      }
       replaceResult(await createResult(blob, fileName, info));
     } catch (caught) { setError(caught instanceof Error ? caught.message : 'Tool failed.'); }
     finally { setBusy(false); }

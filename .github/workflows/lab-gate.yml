@@ -1,0 +1,56 @@
+name: CALL lab gate
+on:
+  pull_request:
+    paths:
+      - 'agent-lab/**'
+      - 'packages/contracts/src/call-*.ts'
+      - 'tests/call/**'
+  push:
+    branches: [lab, base, 'call/**']
+permissions:
+  contents: read
+jobs:
+  untrusted-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.12'
+      - name: Validate lab tool
+        run: python3 agent-lab/tools/lab_tool.py validate --templates
+      - name: Verify ledger
+        run: python3 agent-lab/tools/lab_tool.py ledger-verify
+  call-agent-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Run CALL agent and protocol tests
+        run: npm run test:call-protocol
+  gate:
+    runs-on: ubuntu-latest
+    needs: untrusted-tests
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          ref: ${{ github.event.pull_request.base.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify trusted gate source (bootstrap-aware)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! -f agent-lab/tools/lab_tool.py ]]; then
+            echo "LAB_GATE_BOOTSTRAP=PASS_BASE_SOURCE_NOT_YET_PRESENT"
+            exit 0
+          fi
+          python3 agent-lab/tools/lab_tool.py paths

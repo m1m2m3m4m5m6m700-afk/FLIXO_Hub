@@ -23,7 +23,7 @@ class ProposalSchemaV4Tests(unittest.TestCase):
 
     def test_allowed_lifecycle_states_are_explicit(self):
         text = SCHEMA.read_text(encoding="utf-8")
-        for state in ("inbox", "triaged", "queued", "approved", "rejected", "expired"):
+        for state in ("candidate", "triaged", "queued", "approved", "rejected", "expired"):
             self.assertIn(state, text)
         self.assertIn("additionalProperties: false", text)
 

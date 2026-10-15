@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '../fixtures/universal-runtime-evidence';
+import { buildVideoFixture } from '../video/shared-video-fixture';
 
 test.setTimeout(180_000);
 
@@ -50,59 +51,6 @@ async function installMediaHooks(page: Page): Promise<void> {
       return nativeSetTimeout(handler, nextDelay);
     }) as typeof window.setTimeout;
   });
-}
-
-async function buildFixture(page: Page, durationMs = 2_400): Promise<Buffer> {
-  return page.evaluate(async (duration) => {
-    const canvas = document.createElement('canvas');
-    canvas.width = 320;
-    canvas.height = 180;
-    const ctx = canvas.getContext('2d');
-    if (!ctx || !window.MediaRecorder) throw new Error('VIDEO_FIXTURE_APIS_UNAVAILABLE');
-
-    const mimeType = ['video/webm;codecs=vp8', 'video/webm'].find((type) =>
-      !window.MediaRecorder?.isTypeSupported || window.MediaRecorder.isTypeSupported(type),
-    );
-    if (!mimeType) throw new Error('VIDEO_FIXTURE_WEBM_UNAVAILABLE');
-
-    const stream = canvas.captureStream(15);
-    const recorder = new window.MediaRecorder(stream, { mimeType });
-    const chunks: Blob[] = [];
-    const stopped = new Promise<void>((resolve, reject) => {
-      recorder.ondataavailable = (event) => { if (event.data.size > 0) chunks.push(event.data); };
-      recorder.onerror = () => reject(new Error('VIDEO_FIXTURE_RECORDING_FAILED'));
-      recorder.onstop = () => resolve();
-    });
-
-    recorder.start(100);
-    const started = performance.now();
-    const draw = () => {
-      const elapsed = performance.now() - started;
-      ctx.fillStyle = '#111827';
-      ctx.fillRect(0, 0, 320, 180);
-      ctx.fillStyle = '#22c55e';
-      ctx.fillRect(0, 0, 160, 180);
-      ctx.fillStyle = '#2563eb';
-      ctx.fillRect(160, 0, 160, 180);
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(110 + Math.round(Math.sin(elapsed / 150) * 25), 60, 20, 60);
-      if (elapsed >= duration) {
-        recorder.stop();
-        return;
-      }
-      requestAnimationFrame(draw);
-    };
-    draw();
-    await stopped;
-    stream.getTracks().forEach((track) => track.stop());
-
-    const blob = new Blob(chunks, { type: 'video/webm' });
-    const signature = Array.from(new Uint8Array(await blob.slice(0, 4).arrayBuffer()));
-    if (blob.size <= 4 || signature.join(',') !== '26,69,223,163') {
-      throw new Error('VIDEO_FIXTURE_SIGNATURE_INVALID');
-    }
-    return btoa(String.fromCharCode(...new Uint8Array(await blob.arrayBuffer())));
-  }, durationMs).then((base64) => Buffer.from(base64, 'base64'));
 }
 
 async function outputMetadata(page: Page) {
@@ -159,7 +107,7 @@ test.describe('FLIXO Agent 2 video/media assurance', () => {
 
   test('all four capabilities execute locally and expose verified downloadable artifacts', async ({ page }) => {
     await installMediaHooks(page);
-    const fixture = await buildFixture(page);
+    const fixture = await buildVideoFixture(page);
 
     const expectations = [
       ['video-trimmer', { width: 320, height: 180 }],
@@ -202,7 +150,7 @@ test.describe('FLIXO Agent 2 video/media assurance', () => {
 
   test('crop geometry is represented in decoded pixels', async ({ page }) => {
     await installMediaHooks(page);
-    const fixture = await buildFixture(page);
+    const fixture = await buildVideoFixture(page);
     await page.goto('/en/video-cropper');
     await page.getByLabel('Choose video').setInputFiles({ name: 'crop.webm', mimeType: 'video/webm', buffer: fixture });
     await page.getByRole('button', { name: 'Process video' }).click();
@@ -274,7 +222,7 @@ test.describe('FLIXO Agent 2 video/media assurance', () => {
 
   test('repeated execution cleans media tracks and retains a valid final artifact', async ({ page }) => {
     await installMediaHooks(page);
-    const fixture = await buildFixture(page);
+    const fixture = await buildVideoFixture(page);
     await page.evaluate(() => { window.__flixoTrackStops = 0; });
     await page.goto('/en/video-resizer');
 
@@ -295,7 +243,7 @@ test.describe('FLIXO Agent 2 video/media assurance', () => {
 
   test('recorder failure fails closed without exposing an artifact', async ({ page }) => {
     await installMediaHooks(page);
-    const fixture = await buildFixture(page);
+    const fixture = await buildVideoFixture(page);
     await page.addInitScript(() => { (window as Window).__flixoRecorderMode = 'failure'; });
     await page.goto('/en/video-resizer');
     await page.getByLabel('Choose video').setInputFiles({ name: 'failure.webm', mimeType: 'video/webm', buffer: fixture });
@@ -306,7 +254,7 @@ test.describe('FLIXO Agent 2 video/media assurance', () => {
 
   test('empty recorder output fails closed without exposing an artifact', async ({ page }) => {
     await installMediaHooks(page);
-    const fixture = await buildFixture(page);
+    const fixture = await buildVideoFixture(page);
     await page.addInitScript(() => { (window as Window).__flixoRecorderMode = 'empty'; });
     await page.goto('/en/video-resizer');
     await page.getByLabel('Choose video').setInputFiles({ name: 'empty.webm', mimeType: 'video/webm', buffer: fixture });
@@ -317,7 +265,7 @@ test.describe('FLIXO Agent 2 video/media assurance', () => {
 
   test('abort cancels execution and exposes no artifact', async ({ page }) => {
     await installMediaHooks(page);
-    const fixture = await buildFixture(page, 3_000);
+    const fixture = await buildVideoFixture(page, 3_000);
     await page.goto('/en/video-trimmer');
     await page.getByLabel('Choose video').setInputFiles({ name: 'abort.webm', mimeType: 'video/webm', buffer: fixture });
     await page.getByRole('button', { name: 'Process video' }).click();
@@ -330,7 +278,7 @@ test.describe('FLIXO Agent 2 video/media assurance', () => {
   test('internal timeout fails closed', async ({ page }) => {
     await installMediaHooks(page);
     await page.addInitScript(() => { (window as Window).__flixoAccelerateVideoTimeout = true; });
-    const fixture = await buildFixture(page);
+    const fixture = await buildVideoFixture(page);
     await page.goto('/en/video-resizer');
     await page.getByLabel('Choose video').setInputFiles({ name: 'timeout.webm', mimeType: 'video/webm', buffer: fixture });
     await page.getByRole('button', { name: 'Process video' }).click();

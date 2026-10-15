@@ -1,12 +1,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { lintLedger } from '../../../scripts/ci/ledger-lint.mjs';
 
 test('active task ledger satisfies the 13-field contract', () => {
   const result = lintLedger(readFileSync('المهام.md', 'utf8'));
   assert.equal(result.pass, true, result.failures.join('\n'));
-  assert.equal(result.taskCount, 17);
+  const ledgerSource = readFileSync('المهام.md', 'utf8');
+  const declared = ledgerSource.match(/\*\*ACTIVE TASK COUNT:\*\*\s*(\d+)/u);
+  assert.ok(declared, 'ledger declares ACTIVE TASK COUNT');
+  assert.equal(result.taskCount, Number(declared[1]));
   assert.equal(result.inProgressCount, 0);
 });
 
@@ -45,4 +49,14 @@ test('ledger linter rejects duplicate IDs, invalid dependencies, and owner-actio
   assert.ok(result.failures.some((f) => f.startsWith('IN_PROGRESS_COLLISION:')));
   assert.ok(result.failures.some((f) => f.startsWith('EXEC-OWNER-002:OWNER_ACTION_PR_MUST_BE_NA')));
   assert.ok(result.failures.some((f) => f.startsWith('EXEC-TEST-003:MISSING_DEPENDENCY:')));
+});
+
+
+test('ledger lint CLI executes with a relative path on Windows', () => {
+  const output = execFileSync(process.execPath, ['scripts/ci/ledger-lint.mjs'], { encoding: 'utf8' });
+  assert.match(output, /LEDGER_LINT=PASS/u);
+  const ledgerSource = readFileSync('المهام.md', 'utf8');
+  const declaredCount = ledgerSource.match(/\*\*ACTIVE TASK COUNT:\*\*\s*(\d+)/u);
+  assert.ok(declaredCount, 'ledger declares ACTIVE TASK COUNT');
+  assert.match(output, new RegExp('ACTIVE_TASKS=' + Number(declaredCount[1]) + '\\b', 'u'));
 });

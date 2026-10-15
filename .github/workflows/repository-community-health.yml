@@ -1,0 +1,91 @@
+name: FLIXO Repository Community Health
+
+on:
+  push:
+    branches: [main, execution]
+    paths:
+      - README.md
+      - CONTRIBUTING.md
+      - CODE_OF_CONDUCT.md
+      - SECURITY.md
+      - SUPPORT.md
+      - ACCESSIBILITY.md
+      - CITATION.cff
+      - .github/ISSUE_TEMPLATE/**
+      - .github/PULL_REQUEST_TEMPLATE.md
+      - tests/community-health-contract.test.mjs
+      - docs/GITHUB-METADATA-SETUP.md
+      - .github/workflows/repository-community-health.yml
+  schedule:
+    - cron: "17 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  local-community-contract:
+    name: Local community contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact repository ref
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          fetch-depth: 1
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: node tests/community-health-contract.test.mjs
+
+  external-metadata-audit:
+    name: External GitHub metadata audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Read repository metadata
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          repo_json="$(gh api "repos/${GITHUB_REPOSITORY}")"
+          description="$(printf '%s' "$repo_json" | jq -r '.description // ""')"
+          default_branch="$(printf '%s' "$repo_json" | jq -r '.default_branch // ""')"
+          visibility="$(printf '%s' "$repo_json" | jq -r '.visibility // ""')"
+          topics="$(gh api -H 'Accept: application/vnd.github+json' "repos/${GITHUB_REPOSITORY}/topics" --jq '.names | join(",")')"
+
+          echo "visibility=$visibility"
+          echo "default_branch=$default_branch"
+          echo "description=$description"
+          echo "topics=$topics"
+
+          {
+            echo "## Repository metadata"
+            echo
+            echo "- Visibility: `$visibility`"
+            echo "- Default branch: `$default_branch`"
+            echo "- Description configured: $([ -n "$description" ] && echo yes || echo no)"
+            echo "- Topics configured: $([ -n "$topics" ] && echo yes || echo no)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$visibility" != "public" ]; then
+            echo "::warning::Repository visibility is not public."
+          fi
+
+          if [ "$default_branch" != "main" ]; then
+            echo "::warning::Default branch is not main."
+          fi
+
+          if [ -z "$description" ]; then
+            echo "::warning::Repository description is not configured; see docs/GITHUB-METADATA-SETUP.md."
+          fi
+
+          if [ -z "$topics" ]; then
+            echo "::warning::Repository topics are not configured; see docs/GITHUB-METADATA-SETUP.md."
+          fi
+
+          echo "EXTERNAL_METADATA_AUDIT=INFORMATIONAL"

@@ -1,0 +1,38 @@
+.developer-workspace{min-height:100vh;color:#e8f0f5;background:radial-gradient(circle at 8% 0%,rgba(103,232,249,.12),transparent 30rem),#070b10}
+.developer-workspace-shell{width:min(1400px,calc(100% - 30px));margin-inline:auto;padding:28px 0 60px}
+.developer-workspace-header{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(280px,.6fr);gap:18px;align-items:end;padding:12px 0 22px}
+.developer-workspace-back{display:inline-flex;color:#90a1af;text-decoration:none;margin-bottom:18px}
+.developer-workspace-eyebrow{margin:0 0 8px;color:#67e8f9;font-size:.72rem;letter-spacing:.13em;font-weight:850}
+.developer-workspace-header h1{margin:0 0 12px;font-size:clamp(2.2rem,5vw,4.6rem);line-height:.98;letter-spacing:-.05em}
+.developer-workspace-lead{margin:0;max-width:800px;color:#9dabba;line-height:1.8}
+.developer-workspace-trust{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;padding:17px;border:1px solid #20313e;border-radius:20px;background:rgba(11,18,25,.9)}
+.developer-workspace-trust>svg{grid-row:1 / span 2;color:#67e8f9}
+.developer-workspace-trust span{font-weight:850}
+.developer-workspace-trust small{color:#8796a3;line-height:1.55}
+.developer-workspace-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:9px;padding:10px;border:1px solid #1e2d3a;border-radius:17px;background:rgba(8,14,20,.9)}
+.developer-workspace-toolbar button,.developer-workspace-empty button{min-height:42px;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:0 13px;border:1px solid #2a3d4c;border-radius:11px;background:#0d171f;color:#dce8f0;cursor:pointer;font-weight:800}
+.developer-workspace-toolbar button:hover,.developer-workspace-empty button:hover{border-color:#67e8f9}
+.developer-workspace-toolbar button:disabled{opacity:.4;cursor:not-allowed}
+.developer-workspace-stats{display:flex;flex-wrap:wrap;gap:8px;margin-inline-start:auto;color:#70808e;font-size:.78rem}
+.developer-workspace-stats .is-dirty{color:#f3cf83}
+.developer-workspace-status{margin:12px 0 0;padding:11px 13px;border:1px solid #653a2a;border-radius:11px;color:#ffd7b8;background:#25180f}
+.developer-workspace-empty{min-height:360px;display:grid;place-content:center;justify-items:center;gap:8px;margin-top:16px;padding:35px;border:1px dashed #314555;border-radius:22px;background:#0b1219;color:#82919f;text-align:center}
+.developer-workspace-empty h2{margin:6px 0 0;color:#dbe5ec}
+.developer-workspace-empty p{max-width:620px;line-height:1.7}
+.developer-workspace-grid{display:grid;grid-template-columns:minmax(260px,.34fr) minmax(0,1fr);gap:14px;margin-top:16px;min-height:600px}
+.developer-workspace-tree,.developer-workspace-editor{min-width:0;border:1px solid #20313e;border-radius:20px;background:#0a1118;overflow:hidden}
+.developer-workspace-panel-title{min-height:52px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 14px;border-bottom:1px solid #1e2c38;color:#aebbc6;font-size:.82rem}
+.developer-workspace-file-list{padding:8px;max-height:650px;overflow:auto}
+.developer-workspace-file-list button{width:100%;min-height:40px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px;padding:0 10px;border:0;border-radius:9px;background:transparent;color:#8695a3;text-align:start;cursor:pointer}
+.developer-workspace-file-list button:hover,.developer-workspace-file-list button.is-selected{background:#12202b;color:#e8f2f7}
+.developer-workspace-file-list span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.developer-workspace-file-list i{font-style:normal;color:#f3cf83}
+.developer-workspace-editor{display:grid;grid-template-rows:auto 1fr auto;min-height:600px}
+.developer-workspace-dirty-label{color:#f3cf83;font-size:.72rem}
+.developer-workspace-editor textarea{width:100%;height:100%;min-height:500px;resize:none;border:0;outline:0;padding:18px;background:#071018;color:#dbe7ef;font:500 .88rem/1.6 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;tab-size:2}
+.developer-workspace-editor-footer{display:flex;flex-wrap:wrap;gap:12px;padding:10px 14px;border-top:1px solid #1e2c38;color:#657582;font-size:.72rem}
+.developer-workspace-editor-footer span:last-child{display:inline-flex;align-items:center;gap:5px;margin-inline-start:auto;color:#8fa0ac}
+.developer-workspace-binary{display:grid;place-content:center;justify-items:center;gap:9px;padding:30px;color:#8796a2;text-align:center}
+.developer-workspace-binary p{max-width:520px;line-height:1.7}
+.developer-workspace-limit{margin:10px 2px 0;color:#5f707e;font-size:.72rem}
+@media (max-width:900px){.developer-workspace-header{grid-template-columns:1fr}.developer-workspace-grid{grid-template-columns:1fr;}.developer-workspace-tree{min-height:220px}.developer-workspace-file-list{max-height:250px}}

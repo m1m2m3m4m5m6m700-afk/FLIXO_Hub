@@ -6,6 +6,7 @@ let fallbackKey: string | null = null;
 function getCsrfKey(): string {
   const configured = process.env.FLIXO_CSRF_SECRET?.trim();
   if (configured && configured.length >= 32) return configured;
+  if (process.env.NODE_ENV === 'production' || process.env.VERCEL === '1') throw new Error('CSRF secret is required in hosted/production environments.');
   if (!fallbackKey) fallbackKey = randomBytes(32).toString('hex');
   return fallbackKey;
 }

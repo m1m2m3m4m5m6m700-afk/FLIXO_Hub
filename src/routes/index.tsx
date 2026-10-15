@@ -1,6 +1,6 @@
 import { createRoute } from '@tanstack/react-router';
+import { ArchiveLandingHome } from '../components/ArchiveLandingHome';
 import { rootRoute } from './__root';
-import { OfficialHome } from '../components/OfficialHome';
 import { buildSeoMetadata } from '../lib/seo';
 
 const SEO = buildSeoMetadata({
@@ -33,5 +33,5 @@ export const indexRoute = createRoute({
     ],
     scripts: [{ type: 'application/ld+json', children: JSON.stringify(SEO.structuredData).replace(/</g, '\\u003c') }],
   }),
-  component: OfficialHome,
+  component: ArchiveLandingHome,
 });

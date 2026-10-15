@@ -1,0 +1,101 @@
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { join } from "node:path";
+
+const root=process.cwd();
+const required=[
+  ".agent-intelligence/schemas/proposal.schema.yml",
+  ".agent-intelligence/schemas/snapshot.schema.yml",
+  ".agent-intelligence/scripts/fetch_snapshot.py",
+  ".agent-intelligence/scripts/run_scouts.py",
+  ".agent-intelligence/scouts/architecture.yaml",
+  ".agent-intelligence/scouts/technology.yaml",
+  ".agent-intelligence/scouts/ecosystem.yaml",
+  ".agent-intelligence/scouts/public-repositories.yaml",
+  ".agent-intelligence/scripts/discover_public_repositories.py",
+  ".agent-intelligence/inbox",
+  "الوكلاء/التقارير/AGENT-08 — Architecture Scout",
+  "الوكلاء/التقارير/AGENT-09 — Technology Scout",
+  "الوكلاء/التقارير/AGENT-10 — Ecosystem Scout",
+  ".agent-intelligence/snapshots",
+  ".github/workflows/continuous-discovery.yml"
+];
+function fail(m){console.error("INFINITE_DISCOVERY_FAIL: "+m);process.exit(1);}
+function exists(p){try{statSync(join(root,p));return true;}catch{return false;}}
+for(const p of required) if(!exists(p)) fail("missing: "+p);
+
+const publicManifestPath=".agent-intelligence/scouts/public-repositories.yaml";
+let publicManifest;
+try{publicManifest=JSON.parse(readFileSync(join(root,publicManifestPath),"utf8"));}catch{fail("public repository manifest is not valid YAML/JSON-subset");}
+if(publicManifest.format!=="flixo-public-repo-discovery-v1"||publicManifest.version!==1) fail("invalid public repository manifest");
+if(!Array.isArray(publicManifest.queries)||publicManifest.queries.length===0) fail("public repository queries missing");
+if(!Number.isInteger(publicManifest.max_selected_repositories)||publicManifest.max_selected_repositories<1||publicManifest.max_selected_repositories>6) fail("public repository selection bound invalid");
+for(const q of publicManifest.queries){
+  if(!["ARCHITECTURE","TECHNOLOGY","ECOSYSTEM"].includes(q.role)) fail("invalid public repository role");
+  if(typeof q.query!=="string"||!q.query.trim()) fail("public repository query missing");
+  if(!Array.isArray(q.repo_refs)||q.repo_refs.length===0) fail("public repository repo_refs missing");
+  for(const ref of q.repo_refs){
+    const target=join(root,ref.split(":",1)[0]);
+    if(!exists(ref)||statSync(target).isSymbolicLink()) fail("invalid public repository target ref "+ref);
+  }
+}
+for(const p of [
+  ".agent-intelligence/scouts/architecture.yaml",
+  ".agent-intelligence/scouts/technology.yaml",
+  ".agent-intelligence/scouts/ecosystem.yaml"
+]){
+  let data;
+  try{data=JSON.parse(readFileSync(join(root,p),"utf8"));}catch{fail("manifest is not valid YAML/JSON-subset: "+p);}
+  if(data.format!=="flixo-scout-manifest-v1") fail("invalid manifest format: "+p);
+  if(!["ARCHITECTURE","TECHNOLOGY","ECOSYSTEM"].includes(data.role)) fail("invalid Scout role: "+p);
+  if(!Array.isArray(data.sources)||data.sources.length===0) fail("manifest has no sources: "+p);
+  for(const s of data.sources){
+    for(const field of ["url","title","entity_key","repo_refs","proposal","rollback","source_type","stability","evidence_kind"]) if(!(field in s)) fail(p+": missing source field "+field);
+    if(!/^https?:\/\//.test(s.url)) fail(p+": source URL must be http(s)");
+    if(!Array.isArray(s.repo_refs)||s.repo_refs.length===0) fail(p+": repo_refs missing");
+    for(const ref of s.repo_refs){
+      const target=join(root,ref.split(":",1)[0]);
+      if(!exists(ref) || statSync(target).isSymbolicLink()) fail(p+": invalid repo ref "+ref);
+    }
+    if(!String(s.rollback).trim()) fail(p+": empty rollback");
+    if(!String(s.entity_key).match(/^[a-z0-9][a-z0-9._:/-]{1,127}$/)) fail(p+": invalid entity_key");
+  }
+}
+const profiles=[
+  ".github/agents/flixo-scout-architecture.agent.md",
+  ".github/agents/flixo-scout-technology.agent.md",
+  ".github/agents/flixo-scout-ecosystem.agent.md"
+];
+for(const p of profiles){
+  const c=readFileSync(join(root,p),"utf8");
+  if(!c.includes('tools: ["read", "search", "edit"]')) fail("Scout tool contract: "+p);
+  if(!c.includes("cap_WRITE_REPORTS: SCOPED")) fail("Scout report capability missing: "+p);
+  if(!c.includes("cap_WRITE_INBOX: DENY")) fail("Scout inbox capability must be denied: "+p);
+  const scope=c.match(/^write_scope:\s*(.+)$/mu)?.[1]?.trim();
+  const reportScope=c.match(/^report_scope:\s*(.+)$/mu)?.[1]?.trim();
+  if(!scope || !reportScope || scope!==reportScope || !scope.startsWith("الوكلاء/التقارير/")) fail("Scout report scope invalid: "+p);
+  if(scope.includes(".agent-intelligence/inbox/")) fail("Scout report scope may not use inbox: "+p);
+  if(/Your only writable repository path is \.agent-intelligence\/inbox\./u.test(c)) fail("stale inbox write contract remains: "+p);
+  if(/writable.*(?:review-queue|التطوير\.md)/iu.test(c)) fail("Scout grants forbidden writable surface: "+p);
+}
+for(const f of readdirSync(join(root,".agent-intelligence","inbox"))) if(f!==".gitkeep"&&f!=="README.md") fail("inbox is deny-only; unexpected artifact: "+f);
+for(const f of readdirSync(join(root,".agent-intelligence","snapshots"))) if(!f.endsWith(".json")&&!f.endsWith(".raw")&&!f.endsWith(".txt")&&f!==".gitkeep"&&f!=="README.md") fail("invalid snapshot artifact: "+f);
+const workflow=readFileSync(join(root,".github/workflows/continuous-discovery.yml"),"utf8").replace(/\r\n/g,"\n");
+if(!workflow.includes("schedule:")||!workflow.includes("workflow_dispatch:")||!workflow.includes("pull_request:")) fail("workflow triggers incomplete");
+if(!workflow.includes("permissions:\n  contents: read")) fail("workflow default permission must be read");
+if(!workflow.includes("contents: write")) fail("publish job write permission missing");
+if(!workflow.includes("pull-requests: write")) fail("execution intake PR permission missing");
+if(!workflow.includes("gh pr create")) fail("execution intake PR publication missing");
+if(!workflow.includes("scout/discovery-")) fail("publication must target scout/discovery-*");
+if(!workflow.includes("discover_public_repositories.py")) fail("public repository acquisition step missing");
+if(!workflow.includes(".agent-intelligence/public-repositories")) fail("public repository output boundary missing");
+if(!workflow.includes('AGENT-08 — Architecture Scout/"*.yaml')) fail("Architecture report publication path missing");
+if(!workflow.includes('AGENT-09 — Technology Scout/"*.yaml')) fail("Technology report publication path missing");
+if(!workflow.includes('AGENT-10 — Ecosystem Scout/"*.yaml')) fail("Ecosystem report publication path missing");
+if(!workflow.includes('git -c core.quotePath=false diff --name-only')) fail("publication mutation gate must preserve raw unicode paths");
+if(!workflow.includes('git -c core.quotePath=false diff --cached --name-only')) fail("publication staging gate must preserve raw unicode paths");
+if(!workflow.includes("GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}")) fail("publication must bind the workflow token explicitly");
+if(!workflow.includes("https://x-access-token:$GITHUB_TOKEN@github.com/$GITHUB_REPOSITORY.git")) fail("publication must authenticate through workflow token");
+if(workflow.match(/\.agent-intelligence\/inbox\/\*\.ya?ml/)) fail("forbidden inbox proposal publication remains");
+if(workflow.match(/git add \.agent-intelligence\/inbox\b/)) fail("forbidden inbox staging remains");
+if(workflow.match(/git push origin (main|execution)\b/)) fail("forbidden main/execution push path");
+console.log("INFINITE_DISCOVERY=PASS");

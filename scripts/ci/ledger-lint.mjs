@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const LEDGER = 'المهام.md';
 const ACTIVE_MARKER = '# ACTIVE DISPATCH QUEUE';
@@ -136,4 +138,4 @@ function main() {
   console.log('IN_PROGRESS=' + result.inProgressCount);
 }
 
-if (process.argv[1] && new URL(import.meta.url).pathname.endsWith(process.argv[1].replaceAll('\\', '/'))) main();
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main();

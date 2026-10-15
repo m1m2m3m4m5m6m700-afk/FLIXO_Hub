@@ -1,0 +1,89 @@
+name: FLIXO Post-Merge Report
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  report:
+    name: Post-merge integration report
+    if: >-
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.base.ref == 'main' &&
+      github.event.pull_request.head.ref == 'execution' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      EXPECTED_MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+      SOURCE_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    steps:
+      - name: Checkout exact merge commit
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          fetch-depth: 2
+          persist-credentials: false
+
+      - name: Verify merged identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$EXPECTED_MERGE_SHA"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_MERGE_SHA"
+          test -n "$(git rev-parse HEAD^ 2>/dev/null)"
+          echo "MERGE_SHA=$EXPECTED_MERGE_SHA"
+          echo "SOURCE_HEAD_SHA=$SOURCE_HEAD_SHA"
+          echo "BASE_SHA=$BASE_SHA"
+
+      - name: Collect merge metadata
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh pr view "$PR_NUMBER" --json number,title,author,mergedAt,mergedBy,mergeCommit,headRefName,baseRefName,commits,changedFiles,additions,deletions > pr.json
+          jq . pr.json
+
+      - name: Write report
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > post-merge-report.md <<EOF
+          # FLIXO Post-Merge Integration Report
+
+          - PR: #$PR_NUMBER
+          - Base: main
+          - Source branch: execution
+          - Source HEAD SHA: $SOURCE_HEAD_SHA
+          - Base SHA at PR creation: $BASE_SHA
+          - Merge SHA: $EXPECTED_MERGE_SHA
+          - Generated at: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+          ## Merge metadata
+
+          ```json
+          $(jq . pr.json)
+          ```
+
+          ## Exact merge checkout
+
+          `git rev-parse HEAD` = `$EXPECTED_MERGE_SHA`
+
+          This report is observational. It is generated only after an actual protected merge into `main`; it does not grant or record human approval.
+          EOF
+          cat post-merge-report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload post-merge report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: flixo-post-merge-report-${{ github.event.pull_request.merge_commit_sha }}
+          path: post-merge-report.md
+          if-no-files-found: error
+          retention-days: 90

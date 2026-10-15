@@ -48,6 +48,18 @@ export function evaluateMainGovernance(rulesets, branch = DEFAULT_BRANCH, mode =
   assert.ok(pullRequestRules.length > 0, 'main governance requires a pull-request rule');
   assert.ok(statusRules.length > 0, 'main governance requires required status checks');
 
+  const hasRule = (type) => applicable.some((ruleset) => (ruleset.rules ?? []).some((rule) => rule?.type === type));
+
+  if (mode === 'autonomous') {
+    if (!hasRule('deletion')) failures.push('Protected main must deny branch deletion.');
+    if (!hasRule('non_fast_forward')) failures.push('Protected main must deny non-fast-forward updates.');
+    if (applicable.some((ruleset) => (ruleset.bypass_actors ?? []).length > 0)) failures.push('Autonomous main governance must not expose bypass actors.');
+    for (const context of ['trust-gate', 'Exact-SHA promotion proof']) {
+      if (!requiredContexts.has(context)) failures.push('Required status check missing: ' + context);
+    }
+    return { pass: failures.length === 0, applicableRulesetIds: applicable.map((ruleset) => ruleset.id), failures, mode };
+  }
+
   if (mode === 'fast') {
     for (const context of ['trust-gate', 'Exact-SHA promotion proof']) {
       if (!requiredContexts.has(context)) failures.push('Required status check missing: ' + context);

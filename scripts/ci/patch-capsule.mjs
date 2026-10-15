@@ -2,10 +2,11 @@
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { readFile, writeFile } from 'node:fs/promises';
-import { rmSync, writeFileSync } from 'node:fs';
+import { rmSync, writeFileSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { existsSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
+import { join } from 'node:path';
 
 const REPOSITORY = 'm1m2m3m4m5m6m700-afk/FLIXO_Hub';
 const BRANCH = 'execution';
@@ -67,6 +68,45 @@ function capture({ sourceSha, candidateSha, cwd = process.cwd(), taskId = null, 
   return capsule;
 }
 
+function scopeGlobToRegExp(glob) {
+  const normalized = String(glob ?? '').trim().replaceAll('\\', '/').replace(/^\.\//u, '');
+  if (!normalized || normalized.startsWith('/') || normalized.split('/').some((part) => part === '..' || part === '.')) return null;
+  let pattern = '';
+  for (let index = 0; index < normalized.length; index += 1) {
+    const char = normalized[index];
+    if (char === '*' && normalized[index + 1] === '*') { pattern += '.*'; index += 1; }
+    else if (char === '*') pattern += '[^/]*';
+    else pattern += char.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
+  }
+  return new RegExp('^' + pattern + '$', 'u');
+}
+
+function taskScopePatterns(taskId, cwd = process.cwd()) {
+  const ledgerPath = join(cwd, 'المهام.md');
+  if (!existsSync(ledgerPath)) throw new Error('PATCH_CAPSULE_TASK_LEDGER_MISSING');
+  const text = readFileSync(ledgerPath, 'utf8');
+  const start = text.indexOf('### ' + taskId);
+  if (start < 0) throw new Error('PATCH_CAPSULE_TASK_NOT_FOUND:' + taskId);
+  const next = text.indexOf('\n### ', start + 5);
+  const endQueue = text.indexOf('# END ACTIVE DISPATCH QUEUE', start);
+  const end = next >= 0 && (endQueue < 0 || next < endQueue) ? next : endQueue;
+  const block = text.slice(start, end < 0 ? text.length : end);
+  const scopeLine = block.split('\n').find((line) => line.includes('**SCOPE:**'));
+  if (!scopeLine) throw new Error('PATCH_CAPSULE_TASK_SCOPE_MISSING:' + taskId);
+  const patterns = [...scopeLine.matchAll(/`([^`]+)`/gu)].map((match) => match[1].trim()).filter(Boolean);
+  if (patterns.length === 0) throw new Error('PATCH_CAPSULE_TASK_SCOPE_NOT_MACHINE_READABLE:' + taskId);
+  return patterns;
+}
+
+function assertTaskScope(taskId, paths, cwd = process.cwd()) {
+  if (!taskId || !Array.isArray(paths) || paths.length === 0) return;
+  const patterns = taskScopePatterns(taskId, cwd);
+  const regexes = patterns.map(scopeGlobToRegExp).filter(Boolean);
+  for (const path of paths) {
+    const normalized = String(path).replaceAll('\\', '/');
+    if (!regexes.some((regex) => regex.test(normalized))) throw new Error('PATCH_CAPSULE_TASK_SCOPE_DRIFT:' + taskId + ':' + normalized);
+  }
+}
 function verify(capsule) {
   if (!capsule || typeof capsule !== 'object') throw new Error('PATCH_CAPSULE_NOT_OBJECT');
   if (capsule.protocolVersion !== PROTOCOL) throw new Error('PATCH_CAPSULE_PROTOCOL_MISMATCH');
@@ -83,6 +123,7 @@ function verify(capsule) {
   if (!Array.isArray(capsule.paths) || capsule.paths.some((value) => typeof value !== 'string' || !value)) {
     throw new Error('PATCH_CAPSULE_PATHS_INVALID');
   }
+  if (capsule.taskId) assertTaskScope(capsule.taskId, capsule.paths, process.cwd());
   return true;
 }
 
@@ -245,4 +286,4 @@ if (command === 'capture') {
 }
 }
 
-export { capture, verify, reconcile, persistCapsule };
+export { capture, verify, reconcile, persistCapsule, taskScopePatterns, assertTaskScope };

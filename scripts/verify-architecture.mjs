@@ -109,6 +109,18 @@ const authorityChecks = [
     expected: 1,
     label: 'canonical execution entrypoint',
   },
+  {
+    path: 'packages/contracts/src/cell-hard-control.ts',
+    pattern: /export function authorizeExecutionAction\b/gu,
+    expected: 1,
+    label: 'CELL hard-control authority',
+  },
+  {
+    path: 'packages/contracts/src/cell-runtime.ts',
+    pattern: /export class CellRuntime\b/gu,
+    expected: 1,
+    label: 'CELL canonical runtime',
+  },
 ];
 
 const authorityViolations = [];
@@ -119,6 +131,36 @@ for (const check of authorityChecks) {
     authorityViolations.push(
       check.path + ' -> ' + check.label + ' expected=' + check.expected + ' actual=' + matches.length,
     );
+  }
+}
+
+if (existsSync('src/lib/execution/guardrails')) {
+  const guardrailFiles = [];
+  function collectGuardrailFiles(dir) {
+    for (const entry of readdirSync(dir)) {
+      const path = join(dir, entry);
+      if (statSync(path).isDirectory()) collectGuardrailFiles(path);
+      else if (/\.(ts|tsx|js|jsx|mjs|cjs)$/u.test(path)) guardrailFiles.push(path);
+    }
+  }
+  collectGuardrailFiles('src/lib/execution/guardrails');
+
+  for (const path of guardrailFiles) {
+    const source = readFileSync(path, 'utf8');
+    if (/\bexport\s+(?:const|let|var)\s+(?:TOOL_REGISTRY|TOOL_CATALOG)\b/u.test(source)) {
+      authorityViolations.push(path + ' -> execution guardrails must not define a competing tool registry');
+    }
+    if (/\bexport\s+(?:async\s+)?function\s+executeCanonicalTool\b/u.test(source)) {
+      authorityViolations.push(path + ' -> execution guardrails must not define a competing canonical executor');
+    }
+  }
+
+  const hardControlPath = 'src/lib/execution/guardrails/hard-control.ts';
+  if (existsSync(hardControlPath)) {
+    const hardControl = readFileSync(hardControlPath, 'utf8');
+    if (!hardControl.includes('@/config/registry.ts') || !hardControl.includes('@/config/manual-capability-definition.ts')) {
+      authorityViolations.push(hardControlPath + ' -> agent admission must delegate capability/tool truth to canonical registries');
+    }
   }
 }
 

@@ -1,0 +1,29 @@
+# Commit-scoped fingerprints for independently confirmed non-secret false positives only.
+# Format: commit:path:rule-id:start-line
+# D01: policy DSL directive, not a credential.
+a3ae8f4ff039cf5d3e9bb702a34d03042b28411b:docs/CELL-HARD-CONTROL-CONTRACT.md:generic-api-key:112
+# E01: blank environment example value.
+d034d5a06bdedf2c924bfd86a700d00461b46ca0:.env.example:generic-api-key:70
+# L01: immutable commit SHA, not an API key.
+112bc0d8d4d104a4ade23aef8daf69a09379a9cc:المهام.md:cloudflare-api-key:27
+# GH01-GH08: exact historical matches for auth_hydro_click_hmac in a publicly served GitHub HTML telemetry field. Suppress only these public-client telemetry fingerprints; all JWT and test-signing findings remain blocking.
+22803fbfb34b2c289691661584fcd49c67cb7b27:.agent-intelligence/snapshots/snap-20261011T082417623298Z-6c333177c5a8c3ed.raw:generic-api-key:291
+7fe2ddda73d86d2a2f520c8eb8492be505ef7bea:.agent-intelligence/snapshots/snap-20261011T072102257271Z-c7d769e7591b4def.raw:generic-api-key:291
+a69ae8296541d64d31e32af472fdbd68cf745092:.agent-intelligence/snapshots/snap-20261008T081451283223Z-9266a477fa16baf3.raw:generic-api-key:291
+1f3cf3639a7ea33ec9fa0b51a4f2b070f3e3a6fb:.agent-intelligence/snapshots/snap-20261008T080825664757Z-a315600dfe8285bf.raw:generic-api-key:291
+e184f1fd3c0a627748181b5d3f5b4450dffd6fe6:.agent-intelligence/snapshots/snap-20261007T211847075160Z-b4428f2b76ee1153.raw:generic-api-key:291
+24b9e2197b68f62076cd8d16be83b9cfe9fb1ff2:.agent-intelligence/snapshots/snap-20261007T054659727323Z-5cd4a3fcacf87b17.raw:generic-api-key:291
+397d114aa3d2003cc86fc5c9797c65d873e6ca60:.agent-intelligence/snapshots/snap-20261007T054437361425Z-cebbdf8315977995.raw:generic-api-key:291
+ef02b027b68338c10504ce529e918366eb5e1b6f:.agent-intelligence/snapshots/snap-20261007T054337769456Z-80e37c9c24a66d9f.raw:generic-api-key:291
+# O01-O08: the identical signed object-storage URL is embedded in the public OWASP Top 10 page's image metadata in these historical HTML snapshots. Its Supabase host belongs to a third-party project, not FLIXO's connected Supabase project; it is a public asset link, not a FLIXO API/service credential. JWT exp was decoded locally as 2027-03-21T17:18:14Z. Suppress only these exact snapshots; do not add a general JWT exception.
+22803fbfb34b2c289691661584fcd49c67cb7b27:.agent-intelligence/snapshots/snap-20261011T082418575122Z-26ed84629c54cd2b.raw:jwt:46
+7fe2ddda73d86d2a2f520c8eb8492be505ef7bea:.agent-intelligence/snapshots/snap-20261011T072103080190Z-f2651c8711530f9b.raw:jwt:46
+a69ae8296541d64d31e32af472fdbd68cf745092:.agent-intelligence/snapshots/snap-20261008T081451844708Z-1c2a43ab506560f0.raw:jwt:46
+1f3cf3639a7ea33ec9fa0b51a4f2b070f3e3a6fb:.agent-intelligence/snapshots/snap-20261008T080826962747Z-1c2a43ab506560f0.raw:jwt:46
+e184f1fd3c0a627748181b5d3f5b4450dffd6fe6:.agent-intelligence/snapshots/snap-20261007T211848104231Z-f4a3e6fed48fa5bd.raw:jwt:46
+24b9e2197b68f62076cd8d16be83b9cfe9fb1ff2:.agent-intelligence/snapshots/snap-20261007T054700585464Z-82830ecb6dcd500e.raw:jwt:46
+397d114aa3d2003cc86fc5c9797c65d873e6ca60:.agent-intelligence/snapshots/snap-20261007T054437818957Z-82830ecb6dcd500e.raw:jwt:46
+ef02b027b68338c10504ce529e918366eb5e1b6f:.agent-intelligence/snapshots/snap-20261007T054338433788Z-e6913b6950195f34.raw:jwt:46
+# T01-T02: isolated NODE_ENV=test signing-key fixtures. Full git-history string searches found these values only in their respective test files; the first test uses a temporary directory, and the second fixture is explicitly test-named. Suppress only these two historical test lines.
+a4d85af76b8dc19116ebb1043fb1cafeb36fbe54:scripts/ci/test-chair1-central-lease-adversarial.mjs:generic-api-key:18
+9ed9a5f1a518defb915f1391a0c03f7e6d925a44:scripts/ci/test-auto-repair-chair1-audit.mjs:generic-api-key:93
