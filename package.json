@@ -74,7 +74,9 @@
     "test:agent-governance-metrics": "node --test scripts/ci/test-agent-governance-metrics.mjs",
     "governance:metrics": "node scripts/ci/agent-governance-metrics.mjs",
     "test:agent-blocked-channel": "node --test scripts/ci/test-agent-blocked-channel.mjs",
-    "governance:channel": "node scripts/ci/check-agent-blocked-channel.mjs"
+    "governance:channel": "node scripts/ci/check-agent-blocked-channel.mjs",
+    "package:local": "node scripts/package-local-site.mjs",
+    "build:local": "npm run build && npm run package:local"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",
