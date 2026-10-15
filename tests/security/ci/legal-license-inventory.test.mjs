@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildLicenseInventory } from '../../scripts/audit-package-lock-licenses.mjs';
+import { buildLicenseInventory } from '../../../scripts/audit-package-lock-licenses.mjs';
 
 test('license inventory separates metadata presence from legal clearance', () => {
   const report = buildLicenseInventory({
