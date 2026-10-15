@@ -1,0 +1,10 @@
+{
+  "snapshot_id": "snap-20261015T085347290200Z-48e0001a02aa024e",
+  "captured_at": "2026-10-15T08:53:47Z",
+  "url": "https://raw.githubusercontent.com/Ranjan2104/Object-Detection-OpenCV/005c37cbb1d377e42d9866912ba423dc4c44ddfe/.idea/inspectionProfiles/Project_Default.xml",
+  "source_type": "repository",
+  "stability": "stable",
+  "vendor_affiliated": false,
+  "evidence_kind": "fact",
+  "content": "<component name=\"InspectionProjectProfileManager\">\n<profile version=\"1.0\">\n<option name=\"myName\" value=\"Project Default\" />\n<inspection_tool class=\"PyPackageRequirementsInspection\" enabled=\"true\" level=\"WARNING\" enabled_by_default=\"true\">\n<option name=\"ignoredPackages\">\n<value>\n<list size=\"2\">\n<item index=\"0\" class=\"java.lang.String\" itemvalue=\"face-recognition\" />\n<item index=\"1\" class=\"java.lang.String\" itemvalue=\"dlib\" />\n</list>\n</value>\n</option>\n</inspection_tool>\n<inspection_tool class=\"PyPep8NamingInspection\" enabled=\"true\" level=\"WEAK WARNING\" enabled_by_default=\"true\">\n<option name=\"ignoredErrors\">\n<list>\n<option value=\"N806\" />\n<option value=\"N803\" />\n<option value=\"N802\" />\n</list>\n</option>\n</inspection_tool>\n<inspection_tool class=\"PyUnresolvedReferencesInspection\" enabled=\"true\" level=\"WARNING\" enabled_by_default=\"true\">\n<option name=\"ignoredIdentifiers\">\n<list>\n<option value=\"object.rrLocationOfPlateInScene\" />\n</list>\n</option>\n</inspection_tool>\n</profile>\n</component>"
+}

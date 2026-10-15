@@ -1,0 +1,10 @@
+{
+  "snapshot_id": "snap-20261015T085347189623Z-076d536ad899df75",
+  "captured_at": "2026-10-15T08:53:47Z",
+  "url": "https://raw.githubusercontent.com/Ranjan2104/Object-Detection-OpenCV/005c37cbb1d377e42d9866912ba423dc4c44ddfe/README.md",
+  "source_type": "repository",
+  "stability": "stable",
+  "vendor_affiliated": false,
+  "evidence_kind": "fact",
+  "content": "# Object Detection-OpenCV\nOpenCV is the huge open-source library for computer vision, machine learning, and image processing and now it plays a major role in real-time operation which is very important in today’s systems. By using it, one can process images and videos to identify objects, faces, or even the handwriting of a human. Object Detection is a computer technology related to computer vision, image processing, and deep learning that deals with detecting instances of objects in images and videos. We will do object detection in this article using something known as haar cascades.\n![image](https://user-images.githubusercontent.com/60054130/124584160-8b058e80-de71-11eb-880a-fe0b8448cef3.png)"
+}

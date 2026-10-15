@@ -1,0 +1,835 @@
+Releases · ffmpegwasm/ffmpeg.wasm · GitHub
+Skip to content
+Navigation Menu
+Sign in
+Appearance settings
+Platform
+AI CODE CREATION
+GitHub Copilot
+Write better code with AI
+GitHub Copilot app
+Direct agents from issue to merge
+MCP Registry
+Integrate external tools
+DEVELOPER WORKFLOWS
+Actions
+Automate any workflow
+Codespaces
+Instant dev environments
+Issues
+Plan and track work
+Code Review
+Manage code changes
+Code Quality
+Enforce quality at merge
+APPLICATION SECURITY
+GitHub Advanced Security
+Find and fix vulnerabilities
+Code security
+Secure your code as you build
+Secret protection
+Stop leaks before they start
+EXPLORE
+Why GitHub
+Documentation
+Blog
+Changelog
+Marketplace
+View all features
+Solutions
+BY COMPANY SIZE
+Enterprises
+Small and medium teams
+Startups
+Nonprofits
+BY USE CASE
+App Modernization
+DevSecOps
+DevOps
+CI/CD
+View all use cases
+BY INDUSTRY
+Healthcare
+Financial services
+Manufacturing
+Government
+View all industries
+View all solutions
+Resources
+EXPLORE BY TOPIC
+AI
+Software Development
+DevOps
+Security
+View all topics
+EXPLORE BY TYPE
+Customer stories
+Events & webinars
+Ebooks & reports
+Business insights
+GitHub Skills
+SUPPORT & SERVICES
+Documentation
+Customer support
+Community forum
+Trust center
+Partners
+View all resources
+Open Source
+COMMUNITY
+GitHub Sponsors
+Fund open source developers
+PROGRAMS
+Security Lab
+Maintainer Community
+GitHub Stars
+Archive Program
+REPOSITORIES
+Topics
+Trending
+Collections
+Enterprise
+ENTERPRISE SOLUTIONS
+Enterprise platform
+AI-powered developer platform
+AVAILABLE ADD-ONS
+GitHub Advanced Security
+Enterprise-grade security features
+Copilot for Business
+Enterprise-grade AI features
+Premium Support
+Enterprise-grade 24/7 support
+Pricing
+Search
+/
+Sign in
+Sign up
+Appearance settings
+You signed in with another tab or window.
+Reload
+to refresh your session.
+You signed out in another tab or window.
+Reload
+to refresh your session.
+You switched accounts on another tab or window.
+Reload
+to refresh your session.
+Dismiss alert
+ffmpegwasm
+ffmpeg.wasm
+Repository navigation
+Code
+Issues
+387
+(
+387
+)
+Pull requests
+72
+(
+72
+)
+Discussions
+Actions
+Projects
+Security and quality
+Insights
+More
+items
+Releases: ffmpegwasm/ffmpeg.wasm
+Releases
+Tags
+Releases · ffmpegwasm/ffmpeg.wasm
+Release list
+RELEASE: v12.15 (main), v12.10 (core, core-mt)
+RELEASE: v12.14 (main) | v12.9 (core/core-mt) | v12.4 (types) | v12.2 (util)
+@ffmpeg/ffmpeg v0.12.10 | @ffmpeg/core(-mt) v0.12.6
+@ffmpeg/ffmpeg v0.12.9
+@ffmpeg/ffmpeg v0.12.8 | @ffmpeg/core(-mt) v0.12.5
+@ffmpeg/ffmpeg v0.12.7 | @ffmpeg/core(-mt) v0.12.4
+@ffmpeg/ffmpeg v0.12.6
+@ffmpeg/ffmpeg v0.12.5
+@ffmpeg/ffmpeg v0.12.4
+@ffmpeg/ffmpeg v0.12.3
+Previous
+Next
+Jump to release
+RELEASE: v12.15 (main), v12.10 (core, core-mt)
+RELEASE: v12.14 (main) | v12.9 (core/core-mt) | v12.4 (types) | v12.2 (util)
+@ffmpeg/ffmpeg v0.12.10 | @ffmpeg/core(-mt) v0.12.6
+@ffmpeg/ffmpeg v0.12.9
+@ffmpeg/ffmpeg v0.12.8 | @ffmpeg/core(-mt) v0.12.5
+@ffmpeg/ffmpeg v0.12.7 | @ffmpeg/core(-mt) v0.12.4
+@ffmpeg/ffmpeg v0.12.6
+@ffmpeg/ffmpeg v0.12.5
+@ffmpeg/ffmpeg v0.12.4
+@ffmpeg/ffmpeg v0.12.3
+Previous
+Next
+RELEASE: v12.15 (main), v12.10 (core, core-mt)
+RELEASE: v12.15 (main), v12.10 (core, core-mt)
+Latest
+Latest
+Compare
+Choose a tag to compare
+Sorry, something went wrong.
+Filter
+Loading
+Sorry, something went wrong.
+Uh oh!
+There was an error while loading.
+Please reload this page
+.
+No results found
+View all tags
+lucasgelfond
+released this
+07 Jan 10:16
+v12.15
+71aa99d
+Merging a few more PRs.
+Export worker from ffmpeg package (thanks
+@ntnyq
+,
+#805
+), export worker in core-mt package as well (thanks
+@dumbmoron
+,
+#703
+)
+Add solidstart / vite app (
+#765
+, thanks
+@EmoPorEmilio
+)
+Fix SvelteKit example URL (
+#720
+, thanks
+@elvisvoer
+)
+Export types within @ffmpeg/ffmpeg (
+#723
+, thanks
+@snelsi
+)
+Contributors
+elvisvoer, snelsi, and 3 other contributors
+Assets
+2
+Loading
+Uh oh!
+There was an error while loading.
+Please reload this page
+.
+👍
+13
+onestarmax, lauridskern, mehmetalpp, trimechee, higorgps, romankoho, jbshin-gemiso, zengjixiang, Kamyar2, Darkdevking, and 3 more reacted with thumbs up emoji
+🎉
+3
+trimechee, Darkdevking, and audacieuxnumber1 reacted with hooray emoji
+❤️
+5
+trimechee, ZhanZiyuan, LostBeard, Darkdevking, and audacieuxnumber1 reacted with heart emoji
+🚀
+5
+trimechee, LostBeard, RSLKiga, Darkdevking, and audacieuxnumber1 reacted with rocket emoji
+All reactions
+👍
+13 reactions
+🎉
+3 reactions
+❤️
+5 reactions
+🚀
+5 reactions
+16 people reacted
+RELEASE: v12.14 (main) | v12.9 (core/core-mt) | v12.4 (types) | v12.2 (util)
+RELEASE: v12.14 (main) | v12.9 (core/core-mt) | v12.4 (types) | v12.2 (util)
+Compare
+Choose a tag to compare
+Sorry, something went wrong.
+Filter
+Loading
+Sorry, something went wrong.
+Uh oh!
+There was an error while loading.
+Please reload this page
+.
+No results found
+View all tags
+lucasgelfond
+released this
+07 Jan 09:28
+v12.14
+d3c018a
+Hi all! New maintainer here, first working release. Had a few hiccups with npm versioning so this is later, but changes here include:
+the biggest change,
+#776
+,
+@izogfif
+'s PR to expose
+ffprobe
+#627
+,
+@asticode
+'s PR exposing @ffmpeg/util as a module (and re-releasing util)
+Three docs / URL fixes:
+#779
+(thanks @ksorv ),
+#766
+(thanks
+@tommyjepsen
+), and
+#783
+(thanks
+@gubo97000
+)
+Build here is courtesy of
+@nathancahill
+!
+Let me know if any issues, should be able to merge some more of these open PRs in the coming days!
+Contributors
+nathancahill, tommyjepsen, and 4 other contributors
+Assets
+3
+Loading
+Uh oh!
+There was an error while loading.
+Please reload this page
+.
+🚀
+10
+headquarter8302, Totto16, RezaHaidari, nmontavon, excpu, lauridskern, wxg250, jbshin-gemiso, yonathan06, and incidentist reacted with rocket emoji
+All reactions
+🚀
+10 reactions
+10 people reacted
+5
+Join discussion
+@ffmpeg/ffmpeg v0.12.10 | @ffmpeg/core(-mt) v0.12.6
+@ffmpeg/ffmpeg v0.12.10 | @ffmpeg/core(-mt) v0.12.6
+Compare
+Choose a tag to compare
+Sorry, something went wrong.
+Filter
+Loading
+Sorry, something went wrong.
+Uh oh!
+There was an error while loading.
+Please reload this page
+.
+No results found
+View all tags
+jeromewu
+released this
+25 Dec 07:27
+v0.12.10
+c3a7638
+What's Changed
+update libvpx & libwebp to latest releases by
+@jzern
+in
+#629
+New Contributors
+@jzern
+made their first contribution in
+#629
+Full Changelog
+:
+v0.12.9...v0.12.10
+Contributors
+jzern
+Assets
+2
+Loading
+Uh oh!
+There was an error while loading.
+Please reload this page
+.
+❤️
+6
+Janith-Umeda, JustinFrost47, Maxou44, CapitanArdeshir, SilentTiger, and yaohuatang reacted with heart emoji
+👀
+2
+thijstriemstra and maksimaliabyshev reacted with eyes emoji
+All reactions
+❤️
+6 reactions
+👀
+2 reactions
+8 people reacted
+@ffmpeg/ffmpeg v0.12.9
+@ffmpeg/ffmpeg v0.12.9
+Compare
+Choose a tag to compare
+Sorry, something went wrong.
+Filter
+Loading
+Sorry, something went wrong.
+Uh oh!
+There was an error while loading.
+Please reload this page
+.
+No results found
+View all tags
+jeromewu
+released this
+18 Dec 05:10
+v0.12.9
+e6988f4
+What's Changed
+Add angular example by
+@jeromewu
+in
+#653
+Add classWorkerURL by
+@jeromewu
+in
+#652
+(missed in v0.12.8)
+Full Changelog
+:
+v0.12.8...v0.12.9
+Contributors
+jeromewu
+Assets
+2
+Loading
+Uh oh!
+There was an error while loading.
+Please reload this page
+.
+❤️
+3
+MurageKabui, diegoddox, and JustinFrost47 reacted with heart emoji
+All reactions
+❤️
+3 reactions
+3 people reacted
+@ffmpeg/ffmpeg v0.12.8 | @ffmpeg/core(-mt) v0.12.5
+@ffmpeg/ffmpeg v0.12.8 | @ffmpeg/core(-mt) v0.12.5
+Compare
+Choose a tag to compare
+Sorry, something went wrong.
+Filter
+Loading
+Sorry, something went wrong.
+Uh oh!
+There was an error while loading.
+Please reload this page
+.
+No results found
+View all tags
+jeromewu
+released this
+17 Dec 05:07
+v0.12.8
+ea373ad
+What's Changed
+Solve the problem that the default ffmpeg-core.js cannot be loaded in esm mode by
+@xiaomingge1993
+in
+#601
+Fix typo in FAQ by
+@vkzrx
+in
+#606
+Bump @babel/traverse from 7.22.8 to 7.23.2 by
+@dependabot
+in
+#610
+Providing webpackIgnore is crucial for a successful Webpack build. by
+@baszczewski
+in
+#613
+Fix typo by
+@EstebanDalelR
+in
+#643
+add export entry for wasm and worker files by
+@jichang
+in
+#642
+Bump vite from 4.4.7 to 4.4.12 by
+@dependabot
+in
+#641
+Bump next from 13.4.13 to 13.5.0 by
+@dependabot
+in
+#618
+docs: add missing import of toBlobURL by
+@jonathanmv
+in
+#634
+Upgrade nextjs version and fix example by
+@jeromewu
+in
+#649
+Bump the npm_and_yarn group group with 1 update by
+@dependabot
+in
+#651
+Upgrade ffmpeg from 5.1.3 to 5.1.4 by
+@jeromewu
+in
+#650
+New Contributors
+@xiaomingge1993
+made their first contribution in
+#601
+@vkzrx
+made their first contribution in
+#606
+@baszczewski
+made their first contribution in
+#613
+@EstebanDalelR
+made their first contribution in
+#643
+@jichang
+made their first contribution in
+#642
+@jonathanmv
+made their first contribution in
+#634
+Full Changelog
+:
+v0.12.7...v0.12.8
+Contributors
+jonathanmv, baszczewski, and 6 other contributors
+Assets
+2
+Loading
+Uh oh!
+There was an error while loading.
+Please reload this page
+.
+👍
+8
+tamo, JonnyTech, ronaldohoch, JustinFrost47, higajooj, jayrod246, mho22, and huoyingjianshen reacted with thumbs up emoji
+All reactions
+👍
+8 reactions
+8 people reacted
+@ffmpeg/ffmpeg v0.12.7 | @ffmpeg/core(-mt) v0.12.4
+@ffmpeg/ffmpeg v0.12.7 | @ffmpeg/core(-mt) v0.12.4
+Compare
+Choose a tag to compare
+Sorry, something went wrong.
+Filter
+Loading
+Sorry, something went wrong.
+Uh oh!
+There was an error while loading.
+Please reload this page
+.
+No results found
+View all tags
+jeromewu
+released this
+09 Oct 15:48
+v0.12.7
+7066134
+What's Changed
+Bump postcss from 8.4.27 to 8.4.31 by
+@dependabot
+in
+#599
+Fix MIME-typo in Vue example by
+@Kylmakalle
+in
+#595
+Update README.md by
+@basitng
+in
+#593
+Update all references to core version 0.12.2 to 0.12.3 by
+@CrypticSignal
+in
+#592
+ffmpeg: allow import in nodejs by
+@Elia872
+in
+#577
+feat: enable --enable-libzimg by
+@gabrielstuff
+in
+#574
+feat(ffmpeg): abort signal by
+@abernier
+in
+#573
+Add WORKERFS support by
+@LostBeard
+in
+#581
+New Contributors
+@Kylmakalle
+made their first contribution in
+#595
+@basitng
+made their first contribution in
+#593
+@CrypticSignal
+made their first contribution in
+#592
+@Elia872
+made their first contribution in
+#577
+@gabrielstuff
+made their first contribution in
+#574
+@abernier
+made their first contribution in
+#573
+@LostBeard
+made their first contribution in
+#581
+Full Changelog
+:
+v0.12.6...v0.12.7
+Contributors
+abernier, gabrielstuff, and 6 other contributors
+Assets
+2
+Loading
+Uh oh!
+There was an error while loading.
+Please reload this page
+.
+👍
+4
+LostBeard, xiaoxian521, assoft, and higajooj reacted with thumbs up emoji
+🎉
+4
+tamo, NFEL, wjzards, and chrisp018 reacted with hooray emoji
+All reactions
+👍
+4 reactions
+🎉
+4 reactions
+8 people reacted
+@ffmpeg/ffmpeg v0.12.6
+@ffmpeg/ffmpeg v0.12.6
+Compare
+Choose a tag to compare
+Sorry, something went wrong.
+Filter
+Loading
+Sorry, something went wrong.
+Uh oh!
+There was an error while loading.
+Please reload this page
+.
+No results found
+View all tags
+jeromewu
+released this
+29 Aug 11:11
+v0.12.6
+9110bb0
+Fixed engines version in all packages.
+Assets
+2
+Loading
+Uh oh!
+There was an error while loading.
+Please reload this page
+.
+👍
+6
+SinaYa, JellyBrick, abernier, sydesb, Generalsimus, and richard-grosjean reacted with thumbs up emoji
+👀
+3
+eduardoworrel, Generalsimus, and richard-grosjean reacted with eyes emoji
+All reactions
+👍
+6 reactions
+👀
+3 reactions
+7 people reacted
+@ffmpeg/ffmpeg v0.12.5
+@ffmpeg/ffmpeg v0.12.5
+Compare
+Choose a tag to compare
+Sorry, something went wrong.
+Filter
+Loading
+Sorry, something went wrong.
+Uh oh!
+There was an error while loading.
+Please reload this page
+.
+No results found
+View all tags
+jeromewu
+released this
+20 Aug 01:31
+v0.12.5
+747682c
+This commit was created on GitHub.com and signed with GitHub’s
+verified signature
+.
+The key has expired.
+GPG key ID:
+4AEE18F83AFDEB23
+Expired
+Verified
+Learn about vigilant mode
+.
+What's Changed
+docs: fix contribution link by
+@valcosmos
+in
+#543
+docs: add nextjs example by
+@valcosmos
+in
+#544
+Fix typo by
+@akirataguchi115
+in
+#541
+docs: remove unnecessary
+thread
+param by
+@alsotang
+in
+#554
+Fix type errors in Vite example app by @zhoug0x in
+#555
+Fixed not being able to unsubscribe events by
+@matvp91
+in
+#556
+New Contributors
+@valcosmos
+made their first contribution in
+#543
+@akirataguchi115
+made their first contribution in
+#541
+@alsotang
+made their first contribution in
+#554
+@zhoug0x made their first contribution in
+#555
+@matvp91
+made their first contribution in
+#556
+Full Changelog
+:
+v0.12.4...v0.12.5
+Contributors
+alsotang, matvp91, and 3 other contributors
+Assets
+2
+Loading
+Uh oh!
+There was an error while loading.
+Please reload this page
+.
+All reactions
+@ffmpeg/ffmpeg v0.12.4
+@ffmpeg/ffmpeg v0.12.4
+Compare
+Choose a tag to compare
+Sorry, something went wrong.
+Filter
+Loading
+Sorry, something went wrong.
+Uh oh!
+There was an error while loading.
+Please reload this page
+.
+No results found
+View all tags
+jeromewu
+released this
+10 Aug 15:12
+v0.12.4
+2afdccb
+What's Changed
+Fix postMessage(error) in worker by
+@jeromewu
+in
+#540
+Full Changelog
+:
+v0.12.3...v0.12.4
+Contributors
+jeromewu
+Assets
+2
+Loading
+Uh oh!
+There was an error while loading.
+Please reload this page
+.
+All reactions
+@ffmpeg/ffmpeg v0.12.3
+@ffmpeg/ffmpeg v0.12.3
+Compare
+Choose a tag to compare
+Sorry, something went wrong.
+Filter
+Loading
+Sorry, something went wrong.
+Uh oh!
+There was an error while loading.
+Please reload this page
+.
+No results found
+View all tags
+jeromewu
+released this
+09 Aug 09:23
+v0.12.3
+f3c67a2
+❗ v0.12.3 only works with
+@ffmpeg/core
+/
+@ffmpeg/core-mt
+v0.12.2+
+Fix multithread version issue in vite.
+Vue + Vite multithread example:
+https://github.com/ffmpegwasm/ffmpeg.wasm/tree/main/apps/vue-vite-app
+React + Vite multithread example:
+https://github.com/ffmpegwasm/ffmpeg.wasm/tree/main/apps/react-vite-app
+Assets
+2
+Loading
+Uh oh!
+There was an error while loading.
+Please reload this page
+.
+🚀
+1
+mediv0 reacted with rocket emoji
+All reactions
+🚀
+1 reaction
+1 person reacted
+Previous
+1
+2
+3
+4
+5
+Next
+Previous
+Next
+Footer
+© 2026 GitHub, Inc.
+Footer navigation
+Terms
+Privacy
+Security
+Status
+Community
+Docs
+Contact
+Manage cookies
+Do not share my personal information
+You can’t perform that action at this time.

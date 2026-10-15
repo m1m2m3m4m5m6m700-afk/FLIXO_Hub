@@ -1,0 +1,10 @@
+{
+  "snapshot_id": "snap-20261015T085347422505Z-6172c5997eeb3cd1",
+  "captured_at": "2026-10-15T08:53:47Z",
+  "url": "https://raw.githubusercontent.com/Ranjan2104/Object-Detection-OpenCV/005c37cbb1d377e42d9866912ba423dc4c44ddfe/.idea/inspectionProfiles/profiles_settings.xml",
+  "source_type": "repository",
+  "stability": "stable",
+  "vendor_affiliated": false,
+  "evidence_kind": "fact",
+  "content": "<component name=\"InspectionProjectProfileManager\">\n<settings>\n<option name=\"USE_PROJECT_PROFILE\" value=\"false\" />\n<version value=\"1.0\" />\n</settings>\n</component>"
+}

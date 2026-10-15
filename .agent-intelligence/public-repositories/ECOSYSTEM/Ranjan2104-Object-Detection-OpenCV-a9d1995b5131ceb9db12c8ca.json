@@ -1,0 +1,68 @@
+{
+  "adaptation": {
+    "copy_source_code": false,
+    "mode": "REFERENCE_ONLY",
+    "proposal_id": "ECO-08534754",
+    "target_repo_refs": [
+      "package.json",
+      "src/config/registry.ts"
+    ]
+  },
+  "discovered_at": "2026-10-15T08:53:47Z",
+  "discovery_score": 63,
+  "license_mode": "REFERENCE_ONLY_REVIEW_REQUIRED",
+  "pattern_signals": [
+    "browser-local-file"
+  ],
+  "query": "open source image video processing library",
+  "repository": {
+    "archived": false,
+    "default_branch": "main",
+    "fork": false,
+    "full_name": "Ranjan2104/Object-Detection-OpenCV",
+    "head_sha": "005c37cbb1d377e42d9866912ba423dc4c44ddfe",
+    "html_url": "https://github.com/Ranjan2104/Object-Detection-OpenCV",
+    "license_spdx": "GPL-3.0",
+    "name": "Object-Detection-OpenCV",
+    "owner": "Ranjan2104",
+    "pushed_at": "2021-07-06T10:21:35Z",
+    "stars": 6
+  },
+  "role": "ECOSYSTEM",
+  "schema": "flixo-public-repository-intelligence-v1",
+  "score_evidence": [
+    "license",
+    "documentation"
+  ],
+  "selected_files": [
+    {
+      "path": "README.md",
+      "selection_score": 120,
+      "sha256": "076d536ad899df75bb9193b2e6ae1d1d3bda0c57bdce74ec744ea96afe05dc84",
+      "snapshot_id": "snap-20261015T085347189623Z-076d536ad899df75",
+      "url": "https://raw.githubusercontent.com/Ranjan2104/Object-Detection-OpenCV/005c37cbb1d377e42d9866912ba423dc4c44ddfe/README.md"
+    },
+    {
+      "path": ".idea/inspectionProfiles/Project_Default.xml",
+      "selection_score": 0,
+      "sha256": "48e0001a02aa024e9e648c0ce28933e49533226fe63ebfeef5d6f679caa99bed",
+      "snapshot_id": "snap-20261015T085347290200Z-48e0001a02aa024e",
+      "url": "https://raw.githubusercontent.com/Ranjan2104/Object-Detection-OpenCV/005c37cbb1d377e42d9866912ba423dc4c44ddfe/.idea/inspectionProfiles/Project_Default.xml"
+    },
+    {
+      "path": ".idea/inspectionProfiles/profiles_settings.xml",
+      "selection_score": 0,
+      "sha256": "6172c5997eeb3cd19c9ca2b5b97d6e2983cdd1fa60b2460d7bbb74055edcaa46",
+      "snapshot_id": "snap-20261015T085347422505Z-6172c5997eeb3cd1",
+      "url": "https://raw.githubusercontent.com/Ranjan2104/Object-Detection-OpenCV/005c37cbb1d377e42d9866912ba423dc4c44ddfe/.idea/inspectionProfiles/profiles_settings.xml"
+    },
+    {
+      "path": ".idea/misc.xml",
+      "selection_score": 0,
+      "sha256": "e9f71709da4945d19eb7246cf7943c224fd1d6d82f9bca5d5ebed551921f1b45",
+      "snapshot_id": "snap-20261015T085347542245Z-e9f71709da4945d1",
+      "url": "https://raw.githubusercontent.com/Ranjan2104/Object-Detection-OpenCV/005c37cbb1d377e42d9866912ba423dc4c44ddfe/.idea/misc.xml"
+    }
+  ],
+  "status": "DISCOVERED"
+}
