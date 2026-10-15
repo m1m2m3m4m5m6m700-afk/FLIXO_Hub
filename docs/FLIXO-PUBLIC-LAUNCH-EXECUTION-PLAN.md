@@ -1,0 +1,165 @@
+# FLIXO Hub Release Readiness Plan
+
+**Status:** IN PROGRESS — NOT CERTIFIED  
+**Last updated:** 2026-10-15  
+**Repository:** `m1m2m3m4m5m6m700-afk/FLIXO_Hub`  
+**Integration path:** `execution → pull request → required checks/review → main → exact-SHA deployment verification`  
+**Canonical production origin:** `https://flixoai.m1m2m3m4m5m6m700.workers.dev`  
+**Plan owner:** release coordinator; all completion claims require machine-verifiable evidence.
+
+> This is the durable execution tracker, not a release certificate. A checkbox may be marked complete only with evidence tied to the candidate SHA. Do not infer success from a commit existing, a workflow being skipped, a README improvement, or a deployment URL responding.
+
+## Release rules (non-negotiable)
+
+1. Do not push directly to `main`, force-push, rewrite history, or delete evidence to make gates pass.
+2. Do not weaken tests, security checks, governance, or required reviews to achieve a green status.
+3. Preserve one canonical tool registry/executor/verifier authority. Agents may propose and implement; they may not self-certify or promote to production.
+4. Evidence must identify the repository, candidate SHA, workflow run, and (for deployment) immutable production identity. Any source mutation invalidates affected candidate-specific evidence.
+5. A skipped, neutral, cancelled, stale, missing, or unverifiable check is not PASS.
+6. If a required external permission/account action is unavailable, record it as BLOCKED with the owner and next action. Never fabricate access or evidence.
+7. The release manifest and certificate remain NOT CERTIFIED until all mandatory gates pass.
+
+## Current baseline and confirmed observations
+
+- [x] Confirmed repository and integration branch names: `execution` and `main`.
+- [x] Inspected `package.json` on `execution`: the project declares Node.js `22.x`; `npm run build` includes typecheck, lint, Vite build, and build-artifact generation.
+- [x] Inspected `.github/workflows/ci.yml`: CI includes contract/security checks, `npm test`, production dependency audit, build provenance, Hub Stage 1 contract, and Chromium E2E evidence.
+- [x] Inspected `docs/FLIXO-PUBLIC-RELEASE-MANIFEST.md`: candidate SHA, current workflow run, deployment ID, and immutable production identity are still `REQUIRED`; status is candidate/not certified.
+- [x] Inspected `docs/FLIXO-PUBLIC-LAUNCH-CERTIFICATE-TEMPLATE.md`: status is NOT CERTIFIED and all release identity fields remain required.
+- [x] Inspected `scripts/verify-public-launch-readiness.mjs`: structural verification explicitly says external account/legal actions and exact-SHA evidence are still required.
+- [x] Found a documentation inconsistency requiring resolution: the README claims Apache-2.0, while `docs/FLIXO-LEGAL-LAUNCH-BLOCKERS.md` says no repository code license has been selected. Do not silently choose a license; obtain owner decision and reconcile LICENSE, README, metadata, and legal blocker ledger.
+- [x] Found that `docs/FLIXO-PUBLIC-LAUNCH-EXECUTION-PLAN.md` was referenced by README but was not present on `execution` at baseline. This plan is being added at that path to restore the intended link.
+- [ ] Re-run all baseline observations against the final candidate SHA before certification.
+
+## Gate tracker
+
+### A. Scope, ownership, and source identity
+
+- [ ] Record current `execution` HEAD and `main` HEAD before release work.
+- [ ] Identify the intended candidate commit and ensure all release changes are included.
+- [ ] Freeze scope and record the candidate SHA in the release manifest.
+- [ ] Confirm branch protection and required checks from live repository settings; do not assume settings from documentation.
+- [ ] Confirm every candidate commit has valid task attribution and passes repository governance.
+- [ ] Review all open release-related PRs for base branch, conflicts, stale evidence, and unresolved review findings.
+
+### B. Build and code-quality gates
+
+- [ ] Use Node.js 22.x as declared by `.nvmrc` / `package.json`.
+- [ ] Install reproducibly with `npm ci`.
+- [ ] Pass `npm run typecheck:contracts`.
+- [ ] Pass `npm test` in full, including proposal validation, governance, architecture, registry, security, and core tests.
+- [ ] Pass `npm run build`.
+- [ ] Pass `npm run test:e2e -- --project=chromium` with recorded report.
+- [ ] Confirm generated static routes, `robots.txt`, sitemap, and build provenance are correct.
+- [ ] Capture CI run URL, job results, artifacts, and exact candidate SHA.
+
+### C. Security, privacy, and adversarial checks
+
+- [ ] Pass CodeQL/code scanning on the candidate SHA.
+- [ ] Pass secret scanning and verify no new secrets were introduced.
+- [ ] Pass `npm audit --omit=dev --audit-level=high` or document and resolve each blocking finding through the approved process; do not suppress findings without review.
+- [ ] Pass Red Team and CELL hard-control checks on the candidate SHA.
+- [ ] Confirm `/api/*` fail-closed behavior, security headers, canonical execution boundary, and output-contract verification.
+- [ ] Verify no raw local `File`/`Blob` bytes leave the documented browser-local MVP path.
+- [ ] Confirm secrets remain server-side and no credentials are exposed through `VITE_*` variables.
+- [ ] Confirm no unresolved Critical/High security findings.
+
+### D. Product and browser acceptance
+
+- [ ] Verify production landing page and canonical origin resolve over HTTPS.
+- [ ] Verify desktop and mobile browser smoke tests.
+- [ ] Verify landing → tool/editor → local file input → explicit confirmation where required → execution → verifier → export/download.
+- [ ] Verify failure states, unsupported formats, empty inputs, large inputs, and cancellation paths.
+- [ ] Verify supported localization routes and no broken navigation or console/runtime errors.
+- [ ] Verify privacy, support, accessibility, security-reporting, and legal links.
+- [ ] Attach Playwright report and production smoke evidence to the candidate SHA.
+
+### E. Deployment and immutable identity
+
+- [ ] Confirm intended Cloudflare account/project/environment and deployment credentials are available through authorized configuration, without exposing secrets.
+- [ ] Build the exact candidate SHA and deploy only through the approved production path.
+- [ ] Record deployment ID, timestamp, provider receipt, and deployed source/build identity.
+- [ ] Verify the live production identity endpoint matches the candidate SHA and source-tree identity.
+- [ ] Run post-deployment smoke tests against the canonical production origin.
+- [ ] Verify rollback target and perform the approved rollback drill or attach current accepted evidence.
+- [ ] Re-run affected checks after any fix or deployment mutation.
+
+### F. Legal, repository metadata, and launch operations
+
+- [ ] Resolve the code-license contradiction with an explicit owner decision; reconcile `LICENSE`, README badges/text, package/repository metadata, and `docs/FLIXO-LEGAL-LAUNCH-BLOCKERS.md`.
+- [ ] Configure and verify a real public support contact.
+- [ ] Enable and test private vulnerability reporting if supported by the repository plan.
+- [ ] Verify Dependabot, secret scanning/push protection, and CodeQL settings from live GitHub settings.
+- [ ] Verify repository description, topics, social preview, discussions/community health, and contributor links.
+- [ ] Verify Search Console/domain ownership, sitemap submission, analytics and consent requirements in external accounts where applicable.
+- [ ] Review all public claims against the actual admitted capability registry; keep unavailable capabilities clearly labeled.
+- [ ] Complete launch-day runbook, monitoring, incident, rollback, and distribution preparation.
+
+### G. Certification and promotion
+
+- [ ] Independently review evidence lineage for the exact candidate SHA.
+- [ ] Confirm every required check is PASS (not skipped, stale, or unverifiable).
+- [ ] Update `docs/FLIXO-PUBLIC-RELEASE-MANIFEST.md` with verified identities and evidence references.
+- [ ] Obtain required human/repository review and merge through the approved PR path only.
+- [ ] Verify the post-merge `main` SHA and production deployment identity after promotion.
+- [ ] Fill `docs/FLIXO-PUBLIC-LAUNCH-CERTIFICATE-TEMPLATE.md` only after every gate passes.
+- [ ] Publish a release tag and release notes bound to the verified SHA.
+- [ ] Record final certificate URL, SHA, workflow runs, deployment ID, and browser evidence below.
+
+## Active work records
+
+### Repository homepage / PR #1312
+
+- URL: https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/pull/1312
+- Branch: `chore/official-repository-homepage-20261015`
+- Candidate commit observed: `deea570fcb05c9558f0bc2f1e5478d0a98492591`
+- Scope: README only; target is `execution`, not `main`.
+- Latest observed state: open; mergeable at time of latest query.
+- Review state: automated Codex review summary reported findings/unresolved findings and usage limit prevented completion. Treat as NOT APPROVED until findings are independently reviewed and checks pass.
+- [ ] Resolve review findings and verify links/claims, including license inconsistency.
+- [ ] Confirm relevant checks and merge only when repository policy permits.
+- Note: this documentation PR is not evidence that the application is deployable or certified.
+
+### Release-readiness tracker plan
+
+- Branch: `chore/release-readiness-plan-20261015`
+- [ ] Verify this plan file is committed and its link is live.
+- [ ] Open a PR targeting `execution`; do not target `main` directly.
+- [ ] Run the available plan/launch verifier and record its actual result.
+- [ ] Keep this file updated with observed blockers and evidence URLs; do not mark gates complete based on assumptions.
+
+## Evidence ledger
+
+| Gate | Candidate SHA | Workflow / artifact / URL | Result | Notes |
+| --- | --- | --- | --- | --- |
+| CI + build | REQUIRED | REQUIRED | NOT VERIFIED | Must run on exact candidate SHA |
+| CodeQL | REQUIRED | REQUIRED | NOT VERIFIED | Current evidence not yet captured |
+| Secret scan | REQUIRED | REQUIRED | NOT VERIFIED | Current evidence not yet captured |
+| Dependency audit | REQUIRED | REQUIRED | NOT VERIFIED | Current evidence not yet captured |
+| Red Team / governance | REQUIRED | REQUIRED | NOT VERIFIED | Current evidence not yet captured |
+| Chromium E2E | REQUIRED | REQUIRED | NOT VERIFIED | Current evidence not yet captured |
+| Production identity | REQUIRED | REQUIRED | NOT VERIFIED | Deployment ID and immutable identity missing |
+| Production smoke | REQUIRED | REQUIRED | NOT VERIFIED | Must run against canonical origin |
+| Legal/external setup | N/A | REQUIRED | BLOCKED / OWNER ACTION | License and support/security settings require verified owner action |
+| Certification | REQUIRED | REQUIRED | NOT CERTIFIED | All required gates must pass first |
+
+## Blocker log
+
+| ID | Blocker | Impact | Next action | Status |
+| --- | --- | --- | --- | --- |
+| REL-001 | No current exact-SHA release evidence assembled | Cannot certify or claim 100% | Establish candidate SHA and collect fresh CI/security/browser/deployment evidence | OPEN |
+| REL-002 | Release manifest has REQUIRED identity placeholders | Cannot establish release lineage | Populate only after observing actual run/deployment identifiers | OPEN |
+| REL-003 | Code license status contradicts README claim | Legal/public-launch risk | Obtain explicit owner decision; reconcile all surfaces consistently | OPEN |
+| REL-004 | External security/support/search/analytics settings not verified | Public launch operations incomplete | Verify live settings and record evidence or owner action | OPEN |
+| REL-005 | PR #1312 has unresolved automated review findings | README change not yet accepted | Review findings, fix factual/link issues, and verify checks | OPEN |
+| REL-006 | Launch plan link was missing on baseline `execution` | Broken project navigation and missing tracking artifact | Add this plan and verify the URL | IN PROGRESS |
+
+## Update protocol
+
+For every work session:
+1. Read this file first and inspect live repository/PR/workflow state.
+2. Record current branch and exact SHA before changing files.
+3. Work on a scoped branch and preserve existing work.
+4. Run the narrowest relevant checks first, then required full gates.
+5. Update the blocker log and evidence ledger with actual outcomes and URLs.
+6. Never describe the project as 100% ready or certified until every mandatory gate has current, exact-SHA evidence and production verification.
