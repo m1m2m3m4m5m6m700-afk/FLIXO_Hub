@@ -28,3 +28,21 @@ Status: OPEN / RELEASE BLOCKED. This document records verified blockers and the 
 - Do not push directly to main, force-push, delete files as a workaround, bypass branch protection, or merge without required reviews and checks.
 - Do not claim an external action, legal clearance, model admission, browser pass, promotion, or deployment without corresponding evidence.
 - A successful execution-branch CI run is not a production release certificate.
+
+
+## Re-verification checkpoint — 2026-10-15 (latest observed runs)
+
+This checkpoint supersedes earlier statements in this document about browser completion for the listed candidates, but it does not close any release gate.
+
+- Legal/provenance PR #1323 candidate SHA `9002064d38f6863b1f120414e9c75da445eb489a`: FLIXO CI run [38774378806](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/38774378806) completed SUCCESS. Chromium browser smoke and the ordinary build/test/security checks completed successfully on this candidate.
+- Model-manifest PR #1325 candidate SHA `3b4123c0fd6629fefe31612723d3c524190b7c39`: FLIXO CI run [38773708311](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/38773708311) completed SUCCESS, including Chromium browser smoke. Its release-only jobs for strict production model admission, exact-SHA promotion proof, and production exact-SHA deployment were SKIPPED because the PR targets `execution`.
+- `docs/MODEL_LICENSE_MANIFEST.json` on `execution` remains `entries: []`. The actual complete model artifact set has not been supplied, hashed, runtime-tested, or admitted. The candidate catalog is explicitly non-admitting and its Qwen entry still requires version-specific term review.
+- Formal GitHub review submissions are absent on both PRs. Automated Codex review summaries report unresolved findings; a subsequent comment reports the review usage limit was reached. No independent human review evidence is present.
+- The copyright/license provenance register remains OPEN. Dependency metadata completeness (262 package entries) is not legal clearance. Ownership and historical contributions, employer/contractor rights, third-party asset provenance, actual package archive/license review, distributed bundle contents, and applicable NOTICE obligations remain unverified.
+- Issue #1125 records the live `FLIXO-MAIN-PROTECTION` ruleset as below strict governance and reports HTTP 403 when the available integration attempts mutation. Repository administrator action and a fresh read-back of the live ruleset are required.
+
+### Current release decision
+
+**BLOCKED — no release certificate, merge to `main`, or production deployment is evidenced.**
+
+Closure sequence: (1) administrator fixes and verifies live main protection; (2) obtain the authoritative model bundle and version-specific legal terms, generate the complete deterministic manifest, run runtime/security/evaluation checks, and pass strict admission; (3) complete independent code and legal/provenance review, including actual distribution and notices; (4) resolve all findings and run CI on the final exact SHA; (5) run protected promotion and production deployment on that same SHA; (6) verify the deployed artifact digest and archive all evidence. A skipped job is not a pass, and evidence from a previous SHA does not transfer to a newer commit.
