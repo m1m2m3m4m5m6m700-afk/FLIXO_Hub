@@ -162,7 +162,7 @@
 | REL-007 | Main protection ruleset has historical reports of missing strict review controls; live API read is denied (403) | Production promotion/certification may be blocked | Repository owner/admin must verify and enforce required approvals, stale-review dismissal, Code Owner review, latest-push approval, thread resolution, and strict required checks; attach live evidence | BLOCKED_EXTERNAL |
 | REL-008 | Production model admission failed: `docs/MODEL_LICENSE_MANIFEST.json` has `entries: []`; strict release gate requires at least one evidenced model | `trust-gate` and exact-SHA promotion proof fail; deployment job skipped | Maintainer/model owner must select a specific candidate, then verify exact version, immutable artifact SHA-256, license text, terms/AUP, provenance, compatibility, security/evaluation evidence, and human approval before registering PASS + ACTIVE | OPEN / OWNER DECISION |
 | REL-009 | Windows Desktop Commander devices are offline; current connection cannot run commands on the working copy | Cannot independently run local targeted commands from this session | Bring authorized device online or rely on fresh CI runs and recorded artifacts; do not claim local execution occurred | BLOCKED_EXTERNAL |
-| REL-010 | `.github/workflows/ci.yml` triggers `pull_request` only when the base branch is `main`, while the active documentation PRs target `execution`; their commit-associated runs are unrelated workflows, not the canonical release CI suite | Changes proposed for `execution` do not receive the canonical CI suite through the intended PR path | Repository maintainer must review and correct the workflow trigger policy so `execution` PRs get required validation, then prove the trigger with a fresh run; do not bypass attribution or governance | OPEN / WORKFLOW FIX REQUIRED |
+| REL-010 | `.github/workflows/ci.yml` previously triggered `pull_request` only when the base branch was `main`; active PRs target `execution` | Changes proposed for `execution` lacked the canonical PR-triggered CI path | Fix proposed in PR #1314; verify queued FLIXO CI run, inspect all required jobs and merge only under repository governance | IN PROGRESS / PR #1314 |
 
 ## Update protocol
 
@@ -173,3 +173,9 @@ For every work session:
 4. Run the narrowest relevant checks first, then required full gates.
 5. Update the blocker log and evidence ledger with actual outcomes and URLs.
 6. Never describe the project as 100% ready or certified until every mandatory gate has current, exact-SHA evidence and production verification.
+
+
+## Live work items (2026-10-15)
+- [ ] PR #1314 — CI workflow trigger correction, targets `execution`, head `52a306dbe0bcc751fd3625052e303377df0be9fb`; FLIXO CI run `38742153655` was queued at last inspection.
+- [ ] PR #1313 — durable release plan, targets `execution`; not merged.
+- [ ] PR #1312 — README/homepage update, targets `execution`; not merged.
