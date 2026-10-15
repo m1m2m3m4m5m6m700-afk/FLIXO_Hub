@@ -72,3 +72,25 @@ test("CLI entrypoint executes with a relative path and reports SHA-bound evidenc
   assert.match(output, new RegExp("BASELINE_SHA=" + sha, "u"));
   assert.match(output, new RegExp("HEAD_SHA=" + sha, "u"));
 });
+
+test("does not re-require task attribution for commits already in the protected-main ancestry", () => {
+  const trustedMainSha = "d".repeat(40);
+  const result = validateCommitRecords(
+    [{ sha: trustedMainSha, message: "fix(knowledge): imported protected-main history", files: ["المهام.md"] }],
+    ids,
+    new Set([trustedMainSha]),
+  );
+  assert.deepEqual(result, { pass: true, failures: [] });
+});
+
+test("continues to fail closed for untrusted execution commits without CELL task attribution", () => {
+  const trustedMainSha = "d".repeat(40);
+  const executionSha = "e".repeat(40);
+  const result = validateCommitRecords(
+    [{ sha: executionSha, message: "fix(knowledge): missing task id", files: ["المهام.md"] }],
+    ids,
+    new Set([trustedMainSha]),
+  );
+  assert.equal(result.pass, false);
+  assert.ok(result.failures.some((failure) => failure.includes("MISSING_TASK_ID:")));
+});
