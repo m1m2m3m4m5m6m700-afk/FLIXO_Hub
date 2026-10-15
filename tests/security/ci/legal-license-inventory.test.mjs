@@ -10,12 +10,14 @@ test('license inventory separates metadata presence from legal clearance', () =>
       'node_modules/known-license': { name: 'known-license', version: '2.0.0', license: 'MIT', dev: true },
       'node_modules/missing-license': { name: 'missing-license', version: '1.0.0' },
       'node_modules/license-pointer': { name: 'license-pointer', version: '3.0.0', license: 'SEE LICENSE IN LICENSE.txt' },
+      'packages/stale-entry': { name: 'stale-entry', version: '0.0.1', extraneous: true },
       'node_modules/local-workspace': { name: 'local-workspace', version: '1.0.0', link: true },
     },
   });
 
   assert.equal(report.packageCount, 3);
   assert.equal(report.unresolvedCount, 2);
+  assert.equal(report.ignoredExtraneousCount, 1);
   assert.equal(report.packages.find((item) => item.name === 'known-license')?.status, 'METADATA_PRESENT_NOT_LEGAL_CLEARANCE');
   assert.equal(report.packages.find((item) => item.name === 'known-license')?.developmentOnly, true);
   assert.deepEqual(report.unresolved.map((item) => item.name), ['license-pointer', 'missing-license']);
