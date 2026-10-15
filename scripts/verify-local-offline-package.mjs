@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFile, readdir, stat } from 'node:fs/promises';
-import { relative, resolve, join } from 'node:path';
+import { extname, relative, resolve, join } from 'node:path';
 
 const root = process.cwd();
 const output = resolve(root, 'artifacts', 'flixo-local-site');
@@ -29,6 +29,11 @@ async function main() {
   assert.ok(!urls.some((url) => url.startsWith('/api/')), 'API endpoints must never be cached');
 
   const files = await walk(site);
+  assert.ok(files.some((file) => rel(file, site) === 'flixo-local-offline-banner.js'), 'local-mode notice script must be bundled');
+  for (const file of files.filter((item) => extname(item).toLowerCase() === '.html')) {
+    const html = await readFile(file, 'utf8');
+    assert.ok(html.includes('/flixo-local-offline-banner.js'), 'local-mode notice missing from ' + rel(file, site));
+  }
   const expected = files.map((file) => rel(file, site))
     .filter((path) => !path.startsWith('api/') && path !== 'sw.js')
     .map((path) => '/' + path);
