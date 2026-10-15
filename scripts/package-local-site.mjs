@@ -109,8 +109,69 @@ self.addEventListener('fetch', (event) => {
     '- Source SHA: ' + sha,
     '- ملفات الموقع مدرجة في SHA256SUMS.txt.',
     '- هذه الحزمة ليست شهادة إصدار إنتاجي ولا تثبت اجتياز اختبارات المتصفح ما لم تُرفق أدلة مستقلة على SHA نفسه.', '',
+    '## تشغيل سريع على Windows', '',
+    '1. فك ضغط الحزمة بالكامل إلى مجلد عادي.',
+    '2. شغّل START-FLIXO.bat بالنقر المزدوج. يتطلب Node.js 22.x مثبتًا مسبقًا.',
+    '3. اترك نافذة الطرفية مفتوحة أثناء استخدام الموقع؛ أوقف الخادم عبر Ctrl+C.',
+    '4. للتحقق من ملفات الموقع، شغّل: powershell -ExecutionPolicy Bypass -File .\\VERIFY-SHA256.ps1', '',
+    'مهم: هذه نسخة واجهة محلية لمسارات الواجهة المضمنة، وليست بديلًا للخدمات الخلفية. تسجيل الدخول الإداري وواجهات /api/* والحفظ السحابي والذكاء الاصطناعي المستضاف لا تعمل دون اتصال، ولا يتم محاكاة نجاحها.', '',
   ].join('\n');
   await writeFile(resolve(output, 'README-AR.md'), readme, 'utf8');
+  const windowsLauncher = [
+    '@echo off',
+    'setlocal',
+    'cd /d "%~dp0"',
+    'where node >nul 2>nul',
+    'if errorlevel 1 (',
+    '  echo FLIXO Hub needs Node.js 22.x to run this local website.',
+    '  echo Install Node.js 22.x, then run this file again.',
+    '  pause',
+    '  exit /b 1',
+    ')',
+    'for /f "tokens=1 delims=.v" %%V in (\'node -p "process.versions.node"\') do set NODE_MAJOR=%%V',
+    'if not "%NODE_MAJOR%"=="22" (',
+    '  echo Detected Node.js version:',
+    '  node --version',
+    '  echo This package is validated for Node.js 22.x. Other versions may behave differently.',
+    '  pause',
+    '  exit /b 1',
+    ')',
+    'start "FLIXO Hub browser" http://127.0.0.1:4173/',
+    'echo Starting FLIXO Hub locally at http://127.0.0.1:4173/',
+    'echo Keep this window open while using the website. Press Ctrl+C to stop it.',
+    'node server.mjs',
+    'pause',
+    ''
+  ].join('\\r\\n');
+  const verifyScript = String.raw`$ErrorActionPreference = 'Stop'
+Set-Location -LiteralPath $PSScriptRoot
+$manifest = Join-Path $PSScriptRoot 'SHA256SUMS.txt'
+if (-not (Test-Path -LiteralPath $manifest)) { throw 'SHA256SUMS.txt is missing.' }
+$failures = @()
+foreach ($line in Get-Content -LiteralPath $manifest) {
+  if ($line -match '^([a-fA-F0-9]{64})  (.+)
+  process.stdout.write('Static files: ' + copiedFiles.length + '\n');
+  process.stdout.write('Source SHA: ' + sha + '\n');
+  process.stdout.write('External HTML/CSS runtime resources: none detected\n');
+}
+main().catch((error) => {
+  process.stderr.write('[package-local-site] BLOCKED: ' + (error?.stack || error) + '\n');
+  process.exitCode = 1;
+});
+) {
+    $expected = $Matches[1].ToLowerInvariant()
+    $relative = $Matches[2].Replace('/', [IO.Path]::DirectorySeparatorChar)
+    $path = Join-Path $PSScriptRoot $relative
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { $failures += "MISSING: $relative"; continue }
+    $actual = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($actual -ne $expected) { $failures += "HASH MISMATCH: $relative" }
+  } else { $failures += "INVALID MANIFEST LINE: $line" }
+}
+if ($failures.Count -gt 0) { $failures | ForEach-Object { Write-Error $_ }; exit 1 }
+Write-Host 'PASS: all files listed in SHA256SUMS.txt match their SHA-256 hashes.'
+`;
+  await writeFile(resolve(output, 'START-FLIXO.bat'), windowsLauncher, 'utf8');
+  await writeFile(resolve(output, 'VERIFY-SHA256.ps1'), verifyScript, 'utf8');
   process.stdout.write('Local site package created: ' + relative(root, output) + '\n');
   process.stdout.write('Static files: ' + copiedFiles.length + '\n');
   process.stdout.write('Source SHA: ' + sha + '\n');
