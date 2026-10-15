@@ -12,7 +12,7 @@ This register is an evidence checklist for the proposed Apache-2.0 release. A re
 | Historical contributions | Review contributors, commit history, pull requests, and contribution terms | NOT VERIFIED | Confirm each material contribution is licensed under compatible terms or obtain permission |
 | Employer/contractor-owned work | Where relevant, written authorization from the rights holder or proof the contributor owns the work | NOT VERIFIED | Do not infer rights from GitHub account ownership |
 | Third-party source/assets | File-level origin, upstream URL/version, license, copyright notices, modifications, and distribution obligations | NOT VERIFIED | Preserve required notices and resolve incompatibilities before distribution |
-| Dependencies and bundled assets | Lockfile-based dependency inventory plus production/runtime/bundled asset license review | NOT VERIFIED | Keep generated SBOM/license report with release evidence and inspect bundled files separately |
+| Dependencies and bundled assets | Lockfile inventory plus production/runtime/bundled asset license review | INVENTORY AUTOMATION ADDED; CI AND MANUAL REVIEW PENDING | Review the generated `dependency-license-inventory.json` and `.md` artifacts; inspect bundled files separately and resolve every unknown/file-pointer license |
 | Patent/trademark/brand content | Identify included marks, logos, datasets, models, and other assets and their terms | NOT VERIFIED | Confirm permitted use and required attribution; do not assume Apache-2.0 licenses trademarks |
 | Apache NOTICE obligations | Inspect upstream licenses and notices for included components and distributions | NOT VERIFIED | Include required NOTICE content when applicable; do not invent an empty notice as proof |
 | Per-file SPDX/REUSE metadata | Compare file headers and REUSE annotations against verified ownership and third-party licensing | IN PROGRESS | No blanket Apache annotation until the file-level inventory supports it |
@@ -22,7 +22,7 @@ This register is an evidence checklist for the proposed Apache-2.0 release. A re
 
 1. Export the full repository file list at the release candidate SHA, including hidden files, vendored code, assets, generated files, submodules, and nested packages.
 2. Inventory contributors and relevant commit/PR history. Identify imported or copied code and any files with pre-existing SPDX or copyright notices.
-3. Generate dependency inventories from the lockfiles and inspect production bundles and shipped assets; a package-manager audit is not a license audit.
+3. Run `npm run audit:licenses`; retain the generated dependency license inventory artifacts and resolve every missing, `UNLICENSED`, or `SEE LICENSE IN` metadata entry. Then inspect production bundles and shipped assets; a package-manager audit is not a license audit.
 4. Compare every detected license and notice with Apache-2.0 distribution requirements and document compatibility decisions.
 5. Obtain written permission or isolate material where ownership or relicensing authority is uncertain.
 6. Have a reviewer independent of the implementation verify the inventory and evidence.
