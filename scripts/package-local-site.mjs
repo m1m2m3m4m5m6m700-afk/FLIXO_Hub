@@ -45,6 +45,43 @@ async function main() {
       if (/@import\s+(?:url\()?['"]?https?:\/\//iu.test(css)) throw new Error('External CSS import in ' + relative(root, file));
     }
   }
+  // Replace the generic network-first worker with a generated, self-contained offline cache.
+  // API files are deliberately excluded: static files that happen to live under /api are not endpoints.
+  const precacheUrls = ['/', '/index.html', '/en', ...copiedFiles
+    .filter((file) => !relative(siteOutput, file).split('\\\\').join('/').startsWith('api/'))
+    .filter((file) => relative(siteOutput, file).split('\\\\').join('/') !== 'sw.js')
+    .map((file) => '/' + relative(siteOutput, file).split('\\\\').join('/'))];
+  const uniquePrecacheUrls = [...new Set(precacheUrls)].sort();
+  const offlineWorker = `const CACHE_NAME = 'flixo-local-offline-v1';
+const PRECACHE_URLS = ${JSON.stringify(uniquePrecacheUrls)};
+self.addEventListener('install', (event) => {
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS)).then(() => self.skipWaiting()));
+});
+self.addEventListener('activate', (event) => {
+  event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((key) => key.startsWith('flixo-local-offline-') && key !== CACHE_NAME).map((key) => caches.delete(key)))).then(() => self.clients.claim()));
+});
+self.addEventListener('fetch', (event) => {
+  const request = event.request;
+  if (request.method !== 'GET') return;
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
+  if (url.pathname.startsWith('/api/')) {
+    event.respondWith(fetch(request).catch(() => new Response(JSON.stringify({ error: 'API_UNAVAILABLE_IN_LOCAL_STATIC_MODE' }), { status: 503, headers: { 'Content-Type': 'application/json; charset=utf-8' } })));
+    return;
+  }
+  const hasAmbientCredentials = request.headers.has('cookie') || request.headers.has('authorization');
+  if (hasAmbientCredentials) return;
+  if (request.mode === 'navigate') {
+    event.respondWith(fetch(request).catch(async () => (await caches.match(request)) || (await caches.match('/index.html')) || new Response('Offline page unavailable', { status: 503 })));
+    return;
+  }
+  event.respondWith(caches.match(request).then((cached) => cached || fetch(request).then((response) => {
+    if (response.ok && response.type === 'basic') caches.open(CACHE_NAME).then((cache) => cache.put(request, response.clone()));
+    return response;
+  })));
+});
+`;
+  await writeFile(resolve(siteOutput, 'sw.js'), offlineWorker, 'utf8');
   await cp(serverTemplate, resolve(output, 'server.mjs'));
   const hashes = [];
   for (const file of await walk(siteOutput)) {
