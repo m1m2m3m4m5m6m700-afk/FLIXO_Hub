@@ -61,3 +61,27 @@ Release blockers still open on that evidence:
 5. Re-run all required gates after the final candidate SHA is established. Promotion proof and production deployment must run, not be skipped, and must attest to that exact SHA and the resulting live artifact.
 
 This record documents verified states and closure requirements. It does not claim that legal rights, model admission, promotion, or deployment are complete.
+
+## Follow-up: exact-SHA CI and dependency inventory review — 2026-10-15
+
+Candidate commit: `0cecc6f61ff62cd258670b9cc3c60e0ad5723a6c`.
+CI run: https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/38767226191
+Dependency inventory artifact: `flixo-dependency-license-inventory-38767226191`, artifact ID `11990246939`, GitHub artifact digest `sha256:58de3b711277292e576ec8fe4fee443761858af580f7f5437e298979ea0f5aff`.
+
+At the latest re-check, the following jobs completed successfully on this exact candidate SHA: typecheck/lint/core contracts/build, npm test, production dependency audit, dependency license metadata inventory, CodeQL, secret scan, red-team regression, Agent Watchdog security integration, Hub Stage 1 exact-SHA contract, sensitive-path automated assurance, and exact-SHA internal coverage. Chromium browser smoke was still in progress at the last check. Production model admission remained SKIPPED because this pull request targets `execution`, not `main`; this is not a PASS. No formal PR review was present in the review list.
+
+The downloaded exact-SHA dependency inventory contains 262 package entries, 0 unresolved license metadata entries, 1 ignored workspace link, and 1 ignored extraneous lock entry. The following package records are present:
+- `jszip@3.10.1`: `(MIT OR GPL-3.0-or-later)`, production dependency, integrity `sha512-xXDvecyTpGLrqFrvkrUSoxxfJI5AH7U8zxxtVclpsUtMCq4JQ290LY8AW5c7Ggnr/Y/oK+bQMbqK2qmtk3pN4g==`. Upstream states it is dual-licensed and can be used under MIT or GPLv3: https://github.com/Stuk/jszip . Still verify the exact npm archive's license text and preserve the MIT notice in the shipped artifact if that option is selected.
+- `lightningcss@1.33.0` and `lightningcss-linux-x64-gnu@1.33.0`: MPL-2.0, marked development-only in the lockfile. Upstream package metadata declares MPL-2.0: https://github.com/parcel-bundler/lightningcss/blob/master/package.json . Actual shipped bundle inclusion and required notices remain to be checked.
+- `isbot@5.2.1`: Unlicense, marked production dependency, integrity `sha512-dJ+LpKyClQZ7NG+j3OensC/mAZkGpukE9YUrgPYvAZj2doVL0edfDgywTUh5CXa0o+nW9a1V9e5+CJTX8+SxRw==`. The package registry lists Unlicense: https://www.npmjs.com/package/isbot . Archive the exact package LICENSE and verify the provenance of the downloaded archive.
+
+These are inventory/provenance findings, not legal clearance. The source/license and distribution checks remain open until the exact package archives, generated bundle, and notices are reviewed.
+
+## Still-blocking release conditions
+
+1. `docs/MODEL_LICENSE_MANIFEST.json` still has `entries: []`; no production model has passed strict admission. Do not fabricate model artifact hashes or use an upstream commit SHA as a bundle digest.
+2. Contribution/copyright provenance and employer/contractor rights remain unverified.
+3. Exact dependency archive and shipped-bundle/notices review remains incomplete.
+4. Independent formal review is absent.
+5. Exact-SHA promotion proof and production deployment are not demonstrated for this candidate. The current PR targets `execution`, so those production-only jobs are not expected to run on this PR event.
+6. Do not issue a release certificate until the release candidate SHA has all required gates run successfully and the production artifact is verified against that SHA.
