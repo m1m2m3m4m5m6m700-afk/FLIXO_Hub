@@ -208,3 +208,13 @@ For every work session:
 
 - Primary CI repair PR: [#1314](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/pull/1314), current head `b8038bcef7ddf209a5ce541105ff5c001289342b`, base `execution`. Previous run [38742691481](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/38742691481) failed the trust gate because Agent Watchdog was skipped when the gate expected success. The watchdog workflow condition and exact-SHA boundary were updated in the primary PR. A successful CI run on the new head has not been verified.
 - Duplicate PR #1315 was closed after its watchdog fix was ported to #1314. No PR was merged to `main`, and no deployment or release certificate was issued.
+
+
+## Trust-gate repair follow-up — 2026-10-15
+
+- The prior run [38743827980](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/38743827980) passed build/typecheck/lint/core contracts, CodeQL, Gitleaks, Agent Watchdog, Red Team, branch policy, sensitive-path assurance, Hub Stage 1, Chromium smoke and exact-SHA coverage, but failed `trust-gate`.
+- Root cause from the trust-gate job log: the condition treated any PR head branch other than `execution` or `chore/oss-*` as a worker/diagnostic PR and expected validation jobs to be `skipped`. For same-repository PRs *targeting* `execution`, the validation jobs correctly ran successfully, so this classification caused the failure.
+- Fixed `.github/workflows/ci.yml` to branch on `PR_BASE_REF == execution` plus `PR_HEAD_REPO == GITHUB_REPOSITORY` and require the full execution validation set to be `success`; narrowed the worker/diagnostic skip branch so it cannot swallow execution-targeted PRs. Added an explicit regression test to `scripts/ci/test-workflow-exact-sha-contract.mjs`.
+- Current repair PR [#1314](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/pull/1314) head is `e01dcca70f2b3659fa537108bd8f715d001a9593`. A run on intermediate commit `a6428ba22d6d15b263251267f1b0b6ef102f67cc` observed Gitleaks scanning a range ending at the newer PR head `e01dcca70f2b3659fa537108bd8f715d001a9593` while its checkout was at `a6428ba22d6d15b263251267f1b0b6ef102f67cc`, causing an invalid revision range. Treat that run as failed evidence; do not override its result. The latest-head run `38744669546` was pending at last check and must be inspected for exact-SHA success.
+- Production model admission remains skipped in the execution-PR lane by design and is release-blocking for main: `docs/MODEL_LICENSE_MANIFEST.json` has `entries: []`. Code-license mismatch and external-account/deployment identity evidence also remain unresolved.
+- PR #1315 was closed after the needed Agent Watchdog fix was moved to the primary PR #1314. No main write, merge, deployment, or release certificate occurred.
