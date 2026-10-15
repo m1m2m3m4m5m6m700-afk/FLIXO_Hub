@@ -1,0 +1,62 @@
+{
+  "evidence_type": "research-only-model-artifact-inventory",
+  "evidence_status": "REVIEW_REQUIRED_NOT_ADMITTED",
+  "collected_date": "2026-10-15",
+  "model": "Qwen/Qwen3-8B",
+  "immutable_revision": "b968826d9c46dd6066d109eabc6255188de91218",
+  "official_model_page": "https://huggingface.co/Qwen/Qwen3-8B/tree/b968826d9c46dd6066d109eabc6255188de91218",
+  "official_license_file": "https://huggingface.co/Qwen/Qwen3-8B/blob/b968826d9c46dd6066d109eabc6255188de91218/LICENSE",
+  "declared_upstream_license": "Apache-2.0",
+  "artifact_set_manifest_sha256_algorithm": "SHA-256",
+  "artifact_set_manifest_sha256_scope": "SHA-256 of artifact_set serialized as UTF-8 JSON with recursively sorted object keys, compact separators, no ASCII escaping, and no trailing newline; excludes this wrapper and digest fields. This hashes the inventory descriptor, not the actual model bytes.",
+  "artifact_set_manifest_sha256": "c6d5a5cb3ca94db511cb693dee995f6bc6ddd2fea11b165e37f9a2e8b030403d",
+  "artifact_set": {
+    "schema_version": "1.0.0",
+    "model": "Qwen/Qwen3-8B",
+    "revision": "b968826d9c46dd6066d109eabc6255188de91218",
+    "scope": "five model weight shards only; does not include tokenizer, configuration, license or runtime artifacts",
+    "files": [
+      {
+        "path": "model-00001-of-00005.safetensors",
+        "sha256": "31d6a825ae35f11fb85b195b4c42c146c051e446433125a215336abdf95cbf5f"
+      },
+      {
+        "path": "model-00002-of-00005.safetensors",
+        "sha256": "5991236cea6fe21f3d43cab0f0e84448734fbbe0789816202989f2ddc9d18282"
+      },
+      {
+        "path": "model-00003-of-00005.safetensors",
+        "sha256": "c5185c4794be2d8a9784d5753c9922db38df478ce11f9ed0b415b7304d896836"
+      },
+      {
+        "path": "model-00004-of-00005.safetensors",
+        "sha256": "b5ee7de71fbf17db3d5704e0c8f2bc7d005ca9e1d7ca2aeb19827b0cfcaa917a"
+      },
+      {
+        "path": "model-00005-of-00005.safetensors",
+        "sha256": "20c2d6366ab85c90786ccdd829cd2b9e7d30ef3b2ebbb998280e7e4014b542ff"
+      }
+    ]
+  },
+  "admission_decision": "NOT_ADMITTED",
+  "limitations": [
+    "The shard SHA-256 values are published by the upstream Hugging Face file pages at the pinned revision and have not been independently recomputed from locally downloaded artifact bytes in this environment.",
+    "The computed digest identifies the canonical five-shard inventory descriptor, not a bytewise concatenation of the model files.",
+    "The inventory excludes tokenizer/config/runtime files and therefore is not a complete runtime package manifest.",
+    "The model-license gate does not currently validate this evidence file or define its manifest digest as an accepted artifact_sha256 representation.",
+    "Product-owner model/deployment selection, exact terms/AUP review, dataset/provenance review, compatibility/security/task evaluation, and explicit human approval remain outstanding."
+  ],
+  "acceptance_next_steps": [
+    "Authorize or reject this exact model and deployment mode in issue #1317.",
+    "Acquire the exact pinned artifacts through a controlled pipeline and independently recompute each file SHA-256 against the upstream values.",
+    "Expand or define the canonical bundle manifest for every runtime file included in the deployed model package, then validate the digest in code.",
+    "Only after evidence review and explicit approval, update the production model manifest and run test:model-license and test:model-license:release on the exact candidate SHA."
+  ],
+  "per_file_sources": {
+    "model-00001-of-00005.safetensors": "https://huggingface.co/Qwen/Qwen3-8B/blob/b968826d9c46dd6066d109eabc6255188de91218/model-00001-of-00005.safetensors",
+    "model-00002-of-00005.safetensors": "https://huggingface.co/Qwen/Qwen3-8B/blob/b968826d9c46dd6066d109eabc6255188de91218/model-00002-of-00005.safetensors",
+    "model-00003-of-00005.safetensors": "https://huggingface.co/Qwen/Qwen3-8B/blob/b968826d9c46dd6066d109eabc6255188de91218/model-00003-of-00005.safetensors",
+    "model-00004-of-00005.safetensors": "https://huggingface.co/Qwen/Qwen3-8B/blob/b968826d9c46dd6066d109eabc6255188de91218/model-00004-of-00005.safetensors",
+    "model-00005-of-00005.safetensors": "https://huggingface.co/Qwen/Qwen3-8B/blob/b968826d9c46dd6066d109eabc6255188de91218/model-00005-of-00005.safetensors"
+  }
+}
