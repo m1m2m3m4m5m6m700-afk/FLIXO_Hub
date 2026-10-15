@@ -1,3 +1,4 @@
+/* global document, caches, location */
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
@@ -25,7 +26,7 @@ async function waitForServer(origin, child) {
     try {
       const response = await fetch(origin + '/');
       if (response.ok) return;
-    } catch {}
+    } catch { continue; }
     await delay(100);
   }
   throw new Error('Local package server did not become ready');
