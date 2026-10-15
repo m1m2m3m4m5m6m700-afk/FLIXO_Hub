@@ -14,6 +14,7 @@
     "lint": "eslint .",
     "format:check": "npx --yes prettier@3.6.2 --check .",
     "audit:production": "npm audit --omit=dev --audit-level=high",
+    "audit:licenses": "node scripts/audit-package-lock-licenses.mjs",
     "generate:robots": "node scripts/generate-robots.mjs",
     "generate:sitemap": "node --import=./scripts/register-node-resolver.mjs --experimental-strip-types scripts/generate-sitemap.mjs",
     "generate:static-routes": "node --import=./scripts/register-node-resolver.mjs --experimental-strip-types scripts/generate-static-route-entries.mjs",
