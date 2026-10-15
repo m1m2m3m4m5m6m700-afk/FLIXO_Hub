@@ -1,34 +1,113 @@
 # FLIXO Hub
 
-[![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+<p align="center">
+  <strong>Private-by-design workflows. Verifiable AI tools. Governed autonomous development.</strong>
+</p>
 
-FLIXO Hub is an open-source, browser-first AI toolbox and governed developer platform for privacy-preserving local workflows, deterministic file processing, and autonomous multi-agent development control.
+<p align="center">
+  <a href="https://flixoai.vercel.app/">Product</a> ·
+  <a href="https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/tree/execution/docs">Documentation</a> ·
+  <a href="https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/issues">Issues</a> ·
+  <a href="https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/discussions">Discussions</a> ·
+  <a href="https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/blob/execution/CONTRIBUTING.md">Contribute</a>
+</p>
 
-[![CI](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/workflows/ci.yml)
-[![Security](https://img.shields.io/badge/security-CodeQL%20%7C%20secret%20scan%20%7C%20red--team-informational)](SECURITY.md)
+<p align="center">
+  <img alt="License: Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-2563eb?style=for-the-badge" />
+  <img alt="React 19" src="https://img.shields.io/badge/React-19-149eca?style=for-the-badge&logo=react&logoColor=white" />
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-typed-3178c6?style=for-the-badge&logo=typescript&logoColor=white" />
+  <img alt="Vite" src="https://img.shields.io/badge/Vite-powered-646cff?style=for-the-badge&logo=vite&logoColor=white" />
+</p>
 
-## What is FLIXO Hub?
+<p align="center">
+  <a href="https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/workflows/ci.yml"><img alt="CI workflow" src="https://img.shields.io/github/actions/workflow/status/m1m2m3m4m5m6m700-afk/FLIXO_Hub/ci.yml?branch=main&label=CI&logo=githubactions&style=flat-square" /></a>
+  <a href="https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/commits/execution"><img alt="Latest commits on execution" src="https://img.shields.io/github/last-commit/m1m2m3m4m5m6m700-afk/FLIXO_Hub/execution?style=flat-square&label=execution%20activity" /></a>
+  <a href="https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/issues"><img alt="Issues" src="https://img.shields.io/github/issues/m1m2m3m4m5m6m700-afk/FLIXO_Hub?style=flat-square" /></a>
+  <a href="https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/blob/execution/SECURITY.md"><img alt="Security policy" src="https://img.shields.io/badge/security-policy%20documented-64748b?style=flat-square" /></a>
+</p>
 
-FLIXO Hub combines two related surfaces:
+---
 
-- A browser-first toolbox for local file editing and media workflows.
-- A governed developer platform for projects, workspaces, agents, verification, artifacts, collaboration, and evidence-bound delivery.
+## The vision
 
-The project is designed around a simple principle: useful contributions should become reusable capabilities only after verification, while execution authority remains explicit and auditable.
+**FLIXO Hub is an open-source, browser-first AI toolbox and a governed developer platform.** It brings privacy-preserving file workflows, deterministic tool execution, collaborative workspaces, and multi-agent engineering under one auditable system.
 
-## Why it is different
+The central idea is simple: **capabilities should be reusable only when their behavior has been verified, and authority should always be explicit.** A successful build is useful evidence, not a release certificate.
 
-- **Privacy-first local processing:** the MVP editing path keeps raw user File/Blob bytes out of LLMs, providers, and backends.
-- **Deterministic execution:** canonical executors, output contracts, and verifiers make admitted workflows testable and reproducible.
-- **Governed agents:** CELL agents operate inside explicit capability, ownership, evidence, and promotion boundaries.
-- **Exact-SHA delivery:** implementation, CI evidence, and promotion are bound to the same repository identity.
-- **Developer-platform foundation:** `/developer` provides governed project/workspace and contribution primitives without pretending that an unavailable remote execution provider exists.
+## One platform, two connected surfaces
 
-## Current status
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>🛠️ Local-first AI toolbox</h3>
+      Build and run supported file and media workflows in the browser. The MVP's local editing path keeps raw user `File`/`Blob` bytes out of LLMs, external providers, and backends.
+      <p><a href="https://flixoai.vercel.app/">Open FLIXO Hub →</a></p>
+    </td>
+    <td width="50%" valign="top">
+      <h3>🧭 Governed developer platform</h3>
+      Organize projects, workspaces, agents, tools, artifacts, collaboration, and contributions with explicit execution policies and verifiable evidence.
+      <p><a href="https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/tree/execution/src/pages">Explore platform source →</a></p>
+    </td>
+  </tr>
+</table>
 
-FLIXO Hub is an active engineering project. The repository is public, development happens on `execution`, and production/reference promotion is `execution → main` through protected automation and required evidence gates.
+## How the system fits together
 
-## Quick start
+```mermaid
+flowchart TD
+    A[User goal or local file] --> B[Capability admission]
+    B --> C[Canonical tool registry]
+    C --> D[Deterministic execution]
+    D --> E[Output contract]
+    E --> F[Independent verifier]
+    F --> G[Evidence-bound artifact]
+    G --> H[Review and governed reuse]
+    H --> I[Release and promotion gates]
+```
+
+The intended authority chain is deliberately singular: canonical capability definitions feed the tool registry/catalog, which routes execution through the canonical executor, output-contract assertions, and capability verification. Agents may propose and implement changes within their permissions; they do not self-certify releases or bypass promotion controls.
+
+## What makes FLIXO different
+
+- **Privacy-first processing:** raw local file bytes stay on the browser-local MVP path.
+- **Deterministic tools:** canonical executors, output contracts, and verifiers make supported operations testable.
+- **Governed agents:** CELL workflows use explicit capability, ownership, opposition, and evidence boundaries.
+- **SHA-bound evidence:** test, security, browser, and release evidence must identify the exact source revision it validates.
+- **Honest infrastructure boundaries:** the developer platform does not pretend a remote execution provider exists until one is configured and admitted.
+- **Fail-closed security:** secrets remain server-side; the canonical static Worker intentionally rejects unsupported `/api/*` routes.
+
+## Architecture at a glance
+
+| Area | Responsibility |
+| --- | --- |
+| `src/config` | Canonical capability definitions and the single tool registry/catalog |
+| `src/lib` | Planning, canonical execution, output contracts, verifiers, security boundaries, routing, and runtime |
+| `src/tools` | User-facing tools and browser-local processing engines |
+| `src/worker.ts` | Static Worker boundary, security headers, and source-identity verification |
+| `src/pages/developer-platform.tsx` | Governed developer-platform interface |
+| `supabase` | Persistence configuration for non-MVP surfaces |
+
+**Technology:** React 19, Vite, TypeScript, browser APIs, Cloudflare Workers, Playwright, and a governed tool-verification pipeline.
+
+## Current project status
+
+FLIXO Hub is actively developed on `execution`. The intended production path is **`execution → main`**, through protected automation and required evidence gates.
+
+> **Release integrity:** This README does not claim that the current repository is certified or production-ready. Release status must be established from current CI, security, Red Team, production identity, and browser acceptance evidence, all bound to the same exact release SHA.
+
+Track the actual signals here:
+
+- [CI workflow and run history](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/workflows/ci.yml)
+- [All GitHub Actions runs](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions)
+- [Open issues](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/issues?q=is%3Aissue+is%3Aopen)
+- [Good first issues](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+- [Help wanted](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)
+- [Release manifest](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/blob/execution/docs/FLIXO-PUBLIC-RELEASE-MANIFEST.md)
+- [Public launch execution plan](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/blob/execution/docs/FLIXO-PUBLIC-LAUNCH-EXECUTION-PLAN.md)
+
+## Run it locally
+
+Requirements: Node.js compatible with the repository's declared engine and npm.
 
 ```bash
 git clone https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub.git
@@ -37,7 +116,7 @@ npm ci
 npm run dev
 ```
 
-Core checks:
+Before proposing a release, run the relevant checks:
 
 ```bash
 npm test
@@ -45,138 +124,42 @@ npm run build
 npm run test:e2e
 ```
 
+Consult the current CI configuration for the authoritative check set and supported runtime versions.
 
-## Explore the project
+## Privacy and browser-local MVP
 
-The repository homepage is recorded as [flixoai.vercel.app](https://flixoai.vercel.app). The governed developer-platform implementation is documented in [the developer platform source](src/pages/developer-platform.tsx) and exposed through the repository's documented routes.
+The admitted MVP workflows are:
 
-The core contribution loop is intentionally simple:
+1. **Agent-guided workflow:** local file + instruction → deterministic plan → explicit confirmation → canonical local execution → verifier → artifact.
+2. **Manual workflow:** direct tool route → local file input → canonical local execution → verifier → artifact.
 
-```mermaid
-flowchart LR
-  A[Discover] --> B[Try]
-  B --> C[Choose an Issue]
-  C --> D[Contribute]
-  D --> E[Verify]
-  E --> F[Reuse]
-```
+The Hub's local-processing surface uses browser Worker messaging and browser capabilities with a session-memory fallback where supported. OCR remains blocked until self-hosted worker, core, and language assets are admitted and verified. Do not assume that every planned capability is already enabled.
 
-The browser-local MVP boundary is documented in [the architecture and privacy documentation](docs/README.md). A remote execution provider is not claimed unless it has actually been configured and admitted by the platform contract.
+## Contribute to the project
 
-## Project signals
+1. Read [CONTRIBUTING.md](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/blob/execution/CONTRIBUTING.md).
+2. Review the architecture and relevant repository contracts before changing execution or governance code.
+3. Choose a scoped task from [open issues](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/issues).
+4. Submit a pull request with reproducible checks and evidence appropriate to the change.
 
-- [CI](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/workflows/ci.yml)
-- [Open contributor issues](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
-- [Help wanted](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)
-- [Discussions](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/discussions)
+Use [Discussions](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/discussions) for questions and architecture proposals. Report security-sensitive findings through the private process in [SECURITY.md](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/blob/execution/SECURITY.md), not in public issues.
 
-## Support the project
+## Project policies and resources
 
-If FLIXO Hub solves a problem for you, consider [starring the repository](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub) so other developers can discover a maintained project with the same problem space. For questions, ideas, bugs, and contributions, use the public channels linked above.
-
-## Who this is for
-
-FLIXO Hub is aimed at developers building privacy-sensitive browser workflows, deterministic file-processing tools, multi-agent development systems, or evidence-driven CI/CD and repository governance.
-
-## Contributing
-
-Start with [CONTRIBUTING.md](CONTRIBUTING.md), then inspect the current repository contracts and CI gates before changing execution or governance code.
+- [Documentation index](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/tree/execution/docs)
+- [Contribution contract](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/blob/execution/docs/CONTRIBUTIONS.md)
+- [Support](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/blob/execution/SUPPORT.md)
+- [Accessibility](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/blob/execution/ACCESSIBILITY.md)
+- [License](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/blob/execution/LICENSE)
+- [Citation metadata](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/blob/execution/CITATION.cff)
 
 ## Licensing
 
 FLIXO Hub is licensed under the Apache License 2.0. See [LICENSE](LICENSE) for the complete terms.
 
-## Security
+---
 
-Security-sensitive findings belong in the private reporting path described in [SECURITY.md](SECURITY.md). Do not publish credentials or exploitable details in public issues.
-
-## Discovery keywords
-
-AI agents · autonomous agents · multi-agent systems · agent orchestration · developer platform · browser automation · privacy-first · local processing · deterministic execution · TypeScript · React · Vite · Cloudflare Workers
-
-## Architecture
-
-- `src/config` — canonical capability definitions and the single `TOOL_REGISTRY` / `TOOL_CATALOG`.
-- `src/lib` — intent planning, canonical local execution, output contracts, verifiers, security boundaries, routing, i18n, and product runtime.
-- `src/tools` — isolated user-facing manual tools and local browser engines.
-- `src/worker.ts` — production static Worker boundary, security headers, and exact-SHA identity verification.
-- `supabase` — persistence configuration for non-MVP surfaces; the MVP editing path is persistence-independent.
-
-## MVP workflows
-
-The current MVP supports two independent workflows where admitted:
-
-1. Agent Guided Workflow — local file + natural-language instruction -> deterministic plan -> explicit confirmation -> canonical local execution -> verifier -> artifact.
-2. Manual Standalone Workflow — direct tool route -> local file input -> canonical local execution -> verifier -> artifact.
-
-Raw user File/Blob bytes are never sent to an LLM/provider/backend as part of the MVP local editing path.
-
-## Internationalization
-
-The canonical locales are exactly:
-
-`ar`, `en`, `es`, `fr`, `de`, `hi`, `id`, `it`, `ja`, `ko`, `ms`, `nl`, `pl`, `pt`, `ru`, `sv`, `th`, `tr`, `uk`, `vi`.
-
-Arabic (`ar`) is the default locale.
-
-## Core commands
-
-```bash
-npm ci
-npm run dev
-npm test
-npm run build
-npm run test:e2e
-```
-
-The production build generates `robots.txt`, `sitemap.xml`, and physical SPA route entries.
-
-## Deployment
-
-`wrangler.jsonc` defines the canonical Cloudflare production deployment at `https://flixoai.m1m2m3m4m5m6m700.workers.dev`. The static Worker intentionally fails closed for `/api/*` on the canonical production origin.
-
-Provider and database credentials remain server-side. Never expose secrets through `VITE_*` variables.
-
-## Public launch
-
-The launch program is tracked in `docs/FLIXO-PUBLIC-LAUNCH-EXECUTION-PLAN.md` and release truth is recorded in `docs/FLIXO-PUBLIC-RELEASE-MANIFEST.md`.
-
-A public launch is not certified merely because the application builds. CI, security, Red Team, production identity, and browser evidence must bind to the same exact release SHA.
-
-
-## FLIXO Hub local-processing boundary
-
-The /hub and /en/hub surfaces are the first Stage 1 implementation of the 2026-10-08 FLIXO Hub contract. They provide a browser-local Worker demonstration, transferable ArrayBuffer messaging, OPFS with a session-memory fallback, browser capability detection, and a privacy page.
-
-The Hub processing surface does not call network transport APIs and does not persist files or identifiers in browser storage. Runtime delivery is origin-only; third-party CDN bootstrap is not permitted.
-
-Stage 1 currently contains no newly added runtime dependency. OCR remains deliberately blocked until self-hosted Tesseract worker/core/language assets are admitted and verified.
-
-
-## General programming platform
-
-FLIXO Hub now exposes a governed developer-platform foundation at `/developer` and `/en/developer`.
-
-The platform contract unifies project/workspace state, repository identity, sandbox execution policy, verification, CELL agents, artifact evidence, collaboration, contributions, and evidence-based learning. It intentionally does not pretend that a remote code-execution provider is connected: until a real provider satisfies the execution contract, that surface remains a foundation state rather than a fake terminal.
-
-The platform is designed as a mutual-value loop: people can build and reuse projects, tools, agents, skills, templates, and workflows; only verified contributions become publishable reusable capabilities; evidence remains bound to source identity and canonical governance.
-
-
-## Start contributing
-
-For a small, scoped first contribution, start with the open [good first issues](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) or [help wanted issues](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22).
-
-For repository and contribution policy, read [CONTRIBUTING.md](CONTRIBUTING.md). For reusable projects, tools, agents, skills, verifiers, adapters, workflows, and templates, use the [Developer Contribution Center](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/blob/main/src/pages/developer-contributions.tsx) and [contribution contract](docs/CONTRIBUTIONS.md).
-
-Support and accessibility guidance are available in [SUPPORT.md](SUPPORT.md) and [ACCESSIBILITY.md](ACCESSIBILITY.md). Citation metadata is provided through [CITATION.cff](CITATION.cff).
-
-
-## Community
-
-Use the public repository surfaces to learn, discuss, report, and contribute:
-
-- [Discussions](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/discussions) for questions, ideas, architecture discussion, and community coordination.
-- [Issues](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/issues) for actionable bugs, features, and scoped contributor work.
-- [Community standards](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/community) for the GitHub community-health checklist.
-- [Developer Contribution Center](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/blob/main/src/pages/developer-contributions.tsx) for reusable contribution proposals.
-
+<p align="center">
+  <strong>Discover. Build. Verify. Reuse.</strong><br />
+  <sub>Open source · Privacy-first · Evidence-driven</sub>
+</p>
