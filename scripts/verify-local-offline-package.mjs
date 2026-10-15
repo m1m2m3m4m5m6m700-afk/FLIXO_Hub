@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFile, readdir, stat } from 'node:fs/promises';
-import { extname, relative, resolve, join } from 'node:path';
+import { relative, resolve, join } from 'node:path';
 
 const root = process.cwd();
 const output = resolve(root, 'artifacts', 'flixo-local-site');
@@ -37,7 +37,7 @@ async function main() {
 
   const manifest = (await readFile(resolve(output, 'SHA256SUMS.txt'), 'utf8')).trim().split(/\r?\n/u);
   const manifestMap = new Map(manifest.map((line) => {
-    const match = /^([a-f0-9]{64})  (.+)$/u.exec(line);
+    const match = /^([a-f0-9]{64}) {2}(.+)$/u.exec(line);
     assert.ok(match, 'invalid SHA256SUMS.txt row: ' + line);
     return [match[2], match[1]];
   }));
