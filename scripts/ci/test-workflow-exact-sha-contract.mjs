@@ -114,8 +114,8 @@ test('OSS readiness PRs run verification while promotion proof remains execution
 
   const ci = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
   const promotionProofGate =
-    "if: ${{ always() && (github.event_name != 'pull_request' || github.event.pull_request.head.ref == 'execution') }}";
-  assert.ok(ci.includes(promotionProofGate), 'promotion proof must remain execution-only for pull requests');
+    "if: ${{ always() && ((github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/execution')) || (github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'execution' && github.event.pull_request.base.ref == 'main' && github.event.pull_request.head.repo.full_name == github.repository)) }}";
+  assert.ok(ci.includes(promotionProofGate), 'promotion proof must be limited to canonical execution-to-main promotion PRs and protected branch pushes');
 });
 
 test('final Red Team security wait is promotion-only after execution security deduplication', async () => {
