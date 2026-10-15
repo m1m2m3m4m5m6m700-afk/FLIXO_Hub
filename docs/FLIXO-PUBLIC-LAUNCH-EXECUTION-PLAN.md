@@ -176,9 +176,10 @@ For every work session:
 
 
 ## Live work items (2026-10-15)
-- [ ] PR #1314 — CI workflow trigger correction, targets `execution`, head `e10ede70d899b7f6463879f1db7fbff373ce3064`; FLIXO CI run `38742691481` is pending.
-- [ ] PR #1313 — durable release plan, targets `execution`; not merged.
-- [ ] PR #1312 — README/homepage update, targets `execution`; not merged.
+- [x] PR #1314 — CI trigger/trust-gate repair merged into `execution`; merge SHA `b89c82fb52f40ee13b2151f98c644d3003f1de02`. Exact-head CI run [38744669546](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/38744669546) passed on pre-merge SHA `e01dcca70f2b3659fa537108bd8f715d001a9593`.
+- [ ] PR #1313 — durable release plan, targets `execution`; still open.
+- [ ] PR #1312 — README/homepage update, targets `execution`; still open.
+- [ ] PR #1308 — protected release promotion, targets `main`, head `b89c82fb52f40ee13b2151f98c644d3003f1de02`; blocked, not merged. Run [38746043460](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/38746043460) completed FAILURE: strict model admission failed, therefore `trust-gate` and exact-SHA promotion proof failed; production deployment was skipped.
 
 ## Execution log
 
@@ -218,3 +219,22 @@ For every work session:
 - Current repair PR [#1314](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/pull/1314) head is `e01dcca70f2b3659fa537108bd8f715d001a9593`. A run on intermediate commit `a6428ba22d6d15b263251267f1b0b6ef102f67cc` observed Gitleaks scanning a range ending at the newer PR head `e01dcca70f2b3659fa537108bd8f715d001a9593` while its checkout was at `a6428ba22d6d15b263251267f1b0b6ef102f67cc`, causing an invalid revision range. Treat that run as failed evidence; do not override its result. The latest-head run `38744669546` was pending at last check and must be inspected for exact-SHA success.
 - Production model admission remains skipped in the execution-PR lane by design and is release-blocking for main: `docs/MODEL_LICENSE_MANIFEST.json` has `entries: []`. Code-license mismatch and external-account/deployment identity evidence also remain unresolved.
 - PR #1315 was closed after the needed Agent Watchdog fix was moved to the primary PR #1314. No main write, merge, deployment, or release certificate occurred.
+
+
+## Final release-gate readout — 2026-10-15
+
+Release certificate decision: **NOT CERTIFIED**.
+
+On the main-bound candidate SHA `b89c82fb52f40ee13b2151f98c644d3003f1de02`, run [38746043460](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/38746043460) completed with:
+- PASS: build/typecheck/lint/core contracts, full `npm test`, dependency audit, CodeQL, Secret Scan, Agent Watchdog, Red Team, Branch policy, Hub Stage 1 exact-SHA contract, sensitive-path assurance, exact-SHA coverage, Chromium browser smoke.
+- FAIL: strict production model admission, because `docs/MODEL_LICENSE_MANIFEST.json` has `entries: []`; `trust-gate` fails on `MODEL_ADMISSION_RESULT=failure`, and Exact-SHA promotion proof fails because it requires trust-gate success.
+- SKIPPED: production exact-SHA deployment, because promotion proof did not pass.
+
+Next required events before certification:
+1. Product owner/authorized reviewer selects a specific production model and confirms deployment mode; exact immutable model artifact digest, model license/terms/AUP, provenance, compatibility, security/evaluation evidence and human approval must be attached to issue [#1317](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/issues/1317). Only then may the strict gate consider PASS/ACTIVE.
+2. Rights holder resolves the conflicting repo license sources through issue [#1316](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/issues/1316); the failed metadata-write attempt was not bypassed.
+3. The latest main-bound candidate must receive required protected human review and all checks must pass on the same final SHA.
+4. Only after an approved merge can the production deployment job execute. Then verify the Worker identity endpoint, JSON build-provenance endpoint, production smoke/browser receipt, and real deployment identity on that deployed SHA.
+5. Complete owner-side external launch operations and review dependency/security alerts.
+
+No source changed on `main` as part of this work. There is no production deployment ID, release tag, verified post-deployment provenance receipt or official certificate yet.
