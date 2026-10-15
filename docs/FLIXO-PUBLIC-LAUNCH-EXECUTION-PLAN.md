@@ -249,3 +249,12 @@ No source changed on `main`. There is no verified production deployment ID, rele
 
 - The main-bound PR [#1308](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/pull/1308) remains open and unmerged. Its run [38746043460](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/38746043460) completed failure on candidate SHA `b89c82fb52f40ee13b2151f98c644d3003f1de02`: core build/tests, security scans, Red Team, browser smoke, coverage and Hub Stage 1 passed; strict model admission failed (`entries: []`); then `trust-gate` and exact-SHA promotion proof failed; production deployment was skipped.
 - The production Worker deployment block in `.github/workflows/ci.yml` is main-push-only and validates deployment identity plus JSON provenance and deployed Chromium checks. Those post-deployment checks have not run for this candidate, so no production deployment identity or certificate exists.
+
+## Latest recheck — main-bound release candidate (2026-10-15)
+
+- PR [#1308](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/pull/1308) remains open and unmerged, latest head `eaeea292eb7616fefbec82fe75230125f5dc3d08`.
+- Latest run [38750511769](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/38750511769) completed FAILURE. Branch policy, Agent Watchdog, Red Team, CodeQL, typecheck/lint/contracts/build, Secret Scan, sensitive-path assurance, Hub Stage 1, coverage and Chromium browser smoke passed.
+- Strict production model admission failed because the canonical manifest still contains `entries: []`. The dependent `trust-gate` and exact-SHA promotion proof failed; production exact-SHA deployment was skipped.
+- Homepage/license-disclosure PR [#1318](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/pull/1318) was merged to `execution` as `f67bea2e082afb5a07a3333e58c685293e78755e`; its exact-head CI run [38747102461](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/38747102461) succeeded. The README now flags license metadata for review but does not resolve the underlying legal choice.
+- The legal decision issue [#1316](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/issues/1316) and model admission issue [#1317](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/issues/1317) remain open. Owner-side legal/model approval and artifact evidence cannot be manufactured by automation.
+- Release certificate remains **NOT ISSUED**. No successful production deployment ID or post-deployment exact-SHA provenance receipt has been observed. `main` has not been changed by this work.
