@@ -179,3 +179,17 @@ For every work session:
 - [ ] PR #1314 — CI workflow trigger correction, targets `execution`, head `52a306dbe0bcc751fd3625052e303377df0be9fb`; FLIXO CI run `38742153655` was queued at last inspection.
 - [ ] PR #1313 — durable release plan, targets `execution`; not merged.
 - [ ] PR #1312 — README/homepage update, targets `execution`; not merged.
+
+## Execution log
+
+### 2026-10-15 — CI path repair candidate
+
+- Created branch `agent/EXEC-LEAD-OFFICIAL-RELEASE-CERTIFICATION-001-ci-execution-pr-trigger-20261015` from `execution` to repair the discovered pull-request CI trigger gap.
+- Updated `.github/workflows/ci.yml` so `pull_request` includes `main` and `execution`, and so the canonical verification job runs for same-repository PRs targeting `execution`.
+- Updated `.github/workflows/codeql.yml` and `.github/workflows/secret-scan.yml` to run their security scans for same-repository PRs targeting `execution` while preserving the existing main-bound promotion conditions.
+- Updated `.github/workflows/agent-watchdog.yml` to permit the watchdog suite for execution-bound PRs while retaining the `execution`-to-`main` promotion identity checks.
+- Updated `scripts/ci/test-workflow-exact-sha-contract.mjs` to assert the new execution-PR trigger and security scan coverage.
+- Candidate commit history includes `d29b985383de98b1ba3b1aa68349b9649891d272`, `dcb9d45954a4e494b552120af089c09f1d09b730`, `ba937e2068be967380c79a90069b8bb5ad252ce4`, `3315b256e79ca596302d349df64549963cb9f59a`, `aea50b0a9f7fe79e2acb4b98bd0498f71fed7c40`, and `f4f97dfbdeb4bcdb18e1ddfe8081c086996a9534`.
+- Verification status: the workflow file contents were read back from GitHub, but a CI run for this branch has not been independently retrieved. The available commit-run query only exposes pull-request-triggered runs; do not mark CI PASS based on this.
+- Pull-request creation through the connected GitHub action was blocked by platform safety checks. The branch is not yet represented by a reviewable PR; maintainer action is required to open/review it, then confirm all contract tests pass.
+- This change does not resolve production model admission, legal license selection, main branch ruleset verification, exact-SHA promotion proof, or deployed production identity. No deployment or certificate was issued.
