@@ -12,11 +12,15 @@ This register is an evidence checklist for the proposed Apache-2.0 release. A re
 | Historical contributions | Review contributors, commit history, pull requests, and contribution terms | NOT VERIFIED | Confirm each material contribution is licensed under compatible terms or obtain permission |
 | Employer/contractor-owned work | Where relevant, written authorization from the rights holder or proof the contributor owns the work | NOT VERIFIED | Do not infer rights from GitHub account ownership |
 | Third-party source/assets | File-level origin, upstream URL/version, license, copyright notices, modifications, and distribution obligations | NOT VERIFIED | Preserve required notices and resolve incompatibilities before distribution |
-| Dependencies and bundled assets | Lockfile inventory plus production/runtime/bundled asset license review | INVENTORY AUTOMATION ADDED; CI AND MANUAL REVIEW PENDING | Review the generated `dependency-license-inventory.json` and `.md` artifacts; inspect bundled files separately and resolve every unknown/file-pointer license |
+| Dependencies and bundled assets | Lockfile inventory plus production/runtime/bundled asset license review | LOCKFILE METADATA CHECK PASSED; COMPATIBILITY AND BUNDLE REVIEW PENDING | Review the generated `dependency-license-inventory.json` and `.md` artifacts; inspect bundled files separately and resolve every unknown/file-pointer license |
 | Patent/trademark/brand content | Identify included marks, logos, datasets, models, and other assets and their terms | NOT VERIFIED | Confirm permitted use and required attribution; do not assume Apache-2.0 licenses trademarks |
 | Apache NOTICE obligations | Inspect upstream licenses and notices for included components and distributions | NOT VERIFIED | Include required NOTICE content when applicable; do not invent an empty notice as proof |
 | Per-file SPDX/REUSE metadata | Compare file headers and REUSE annotations against verified ownership and third-party licensing | IN PROGRESS | No blanket Apache annotation until the file-level inventory supports it |
 | Release distribution | Confirm the published source/artifact carries the license and all applicable notices | NOT VERIFIED | Verify the exact promoted SHA and artifact contents |
+
+## Dependency inventory evidence
+
+CI run `38763039401` for candidate SHA `73c26cff4dd40db3a4fde170c65452f65c735a83` completed the `Inventory dependency license metadata` step successfully and uploaded artifact `flixo-dependency-license-inventory-38763039401`. The retained report records 262 package entries, one workspace link ignored, one stale `extraneous` entry ignored, and zero entries with missing, `UNLICENSED`, or `SEE LICENSE IN` license metadata. This is a successful metadata completeness check only. It does not prove SPDX expressions are compatible with Apache-2.0, establish provenance or ownership, satisfy upstream NOTICE obligations, or audit bundled files.
 
 ## Preliminary dependency metadata finding
 
