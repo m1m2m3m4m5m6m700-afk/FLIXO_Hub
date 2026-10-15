@@ -51,3 +51,10 @@ The initial inventory identified missing license metadata for the private worksp
 - GitHub public visibility and a successful CI run do not establish third-party copyright permission.
 - New contribution rules apply prospectively and do not retroactively cure missing rights.
 - This register is operational documentation, not legal advice. Obtain qualified legal review for unresolved ownership, compatibility, patent, or jurisdiction questions.
+
+
+## Candidate evidence refresh — 2026-10-15
+
+For PR #1323 candidate `a2885a11f85c212454d644205701c39ee6935727`, CI run [38767780141](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/38767780141) completed successfully for the listed PR-level engineering/security checks. The retained dependency inventory digest is `sha256:42a9312796957b87138bb2659ab6a763a70ceae064094ebe97786229d111cb31`; it remains metadata inventory evidence, not a legal compatibility opinion.
+
+The PR review list was checked and contains no submitted reviews. The production model manifest remains empty, and strict model admission, protected promotion proof, and production deployment were skipped on this execution-targeted PR. Accordingly, the register remains OPEN. Do not close ownership, third-party notices, dependency compatibility, distribution artifact, or independent review rows based on CI success alone.
