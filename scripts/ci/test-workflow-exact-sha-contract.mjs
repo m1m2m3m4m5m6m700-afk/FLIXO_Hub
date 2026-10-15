@@ -105,11 +105,11 @@ test('execution-bound PRs run canonical validation and security scans; promotion
   const codeql = await readFile(new URL('../../.github/workflows/codeql.yml', import.meta.url), 'utf8');
   const secretScan = await readFile(new URL('../../.github/workflows/secret-scan.yml', import.meta.url), 'utf8');
 
-  assert.match(ci, /github\\.event\\.pull_request\\.base\\.ref == 'execution'/u, 'canonical CI must validate PRs targeting execution');
-  assert.match(codeql, /github\\.event\\.pull_request\\.base\\.ref == 'execution'/u, 'CodeQL must run for execution-bound PRs');
-  assert.match(secretScan, /github\\.event\\.pull_request\\.base\\.ref == 'execution'/u, 'secret scanning must run for execution-bound PRs');
+  assert.match(ci, /github\.event\.pull_request\.base\.ref == 'execution'/u, 'canonical CI must validate PRs targeting execution');
+  assert.match(codeql, /github\.event\.pull_request\.base\.ref == 'execution'/u, 'CodeQL must run for execution-bound PRs');
+  assert.match(secretScan, /github\.event\.pull_request\.base\.ref == 'execution'/u, 'secret scanning must run for execution-bound PRs');
   for (const workflow of [ci, codeql, secretScan]) {
-    assert.match(workflow, /github\\.event\\.pull_request\\.head\\.repo\\.full_name == github\\.repository/u, 'PR validation must remain same-repository only');
+    assert.match(workflow, /github\.event\.pull_request\.head\.repo\.full_name == github\.repository/u, 'PR validation must remain same-repository only');
   }
 
   const promotionProofGate =
