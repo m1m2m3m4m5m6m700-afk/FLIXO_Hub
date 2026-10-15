@@ -112,18 +112,19 @@
 
 - URL: https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/pull/1312
 - Branch: `chore/official-repository-homepage-20261015`
-- Candidate commit observed: `deea570fcb05c9558f0bc2f1e5478d0a98492591`
+- Initial commit: `deea570fcb05c9558f0bc2f1e5478d0a98492591`; latest observed head after license-disclosure correction and plan-link fix: `9bc1215a2fb474c5af99d3708f137a8d8644d358`.
 - Scope: README only; target is `execution`, not `main`.
 - Latest observed state: open; mergeable at time of latest query.
 - Review state: automated Codex review summary reported findings/unresolved findings and usage limit prevented completion. Treat as NOT APPROVED until findings are independently reviewed and checks pass.
-- [ ] Resolve review findings and verify links/claims, including license inconsistency.
+- [ ] Resolve review findings and verify links/claims. The README now discloses the `LICENSE` / `CITATION.cff` mismatch rather than asserting Apache-2.0; maintainer license decision remains OPEN.
 - [ ] Confirm relevant checks and merge only when repository policy permits.
 - Note: this documentation PR is not evidence that the application is deployable or certified.
 
 ### Release-readiness tracker plan
 
 - Branch: `chore/release-readiness-plan-20261015`
-- [ ] Verify this plan file is committed and its link is live.
+- [x] Plan file committed; PR #1313 opened to `execution`: https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/pull/1313
+- [ ] Verify this plan file is merged into `execution` and the canonical link is live.
 - [ ] Open a PR targeting `execution`; do not target `main` directly.
 - [ ] Run the available plan/launch verifier and record its actual result.
 - [ ] Keep this file updated with observed blockers and evidence URLs; do not mark gates complete based on assumptions.
