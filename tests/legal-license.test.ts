@@ -29,7 +29,7 @@ test('repository package and citation metadata identify the selected license', (
 
 test('REUSE annotations do not blanket-assert Apache ownership for every file', () => {
   const reuse = readFileSync('REUSE.toml', 'utf8');
-  assert.doesNotMatch(reuse, /path = "\*\*"[\\s\\S]*?SPDX-License-Identifier = "Apache-2\.0"/);
-  assert.match(reuse, /path = "LICENSES\/AGPL-3\.0-only\.txt"[\\s\\S]*?SPDX-License-Identifier = "AGPL-3\.0-only"/);
-  assert.match(reuse, /path = "LICENSES\/Apache-2\.0\.txt"[\\s\\S]*?SPDX-License-Identifier = "Apache-2\.0"/);
+  assert.doesNotMatch(reuse, /path = "\*\*"[ \t\r\n]*SPDX-License-Identifier = "Apache-2\.0"/);
+  assert.match(reuse, /path = "LICENSES\/AGPL-3\.0-only\.txt"[\s\S]*?SPDX-License-Identifier = "AGPL-3\.0-only"/);
+  assert.match(reuse, /path = "LICENSES\/Apache-2\.0\.txt"[\s\S]*?SPDX-License-Identifier = "Apache-2\.0"/);
 });
