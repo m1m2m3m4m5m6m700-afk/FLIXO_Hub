@@ -4,7 +4,7 @@ on:
   push:
     branches: [main, execution, 'agent/**']
   pull_request:
-    branches: [main]
+    branches: [main, execution]
   workflow_dispatch:
     inputs:
       strict_governance:
@@ -29,8 +29,8 @@ env:
 
 jobs:
   verify:
-    # Canonical execution promotion and OSS readiness PRs consume pull-request CI; production promotion proof remains execution-only.
-    if: ${{ github.event_name != 'pull_request' || ((github.event.pull_request.head.ref == 'execution' || startsWith(github.event.pull_request.head.ref, 'chore/oss-')) && github.event.pull_request.head.repo.full_name == github.repository) }}
+    # Validate same-repository PRs targeting execution as well as the existing main-bound execution/OSS flow. Production promotion proof remains execution-only.
+    if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && ((github.event.pull_request.base.ref == 'execution') || (github.event.pull_request.base.ref == 'main' && (github.event.pull_request.head.ref == 'execution' || startsWith(github.event.pull_request.head.ref, 'chore/oss-'))))) }}
     name: Typecheck, lint, core contracts, build
     runs-on: ubuntu-latest
     timeout-minutes: 20
