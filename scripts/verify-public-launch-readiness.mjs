@@ -34,8 +34,8 @@ if (!/Status: NOT CERTIFIED/.test(certificate)) {
   console.error('[launch-readiness] BLOCKED: certificate template state is invalid.');
   process.exit(1);
 }
-if (!/No repository code license has been selected/.test(blockers)) {
-  console.error('[launch-readiness] BLOCKED: legal blocker ledger changed unexpectedly.');
+if (!/Decision recorded:\s*Apache-2\.0/.test(blockers)) {
+  console.error('[launch-readiness] BLOCKED: legal blocker ledger must explicitly record the selected repository code license (Apache-2.0).');
   process.exit(1);
 }
 
