@@ -1,7 +1,28 @@
 version = 1
 
+# Do not use a repository-wide Apache annotation: ownership and file-level
+# licensing have not yet been audited. Explicit SPDX headers and third-party
+# notices must remain authoritative until the provenance review is complete.
 [[annotations]]
-path = "**"
-precedence = "aggregate"
-SPDX-FileCopyrightText = "2026 m1m2m3m4m5m6m700-afk and FLIXO Hub contributors"
+path = "LICENSE"
+precedence = "override"
+SPDX-FileCopyrightText = "Apache Software Foundation"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "LICENSES/Apache-2.0.txt"
+precedence = "override"
+SPDX-FileCopyrightText = "Apache Software Foundation"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "LICENSES/AGPL-3.0-only.txt"
+precedence = "override"
+SPDX-FileCopyrightText = "Free Software Foundation, Inc."
 SPDX-License-Identifier = "AGPL-3.0-only"
+
+[[annotations]]
+path = "LICENSES/third-party/isarray-1.0.0-MIT.txt"
+precedence = "override"
+SPDX-FileCopyrightText = "2013 Julian Gruber"
+SPDX-License-Identifier = "MIT"

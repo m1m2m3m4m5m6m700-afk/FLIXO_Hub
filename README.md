@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <img alt="License metadata needs reconciliation" src="https://img.shields.io/badge/license-metadata%20needs%20review-f59e0b?style=for-the-badge" />
+  <img alt="Apache-2.0 license" src="https://img.shields.io/badge/license-Apache--2.0-blue?style=for-the-badge" />
   <img alt="React 19" src="https://img.shields.io/badge/React-19-149eca?style=for-the-badge&logo=react&logoColor=white" />
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-typed-3178c6?style=for-the-badge&logo=typescript&logoColor=white" />
   <img alt="Vite" src="https://img.shields.io/badge/Vite-powered-646cff?style=for-the-badge&logo=vite&logoColor=white" />
@@ -155,7 +155,7 @@ Use [Discussions](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/discussions)
 
 ## Licensing
 
-**License metadata requires maintainer reconciliation before release.** The current `LICENSE` file contains AGPL-3.0 text, while `CITATION.cff` declares Apache-2.0 and the legal blocker ledger says the intended repository license has not been confirmed. Do not infer a settled license from these conflicting files. See [the release readiness plan](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/blob/execution/docs/FLIXO-PUBLIC-LAUNCH-EXECUTION-PLAN.md) and [LICENSE](LICENSE).
+**Selected repository license: Apache-2.0.** See [LICENSE](LICENSE) for the full license text. Third-party notices, contribution provenance, and the authority to license every included contribution remain subject to review; this metadata update does not by itself certify those rights.
 
 ---
 
