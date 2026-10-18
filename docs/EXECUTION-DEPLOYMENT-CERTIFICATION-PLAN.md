@@ -13,24 +13,24 @@ This is an operational plan and evidence index, not a deployment certificate. A 
 
 The owner-selected initial release operates without a model. Model runtime and external inference are disabled; model-dependent capabilities must be unavailable or clearly marked unavailable. The AI Image Generator route explicitly displays the model-free limitation, and the browser test asserts that opening the route makes no `/api/ai/image` request. The strict model-backed admission path remains fail-closed and is not waived by this profile.
 
-## Last fully green verification baseline
+## Current candidate and exact-SHA evidence
 
-The following runs completed successfully against predecessor candidate SHA `3da681e301d67b099d3b98455910c63cbe4d9ac6` on 2026-10-18:
+- Current integration candidate: `47be48c1bccdc282f85e45fe3e6371f6914b48be`.
+- Implementation PR #1335 was merged into `execution` at that exact merge commit on 2026-10-18. Production `main` has not been changed; its observed SHA remains `29f2e0fe045689337a1483ed98d087b736ff6afc`.
+- Canonical protected promotion PR: [#1308](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/pull/1308), source `execution`, target `main`; it is open and not merged.
+- [Execution push CI run 39145752548](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/39145752548) completed successfully on the merge SHA, including `npm test`, build, production dependency audit, CodeQL, secret scan, Red Team, branch policy, exact-SHA internal coverage, Hub Stage 1, Chromium smoke, `trust-gate`, and exact-SHA promotion proof. Production deployment was skipped because this was a push to `execution`, not a push to protected `main`.
+- [Main promotion PR CI run 39145757343](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/39145757343) is running on the same SHA. At the latest observation, model-free profile admission, branch policy, Red Team, secret scan, agent watchdog, CodeQL, build/tests, Hub Stage 1, coverage, sensitive-path assurance, Chromium, and `trust-gate` had passed; `Exact-SHA promotion proof` was still waiting for exact-head security workflow confirmation.
+- Additional successful evidence on the merge SHA: [TestSprite Live E2E](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/39145752450), [clean-clone Red Team](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/39145752431), and [Governance Contract](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/39145757224).
+- The first [Autonomous Promotion Controller run 39145752543](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/39145752543) failed because its `GITHUB_TOKEN` could not call `enablePullRequestAutoMerge`. The controller is being corrected to report the protected review/check state without attempting a merge or enabling auto-merge. No merge to `main` resulted from that failure.
+- Live `main` ruleset configuration was verified read-only: `FLIXO-MAIN-PROTECTION` (ID `23854302`) is active and requires one approving review, Code Owner review, latest-push approval, resolved review threads, strict `trust-gate`, and `Exact-SHA promotion proof`, with no bypass actors. The owner stated in this conversation that review was completed, but the live GitHub review API returned zero review submissions on PR #1308 at last check. The protected merge gate therefore must remain authoritative until the required GitHub approval is recorded.
 
-- Push CI: [run 39143708404](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/39143708404)
-- Pull-request CI: [run 39143712503](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/39143712503)
+## Remaining release blockers
 
-Both runs passed build/typecheck/lint and `npm test`, production dependency audit, CodeQL, secret scan, Red Team, branch policy, agent watchdog, sensitive-path assurance, exact-SHA coverage, Hub Stage 1, Chromium browser smoke, and `trust-gate`. The model-free profile and strict model-backed behavior are covered by the model-license-gate regression tests in the test suite.
-
-**Evidence boundary:** this plan is a new repository mutation after those runs, so those runs are predecessor-SHA evidence only. The resulting plan commit must receive fresh exact-SHA CI, security, coverage, and browser evidence before it can be treated as a verified candidate.
-
-## Current promotion and deployment state
-
-- PR #1335 is a draft PR from the model-free feature branch to `execution`; it is not merged.
-- The successful runs above skipped exact-SHA promotion proof and production deployment because the event was not a promotion PR from `execution` to `main` or a push to `main`. Skipped is not pass.
-- No new production deployment ID, deployed commit SHA, immutable production identity, or post-deployment smoke receipt has been established by these runs.
-- The public release manifest and final certification documents remain templates marked not certified.
-- Live `main` ruleset configuration was verified read-only on 2026-10-18: `FLIXO-MAIN-PROTECTION` (ID `23854302`) is active, targets `refs/heads/main`, requires one approving review, Code Owner review, latest-push approval, review-thread resolution, strict `trust-gate` and `Exact-SHA promotion proof` checks, and has no bypass actors. Snapshot: https://api.github.com/repos/m1m2m3m4m5m6m700-afk/FLIXO_Hub/rulesets/23854302. Required independent review/approval of the current release lineage is still outstanding.
+1. **Code-license and rights provenance:** root `LICENSE` contains AGPL-3.0 text while `CITATION.cff` declares Apache-2.0. The requested Apache target is documented, but authority to relicense all covered contributions and third-party materials is not evidenced. See `docs/FLIXO-LEGAL-LAUNCH-BLOCKERS.md` and PR [#1323](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/pull/1323). Do not assert legal clearance until rights/provenance evidence is recorded.
+2. **Protected approval:** PR #1308 still needs the actual required GitHub review controls to be satisfied on its current head SHA.
+3. **Production identity:** no production deployment ID, deployed immutable identity, or post-deployment smoke/provenance receipt exists for this candidate. That job is correctly not run before an authorized merge to `main`.
+4. **Owner-side launch checks:** real support contact, private vulnerability reporting, privacy/consent requirements, Search Console/domain ownership, analytics configuration, and rollback drill require verifiable owner-account evidence.
+5. **Controller boundary:** eliminate the failed auto-merge mutation attempt while preserving the live protected review/check requirements; do not bypass GitHub permission or branch-protection errors.
 
 ## Required closure sequence
 
