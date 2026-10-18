@@ -25,9 +25,8 @@ function readJson(file) {
 
 const manifest = readJson(manifestPath);
 const policy = readJson(policyPath);
-let releaseProfile = null;
 if (allowModelFreeRelease) {
-  releaseProfile = readJson(releaseProfilePath);
+  const releaseProfile = readJson(releaseProfilePath);
   if (releaseProfile?.schema_version !== '1.0.0') fail('model-free release profile schema_version must be 1.0.0.');
   if (releaseProfile?.status !== 'APPROVED_BY_PRODUCT_OWNER') fail('model-free release profile lacks product-owner decision status.');
   if (releaseProfile?.release_mode !== 'MODEL_FREE_INITIAL_RELEASE') fail('release profile must explicitly select MODEL_FREE_INITIAL_RELEASE.');
