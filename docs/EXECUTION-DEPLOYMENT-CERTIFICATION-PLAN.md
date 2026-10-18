@@ -45,7 +45,7 @@ Both runs passed build/typecheck/lint and `npm test`, production dependency audi
 
 ## External or governance blockers
 
-Repository automation cannot fabricate or self-approve missing external evidence. Before public launch, obtain the required independent reviewer approval on the current release lineage; verify the actual merge checks remain green; and close the public support contact, private vulnerability reporting, code-license decision and notices, privacy/consent requirements, and external analytics/Search Console ownership actions required by the public launch checklist. The ruleset configuration itself was verified as noted above. Record each remaining item as verified with evidence or leave it explicitly blocked.
+Repository automation cannot fabricate or self-approve missing external evidence. Before public launch, obtain the required independent reviewer approval on the current release lineage; verify the actual merge checks remain green; and close the public support contact, private vulnerability reporting, privacy/consent requirements, and external analytics/Search Console ownership actions required by the public launch checklist. The root `LICENSE` currently contains AGPL-3.0 while the recorded target decision is Apache-2.0; this rights/provenance conflict is documented in `docs/FLIXO-LEGAL-LAUNCH-BLOCKERS.md` and must be resolved by the rights owner before license claims or file changes. The ruleset configuration itself was verified as noted above. Record each remaining item as verified with evidence or leave it explicitly blocked.
 
 ## Non-negotiable rules
 
