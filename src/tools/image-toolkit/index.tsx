@@ -4,7 +4,7 @@ import { applyBasicImageEffect, cropResizeImage, flipImage, imageInfo, rasterToS
 import { executeCanonicalTool } from '../../lib/execution/canonical-executor';
 import { recognizeWithOcrWorker } from './ocr-worker-client';
 import { assertImageCropperOutputIntegrity } from '../image-cropper/output-integrity';
-import { assertRasterOutput, readRasterHeaderDimensions, validateFileSafety } from '../../lib/contracts/file-safety';
+import { readRasterHeaderDimensions, validateFileSafety } from '../../lib/contracts/file-safety';
 import { assertToolOutputContract } from '../../lib/contracts/tool-output';
 import { getToolOutputContract } from '../../lib/contracts/tool-output-contracts';
 import { validateUploadBoundary } from '../../lib/contracts/upload-boundary';
