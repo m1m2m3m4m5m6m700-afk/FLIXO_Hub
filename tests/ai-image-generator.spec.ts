@@ -8,7 +8,7 @@ test('ai-image-generator: is unavailable in the model-free initial release and m
   });
 
   await page.goto('/en/ai-image-generator');
-  await expect(page.getByRole('heading', { level: 1, name: 'AI Image Generator' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: 'AI Image Generator' })).toBeVisible();
   await expect(page.getByRole('status')).toContainText('Image generation is unavailable in the model-free initial release.');
   await expect(page.getByRole('button', { name: 'Generate image' })).toHaveCount(0);
   expect(endpointCalls).toBe(0);
