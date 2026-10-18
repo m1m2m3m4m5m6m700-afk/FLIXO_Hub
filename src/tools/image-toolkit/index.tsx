@@ -83,7 +83,6 @@ const UI_COPY: Record<string, UiCopy> = {
 };
 
 function baseName(name: string) { return name.replace(/\.[^.]+$/, '') || 'flixo-image'; }
-function outputExtension(mime: string): 'png' | 'jpg' | 'webp' { return mime === 'image/jpeg' ? 'jpg' : mime === 'image/webp' ? 'webp' : 'png'; }
 
 async function validateSharedImageInput(file: File, toolId: SharedImageToolId) {
   const allowedMime = DEFINITIONS[toolId].accept.split(',');
