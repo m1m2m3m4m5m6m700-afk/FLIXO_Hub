@@ -30,7 +30,7 @@ This is a governance record, not a certification. The former reference to integr
 ## Blocking conditions
 
 1. Fresh exact-SHA CI, security, coverage, and browser evidence after the current candidate mutations.
-2. Required independent review and live enforcement verification for the protected `execution -> main` governance path.
+2. Required independent reviewer approval on the current release lineage. The active `main` ruleset configuration was verified read-only on 2026-10-18 in `docs/FLIXO-EXACT-SHA-CERTIFICATION.md`; that does not substitute for an approval on this PR.
 3. Authorized promotion through the current execution-to-main PR and verified merge lineage.
 4. Main-commit production deployment evidence, deployed immutable identity, and post-deployment smoke/browser evidence.
 5. Completion of applicable public-launch legal, support, security-reporting, privacy, and external-account requirements.
