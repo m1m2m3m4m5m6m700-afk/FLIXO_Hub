@@ -1,0 +1,28 @@
+{
+  "schema_version": "1.0.0",
+  "status": "APPROVED_BY_PRODUCT_OWNER",
+  "release_mode": "MODEL_FREE_INITIAL_RELEASE",
+  "decision_date": "2026-10-18",
+  "decision_basis": "Explicit product-owner instruction in the project conversation: the initial release will operate without a model.",
+  "model_runtime": "DISABLED",
+  "model_admission_required": false,
+  "external_inference": false,
+  "model_dependent_features": "DISABLED",
+  "included_surface": [
+    "Static frontend and browser-local deterministic workflows that do not require inference"
+  ],
+  "excluded_capabilities": [
+    "LLM inference",
+    "remote model inference",
+    "model-backed agent execution",
+    "any feature whose core acceptance depends on a model response"
+  ],
+  "security_constraints": [
+    "Do not add model API keys or model-provider secrets.",
+    "Do not silently route user content to an external inference provider.",
+    "Model-dependent controls must be unavailable or clearly marked unavailable in the initial release.",
+    "This profile is not model admission and does not approve any model, license, weights, or provider.",
+    "Any later model-backed release must switch to the strict model admission path with exact artifact/provider evidence and required approval."
+  ],
+  "future_model_release_requires": "npm run test:model-license:release plus the full exact-SHA release and promotion gates."
+}
