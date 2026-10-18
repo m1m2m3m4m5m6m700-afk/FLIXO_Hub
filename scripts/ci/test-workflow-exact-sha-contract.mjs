@@ -206,7 +206,7 @@ test('post-merge reporting workflows remain exact-merge-SHA and credential isola
 test('promotion and production gates remain fail-closed and exact-SHA bound', async () => {
   const workflow = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
 
-  assert.ok(workflow.includes('needs: [trust-gate]'), 'promotion proof must depend on trust-gate');
+  assert.match(workflow, /needs:\s*\[trust-gate,\s*codeql,\s*secret-scan\]/u, 'promotion proof must depend on trust-gate and same-run exact-SHA security results');
   assert.ok(
     workflow.includes('if: ${{ always() }}'),
     'promotion proof must still execute as a fail-closed assertion when upstream fails',

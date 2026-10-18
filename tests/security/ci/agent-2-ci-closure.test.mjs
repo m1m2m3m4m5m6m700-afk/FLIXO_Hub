@@ -99,6 +99,12 @@ test('CI promotion workflow contains live lineage and exact security-gate semant
   assert.match(workflow, /pull_request:\s*\n\s*branches:\s*\[main, execution\]/u);
   assert.match(workflow, /github\.event\.pull_request\.head\.ref == 'execution'/u);
   assert.match(workflow, /github\.event\.pull_request\.head\.repo\.full_name == github\.repository/u);
+  assert.ok(workflow.includes('needs: [trust-gate, codeql, secret-scan]'));
+  assert.ok(workflow.includes('CODEQL_RESULT: ${{ needs.codeql.result }}'));
+  assert.ok(workflow.includes('SECRET_SCAN_RESULT: ${{ needs.secret-scan.result }}'));
+  assert.ok(!workflow.includes('name: Wait for exact-head security workflows'));
+  assert.ok(workflow.includes('test "$CODEQL_RESULT" = success'));
+  assert.ok(workflow.includes('test "$SECRET_SCAN_RESULT" = success'));
   assert.ok(workflow.includes('test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"'));
 });
 

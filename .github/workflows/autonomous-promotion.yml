@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   promote:
-    name: Ensure execution PR is auto-merge enabled
+    name: Validate canonical execution PR without promoting main
     if: >-
       github.repository == 'm1m2m3m4m5m6m700-afk/FLIXO_Hub' &&
       github.event_name == 'push' &&
@@ -73,16 +73,35 @@ jobs:
           set -euo pipefail
           bash scripts/ci/check-governance.sh
 
-      - name: Enable protected auto-merge
+      - name: Record protected promotion state without merging
         env:
           GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ github.sha }}
         shell: bash
         run: |
           set -euo pipefail
-          auto_merge_enabled="$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json autoMergeRequest --jq '.autoMergeRequest != null')"
-          if [ "$auto_merge_enabled" = "true" ]; then
-            echo "AUTO_MERGE_ALREADY_ENABLED=true"
-          else
-            gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --auto --squash
-            echo "AUTO_MERGE_ENABLED=true"
-          fi
+          pr_json="$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json number,url,state,baseRefName,headRefName,headRefOid,autoMergeRequest,reviewDecision)"
+          pr_number="$(printf '%s' "$pr_json" | jq -r '.number')"
+          pr_url="$(printf '%s' "$pr_json" | jq -r '.url')"
+          pr_state="$(printf '%s' "$pr_json" | jq -r '.state')"
+          base_ref="$(printf '%s' "$pr_json" | jq -r '.baseRefName')"
+          head_ref="$(printf '%s' "$pr_json" | jq -r '.headRefName')"
+          head_sha="$(printf '%s' "$pr_json" | jq -r '.headRefOid')"
+          review_decision="$(printf '%s' "$pr_json" | jq -r '.reviewDecision // "REVIEW_REQUIRED"')"
+          auto_merge_requested="$(printf '%s' "$pr_json" | jq -r '.autoMergeRequest != null')"
+          test "$pr_number" = "$PR_NUMBER"
+          test "$pr_state" = "OPEN"
+          test "$base_ref" = "main"
+          test "$head_ref" = "execution"
+          test "$head_sha" = "$EXPECTED_SHA"
+          {
+            printf '### Protected promotion gate\n\n'
+            printf -- '- PR: [#%s](%s)\n' "$pr_number" "$pr_url"
+            printf -- '- Exact execution SHA: `%s`\n' "$EXPECTED_SHA"
+            printf -- '- Live main governance check: `PASS`\n'
+            printf -- '- GitHub review decision reported: `%s`\n' "$review_decision"
+            printf -- '- Auto-merge already enabled before this run: `%s`\n' "$auto_merge_requested"
+            printf -- '- Controller action: no merge or auto-merge mutation; required human review and status checks remain authoritative.\n'
+            printf -- '- State: `WAITING_FOR_PROTECTED_REVIEW_AND_REQUIRED_CHECKS`\n'
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "PROMOTION_STATUS=WAITING_FOR_PROTECTED_REVIEW_AND_REQUIRED_CHECKS"
