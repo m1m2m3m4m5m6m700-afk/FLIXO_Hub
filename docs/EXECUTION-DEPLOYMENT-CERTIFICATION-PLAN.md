@@ -30,7 +30,7 @@ Both runs passed build/typecheck/lint and `npm test`, production dependency audi
 - The successful runs above skipped exact-SHA promotion proof and production deployment because the event was not a promotion PR from `execution` to `main` or a push to `main`. Skipped is not pass.
 - No new production deployment ID, deployed commit SHA, immutable production identity, or post-deployment smoke receipt has been established by these runs.
 - The public release manifest and final certification documents remain templates marked not certified.
-- Live `main` ruleset enforcement and independent governance approval must be checked under the actual repository controls; repository policy text is not proof of live enforcement.
+- Live `main` ruleset configuration was verified read-only on 2026-10-18: `FLIXO-MAIN-PROTECTION` (ID `23854302`) is active, targets `refs/heads/main`, requires one approving review, Code Owner review, latest-push approval, review-thread resolution, strict `trust-gate` and `Exact-SHA promotion proof` checks, and has no bypass actors. Snapshot: https://api.github.com/repos/m1m2m3m4m5m6m700-afk/FLIXO_Hub/rulesets/23854302. Required independent review/approval of the current release lineage is still outstanding.
 
 ## Required closure sequence
 
@@ -45,7 +45,7 @@ Both runs passed build/typecheck/lint and `npm test`, production dependency audi
 
 ## External or governance blockers
 
-Repository automation cannot fabricate or self-approve missing external evidence. Before public launch, confirm the live GitHub ruleset and required reviewer controls, public support contact, private vulnerability reporting, code-license decision and notices, privacy/consent requirements, and any external analytics/Search Console ownership actions required by the public launch checklist. Record each item as verified with evidence or leave it explicitly blocked.
+Repository automation cannot fabricate or self-approve missing external evidence. Before public launch, obtain the required independent reviewer approval on the current release lineage; verify the actual merge checks remain green; and close the public support contact, private vulnerability reporting, code-license decision and notices, privacy/consent requirements, and external analytics/Search Console ownership actions required by the public launch checklist. The ruleset configuration itself was verified as noted above. Record each remaining item as verified with evidence or leave it explicitly blocked.
 
 ## Non-negotiable rules
 
