@@ -1,6 +1,6 @@
 # FLIXO Exact-SHA Certification Record
 
-STATUS: POLICY-ALIGNED / LIVE-GOVERNANCE-BLOCKED
+STATUS: POLICY-ALIGNED / MAIN-RULESET-VERIFIED / PROMOTION-AND-DEPLOYMENT-BLOCKED
 
 This file indexes evidence policy. It never substitutes for live GitHub state.
 
@@ -26,6 +26,18 @@ For `main`:
 
 Direct writes to the `main` ref remain forbidden.
 
+## Live main ruleset snapshot (read-only verification)
+
+Observed 2026-10-18 through the GitHub repository rulesets API:
+- Ruleset: `FLIXO-MAIN-PROTECTION`, ID `23854302`, enforcement `active`.
+- Target: `refs/heads/main`.
+- Required pull-request controls: 1 approving review, stale-review dismissal on push, Code Owner review, latest-push approval, review-thread resolution, and extra approval for unattributed changes.
+- Required status checks: strict policy with `trust-gate` and `Exact-SHA promotion proof`.
+- Deletion and non-fast-forward rules are enabled; no bypass actors are configured, and the API reports `current_user_can_bypass: never`.
+- Read-only source: https://api.github.com/repos/m1m2m3m4m5m6m700-afk/FLIXO_Hub/rulesets/23854302
+
+This snapshot verifies the configured repository ruleset at observation time. It does not approve the current release PR, establish that the required independent review has been given, or prove production deployment. Recheck the ruleset if its configuration or enforcement changes.
+ 
 ## Evidence rule
 
 Every mutation to `execution` creates a new candidate SHA and invalidates older candidate-specific evidence. Pending, skipped, cancelled, neutral, stale, or mismatched evidence is not PASS.
@@ -36,4 +48,4 @@ A merge report is generated only after a PR is actually merged into `main`. The 
 
 ## Certification state
 
-Final product/production claims still require their own exact-SHA evidence. Current live GitHub governance remains a release blocker until the required ruleset controls are actually enforced.
+Final product/production claims still require their own exact-SHA evidence. The live main ruleset was observed active and aligned with the configured required controls, but review, promotion, production deployment, and post-deployment evidence remain separate release gates.
