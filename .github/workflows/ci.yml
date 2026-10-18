@@ -376,7 +376,7 @@ jobs:
           npm audit --omit=dev --audit-level=high
 
   model-admission:
-    name: Production model admission (strict release mode)
+    name: Initial release profile admission (model-free or model-backed)
     if: ${{ github.event_name == 'merge_group' || (github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main') || github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && inputs.strict_governance == true) }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -391,8 +391,8 @@ jobs:
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: '22'
-      - name: Require one exact production-admitted model
-        run: node scripts/model-license-gate.mjs --require-entry
+      - name: Validate explicit initial release profile
+        run: node scripts/model-license-gate.mjs --allow-model-free-release
 
   trust-gate:
     name: trust-gate
