@@ -17,7 +17,7 @@ This document is a release attestation record, not certification by itself. It m
 - Execution push CI [39145752548](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/39145752548) completed successfully on the current candidate SHA, including build/tests, security, Chromium, `trust-gate`, and exact-SHA promotion proof. The production deployment job was skipped because the event was an `execution` push.
 - Main-promotion CI [39145757343](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/39145757343) completed with failure at `Exact-SHA promotion proof`: the wait step queried for separate workflow runs named `FLIXO CodeQL` and `FLIXO Secret Scan`, but those controls are jobs inside the same `FLIXO CI` run and the query returned `MISSING`. The proposed correction binds promotion proof directly to same-run `needs.codeql.result` and `needs.secret-scan.result`; it is still under review and needs fresh CI evidence.
 - Supplementary merge-SHA evidence: TestSprite Live E2E run [39145752450](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/39145752450), clean-clone Red Team run [39145752431](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/39145752431), and governance contract run [39145757224](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/39145757224) succeeded.
-- The autonomous promotion controller run [39145752543](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/39145752543) failed when it tried to enable auto-merge through an unavailable `GITHUB_TOKEN` capability. The proposed controller correction records protected state without merging or enabling auto-merge. That correction is not yet merged into `execution`.
+- The autonomous promotion controller run [39145752543](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/39145752543) failed when it tried to enable auto-merge through an unavailable `GITHUB_TOKEN` capability. PR #1336 proposes a correction that records protected state without merging or enabling auto-merge. That correction is not yet merged into `execution` and must pass exact-SHA CI first.
 
 ## Governance and approval evidence
 
@@ -43,7 +43,7 @@ The live `FLIXO-MAIN-PROTECTION` ruleset (ID `23854302`) was observed active on 
 1. Complete the current exact-SHA PR workflow and the pending exact-head promotion-proof correction.
 2. Satisfy the actual protected GitHub review requirements on PR #1308; conversational approval does not bypass the ruleset.
 3. Reconcile root `LICENSE` (AGPL-3.0 text) with `CITATION.cff` (Apache-2.0 declaration). The requested Apache target does not itself prove rights to relicense all contributions or third-party materials; maintain a rights/provenance evidence record.
-4. Complete authorized promotion to `main) through the protected PR process. No agent may directly write, merge, or self-certify on `main`.
+4. Complete authorized promotion to `main` through the protected PR process. No agent may directly write, merge, or self-certify on `main`.
 5. After an authorized main merge, record the main merge SHA, production deployment ID, immutable deployed identity, `/__flixo/build-provenance.json` receipt, and post-deployment browser/smoke evidence.
 6. Verify public support contact, private vulnerability reporting, privacy/consent requirements, domain/Search Console, analytics, and rollback evidence before public launch.
 
