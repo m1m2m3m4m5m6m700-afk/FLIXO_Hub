@@ -103,7 +103,7 @@ Track the actual signals here:
 - [good first issue](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
 - [help wanted](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)
 - [Release manifest](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/blob/execution/docs/FLIXO-PUBLIC-RELEASE-MANIFEST.md)
-- [Public launch execution plan](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/blob/execution/docs/FLIXO-PUBLIC-LAUNCH-EXECUTION-PLAN.md)
+- [Public launch execution plan](docs/EXECUTION-DEPLOYMENT-CERTIFICATION-PLAN.md)
 
 ## Run it locally
 
@@ -155,7 +155,7 @@ Use [Discussions](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/discussions)
 
 ## Licensing
 
-**License metadata requires maintainer reconciliation before release.** The current `LICENSE` file contains AGPL-3.0 text, while `CITATION.cff` declares Apache-2.0 and the legal blocker ledger says the intended repository license has not been confirmed. Do not infer a settled license from these conflicting files. See [the release readiness plan](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/blob/execution/docs/FLIXO-PUBLIC-LAUNCH-EXECUTION-PLAN.md) and [LICENSE](LICENSE).
+**License metadata requires rights/provenance reconciliation before release.** The root `LICENSE` contains AGPL-3.0 text while `CITATION.cff` declares Apache-2.0. The recorded target decision is Apache-2.0, but authority to relicense all covered contributions has not been verified. Do not advertise Apache-2.0 or replace the current license text until that conflict is resolved. See [legal launch blockers](docs/FLIXO-LEGAL-LAUNCH-BLOCKERS.md), [release readiness plan](docs/EXECUTION-DEPLOYMENT-CERTIFICATION-PLAN.md), and [LICENSE](LICENSE).
 
 ---
 

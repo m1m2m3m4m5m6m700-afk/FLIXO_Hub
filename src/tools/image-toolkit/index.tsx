@@ -4,10 +4,9 @@ import { applyBasicImageEffect, cropResizeImage, flipImage, imageInfo, rasterToS
 import { executeCanonicalTool } from '../../lib/execution/canonical-executor';
 import { recognizeWithOcrWorker } from './ocr-worker-client';
 import { assertImageCropperOutputIntegrity } from '../image-cropper/output-integrity';
-import { assertRasterOutput, readRasterHeaderDimensions, validateFileSafety } from '../../lib/contracts/file-safety';
+import { readRasterHeaderDimensions, validateFileSafety } from '../../lib/contracts/file-safety';
 import { assertToolOutputContract } from '../../lib/contracts/tool-output';
 import { getToolOutputContract } from '../../lib/contracts/tool-output-contracts';
-import { AI_IMAGE_GENERATOR_OUTPUT_CONTRACT } from '../../lib/contracts/external-output-contracts';
 import { validateUploadBoundary } from '../../lib/contracts/upload-boundary';
 import { LOCALE_METADATA, isLocale } from '../../lib/i18n';
 import { getToolSeo } from '../../lib/seo/tool-seo';
@@ -84,7 +83,6 @@ const UI_COPY: Record<string, UiCopy> = {
 };
 
 function baseName(name: string) { return name.replace(/\.[^.]+$/, '') || 'flixo-image'; }
-function outputExtension(mime: string): 'png' | 'jpg' | 'webp' { return mime === 'image/jpeg' ? 'jpg' : mime === 'image/webp' ? 'webp' : 'png'; }
 
 async function validateSharedImageInput(file: File, toolId: SharedImageToolId) {
   const allowedMime = DEFINITIONS[toolId].accept.split(',');
@@ -163,21 +161,7 @@ export function ImageToolPage({ toolId }: Props) {
     setBusy(true); setError(''); replaceResult(null);
     try {
       if (toolId === 'ai-image-generator') {
-        if (!prompt.trim()) throw new Error(ui.promptRequired);
-        const body = new FormData();
-        body.append('capability', 'generate-image');
-        body.append('prompt', prompt.trim());
-        const response = await fetch(import.meta.env.VITE_FLIXO_AI_IMAGE_ENDPOINT || '/api/ai/image', { method: 'POST', body });
-        if (!response.ok) throw new Error('AI image endpoint is not configured or returned an error.');
-        const blob = await response.blob();
-        if (!blob.type.startsWith('image/')) throw new Error('AI endpoint did not return an image.');
-        await assertRasterOutput(blob, blob.type);
-        const header = new Uint8Array(await blob.slice(0, 64).arrayBuffer());
-        const info = await imageInfo(blob);
-        const aiFileName = `flixo-ai-${info.width}x${info.height}.${outputExtension(blob.type)}`;
-        assertToolOutputContract(AI_IMAGE_GENERATOR_OUTPUT_CONTRACT, { mimeType: blob.type, byteLength: blob.size, bytes: header, filename: aiFileName, dimensions: info });
-        replaceResult(await createResult(blob, aiFileName, info));
-        return;
+        throw new Error('Image generation is unavailable in the model-free initial release.');
       }
       if (toolId === 'image-upscaler') { const factor = Number(scale); if (!Number.isFinite(factor) || factor < 1 || factor > 8) throw new Error('Scale must be between 1 and 8.'); }
       if (!file) throw new Error(ui.chooseImageFirst);
@@ -220,6 +204,20 @@ export function ImageToolPage({ toolId }: Props) {
     } catch (caught) { setError(caught instanceof Error ? caught.message : 'Tool failed.'); }
     finally { setBusy(false); }
   };
+
+  if (isGenerator) {
+    const message = localeMetadata.languageTag.startsWith('ar')
+      ? 'ميزة إنشاء الصور بالذكاء الاصطناعي غير متاحة في الإصدار الأول الذي يعمل بلا نموذج.'
+      : 'Image generation is unavailable in the model-free initial release.';
+    return (
+      <div lang={localeMetadata.languageTag} dir={localeMetadata.direction} className="image-tool-shell">
+        <div className="image-tool-container">
+          <header className="image-tool-header"><div><p className="image-tool-eyebrow">FLIXO · AI TOOLS</p><h2>AI Image Generator</h2></div></header>
+          <section className="compressor-card" aria-label="AI Image Generator"><p role="status">{message}</p></section>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div lang={localeMetadata.languageTag} dir={localeMetadata.direction} className="image-tool-shell">

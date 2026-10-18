@@ -114,3 +114,31 @@ test('model-license-gate: release admission fails closed with an empty manifest'
     assert.equal(result.status, 0, 'release mode must pass only when all registered entries are admissible');
   }
 });
+
+
+test('model-license-gate: explicit model-free initial release profile passes without admitting a model', () => {
+  const profile = JSON.parse(readFileSync(pathResolve('docs/INITIAL-RELEASE-PROFILE.json'), 'utf8'));
+  assert.equal(profile.release_mode, 'MODEL_FREE_INITIAL_RELEASE');
+  assert.equal(profile.model_runtime, 'DISABLED');
+  assert.equal(profile.model_admission_required, false);
+  assert.equal(profile.external_inference, false);
+  assert.equal(profile.model_dependent_features, 'DISABLED');
+  const result = spawnSync(process.execPath, [pathResolve('scripts/model-license-gate.mjs'), '--allow-model-free-release'], {
+    encoding: 'utf8', windowsHide: true,
+  });
+  assert.equal(result.error, undefined, 'model-free profile gate process must start');
+  assert.equal(result.status, 0, result.stderr || 'explicit model-free profile should pass');
+  assert.match(result.stdout, /PASS: explicit MODEL_FREE_INITIAL_RELEASE profile validated/);
+  assert.match(result.stdout, /no model is admitted or implied/);
+});
+
+test('model-license-gate: strict model-backed release remains blocked with an empty manifest', () => {
+  const manifest = JSON.parse(readFileSync(pathResolve('docs/MODEL_LICENSE_MANIFEST.json'), 'utf8'));
+  const result = spawnSync(process.execPath, [pathResolve('scripts/model-license-gate.mjs'), '--require-entry'], {
+    encoding: 'utf8', windowsHide: true,
+  });
+  if (manifest.entries.length === 0) {
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /no model is registered; release admission requires at least one evidenced model/i);
+  }
+});

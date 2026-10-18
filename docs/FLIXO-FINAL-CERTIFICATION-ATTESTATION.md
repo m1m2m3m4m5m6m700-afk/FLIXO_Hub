@@ -3,11 +3,19 @@
 STATUS: NOT READY
 REPOSITORY: m1m2m3m4m5m6m700-afk/FLIXO_Hub
 EXECUTION_BRANCH: execution
-INTEGRATION_PR: #1002
+INTEGRATION_PR: NOT VERIFIED
 
-No final attestation is valid until Prompt 19 completes on one exact candidate SHA and Prompt 20 verifies promotion through the protected `main` branch.
+This is a governance record, not a certification. The former reference to integration PR #1002 is historical and is not current release authority.
 
-Required attestation identities:
+## Current release lineage
+
+- Model-free initial release implementation PR: #1335 (draft, feature branch -> execution).
+- The latest fully green CI baseline at SHA `3da681e301d67b099d3b98455910c63cbe4d9ac6` passed all PR/worker gates, including browser smoke, but subsequent documentation mutations invalidate it as evidence for the current candidate SHA.
+- No verified `execution -> main` promotion PR is recorded here.
+- No main merge SHA, production deployment ID, immutable deployed identity, or post-deployment browser receipt has been established by the baseline runs.
+
+## Required attestation identities
+
 - CURRENT_SHA
 - TESTED_SHA
 - BUILT_SHA
@@ -15,7 +23,16 @@ Required attestation identities:
 - SECURITY_VERIFIED_SHA
 - COVERAGE_VERIFIED_SHA
 - RED_TEAM_VERIFIED_SHA
+- PROMOTION_PR
 - CERTIFIED_SHA
 - DEPLOYED_SHA when applicable
 
-Current known blocker: the GitHub main ruleset is weaker than the policy required by Prompt 12. Historical attestation data must not be reused.
+## Blocking conditions
+
+1. Fresh exact-SHA CI, security, coverage, and browser evidence after the current candidate mutations.
+2. Required independent reviewer approval on the current release lineage. The active `main` ruleset configuration was verified read-only on 2026-10-18 in `docs/FLIXO-EXACT-SHA-CERTIFICATION.md`; that does not substitute for an approval on this PR.
+3. Authorized promotion through the current execution-to-main PR and verified merge lineage.
+4. Main-commit production deployment evidence, deployed immutable identity, and post-deployment smoke/browser evidence.
+5. Completion of applicable public-launch legal, support, security-reporting, privacy, and external-account requirements. In particular, root `LICENSE` currently contains AGPL-3.0 while the recorded target license decision is Apache-2.0; rights/provenance must be reconciled before making Apache claims or replacing the current license.
+
+No final attestation is valid until all applicable gates pass on one identified candidate/release lineage and independent governance approval is evidenced. Historical SHAs, PRs, runs, and deployment claims must not be reused as current release truth.
