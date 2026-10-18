@@ -376,7 +376,7 @@ jobs:
           npm audit --omit=dev --audit-level=high
 
   model-admission:
-    name: Initial release profile admission (model-free or model-backed)
+    name: Model-free initial release profile admission
     if: ${{ github.event_name == 'merge_group' || (github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main') || github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && inputs.strict_governance == true) }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
