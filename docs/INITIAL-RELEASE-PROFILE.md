@@ -6,7 +6,7 @@
 
 ## Scope
 
-The initial release is a static/browser-first product surface containing only deterministic, browser-local workflows that do not require inference. It does not ship or activate a model runtime, remote model inference, or model-backed agent execution. Model-dependent controls must be unavailable or clearly identified as unavailable; they must not appear to have passed acceptance by returning mocked model output.
+The initial release is a static/browser-first product surface containing only deterministic, browser-local workflows that do not require inference. It does not ship or activate a model runtime, remote model inference, or model-backed agent execution. The active AI Image Generator route is explicitly unavailable in the initial release and its runtime must not call `/api/ai/image`. Model-dependent controls must be unavailable or clearly identified as unavailable; they must not appear to have passed acceptance by returning mocked model output.
 
 ## Release gates
 
