@@ -2,21 +2,22 @@
 
 **Status:** `BLOCKED_WITH_EVIDENCE`
 
-These items require rights-owner or external-account action and must not be represented as complete by repository automation.
+This file distinguishes repository metadata changes from legal rights evidence. Automation must not represent unverified rights or external-account actions as complete.
 
-## Repository code license: source-of-truth conflict
+## Repository code license: metadata reconciled; rights provenance remains open
 
-The root `LICENSE` file currently contains the GNU Affero General Public License, version 3 (AGPL-3.0) text. The product-owner instruction recorded during release governance selected Apache-2.0 as the intended target license. These two states do not match, so the former statement that “no repository code license has been selected” was inaccurate.
+**Current repository license decision for this candidate: retain GNU AGPL v3 only (`AGPL-3.0-only`) and do not relicense to Apache-2.0.** This is the least-assumptive option because the root `LICENSE` contains the GNU Affero General Public License version 3 text and `package.json` already declares `AGPL-3.0-only`. `CITATION.cff` is being aligned to that existing declaration. The previous Apache-2.0 target is not treated as authorized: the available repository evidence does not establish permission to relicense every covered contribution and third-party material.
 
-Do not advertise Apache-2.0 or replace the current license file until the rights to relicense all covered repository contributions, required copyright notices, and any applicable third-party notices have been verified. The current AGPL-3.0 file is evidence of the license text presently in the repository; it does not, by itself, prove that the requested Apache-2.0 transition has been legally cleared.
+This metadata alignment resolves the specific AGPL-versus-Apache declaration mismatch; it does **not** certify the complete copyright chain, dependency compliance, or all distribution obligations.
 
-Required closure:
-1. Review contribution and copyright provenance and record authority to relicense the covered code.
-2. Confirm the final licensing decision and required copyright-holder/NOTICE wording with the rights owner.
-3. If Apache-2.0 is authorized, update the root license and all product disclosures consistently, run license/security checks, and retain rights evidence. Otherwise retain AGPL-3.0 and ensure all distribution and network-use obligations and disclosures are met.
-4. Re-run the exact-SHA release gates after any license or notice change.
+Required evidence before claiming legal clearance:
+1. Run the repository's legal-license tests and dependency/license inventory on the exact candidate SHA.
+2. Review dependency, asset, font, icon, model, and bundled-artifact notices; record exceptions and manual-review outcomes.
+3. Verify contribution provenance and required copyright notices. If any material is not covered by the project's chosen license or lacks a compatible grant, isolate it or obtain documented permission before distribution.
+4. Confirm the distribution and network-use obligations applicable to the actual deployment model, including the AGPL source-offer requirements where applicable.
+5. Re-run exact-SHA release gates after any license, notice, or bundled-content change.
 
-A model-free initial release removes the model-weight/provider licensing path; it does not remove the repository's own code-license obligations.
+Do not replace the root `LICENSE` with Apache-2.0 or advertise Apache-2.0 unless the required rights to do so are evidenced. A model-free initial release removes the model-weight/provider licensing path; it does not remove the repository's own code-license obligations.
 
 ## Public support contact
 
