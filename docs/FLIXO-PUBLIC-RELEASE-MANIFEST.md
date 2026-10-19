@@ -1,60 +1,46 @@
 # FLIXO Hub Public Release Manifest
 
-Status: CANDIDATE / NOT CERTIFIED
+Status: **BLOCKED_WITH_EVIDENCE / NOT CERTIFIED**
 
-This manifest is a release-evidence template. It does not certify any candidate by itself.
-Every current evidence claim MUST bind to one exact SHA, one workflow run, and the applicable
-production identity. Any mutation invalidates prior candidate-specific evidence.
+This manifest is an evidence ledger, not a certificate. It records only verifiable current facts; queued runs are not PASS.
 
-## Current repository identity
-
+## Candidate identity
 - Repository: `m1m2m3m4m5m6m700-afk/FLIXO_Hub`
-- Integration lane: `execution -> main`
-- Candidate SHA: `REQUIRED`
-- Candidate branch: `REQUIRED`
-- Current workflow run: `REQUIRED`
-- Current evidence: `REQUIRED`
-- Release tag: `PENDING`
-- Production deployment ID: `REQUIRED`
-- Production immutable identity: `REQUIRED`
-- Canonical production origin: `https://flixoai.m1m2m3m4m5m6m700.workers.dev`
+- Branch: `agent/phase0-remediation-20261019`
+- Candidate SHA at manifest authoring: `657f00177ac3edc921c47a19c844f696788825ce`
+- PR: [#1341](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/pull/1341), OPEN / NOT MERGED
+- Production origin declared by project: https://flixoai.m1m2m3m4m5m6m700.workers.dev
+- Release tag: NOT CREATED
 
-## Required evidence
+## Security evidence
+- Historical scan: [run 39220436779](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/39220436779), FAIL with 24 findings.
+- New scan on prior candidate: [run 39279252395](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/39279252395), observed QUEUED; its SHA is stale relative to this manifest.
+- Latest scan at manifest authoring: [run 39279928624](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/39279928624), QUEUED on the candidate SHA. Not PASS.
+- 23 narrow commit/path/regex allowlist entries were added for likely historical false positives. Their validity still requires the full-history scan to complete.
+- One Cloudflare-related historical finding remains intentionally unallowlisted until credential revocation/rotation is verified. See [rotation log](SECURITY-ROTATION-LOG.md).
+- Finding-by-finding triage: [SECURITY-FINDINGS-TRIAGE.md](SECURITY-FINDINGS-TRIAGE.md).
 
-- [ ] CI PASS on candidate SHA
-- [ ] CodeQL PASS on candidate SHA
-- [ ] Secret scan PASS on candidate SHA
-- [ ] Dependency/security audit PASS on candidate SHA
-- [ ] Red Team PASS on candidate SHA
-- [ ] Browser E2E PASS on candidate SHA
-- [ ] Production identity matches candidate SHA
-- [ ] Production smoke PASS on candidate SHA
-- [ ] No Critical/High unresolved security findings
-- [ ] Public claims reviewed against the candidate capability registry
+## Agent Blocked Channel
+- Previous run: [39228726782](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/39228726782); prior evidence showed missing labels `agent-blocked` and `agent-blocked-global`.
+- A retry is queued; no successful conclusion is verified yet.
+- Labels must be confirmed in repository configuration before this gate can be considered PASS.
 
-## Evidence integrity
+## Build evidence
+- Local build: **NOT RUN**. Desktop Commander devices were offline at last check.
+- CI build: [FLIXO CI run 39279928569](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/39279928569), QUEUED at manifest authoring; this is not yet a completed build.
+- CI artifact: none available from the queried run at the time of inspection.
+- Build output hash / identity file hash: NOT AVAILABLE.
+- Added read-only verifier: [scripts/verify-build.mjs](../scripts/verify-build.mjs). It has not yet been run against a real `dist/` output.
 
-Evidence from any other SHA is stale for this release candidate. A cancelled, skipped, neutral,
-expired, unavailable, or otherwise unverifiable check is not PASS. Evidence is valid only when
-repository, branch, candidate SHA, workflow run, and production identity (when applicable) agree.
+## Remaining required gates
+- [ ] Secret Scan PASS on the final candidate SHA
+- [ ] Agent Blocked Channel PASS with both labels present
+- [ ] CI build and artifact inventory PASS on the final candidate SHA
+- [ ] Run `node scripts/verify-build.mjs dist` against the actual output and retain JSON output/hashes
+- [ ] Verify Cloudflare credential rotation/revocation
+- [ ] Rebind and re-check all required statuses after any commit or merge
+- [ ] PR #1341 merged only after required security gates PASS
+- [ ] Post-merge checks and production identity verification PASS
+- [ ] Create `v1.0.0-rc.1` only after all release gates PASS on one final SHA
 
-## Promotion rule
-
-Promotion is `execution -> pull request -> required checks -> review -> merge -> post-merge exact-SHA verification -> production identity verification -> browser verification -> release tag`.
-
-No direct writes to `main`.
-
-## Historical evidence retained — NOT CURRENT RELEASE TRUTH
-
-The following values were observed before this governance-closure mutation. They remain available
-as historical evidence only and MUST NOT be reused as current certification evidence:
-
-- Historical execution head at closure start: `05e821dc735c54a8ad62a63c48ae97cf465c203e`.
-- Historical active integration PR observed at closure start: `#1002`.
-- Historical verified candidate SHA: `a44958a97126b2e050746010947aef2cfa286729`.
-- Historical candidate SHA from the prior documentation rollover: `7d9266a42690417511d0202b3d06b6b362f2d7d4`.
-- Historical state-reconciliation SHA: `52413f0f610c34cc988ecfc523134247c6cae135`.
-- Historical candidate records `b3dd497f354a54434938582128e9ae45e2e94067` and `9d38d896d52514a916c3c5d7ed3244ae8db3a601`.
-- The former repository identity `m1m2m3m4m5m6m700-afk/FLIXO-AI-TOOLS` is historical only.
-
-No historical SHA, PR, workflow run, deployment identity, or repository name above has current certification authority.
+No tag has been created. No deployment certification is claimed.
