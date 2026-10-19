@@ -418,8 +418,8 @@ export function OfficialHome() {
                 <p>لا توجد إضافة لأدوات جديدة هنا؛ هذه البطاقات مرتبطة بالأدوات المسجلة والجاهزة حاليًا.</p>
               </div>
               <div className="official-tool-count">
-                <strong>{TOOL_CATALOG.ready.length}</strong>
-                <span>أداة جاهزة في السجل</span>
+                <strong>{realStats ? realStats.toolsMapped : TOOL_CATALOG.ready.length}</strong>
+                <span>أداة لها ملفات تنفيذ وبيان مسجل</span>
               </div>
             </div>
 
