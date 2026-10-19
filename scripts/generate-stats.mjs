@@ -44,7 +44,7 @@ async function main() {
   }));
   const toolsMapped = toolMappedFlags.filter(Boolean).length;
 
-  const rawSha = process.env.GITHUB_SHA || (() => {
+  const rawSha = process.env.FLIXO_DEPLOYMENT_SHA || process.env.GITHUB_SHA || (() => {
     try { return execFileSync('git', ['rev-parse', 'HEAD'], { cwd: ROOT, encoding: 'utf8' }).trim(); }
     catch { return 'unknown'; }
   })();
