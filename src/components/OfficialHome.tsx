@@ -4,10 +4,14 @@ import {
   ArrowUpRight,
   Check,
   ChevronDown,
+  Cloud,
+  Monitor,
   Moon,
   ShieldCheck,
+  Smartphone,
   Sparkles,
   Sun,
+  Tablet,
   X,
 } from 'lucide-react';
 import { TOOL_CATALOG } from '../config/registry';
@@ -131,23 +135,57 @@ export function OfficialHome() {
   const [requestText, setRequestText] = useState('');
   const [assistantResult, setAssistantResult] = useState<AssistantResult | null>(null);
   const [thinking, setThinking] = useState(false);
-  const [dark, setDark] = useState(() => {
-    if (typeof window === 'undefined') return true;
+  type FlixoTheme = 'light' | 'night' | 'black';
+  type PreviewDevice = 'phone' | 'tablet' | 'desktop';
+  type RealStats = { categories: number; toolsMapped: number; liveNow: number; sha: string; env: string };
+  const [theme, setTheme] = useState<FlixoTheme>(() => {
+    if (typeof window === 'undefined') return 'black';
     try {
-      return window.localStorage.getItem('flixo-official-theme') !== 'light';
+      const saved = window.localStorage.getItem('flixo-theme');
+      if (saved === 'light' || saved === 'night' || saved === 'black') return saved;
+      return window.localStorage.getItem('flixo-official-theme') === 'light' ? 'light' : 'black';
     } catch {
-      return true;
+      return 'black';
     }
   });
+  const [device, setDevice] = useState<PreviewDevice>('desktop');
+  const [realStats, setRealStats] = useState<RealStats | null>(null);
 
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', dark);
+    document.documentElement.classList.toggle('dark', theme === 'black');
+    document.documentElement.dataset.flixoTheme = theme;
     try {
-      window.localStorage.setItem('flixo-official-theme', dark ? 'dark' : 'light');
+      window.localStorage.setItem('flixo-theme', theme);
     } catch {
       // Browser storage is optional.
     }
-  }, [dark]);
+  }, [theme]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch('/__flixo-stats.json', { cache: 'no-store', signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) throw new Error(`Stats request failed: ${response.status}`);
+        return response.json() as Promise<Partial<RealStats>>;
+      })
+      .then((value) => {
+        if (
+          Number.isInteger(value.categories) &&
+          Number.isInteger(value.toolsMapped) &&
+          Number.isInteger(value.liveNow) &&
+          typeof value.sha === 'string' &&
+          typeof value.env === 'string'
+        ) {
+          setRealStats(value as RealStats);
+        }
+      })
+      .catch((error: unknown) => {
+        if (error instanceof Error && error.name === 'AbortError') return;
+        // Do not invent numbers if the generated build manifest is unavailable.
+        setRealStats(null);
+      });
+    return () => controller.abort();
+  }, []);
 
   const featuredTools = useMemo(
     () =>
@@ -180,7 +218,7 @@ export function OfficialHome() {
   };
 
   return (
-    <div className={dark ? 'official-home official-dark' : 'official-home'} dir="rtl">
+    <div className={theme === 'black' ? 'official-home official-dark' : 'official-home'} data-theme={theme} data-device={device} dir="rtl">
       <header className="official-nav">
         <div className="official-nav-inner">
           <a className="official-brand" href="/" aria-label="FLIXO">
@@ -193,14 +231,28 @@ export function OfficialHome() {
             <button onClick={() => jump('official-faq')}>الأسئلة</button>
           </nav>
           <div className="official-nav-actions">
-            <button
-              className="official-icon-button"
-              onClick={() => setDark((value) => !value)}
-              aria-label={dark ? 'استخدام المظهر الفاتح' : 'استخدام المظهر الداكن'}
-              title={dark ? 'المظهر الفاتح' : 'المظهر الداكن'}
-            >
-              {dark ? <Sun size={17} /> : <Moon size={17} />}
-            </button>
+            <div className="flixo-theme-switcher" role="group" aria-label="اختيار المظهر">
+              <button className={theme === 'light' ? 'is-active' : ''} onClick={() => setTheme('light')} aria-pressed={theme === 'light'} aria-label="المظهر الأبيض" title="أبيض">
+                <Sun size={15} />
+              </button>
+              <button className={theme === 'night' ? 'is-active' : ''} onClick={() => setTheme('night')} aria-pressed={theme === 'night'} aria-label="المظهر الرمادي المفتوح" title="رمادي مفتوح">
+                <Cloud size={15} />
+              </button>
+              <button className={theme === 'black' ? 'is-active' : ''} onClick={() => setTheme('black')} aria-pressed={theme === 'black'} aria-label="المظهر الأسود" title="أسود">
+                <Moon size={15} />
+              </button>
+            </div>
+            <div className="flixo-device-switcher" role="group" aria-label="معاينة حجم الجهاز">
+              <button className={device === 'phone' ? 'is-active' : ''} onClick={() => setDevice('phone')} aria-pressed={device === 'phone'} aria-label="معاينة الهاتف" title="390px">
+                <Smartphone size={15} />
+              </button>
+              <button className={device === 'tablet' ? 'is-active' : ''} onClick={() => setDevice('tablet')} aria-pressed={device === 'tablet'} aria-label="معاينة الجهاز اللوحي" title="768px">
+                <Tablet size={15} />
+              </button>
+              <button className={device === 'desktop' ? 'is-active' : ''} onClick={() => setDevice('desktop')} aria-pressed={device === 'desktop'} aria-label="معاينة سطح المكتب" title="1200px">
+                <Monitor size={15} />
+              </button>
+            </div>
             <button className="official-request-button" onClick={openRequestWithQuery}>
               طلب أداة
             </button>
@@ -316,13 +368,20 @@ export function OfficialHome() {
             <div className="official-heading">
               <div>
                 <small>خريطة المنتج</small>
-                <h2>14 فئة، جاهزة للتوسّع.</h2>
+                <h2>{realStats ? `${realStats.categories} فئة، جاهزة للتوسّع.` : `${ROADMAP_CATEGORIES.length} فئة، جاهزة للتوسّع.`}</h2>
                 <p>هذه طبقة Roadmap للواجهة فقط. حالة التنفيذ الفعلية تبقى من السجل القانوني الحالي.</p>
               </div>
-              <span className="official-section-count">14 فئة</span>
+              <span className="official-section-count">{realStats ? realStats.categories : ROADMAP_CATEGORIES.length} فئة</span>
             </div>
 
-            <div className="official-category-grid">
+                        <div className="flixo-live-stats" aria-label="إحصاءات بناء FLIXO" aria-live="polite">
+              <article><span>الفئات</span><strong>{realStats?.categories ?? '—'}</strong></article>
+              <article><span>الأدوات المسجلة</span><strong>{realStats?.toolsMapped ?? '—'}</strong></article>
+              <article><span>الأدوات المنشورة في البناء</span><strong>{realStats?.liveNow ?? '—'}</strong></article>
+              <small>{realStats ? `SHA ${realStats.sha.slice(0, 12)} · ${realStats.env}` : 'يتم تحميل بيانات البناء الحقيقية…'}</small>
+            </div>
+
+<div className="official-category-grid">
               {ROADMAP_CATEGORIES.map((category) => {
                 const Icon = category.icon;
                 const liveCount = readyCountForCategory(category.id);
