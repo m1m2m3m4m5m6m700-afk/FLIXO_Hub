@@ -222,7 +222,7 @@ export function OfficialHome() {
       <header className="official-nav">
         <div className="official-nav-inner">
           <a className="official-brand" href="/" aria-label="FLIXO">
-            FLIXO<span>AI</span>
+            Flixo<span>°</span>
           </a>
           <nav className="official-nav-links" aria-label="التنقل الرئيسي">
             <button onClick={() => jump('official-categories')}>الفئات</button>
@@ -514,7 +514,7 @@ export function OfficialHome() {
 
       <footer className="official-footer">
         <div className="official-container official-footer-inner">
-          <strong>FLIXO<span>AI</span></strong>
+          <strong>Flixo<span>°</span></strong>
           <span>Browser-first tools for everyday digital work.</span>
           <span>© {new Date().getFullYear()} FLIXO</span>
         </div>
