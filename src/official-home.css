@@ -7,6 +7,8 @@
   --soft: #f8fafc;
   --surface: #f8fafc;
   --surface-2: #eef1f4;
+  --panel: #ffffff;
+  --soft: #f8fafc;
   --ink: #111827;
   --muted: #5b6472;
   --line: #e5e7eb;
@@ -20,6 +22,8 @@
   --soft: #a8adb6;
   --surface: #c5cad2;
   --surface-2: #a8adb6;
+  --panel: #a8adb6;
+  --soft: #b4b8c0;
   --ink: #111827;
   --muted: #374151;
   --line: #737b88;
@@ -33,6 +37,8 @@
   --soft: #1c1c1c;
   --surface: #121212;
   --surface-2: #1c1c1c;
+  --panel: #121212;
+  --soft: #1c1c1c;
   --ink: #f5f5f5;
   --muted: #a3a3a3;
   --line: #303030;
