@@ -14,5 +14,13 @@
       "/__flixo-identity-*",
       "/__flixo/*"
     ]
+  },
+  "env": {
+    "preview": {
+      "name": "flixoai-preview",
+      "vars": {
+        "FLIXO_ENV": "preview"
+      }
+    }
   }
 }
