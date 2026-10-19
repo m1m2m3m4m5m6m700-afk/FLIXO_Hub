@@ -12,6 +12,11 @@ on:
         required: false
         default: false
         type: boolean
+      deploy_preview:
+        description: 'Deploy the exact workflow SHA to the isolated flixoai-preview Worker'
+        required: false
+        default: false
+        type: boolean
   merge_group:
     types: [checks_requested]
 
@@ -498,5 +503,110 @@ jobs:
         with:
           name: flixoai-production-evidence-${{ github.sha }}
           path: flixoai-production-evidence.json
+          if-no-files-found: error
+          retention-days: 30
+  
+  preview-deployment:
+    name: Preview exact-SHA deployment
+    needs: [verify, red-team, branch-policy, browser, coverage, trust-gate]
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy_preview == true && github.ref == 'refs/heads/agent/phase0-remediation-20261019' && needs.verify.result == 'success' && needs.red-team.result == 'success' && needs.branch-policy.result == 'success' && needs.browser.result == 'success' && needs.coverage.result == 'success' && needs.trust-gate.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+    env:
+      DEPLOYMENT_SHA: ${{ github.sha }}
+      PREVIEW_ORIGIN: https://flixoai-preview.m1m2m3m4m5m6m700.workers.dev
+    steps:
+      - name: Checkout exact candidate SHA
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Verify exact source SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$DEPLOYMENT_SHA"
+      - name: Download exact-SHA build artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          gh run download "$GITHUB_RUN_ID" -n "flixo-build-${GITHUB_RUN_ID}" -D dist
+          test -s dist/index.html
+          test "$(cat dist/flixo-head-sha.txt)" = "$DEPLOYMENT_SHA"
+          test "$(cat "dist/__flixo-identity-$DEPLOYMENT_SHA.txt")" = "$DEPLOYMENT_SHA"
+          test "$(cat dist/__flixo-identity.txt)" = "$DEPLOYMENT_SHA"
+          test "$(jq -r '.candidateSha' dist/__flixo/build-provenance.json)" = "$DEPLOYMENT_SHA"
+          test "$(jq -r '.sourceTreeSha' dist/__flixo/build-provenance.json)" = "$(git rev-parse HEAD^{tree})"
+      - name: Preview-only strict target allowlist
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq '"name": "flixoai"' wrangler.jsonc
+          grep -Fq '"name": "flixoai-preview"' wrangler.jsonc
+          test "$PREVIEW_ORIGIN" = "https://flixoai-preview.m1m2m3m4m5m6m700.workers.dev"
+          if grep -qE 'flixotoolscom|flixotools\b' wrangler.jsonc; then exit 1; fi
+      - name: Validate Cloudflare credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+      - name: Dry-run preview deployment
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4.141.0"
+          command: deploy --dry-run --config wrangler.jsonc --env preview --var FLIXO_DEPLOYMENT_SHA:${{ github.sha }}
+      - name: Deploy exact SHA to preview only
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4.141.0"
+          command: deploy --config wrangler.jsonc --env preview --var FLIXO_DEPLOYMENT_SHA:${{ github.sha }}
+      - name: Verify immutable preview identity and basic routes
+        shell: bash
+        run: |
+          set -euo pipefail
+          identity_url="$PREVIEW_ORIGIN/__flixo-identity-$DEPLOYMENT_SHA.txt?__flixo_sha=$DEPLOYMENT_SHA&__flixo_verify=$GITHUB_RUN_ID"
+          status="$(curl --silent --show-error --location --compressed --retry 10 --retry-delay 3 --retry-all-errors --max-time 30 -H 'Cache-Control: no-cache, no-store' -o /tmp/flixo-preview-identity.txt -w '%{http_code}' "$identity_url")"
+          body="$(tr -d '\r\n' < /tmp/flixo-preview-identity.txt)"
+          echo "IDENTITY_HTTP=$status BODY=$body"
+          test "$status" = "200"
+          test "$body" = "$DEPLOYMENT_SHA"
+          root_status="$(curl --silent --show-error --location --compressed --retry 10 --retry-delay 3 --retry-all-errors --max-time 30 -o /tmp/flixo-preview.html -w '%{http_code}' "$PREVIEW_ORIGIN/?__flixo_sha=$DEPLOYMENT_SHA&__flixo_verify=1")"
+          test "$root_status" = "200"
+          grep -Eiq '<html[[:space:]>]' /tmp/flixo-preview.html
+          api_status="$(curl --silent --show-error --location --compressed --max-time 30 -o /tmp/flixo-preview-api.txt -w '%{http_code}' "$PREVIEW_ORIGIN/api/test")"
+          test "$api_status" = "404"
+          headers="$(curl --silent --show-error --location --compressed --max-time 30 -D - -o /dev/null "$PREVIEW_ORIGIN/")"
+          printf '%s\n' "$headers" | grep -Eiq '^x-frame-options:[[:space:]]*DENY'
+          printf '%s\n' "$headers" | grep -Eiq '^strict-transport-security:'
+          printf '%s\n' "$headers" | grep -Eiq '^content-security-policy:'
+          echo "PREVIEW_RUNTIME_CHECKS=PASS"
+      - name: Write preview deployment evidence
+        if: always()
+        shell: bash
+        env:
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          set -euo pipefail
+          printf '{"worker":"flixoai-preview","origin":"%s","sha":"%s","status":"%s"}\n' "$PREVIEW_ORIGIN" "$DEPLOYMENT_SHA" "$JOB_STATUS" > flixoai-preview-evidence.json
+      - name: Upload preview deployment evidence
+        if: always()
+        uses: actions/upload-artifact@615b319bd27bb32c3d64dca6b6ed6974d5fbe653 # v6.0.0
+        with:
+          name: flixoai-preview-evidence-${{ github.sha }}
+          path: flixoai-preview-evidence.json
           if-no-files-found: error
           retention-days: 30
