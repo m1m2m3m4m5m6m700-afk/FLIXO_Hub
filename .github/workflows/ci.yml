@@ -517,6 +517,8 @@ jobs:
       actions: read
     env:
       DEPLOYMENT_SHA: ${{ github.sha }}
+      FLIXO_DEPLOYMENT_SHA: ${{ github.sha }}
+      FLIXO_ENV: preview
       PREVIEW_ORIGIN: https://flixoai-preview.m1m2m3m4m5m6m700.workers.dev
     steps:
       - name: Checkout exact candidate SHA
