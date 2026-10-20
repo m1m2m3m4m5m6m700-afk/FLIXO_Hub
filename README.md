@@ -155,7 +155,7 @@ Use [Discussions](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/discussions)
 
 ## Licensing
 
-**License metadata requires rights/provenance reconciliation before release.** The root `LICENSE` contains AGPL-3.0 text while `CITATION.cff` declares Apache-2.0. The recorded target decision is Apache-2.0, but authority to relicense all covered contributions has not been verified. Do not advertise Apache-2.0 or replace the current license text until that conflict is resolved. See [legal launch blockers](docs/FLIXO-LEGAL-LAUNCH-BLOCKERS.md), [release readiness plan](docs/EXECUTION-DEPLOYMENT-CERTIFICATION-PLAN.md), and [LICENSE](LICENSE).
+**Current license: GNU AGPL-3.0-only.** `CITATION.cff` is aligned to the existing root `LICENSE` and `package.json` declaration. The previously recorded Apache-2.0 target is not treated as authorized because rights to relicense all covered contributions and third-party materials have not been evidenced. This metadata alignment is not full legal clearance; dependency, bundled-asset, copyright provenance, and AGPL distribution/network-use obligations remain subject to review. See [legal launch blockers](docs/FLIXO-LEGAL-LAUNCH-BLOCKERS.md), [release readiness plan](docs/EXECUTION-DEPLOYMENT-CERTIFICATION-PLAN.md), and [LICENSE](LICENSE).
 
 ---
 
