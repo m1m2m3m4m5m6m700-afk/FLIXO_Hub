@@ -504,6 +504,96 @@ jobs:
           node scripts/ci/verify-promotion-lineage.mjs
           echo "EXACT_SHA_PROMOTION_PROOF=$EXPECTED_SHA"
 
+  preview-deploy:
+    name: Preview exact-SHA deployment
+    needs: [verify, promotion-proof]
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/execution' && needs.verify.result == 'success' && needs.promotion-proof.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    env:
+      DEPLOYMENT_SHA: ${{ github.sha }}
+      PREVIEW_ORIGIN: https://flixoai-preview.m1m2m3m4m5m6m700.workers.dev
+    steps:
+      - name: Checkout exact execution SHA
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify preview source identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$DEPLOYMENT_SHA"
+          echo "PREVIEW_SOURCE_SHA=$DEPLOYMENT_SHA"
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Build exact-SHA preview artifact
+        env:
+          FLIXO_DEPLOYMENT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          npm run build
+          test "$(cat dist/flixo-head-sha.txt)" = "$DEPLOYMENT_SHA"
+          test "$(cat dist/__flixo-identity.txt)" = "$DEPLOYMENT_SHA"
+          test "$(jq -r '.candidateSha' dist/__flixo/build-provenance.json)" = "$DEPLOYMENT_SHA"
+
+      - name: Validate Cloudflare preview credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          echo "PREVIEW_CREDENTIALS=AVAILABLE"
+
+      - name: Dry-run exact-SHA preview deployment
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4.141.0"
+          command: deploy --dry-run --config wrangler.jsonc --name flixoai-preview --var FLIXO_DEPLOYMENT_SHA:${{ github.sha }}
+
+      - name: Deploy exact SHA to preview only
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4.141.0"
+          command: deploy --config wrangler.jsonc --name flixoai-preview --var FLIXO_DEPLOYMENT_SHA:${{ github.sha }}
+
+      - name: Verify preview HTTP status and immutable SHA header
+        shell: bash
+        run: |
+          set -euo pipefail
+          identity_url="$PREVIEW_ORIGIN/__flixo-identity-$DEPLOYMENT_SHA.txt?__flixo_sha=$DEPLOYMENT_SHA&__flixo_verify=$GITHUB_RUN_ID"
+          status="$(curl --silent --show-error --location --compressed --retry 5 --retry-delay 3 --retry-all-errors --max-time 30 -D /tmp/preview-identity-headers.txt -o /tmp/preview-identity-body.txt -w '%{http_code}' -H 'Cache-Control: no-cache, no-store' "$identity_url")"
+          body="$(tr -d '\r\n' < /tmp/preview-identity-body.txt)"
+          header_sha="$(awk 'BEGIN{IGNORECASE=1} /^x-flixo-deployment-sha:/ {gsub("\r","",$2); print $2}' /tmp/preview-identity-headers.txt | tail -1)"
+          echo "PREVIEW_IDENTITY_HTTP=$status"
+          echo "PREVIEW_IDENTITY_BODY_SHA=$body"
+          echo "PREVIEW_IDENTITY_HEADER_SHA=$header_sha"
+          test "$status" = "200"
+          test "$body" = "$DEPLOYMENT_SHA"
+          test "$header_sha" = "$DEPLOYMENT_SHA"
+          root_status="$(curl --silent --show-error --location --compressed --retry 5 --retry-delay 3 --retry-all-errors --max-time 30 -o /tmp/preview-root.html -w '%{http_code}' -H 'Cache-Control: no-cache, no-store' "$PREVIEW_ORIGIN/?__flixo_sha=$DEPLOYMENT_SHA&__flixo_verify=$GITHUB_RUN_ID")"
+          echo "PREVIEW_ROOT_HTTP=$root_status"
+          test "$root_status" = "200"
+          grep -Eiq '<html[[:space:]>]' /tmp/preview-root.html
+          echo "PREVIEW_IDENTITY=PASS"
+          echo "PREVIEW_DEPLOYMENT_SHA=$DEPLOYMENT_SHA"
+
   production-deploy:
     name: Production exact-SHA deployment
     needs: [promotion-proof]
