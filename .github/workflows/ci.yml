@@ -39,6 +39,8 @@ jobs:
     name: Typecheck, lint, core contracts, build
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      FLIXO_DEPLOYMENT_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
         with:
@@ -114,6 +116,7 @@ jobs:
     timeout-minutes: 25
     env:
       BUILD_SHA: ${{ github.event.pull_request.head.sha }}
+      FLIXO_DEPLOYMENT_SHA: ${{ github.event.pull_request.head.sha }}
     steps:
       - name: Checkout exact candidate commit
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
