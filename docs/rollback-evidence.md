@@ -30,3 +30,12 @@
 ## Evidence update rule
 
 Update this file with each actual rollback's reason, previous SHA, resulting SHA, and associated CI run. Do not log a rollback unless it was actually performed. Do not claim successful deployment, review approval, or a release tag without direct evidence.
+
+## Update: preview workflow publication attempt
+
+- Created backup `backup/pre-preview-pr-1347-2026-10-20` at `e46ee8ab417be49ee52c3f5e90f4dce3e6b7cf41`.
+- Opened [PR #1347](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/pull/1347) to publish only `.github/workflows/ui-preview.yml` from a branch based on protected `main`.
+- PR #1347 is open, not merged. It requires normal CI and required independent review. No branch-protection bypass was attempted.
+- Because the workflow is not yet present on the default branch and no workflow-dispatch action is available through the connected GitHub integration, no preview workflow was dispatched. No preview HTTP status or deployed SHA is claimed.
+- Execution evidence-log update begins from `e46ee8ab417be49ee52c3f5e90f4dce3e6b7cf41`; the resulting commit SHA will be different and needs its own CI.
+- No rollback performed; `main` remains untouched at `29f2e0fe045689337a1483ed98d087b736ff6afc`.
