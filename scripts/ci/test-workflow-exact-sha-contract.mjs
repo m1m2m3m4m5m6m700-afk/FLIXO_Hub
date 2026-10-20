@@ -232,7 +232,6 @@ test('promotion and production gates remain fail-closed and exact-SHA bound', as
   assert.ok(previewWorkflow.includes('PREVIEW_DEPLOYMENT=BLOCKED_MISSING_CLOUDFLARE_CREDENTIALS'), 'missing Cloudflare credentials must fail closed and be explicit');
   assert.ok(previewWorkflow.includes('name flixoai-preview'), 'preview deployment must target the allowlisted preview Worker, not production');
 
-  );
   assert.ok(
     workflow.includes('          DEPLOYMENT_SHA: ${{ github.sha }}'),
     'production identity must be bound to the immutable main SHA',
