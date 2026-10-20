@@ -10,9 +10,11 @@ test('deployment identity resolver requires an exact 40-character SHA match', ()
 });
 
 test('production worker applies the complete security-header contract', async () => {
+  const deploymentSha = 'a'.repeat(40);
   const response = await worker.fetch(
     new Request('https://flixoai.example/'),
     {
+      FLIXO_DEPLOYMENT_SHA: deploymentSha,
       ASSETS: {
         fetch: async () =>
           new Response('<html></html>', {
@@ -24,6 +26,7 @@ test('production worker applies the complete security-header contract', async ()
   );
 
   assert.equal(response.status, 200);
+  assert.equal(response.headers.get('x-flixo-deployment-sha'), deploymentSha);
   assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
   assert.equal(response.headers.get('x-frame-options'), 'DENY');
   assert.equal(response.headers.get('referrer-policy'), 'no-referrer');
