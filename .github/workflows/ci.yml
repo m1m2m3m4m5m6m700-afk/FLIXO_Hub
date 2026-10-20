@@ -214,8 +214,7 @@ jobs:
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 1
           persist-credentials: true
-      - name: Validate branch policy for the current ref
-        if: ${{ github.event_name != 'pull_request' }}
+      - name: Validate workflow authority and branch policy for the current ref
         run: node scripts/ci/verify-branch-policy.mjs
       - name: Verify canonical PR source identity
         if: ${{ github.event_name == 'pull_request' }}
@@ -509,7 +508,7 @@ jobs:
   preview-deployment:
     name: Preview exact-SHA deployment
     needs: [red-team, branch-policy, trust-gate]
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy_preview == true && github.ref == 'refs/heads/agent/phase0-remediation-20261019' && needs.red-team.result == 'success' && needs.branch-policy.result == 'success' && needs.trust-gate.result == 'success' }}
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.red-team.result == 'success' && needs.branch-policy.result == 'success' && needs.trust-gate.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:

@@ -135,31 +135,45 @@ export function OfficialHome() {
   const [requestText, setRequestText] = useState('');
   const [assistantResult, setAssistantResult] = useState<AssistantResult | null>(null);
   const [thinking, setThinking] = useState(false);
-  type FlixoTheme = 'light' | 'night' | 'black';
+  type FlixoTheme = 'light' | 'dark' | 'system';
+  type EffectiveTheme = 'light' | 'dark';
   type PreviewDevice = 'phone' | 'tablet' | 'desktop';
   type RealStats = { categories: number; toolsMapped: number; liveNow: number; sha: string; env: string };
   const [theme, setTheme] = useState<FlixoTheme>(() => {
-    if (typeof window === 'undefined') return 'black';
+    if (typeof window === 'undefined') return 'system';
     try {
       const saved = window.localStorage.getItem('flixo-theme');
-      if (saved === 'light' || saved === 'night' || saved === 'black') return saved;
-      return window.localStorage.getItem('flixo-official-theme') === 'light' ? 'light' : 'black';
+      if (saved === 'light' || saved === 'dark' || saved === 'system') return saved;
+      if (saved === 'night' || saved === 'black') return 'dark';
+      return window.localStorage.getItem('flixo-official-theme') === 'light' ? 'light' : 'system';
     } catch {
-      return 'black';
+      return 'system';
     }
   });
+  const [systemTheme, setSystemTheme] = useState<EffectiveTheme>('light');
+  const effectiveTheme: EffectiveTheme = theme === 'system' ? systemTheme : theme;
   const [device, setDevice] = useState<PreviewDevice>('desktop');
   const [realStats, setRealStats] = useState<RealStats | null>(null);
 
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', theme === 'black');
-    document.documentElement.dataset.flixoTheme = theme;
+    if (typeof window.matchMedia !== 'function') return;
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const updateSystemTheme = () => setSystemTheme(mediaQuery.matches ? 'dark' : 'light');
+    updateSystemTheme();
+    mediaQuery.addEventListener('change', updateSystemTheme);
+    return () => mediaQuery.removeEventListener('change', updateSystemTheme);
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', effectiveTheme === 'dark');
+    document.documentElement.dataset.flixoTheme = effectiveTheme;
+    document.documentElement.dataset.flixoThemeMode = theme;
     try {
       window.localStorage.setItem('flixo-theme', theme);
     } catch {
       // Browser storage is optional.
     }
-  }, [theme]);
+  }, [theme, effectiveTheme]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -218,7 +232,7 @@ export function OfficialHome() {
   };
 
   return (
-    <div className={theme === 'black' ? 'official-home official-dark' : 'official-home'} data-theme={theme} data-device={device} dir="rtl">
+    <div className={effectiveTheme === 'dark' ? 'official-home official-dark' : 'official-home'} data-theme={effectiveTheme} data-theme-mode={theme} data-device={device} dir="rtl">
       <header className="official-nav">
         <div className="official-nav-inner">
           <a className="official-brand" href="/" aria-label="FLIXO">
@@ -232,14 +246,14 @@ export function OfficialHome() {
           </nav>
           <div className="official-nav-actions">
             <div className="flixo-theme-switcher" role="group" aria-label="اختيار المظهر">
-              <button className={theme === 'light' ? 'is-active' : ''} onClick={() => setTheme('light')} aria-pressed={theme === 'light'} aria-label="المظهر الأبيض" title="أبيض">
+              <button className={theme === 'light' ? 'is-active' : ''} onClick={() => setTheme('light')} aria-pressed={theme === 'light'} aria-label="المظهر الفاتح" title="فاتح">
                 <Sun size={15} />
               </button>
-              <button className={theme === 'night' ? 'is-active' : ''} onClick={() => setTheme('night')} aria-pressed={theme === 'night'} aria-label="المظهر الرمادي المفتوح" title="رمادي مفتوح">
-                <Cloud size={15} />
-              </button>
-              <button className={theme === 'black' ? 'is-active' : ''} onClick={() => setTheme('black')} aria-pressed={theme === 'black'} aria-label="المظهر الأسود" title="أسود">
+              <button className={theme === 'dark' ? 'is-active' : ''} onClick={() => setTheme('dark')} aria-pressed={theme === 'dark'} aria-label="المظهر الداكن" title="داكن">
                 <Moon size={15} />
+              </button>
+              <button className={theme === 'system' ? 'is-active' : ''} onClick={() => setTheme('system')} aria-pressed={theme === 'system'} aria-label="حسب إعدادات النظام" title="النظام">
+                <Cloud size={15} />
               </button>
             </div>
             <div className="flixo-device-switcher" role="group" aria-label="معاينة حجم الجهاز">

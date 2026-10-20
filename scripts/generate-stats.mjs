@@ -17,7 +17,12 @@ async function walk(dir) {
     }));
     return nested.flat();
   } catch (error) {
-    if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') return [];
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
+      console.warn(`[generate-stats] walk ENOENT ${dir}`);
+      return [];
+    }
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.warn(`[generate-stats] walk failed for ${dir}: ${errorMessage}`);
     throw error;
   }
 }
@@ -39,16 +44,24 @@ async function main() {
   const toolFolders = toolEntries.filter((entry) => entry.isDirectory() && !entry.name.startsWith('_'));
   const toolMappedFlags = await Promise.all(toolFolders.map(async (entry) => {
     const dir = join(ROOT, 'src/tools', entry.name);
-    const files = await readdir(dir).catch(() => []);
+    const files = await readdir(dir).catch((error) => {
+      const errorCode = error && typeof error === 'object' && 'code' in error ? error.code : 'UNKNOWN';
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.warn(`[generate-stats] readdir failed for ${dir}: ${errorCode} ${errorMessage}`);
+      return [];
+    });
     return files.includes('manifest.ts') && files.includes('index.tsx');
   }));
   const toolsMapped = toolMappedFlags.filter(Boolean).length;
 
-  const rawSha = process.env.FLIXO_DEPLOYMENT_SHA || process.env.GITHUB_SHA || (() => {
+  const rawSha = (process.env.FLIXO_DEPLOYMENT_SHA || process.env.GITHUB_SHA || (() => {
     try { return execFileSync('git', ['rev-parse', 'HEAD'], { cwd: ROOT, encoding: 'utf8' }).trim(); }
     catch { return 'unknown'; }
-  })();
-  const sha = /^[a-f0-9]{40}$/u.test(rawSha) ? rawSha : 'unknown';
+  })()).trim();
+  if (!/^[a-f0-9]{40}$/u.test(rawSha)) {
+    throw new Error('Exact deployment SHA required - got unknown or invalid SHA - set FLIXO_DEPLOYMENT_SHA or GITHUB_SHA');
+  }
+  const sha = rawSha;
   const env = (process.env.FLIXO_ENV || 'build').trim().toLowerCase();
   const distFiles = await walk(DIST_DIR);
   const indexPages = distFiles.filter((path) => path.endsWith('/index.html') || path.endsWith('\\index.html'));
@@ -60,9 +73,12 @@ async function main() {
     : 0;
 
   const payload = { schemaVersion: 1, categories, toolsMapped, liveNow, sha, env };
-  const canonical = JSON.stringify(payload);
+  const canonicalPayload = Object.fromEntries(
+    Object.entries(payload).sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0)),
+  );
+  const canonical = JSON.stringify(canonicalPayload);
   const statsHash = createHash('sha256').update(canonical).digest('hex');
-  const output = JSON.stringify({ ...payload, statsHash }, null, 2) + '\n';
+  const output = JSON.stringify({ ...canonicalPayload, statsHash }, null, 2) + '\n';
 
   await mkdir(PUBLIC_DIR, { recursive: true });
   await writeFile(join(PUBLIC_DIR, '__flixo-stats.json'), output, 'utf8');

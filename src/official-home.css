@@ -7,8 +7,6 @@
   --soft: #f8fafc;
   --surface: #f8fafc;
   --surface-2: #eef1f4;
-  --panel: #ffffff;
-  --soft: #f8fafc;
   --ink: #111827;
   --muted: #5b6472;
   --line: #e5e7eb;
@@ -16,29 +14,12 @@
   background: var(--bg);
   color: var(--ink);
 }
-.official-home[data-theme="night"] {
-  --bg: #9ca3af;
-  --panel: #c5cad2;
-  --soft: #a8adb6;
-  --surface: #c5cad2;
-  --surface-2: #a8adb6;
-  --panel: #a8adb6;
-  --soft: #b4b8c0;
-  --ink: #111827;
-  --muted: #374151;
-  --line: #737b88;
-  --accent: #d9ff3f;
-  background: var(--bg);
-  color: var(--ink);
-}
-.official-home[data-theme="black"] {
+.official-home[data-theme="dark"] {
   --bg: #0a0a0a;
   --panel: #121212;
   --soft: #1c1c1c;
   --surface: #121212;
   --surface-2: #1c1c1c;
-  --panel: #121212;
-  --soft: #1c1c1c;
   --ink: #f5f5f5;
   --muted: #a3a3a3;
   --line: #303030;
@@ -46,7 +27,8 @@
   background: var(--bg);
   color: var(--ink);
 }
-.official-home[data-theme="black"] .official-nav { background: color-mix(in srgb, #0a0a0a 88%, transparent); }
+.official-home[data-theme="dark"] .official-nav { background: color-mix(in srgb, #0a0a0a 88%, transparent); }
+.official-home[data-theme-mode="system"] { color-scheme: light dark; }
 .flixo-theme-switcher, .flixo-device-switcher { display: inline-flex; align-items: center; gap: 3px; padding: 4px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
 .flixo-theme-switcher button, .flixo-device-switcher button { display: inline-grid; place-items: center; width: 30px; height: 30px; border: 0; border-radius: 999px; background: transparent; color: var(--muted); cursor: pointer; }
 .flixo-theme-switcher button.is-active, .flixo-device-switcher button.is-active { background: var(--ink); color: var(--bg); }
