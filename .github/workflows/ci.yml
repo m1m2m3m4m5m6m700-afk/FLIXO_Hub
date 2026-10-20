@@ -504,6 +504,170 @@ jobs:
           node scripts/ci/verify-promotion-lineage.mjs
           echo "EXACT_SHA_PROMOTION_PROOF=$EXPECTED_SHA"
 
+  preview-deployment:
+    name: Preview exact-SHA deployment and identity
+    needs: [verify, hub-stage1, browser, coverage, red-team, branch-policy, codeql, secret-scan, agent-watchdog, sensitive-path-gate, trust-gate, promotion-proof]
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/execution' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+    env:
+      DEPLOYMENT_SHA: ${{ github.sha }}
+      PREVIEW_ORIGIN: https://flixoai-preview.m1m2m3m4m5m6m700.workers.dev
+      PREVIEW_WORKER_NAME: flixoai-preview
+    steps:
+      - name: Checkout exact execution SHA
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify exact candidate and check deployment credentials
+        id: preview-credentials
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$DEPLOYMENT_SHA"
+          if [[ -z "${CLOUDFLARE_API_TOKEN:-}" || -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]]; then
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "PREVIEW_DEPLOYMENT=BLOCKED_MISSING_CLOUDFLARE_CREDENTIALS"
+            exit 78
+          fi
+          echo "available=true" >> "$GITHUB_OUTPUT"
+          echo "PREVIEW_CREDENTIALS=AVAILABLE"
+
+      - name: Download same-run canonical build artifact
+        if: ${{ steps.preview-credentials.outputs.available == 'true' }}
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: flixo-build-${{ github.run_id }}
+          path: dist
+
+      - name: Verify exact-SHA build artifact
+        if: ${{ steps.preview-credentials.outputs.available == 'true' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(cat dist/flixo-head-sha.txt)" = "$DEPLOYMENT_SHA"
+          test "$(cat "dist/__flixo-identity-$DEPLOYMENT_SHA.txt")" = "$DEPLOYMENT_SHA"
+          test "$(cat dist/__flixo-identity.txt)" = "$DEPLOYMENT_SHA"
+          test "$(cat "dist/__flixo/identity/$DEPLOYMENT_SHA/index.txt")" = "$DEPLOYMENT_SHA"
+          test "$(jq -r '.candidateSha' dist/__flixo/build-provenance.json)" = "$DEPLOYMENT_SHA"
+          test "$(jq -r '.sourceTreeSha' dist/__flixo/build-provenance.json)" = "$(git rev-parse HEAD^{tree})"
+          test -s dist/index.html
+
+      - name: Safety guard for preview deployment target
+        if: ${{ steps.preview-credentials.outputs.available == 'true' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          CONFIG_NAME="$(grep -oE '"name"[[:space:]]*:[[:space:]]*"[^"]+"' wrangler.jsonc | head -1 | sed -E 's/.*"name"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/')"
+          test "$CONFIG_NAME" = "flixoai"
+          test "$PREVIEW_WORKER_NAME" = "flixoai-preview"
+          test "$PREVIEW_ORIGIN" = "https://flixoai-preview.m1m2m3m4m5m6m700.workers.dev"
+          if grep -qE 'flixotoolscom|flixotools\b' wrangler.jsonc; then exit 1; fi
+
+      - name: Dry-run preview deployment
+        if: ${{ steps.preview-credentials.outputs.available == 'true' }}
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4.141.0"
+          command: deploy --dry-run --config wrangler.jsonc --name flixoai-preview --var FLIXO_ENV:preview --var FLIXO_DEPLOYMENT_SHA:${{ github.sha }}
+
+      - name: Deploy exact SHA to preview
+        id: deploy-preview
+        if: ${{ steps.preview-credentials.outputs.available == 'true' }}
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4.141.0"
+          command: deploy --config wrangler.jsonc --name flixoai-preview --var FLIXO_ENV:preview --var FLIXO_DEPLOYMENT_SHA:${{ github.sha }}
+
+      - name: Verify preview root and exact-SHA deployment identity
+        id: verify-preview-identity
+        if: ${{ steps.preview-credentials.outputs.available == 'true' && steps.deploy-preview.outcome == 'success' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          identity_url="$PREVIEW_ORIGIN/__flixo-identity-$DEPLOYMENT_SHA.txt?__flixo_sha=$DEPLOYMENT_SHA&__flixo_verify=$GITHUB_RUN_ID"
+          identity_status="$(curl --silent --show-error --location --compressed --retry 10 --retry-delay 3 --retry-all-errors --max-time 30 -D /tmp/flixo-preview-identity-headers.txt -o /tmp/flixo-preview-identity.txt -w '%{http_code}' -H 'Cache-Control: no-cache, no-store' "$identity_url")"
+          identity_body="$(tr -d '\r\n' < /tmp/flixo-preview-identity.txt)"
+          identity_header="$(grep -i '^x-flixo-deployment-sha:' /tmp/flixo-preview-identity-headers.txt | tail -n 1 | sed -E 's/^[^:]+:[[:space:]]*//; s/\r$//')"
+          echo "PREVIEW_IDENTITY_HTTP=$identity_status BODY_SHA=$identity_body HEADER_SHA=$identity_header"
+          test "$identity_status" = "200"
+          test "$identity_body" = "$DEPLOYMENT_SHA"
+          test "$identity_header" = "$DEPLOYMENT_SHA"
+          root_status="$(curl --silent --show-error --location --compressed --retry 10 --retry-delay 3 --retry-all-errors --max-time 30 -o /tmp/flixo-preview-root.html -w '%{http_code}' -H 'Cache-Control: no-cache, no-store' "$PREVIEW_ORIGIN/?__flixo_sha=$DEPLOYMENT_SHA&__flixo_verify=$GITHUB_RUN_ID")"
+          echo "PREVIEW_ROOT_HTTP=$root_status"
+          test "$root_status" = "200"
+          grep -Eiq '<html[[:space:]>]' /tmp/flixo-preview-root.html
+          provenance_url="$PREVIEW_ORIGIN/__flixo/build-provenance.json?__flixo_sha=$DEPLOYMENT_SHA&__flixo_verify=$GITHUB_RUN_ID"
+          provenance_meta="$(curl --silent --show-error --location --compressed --retry 10 --retry-delay 3 --retry-all-errors --max-time 30 -D /tmp/flixo-preview-provenance-headers.txt -o /tmp/flixo-preview-provenance.json -w '%{http_code}|%{content_type}' -H 'Cache-Control: no-cache, no-store' "$provenance_url")"
+          provenance_status="$(printf '%s' "$provenance_meta" | cut -d '|' -f 1)"
+          provenance_type="$(printf '%s' "$provenance_meta" | cut -d '|' -f 2)"
+          provenance_header="$(grep -i '^x-flixo-deployment-sha:' /tmp/flixo-preview-provenance-headers.txt | tail -n 1 | sed -E 's/^[^:]+:[[:space:]]*//; s/\r$//')"
+          echo "PREVIEW_PROVENANCE_HTTP=$provenance_status CONTENT_TYPE=$provenance_type HEADER_SHA=$provenance_header"
+          test "$provenance_status" = "200"
+          [[ "$provenance_type" == application/json* ]]
+          test "$provenance_header" = "$DEPLOYMENT_SHA"
+          jq -e --arg repository "$GITHUB_REPOSITORY" --arg sha "$DEPLOYMENT_SHA" '.repository == $repository and .candidateSha == $sha and (.sourceTreeSha | type == "string" and test("^[a-f0-9]{40}$")) and (.buildRunId | type == "string" and test("^[0-9]+$"))' /tmp/flixo-preview-provenance.json > /dev/null
+          echo "PREVIEW_EXACT_SHA_IDENTITY=PASS"
+
+      - name: Install Node dependencies for preview browser verification
+        if: ${{ steps.preview-credentials.outputs.available == 'true' && steps.deploy-preview.outcome == 'success' && steps.verify-preview-identity.outcome == 'success' }}
+        run: npm ci --prefer-offline --no-audit --no-fund
+
+      - name: Install Chromium for preview browser verification
+        if: ${{ steps.preview-credentials.outputs.available == 'true' && steps.deploy-preview.outcome == 'success' && steps.verify-preview-identity.outcome == 'success' }}
+        run: npx playwright install --with-deps chromium
+
+      - name: Verify deployed preview UI
+        id: preview-browser
+        if: ${{ steps.preview-credentials.outputs.available == 'true' && steps.deploy-preview.outcome == 'success' && steps.verify-preview-identity.outcome == 'success' }}
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+          PLAYWRIGHT_TEST_BASE_URL: ${{ env.PREVIEW_ORIGIN }}
+          PLAYWRIGHT_REUSE_SERVER: "true"
+        run: npm run test:e2e -- --project=chromium tests/official/production-browser-smoke.spec.ts tests/official/mvp-10-release-verification.spec.ts
+
+      - name: Write preview deployment evidence
+        if: always()
+        shell: bash
+        env:
+          CREDENTIALS_AVAILABLE: ${{ steps.preview-credentials.outputs.available || 'false' }}
+          DEPLOY_OUTCOME: ${{ steps.deploy-preview.outcome || 'skipped' }}
+          IDENTITY_OUTCOME: ${{ steps.verify-preview-identity.outcome || 'skipped' }}
+          BROWSER_OUTCOME: ${{ steps.preview-browser.outcome || 'skipped' }}
+        run: |
+          set -euo pipefail
+          if [[ "$CREDENTIALS_AVAILABLE" != "true" ]]; then
+            status="BLOCKED_MISSING_CLOUDFLARE_CREDENTIALS"
+          elif [[ "$DEPLOY_OUTCOME" == "success" && "$IDENTITY_OUTCOME" == "success" && "$BROWSER_OUTCOME" == "success" ]]; then
+            status="PASS"
+          else
+            status="FAIL_OR_INCOMPLETE"
+          fi
+          jq -n --arg repository "$GITHUB_REPOSITORY" --arg sha "$DEPLOYMENT_SHA" --arg runId "$GITHUB_RUN_ID" --arg origin "$PREVIEW_ORIGIN" --arg status "$status" --arg credentials "$CREDENTIALS_AVAILABLE" --arg deploy "$DEPLOY_OUTCOME" --arg identity "$IDENTITY_OUTCOME" --arg browser "$BROWSER_OUTCOME" '{repository:$repository,candidateSha:$sha,runId:$runId,origin:$origin,status:$status,credentialsAvailable:($credentials == "true"),deploymentStep:$deploy,identityVerificationStep:$identity,browserVerificationStep:$browser}' > preview-deployment-evidence.json
+          echo "PREVIEW_DEPLOYMENT_STATUS=$status"
+
+      - name: Upload preview deployment evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: flixo-preview-evidence-${{ github.run_id }}
+          path: preview-deployment-evidence.json
+          if-no-files-found: error
+          retention-days: 30
+
   production-deploy:
     name: Production exact-SHA deployment
     needs: [promotion-proof]
