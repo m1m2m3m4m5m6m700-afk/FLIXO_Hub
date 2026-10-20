@@ -125,6 +125,16 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci --no-audit --no-fund
+      - name: Fetch and verify read-only main branch snapshot for contract tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin refs/heads/main:refs/heads/main
+          git fetch --no-tags --depth=1 origin refs/heads/main:refs/remotes/origin/main
+          remote_main="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          test -n "$remote_main"
+          test "$(git rev-parse main)" = "$remote_main"
+          test "$(git rev-parse refs/remotes/origin/main)" = "$remote_main"
       - name: Three-critic local contract tests
         run: |
           set -euo pipefail
