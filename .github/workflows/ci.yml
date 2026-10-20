@@ -34,8 +34,8 @@ env:
 
 jobs:
   verify:
-    # Run build/typecheck/contracts on every same-repository PR; promotion authority remains separately restricted.
-    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+    # Canonical release-verification job remains restricted to execution->main PRs; other same-repository PRs use candidate-validation.
+    if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.ref == 'execution' && github.event.pull_request.head.repo.full_name == github.repository) }}
     name: Typecheck, lint, core contracts, build
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -107,9 +107,78 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  candidate-validation:
+    name: Same-repository candidate build validation
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref != 'execution' && github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      BUILD_SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - name: Checkout exact candidate commit
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Three-critic local contract tests
+        run: |
+          set -euo pipefail
+          python3 scripts/three_critic_review.py --self-test
+          python3 tests/three_critic_review.test.py
+      - name: Exact-SHA workflow contract tests
+        run: node --test scripts/ci/test-workflow-exact-sha-contract.mjs
+      - name: Agent 2 CI security contract tests
+        run: node --test tests/security/ci/*.test.mjs
+      - name: Model license and admission gate
+        run: npm run test:model-license
+      - name: Run npm test
+        shell: bash
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee npm-test.log
+      - name: Upload npm test failure evidence
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: flixo-npm-test-failure-${{ github.run_id }}
+          path: npm-test.log
+          if-no-files-found: error
+          retention-days: 14
+      - run: npm audit --omit=dev --audit-level=high
+      - run: npm run build
+      - name: Stamp exact build identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$BUILD_SHA"
+          SOURCE_TREE_SHA="$(git rev-parse "$BUILD_SHA^{tree}")"
+          test -z "$(git diff --name-only)"
+          mkdir -p dist/__flixo
+          printf '{"repository":"%s","candidateSha":"%s","sourceTreeSha":"%s","buildRunId":"%s"}\n' \
+            "$GITHUB_REPOSITORY" "$BUILD_SHA" "$SOURCE_TREE_SHA" "$GITHUB_RUN_ID" \
+            > dist/__flixo/build-provenance.json
+          printf '%s\n' "$BUILD_SHA" > dist/flixo-head-sha.txt
+          printf '%s\n' "$BUILD_SHA" > "dist/__flixo-identity-$BUILD_SHA.txt"
+          printf '%s\n' "$BUILD_SHA" > dist/__flixo-identity.txt
+          mkdir -p "dist/__flixo/identity/$BUILD_SHA"
+          printf '%s\n' "$BUILD_SHA" > "dist/__flixo/identity/$BUILD_SHA/index.txt"
+      - name: Upload build artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: flixo-build-${{ github.run_id }}
+          path: dist
+          if-no-files-found: error
+          retention-days: 7
+
   browser:
     name: Chromium browser smoke
-    needs: verify
+    needs: [verify, candidate-validation]
+    if: ${{ always() && (needs.verify.result == 'success' || needs.candidate-validation.result == 'success') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -142,8 +211,8 @@ jobs:
 
   coverage:
     name: Exact-SHA internal coverage
-    needs: verify
-    if: ${{ needs.verify.result == 'success' }}
+    needs: [verify, candidate-validation]
+    if: ${{ always() && (needs.verify.result == 'success' || needs.candidate-validation.result == 'success') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -248,14 +317,14 @@ jobs:
 
   trust-gate:
     name: trust-gate
-    needs: [verify, browser, branch-policy, coverage, red-team]
+    needs: [verify, candidate-validation, browser, branch-policy, coverage, red-team]
     if: ${{ always() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Assert canonical CI gates are GREEN
         env:
-          VERIFY_RESULT: ${{ needs.verify.result }}
+          VERIFY_RESULT: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref != 'execution' && needs.candidate-validation.result || needs.verify.result }}
           BROWSER_RESULT: ${{ needs.browser.result }}
           COVERAGE_RESULT: ${{ needs.coverage.result }}
           RED_TEAM_RESULT: ${{ needs.red-team.result }}
