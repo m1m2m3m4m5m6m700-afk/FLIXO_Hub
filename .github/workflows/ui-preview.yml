@@ -1,0 +1,242 @@
+name: FLIXO UI Preview
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: flixo-ui-preview
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    # Manual, owner-triggered dispatch on the protected integration branch only.
+    # This keeps Cloudflare repository secrets out of execution-push jobs.
+    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/execution' && github.repository == 'm1m2m3m4m5m6m700-afk/FLIXO_Hub' && github.actor == 'm1m2m3m4m5m6m700-afk' }}
+    name: Publish execution UI preview from verified exact-SHA build
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      contents: read
+      actions: read
+    env:
+      EXPECTED_SHA: ${{ github.sha }}
+      PREVIEW_WORKER_NAME: flixoai-preview
+      PREVIEW_ORIGIN: https://flixoai-preview.m1m2m3m4m5m6m700.workers.dev
+    steps:
+      - name: Checkout exact execution SHA
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Setup Node 22
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Verify exact execution SHA and successful canonical push run
+        id: canonical-run
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          test "$GITHUB_REF" = "refs/heads/execution"
+          runs="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$EXPECTED_SHA&event=push&per_page=100")"
+          upstream_run_id="$(printf '%s' "$runs" | EXPECTED_SHA="$EXPECTED_SHA" node -e '
+            let raw=""; process.stdin.on("data", c => raw += c).on("end", () => {
+              const data=JSON.parse(raw);
+              const matches=(data.workflow_runs || []).filter(r =>
+                r.name === "FLIXO CI" &&
+                r.event === "push" &&
+                r.head_branch === "execution" &&
+                r.head_sha === process.env.EXPECTED_SHA &&
+                r.status === "completed" &&
+                r.conclusion === "success"
+              );
+              matches.sort((a,b) => Date.parse(b.updated_at || b.created_at) - Date.parse(a.updated_at || a.created_at));
+              console.log(matches[0]?.id || "");
+            })')"
+          test -n "$upstream_run_id"
+          jobs="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$upstream_run_id/jobs?per_page=100")"
+          printf '%s' "$jobs" | EXPECTED_SHA="$EXPECTED_SHA" node -e '
+            let raw=""; process.stdin.on("data", c => raw += c).on("end", () => {
+              const data=JSON.parse(raw);
+              const required=[
+                "Typecheck, lint, core contracts, build",
+                "Branch policy",
+                "Red Team adversarial regression",
+                "Agent Watchdog / reusable / Agent Watchdog CI / Security integration",
+                "FLIXO CodeQL / reusable / CodeQL JavaScript and TypeScript (javascript-typescript)",
+                "FLIXO Secret Scan / reusable / Gitleaks",
+                "FLIXO Hub Stage 1 exact-SHA contract",
+                "Sensitive path automated assurance",
+                "Exact-SHA internal coverage",
+                "Chromium browser smoke",
+                "trust-gate",
+                "Exact-SHA promotion proof"
+              ];
+              const jobs=data.jobs || [];
+              const missing=[];
+              for (const name of required) {
+                const job=jobs.find(j => j.name === name);
+                if (!job || job.conclusion !== "success") missing.push(name + "=" + (job?.conclusion || "MISSING"));
+                else console.log("CANONICAL_GATE=" + name + ":success");
+              }
+              if (missing.length) {
+                console.error("CANONICAL_PUSH_GATES_NOT_GREEN: " + missing.join(", "));
+                process.exit(1);
+              }
+            })'
+          echo "CANONICAL_PUSH_RUN_ID=$upstream_run_id"
+          echo "upstream_run_id=$upstream_run_id" >> "$GITHUB_OUTPUT"
+
+      - name: Download same-run canonical build artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          gh run download "${{ steps.canonical-run.outputs.upstream_run_id }}" --repo "$GITHUB_REPOSITORY" --name "flixo-build-${{ steps.canonical-run.outputs.upstream_run_id }}" --dir dist
+          test "$(cat dist/flixo-head-sha.txt)" = "$EXPECTED_SHA"
+          test "$(cat "dist/__flixo-identity-$EXPECTED_SHA.txt")" = "$EXPECTED_SHA"
+          test "$(cat dist/__flixo-identity.txt)" = "$EXPECTED_SHA"
+          test "$(cat "dist/__flixo/identity/$EXPECTED_SHA/index.txt")" = "$EXPECTED_SHA"
+          test "$(jq -r '.candidateSha' dist/__flixo/build-provenance.json)" = "$EXPECTED_SHA"
+          test "$(jq -r '.sourceTreeSha' dist/__flixo/build-provenance.json)" = "$(git rev-parse HEAD^{tree})"
+          test -s dist/index.html
+          echo "PREVIEW_BUILD_ARTIFACT=EXACT_SHA_PASS"
+
+      - name: Validate preview credentials without exposing values
+        id: preview-credentials
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${CLOUDFLARE_API_TOKEN:-}" || -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]]; then
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "PREVIEW_DEPLOYMENT=BLOCKED_MISSING_CLOUDFLARE_CREDENTIALS"
+            exit 78
+          fi
+          echo "available=true" >> "$GITHUB_OUTPUT"
+          echo "PREVIEW_CREDENTIALS=AVAILABLE"
+
+      - name: Safety guard for preview target
+        if: ${{ steps.preview-credentials.outputs.available == 'true' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          config_name="$(grep -oE '"name"[[:space:]]*:[[:space:]]*"[^"]+"' wrangler.jsonc | head -1 | sed -E 's/.*"name"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/')"
+          test "$config_name" = "flixoai"
+          test "$PREVIEW_WORKER_NAME" = "flixoai-preview"
+          test "$PREVIEW_ORIGIN" = "https://flixoai-preview.m1m2m3m4m5m6m700.workers.dev"
+          if grep -qE 'flixotoolscom|flixotools\b' wrangler.jsonc; then exit 1; fi
+
+      - name: Dry-run preview deployment
+        if: ${{ steps.preview-credentials.outputs.available == 'true' }}
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4.141.0"
+          command: deploy --dry-run --config wrangler.jsonc --name flixoai-preview --var FLIXO_ENV:preview --var FLIXO_DEPLOYMENT_SHA:${{ github.sha }}
+
+      - name: Deploy verified exact SHA to isolated preview
+        id: deploy-preview
+        if: ${{ steps.preview-credentials.outputs.available == 'true' }}
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4.141.0"
+          command: deploy --config wrangler.jsonc --name flixoai-preview --var FLIXO_ENV:preview --var FLIXO_DEPLOYMENT_SHA:${{ github.sha }}
+
+      - name: Verify preview root, identity header, and build provenance
+        id: verify-preview-identity
+        if: ${{ steps.preview-credentials.outputs.available == 'true' && steps.deploy-preview.outcome == 'success' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          identity_url="$PREVIEW_ORIGIN/__flixo-identity-$EXPECTED_SHA.txt?__flixo_sha=$EXPECTED_SHA&__flixo_verify=$GITHUB_RUN_ID"
+          identity_status="$(curl --silent --show-error --location --compressed --retry 10 --retry-delay 3 --retry-all-errors --max-time 30 -D /tmp/flixo-preview-identity-headers.txt -o /tmp/flixo-preview-identity.txt -w '%{http_code}' -H 'Cache-Control: no-cache, no-store' "$identity_url")"
+          identity_body="$(tr -d '\r\n' < /tmp/flixo-preview-identity.txt)"
+          identity_header="$(grep -i '^x-flixo-deployment-sha:' /tmp/flixo-preview-identity-headers.txt | tail -n 1 | sed -E 's/^[^:]+:[[:space:]]*//; s/\r$//')"
+          echo "PREVIEW_IDENTITY_HTTP=$identity_status BODY_SHA=$identity_body HEADER_SHA=$identity_header"
+          test "$identity_status" = "200"
+          test "$identity_body" = "$EXPECTED_SHA"
+          test "$identity_header" = "$EXPECTED_SHA"
+
+          root_status="$(curl --silent --show-error --location --compressed --retry 10 --retry-delay 3 --retry-all-errors --max-time 30 -D /tmp/flixo-preview-root-headers.txt -o /tmp/flixo-preview-root.html -w '%{http_code}' -H 'Cache-Control: no-cache, no-store' "$PREVIEW_ORIGIN/?__flixo_sha=$EXPECTED_SHA&__flixo_verify=$GITHUB_RUN_ID")"
+          root_header="$(grep -i '^x-flixo-deployment-sha:' /tmp/flixo-preview-root-headers.txt | tail -n 1 | sed -E 's/^[^:]+:[[:space:]]*//; s/\r$//')"
+          echo "PREVIEW_ROOT_HTTP=$root_status HEADER_SHA=$root_header"
+          test "$root_status" = "200"
+          test "$root_header" = "$EXPECTED_SHA"
+          grep -Eiq '<html[[:space:]>]' /tmp/flixo-preview-root.html
+
+          provenance_url="$PREVIEW_ORIGIN/__flixo/build-provenance.json?__flixo_sha=$EXPECTED_SHA&__flixo_verify=$GITHUB_RUN_ID"
+          provenance_meta="$(curl --silent --show-error --location --compressed --retry 10 --retry-delay 3 --retry-all-errors --max-time 30 -D /tmp/flixo-preview-provenance-headers.txt -o /tmp/flixo-preview-provenance.json -w '%{http_code}|%{content_type}' -H 'Cache-Control: no-cache, no-store' "$provenance_url")"
+          provenance_status="$(printf '%s' "$provenance_meta" | cut -d '|' -f 1)"
+          provenance_type="$(printf '%s' "$provenance_meta" | cut -d '|' -f 2)"
+          provenance_header="$(grep -i '^x-flixo-deployment-sha:' /tmp/flixo-preview-provenance-headers.txt | tail -n 1 | sed -E 's/^[^:]+:[[:space:]]*//; s/\r$//')"
+          echo "PREVIEW_PROVENANCE_HTTP=$provenance_status CONTENT_TYPE=$provenance_type HEADER_SHA=$provenance_header"
+          test "$provenance_status" = "200"
+          [[ "$provenance_type" == application/json* ]]
+          test "$provenance_header" = "$EXPECTED_SHA"
+          jq -e --arg repository "$GITHUB_REPOSITORY" --arg sha "$EXPECTED_SHA" '.repository == $repository and .candidateSha == $sha and (.sourceTreeSha | type == "string" and test("^[a-f0-9]{40}$")) and (.buildRunId | type == "string" and test("^[0-9]+$"))' /tmp/flixo-preview-provenance.json > /dev/null
+          echo "PREVIEW_EXACT_SHA_IDENTITY=PASS"
+
+      - name: Install dependencies for preview browser verification
+        if: ${{ steps.preview-credentials.outputs.available == 'true' && steps.deploy-preview.outcome == 'success' && steps.verify-preview-identity.outcome == 'success' }}
+        run: npm ci --prefer-offline --no-audit --no-fund
+
+      - name: Install Chromium for preview browser verification
+        if: ${{ steps.preview-credentials.outputs.available == 'true' && steps.deploy-preview.outcome == 'success' && steps.verify-preview-identity.outcome == 'success' }}
+        run: npx playwright install --with-deps chromium
+
+      - name: Verify deployed preview UI
+        id: preview-browser
+        if: ${{ steps.preview-credentials.outputs.available == 'true' && steps.deploy-preview.outcome == 'success' && steps.verify-preview-identity.outcome == 'success' }}
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+          PLAYWRIGHT_TEST_BASE_URL: ${{ env.PREVIEW_ORIGIN }}
+          PLAYWRIGHT_REUSE_SERVER: "true"
+        run: npm run test:e2e -- --project=chromium tests/official/production-browser-smoke.spec.ts tests/official/mvp-10-release-verification.spec.ts
+
+      - name: Write preview evidence even on failure
+        if: always()
+        shell: bash
+        env:
+          CANONICAL_RUN_ID: ${{ steps.canonical-run.outputs.upstream_run_id || '' }}
+          CREDENTIALS_AVAILABLE: ${{ steps.preview-credentials.outputs.available || 'false' }}
+          DEPLOY_OUTCOME: ${{ steps.deploy-preview.outcome || 'skipped' }}
+          IDENTITY_OUTCOME: ${{ steps.verify-preview-identity.outcome || 'skipped' }}
+          BROWSER_OUTCOME: ${{ steps.preview-browser.outcome || 'skipped' }}
+        run: |
+          set -euo pipefail
+          if [[ "$CREDENTIALS_AVAILABLE" != "true" ]]; then
+            status="BLOCKED_MISSING_CLOUDFLARE_CREDENTIALS"
+          elif [[ "$DEPLOY_OUTCOME" == "success" && "$IDENTITY_OUTCOME" == "success" && "$BROWSER_OUTCOME" == "success" ]]; then
+            status="PASS"
+          else
+            status="FAIL_OR_INCOMPLETE"
+          fi
+          jq -n --arg repository "$GITHUB_REPOSITORY" --arg sha "$EXPECTED_SHA" --arg runId "$GITHUB_RUN_ID" --arg canonicalRunId "$CANONICAL_RUN_ID" --arg origin "$PREVIEW_ORIGIN" --arg status "$status" --arg credentials "$CREDENTIALS_AVAILABLE" --arg deploy "$DEPLOY_OUTCOME" --arg identity "$IDENTITY_OUTCOME" --arg browser "$BROWSER_OUTCOME" '{repository:$repository,candidateSha:$sha,runId:$runId,canonicalBuildRunId:$canonicalRunId,origin:$origin,status:$status,credentialsAvailable:($credentials == "true"),deploymentStep:$deploy,identityVerificationStep:$identity,browserVerificationStep:$browser}' > preview-deployment-evidence.json
+          echo "PREVIEW_DEPLOYMENT_STATUS=$status"
+
+      - name: Upload preview evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: flixo-preview-evidence-${{ github.run_id }}
+          path: preview-deployment-evidence.json
+          if-no-files-found: error
+          retention-days: 30
