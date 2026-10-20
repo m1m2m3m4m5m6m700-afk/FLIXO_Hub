@@ -215,6 +215,24 @@ test('promotion and production gates remain fail-closed and exact-SHA bound', as
     workflow.includes("if: github.event_name == 'push' && github.ref == 'refs/heads/main'"),
     'production deployment must remain main-push only',
   );
+
+  const previewStart = workflow.indexOf('  preview-deployment:');
+  const productionStart = workflow.indexOf('  production-deploy:', previewStart);
+  assert.ok(previewStart >= 0 && productionStart > previewStart, 'preview deployment must be separate from production deployment');
+  const previewBlock = workflow.slice(previewStart, productionStart);
+  assert.ok(
+    previewBlock.includes("if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/execution' }}"),
+    'preview deployment must run only on push to the canonical execution branch',
+  );
+  assert.ok(
+    previewBlock.includes('needs: [verify, hub-stage1, browser, coverage, red-team, branch-policy, codeql, secret-scan, agent-watchdog, sensitive-path-gate, trust-gate, promotion-proof]'),
+    'preview deployment must depend on all exact-SHA assurance and promotion gates',
+  );
+  assert.ok(previewBlock.includes('PREVIEW_DEPLOYMENT=BLOCKED_MISSING_CLOUDFLARE_CREDENTIALS'), 'missing Cloudflare credentials must fail closed and be explicit');
+  assert.ok(previewBlock.includes('flixo-build-${{ github.run_id }}'), 'preview must consume the same-run canonical build artifact');
+  assert.ok(previewBlock.includes('test "$identity_header" = "$DEPLOYMENT_SHA"'), 'preview identity must verify the exact-SHA response header');
+  assert.ok(previewBlock.includes('name flixoai-preview'), 'preview deployment must target the allowlisted preview Worker, not production');
+
   assert.ok(
     workflow.includes('          ref: ${{ github.sha }}'),
     'post-merge production deployment must checkout the immutable main SHA',
