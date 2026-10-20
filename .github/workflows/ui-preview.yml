@@ -176,8 +176,10 @@ jobs:
           test "$identity_header" = "$EXPECTED_SHA"
 
           root_status="$(curl --silent --show-error --location --compressed --retry 10 --retry-delay 3 --retry-all-errors --max-time 30 -D /tmp/flixo-preview-root-headers.txt -o /tmp/flixo-preview-root.html -w '%{http_code}' -H 'Cache-Control: no-cache, no-store' "$PREVIEW_ORIGIN/?__flixo_sha=$EXPECTED_SHA&__flixo_verify=$GITHUB_RUN_ID")"
-          root_header="$(grep -i '^x-flixo-deployment-sha:' /tmp/flixo-preview-root-headers.txt | tail -n 1 | sed -E 's/^[^:]+:[[:space:]]*//; s/\r$//')"
-          echo "PREVIEW_ROOT_HTTP=$root_status HEADER_SHA=$root_header"
+          # Preserve HTTP diagnostics when a missing header makes grep fail under pipefail.
+          root_header="$(grep -i '^x-flixo-deployment-sha:' /tmp/flixo-preview-root-headers.txt | tail -n 1 | sed -E 's/^[^:]+:[[:space:]]*//; s/\r$//' || true)"
+          echo "PREVIEW_ROOT_HTTP=$root_status HEADER_SHA=${root_header:-MISSING}"
+          echo "PREVIEW_ROOT_BODY_BYTES=$(wc -c < /tmp/flixo-preview-root.html)"
           test "$root_status" = "200"
           test "$root_header" = "$EXPECTED_SHA"
           grep -Eiq '<html[[:space:]>]' /tmp/flixo-preview-root.html
@@ -186,8 +188,8 @@ jobs:
           provenance_meta="$(curl --silent --show-error --location --compressed --retry 10 --retry-delay 3 --retry-all-errors --max-time 30 -D /tmp/flixo-preview-provenance-headers.txt -o /tmp/flixo-preview-provenance.json -w '%{http_code}|%{content_type}' -H 'Cache-Control: no-cache, no-store' "$provenance_url")"
           provenance_status="$(printf '%s' "$provenance_meta" | cut -d '|' -f 1)"
           provenance_type="$(printf '%s' "$provenance_meta" | cut -d '|' -f 2)"
-          provenance_header="$(grep -i '^x-flixo-deployment-sha:' /tmp/flixo-preview-provenance-headers.txt | tail -n 1 | sed -E 's/^[^:]+:[[:space:]]*//; s/\r$//')"
-          echo "PREVIEW_PROVENANCE_HTTP=$provenance_status CONTENT_TYPE=$provenance_type HEADER_SHA=$provenance_header"
+          provenance_header="$(grep -i '^x-flixo-deployment-sha:' /tmp/flixo-preview-provenance-headers.txt | tail -n 1 | sed -E 's/^[^:]+:[[:space:]]*//; s/\r$//' || true)"
+          echo "PREVIEW_PROVENANCE_HTTP=$provenance_status CONTENT_TYPE=$provenance_type HEADER_SHA=${provenance_header:-MISSING}"
           test "$provenance_status" = "200"
           [[ "$provenance_type" == application/json* ]]
           test "$provenance_header" = "$EXPECTED_SHA"
@@ -209,7 +211,7 @@ jobs:
           EXPECTED_SHA: ${{ github.sha }}
           PLAYWRIGHT_TEST_BASE_URL: ${{ env.PREVIEW_ORIGIN }}
           PLAYWRIGHT_REUSE_SERVER: "true"
-        run: npm run test:e2e -- --project=chromium tests/official/production-browser-smoke.spec.ts tests/official/mvp-10-release-verification.spec.ts
+        run: npm run test:e2e -- --project=chromium
 
       - name: Write preview evidence even on failure
         if: always()
