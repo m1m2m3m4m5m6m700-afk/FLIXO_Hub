@@ -34,8 +34,8 @@ env:
 
 jobs:
   verify:
-    # Only the canonical execution->main promotion PR consumes pull-request CI; worker PRs are implementation lanes, not release candidates.
-    if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.ref == 'execution' && github.event.pull_request.head.repo.full_name == github.repository) }}
+    # Run build/typecheck/contracts on every same-repository PR; promotion authority remains separately restricted.
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
     name: Typecheck, lint, core contracts, build
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -267,12 +267,12 @@ jobs:
           # Worker/implementation PRs are intentionally outside the canonical execution -> main
           # promotion topology. Their release-only lanes are skipped and must not fail trust.
           if [ "$EVENT_NAME" = "pull_request" ] && [ "$PR_HEAD_REF" != "execution" ]; then
-            test "$VERIFY_RESULT" = skipped
-            test "$BROWSER_RESULT" = skipped
-            test "$COVERAGE_RESULT" = skipped
+            test "$VERIFY_RESULT" = success
+            test "$BROWSER_RESULT" = success
+            test "$COVERAGE_RESULT" = success
             test "$RED_TEAM_RESULT" = success
             test "$BRANCH_RESULT" = success
-            echo 'TRUST_GATE=PASS_WORKER_PR'
+            echo 'TRUST_GATE=PASS_WORKER_PR_FULL_CI'
             exit 0
           fi
 
