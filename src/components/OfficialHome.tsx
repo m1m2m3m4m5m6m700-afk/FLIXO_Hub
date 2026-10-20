@@ -4,6 +4,7 @@ import {
   ArrowUpRight,
   Check,
   ChevronDown,
+  Cloud,
   Moon,
   ShieldCheck,
   Search,
@@ -126,23 +127,48 @@ export function OfficialHome() {
   const [requestText, setRequestText] = useState('');
   const [assistantResult, setAssistantResult] = useState<AssistantResult | null>(null);
   const [thinking, setThinking] = useState(false);
-  const [dark, setDark] = useState(() => {
-    if (typeof window === 'undefined') return true;
+  type FlixoTheme = 'light' | 'dark' | 'system';
+  type EffectiveTheme = 'light' | 'dark';
+  const [theme, setTheme] = useState<FlixoTheme>(() => {
+    if (typeof window === 'undefined') return 'system';
     try {
-      return window.localStorage.getItem('flixo-official-theme') !== 'light';
+      const saved = window.localStorage.getItem('flixo-theme');
+      if (saved === 'light' || saved === 'dark' || saved === 'system') return saved;
+      const legacy = window.localStorage.getItem('flixo-official-theme');
+      if (legacy === 'light' || legacy === 'dark') return legacy;
+      if (legacy === 'night' || legacy === 'black') return 'dark';
+      return 'system';
     } catch {
-      return true;
+      return 'system';
     }
   });
+  const [systemTheme, setSystemTheme] = useState<EffectiveTheme>(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return 'light';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  });
+  const effectiveTheme: EffectiveTheme = theme === 'system' ? systemTheme : theme;
+  const dark = effectiveTheme === 'dark';
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return;
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const updateSystemTheme = () => setSystemTheme(mediaQuery.matches ? 'dark' : 'light');
+    updateSystemTheme();
+    mediaQuery.addEventListener('change', updateSystemTheme);
+    return () => mediaQuery.removeEventListener('change', updateSystemTheme);
+  }, []);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', dark);
+    document.documentElement.dataset.flixoTheme = effectiveTheme;
+    document.documentElement.dataset.flixoThemeMode = theme;
     try {
-      window.localStorage.setItem('flixo-official-theme', dark ? 'dark' : 'light');
+      window.localStorage.setItem('flixo-theme', theme);
+      window.localStorage.setItem('flixo-official-theme', effectiveTheme);
     } catch {
       // Browser storage is optional.
     }
-  }, [dark]);
+  }, [theme, effectiveTheme, dark]);
 
   const toolFamilies = useMemo(() => [
     { id: 'all' as const, label: 'الكل' },
@@ -195,7 +221,7 @@ export function OfficialHome() {
   };
 
   return (
-    <div className={dark ? 'official-home official-dark' : 'official-home'} dir="rtl">
+    <div className={dark ? 'official-home official-dark' : 'official-home'} data-theme={effectiveTheme} data-theme-mode={theme} dir="rtl">
       <header className="official-nav">
         <div className="official-nav-inner">
           <a className="official-brand" href="/" aria-label="FLIXO">
@@ -210,11 +236,11 @@ export function OfficialHome() {
           <div className="official-nav-actions">
             <button
               className="official-icon-button"
-              onClick={() => setDark((value) => !value)}
-              aria-label={dark ? 'استخدام المظهر الفاتح' : 'استخدام المظهر الداكن'}
-              title={dark ? 'المظهر الفاتح' : 'المظهر الداكن'}
+              onClick={() => setTheme((value) => value === 'light' ? 'dark' : value === 'dark' ? 'system' : 'light')}
+              aria-label={theme === 'light' ? 'المظهر الفاتح، اضغط للتبديل' : theme === 'dark' ? 'المظهر الداكن، اضغط للتبديل' : 'المظهر حسب إعدادات النظام، اضغط للتبديل'}
+              title={theme === 'light' ? 'المظهر الفاتح' : theme === 'dark' ? 'المظهر الداكن' : 'حسب إعدادات النظام'}
             >
-              {dark ? <Sun size={17} /> : <Moon size={17} />}
+              {theme === 'light' ? <Sun size={17} /> : theme === 'dark' ? <Moon size={17} /> : <Cloud size={17} />}
             </button>
             <button className="official-request-button" onClick={openRequestWithQuery}>
               طلب أداة
