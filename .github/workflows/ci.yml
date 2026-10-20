@@ -109,6 +109,19 @@ jobs:
           printf '%s\n' "$BUILD_SHA" > dist/__flixo-identity.txt
           mkdir -p "dist/__flixo/identity/$BUILD_SHA"
           printf '%s\n' "$BUILD_SHA" > "dist/__flixo/identity/$BUILD_SHA/index.txt"
+      - name: Package local offline site
+        env:
+          FLIXO_TARGET_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: npm run package:local
+      - name: Verify local offline site package
+        run: npm run verify:local-offline
+      - name: Upload local offline site package
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: flixo-local-offline-site-${{ github.run_id }}
+          path: artifacts/flixo-local-site
+          if-no-files-found: error
+          retention-days: 7
       - name: Upload build artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -175,8 +188,16 @@ jobs:
         with:
           name: flixo-build-${{ github.run_id }}
           path: dist
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: flixo-local-offline-site-${{ github.run_id }}
+          path: artifacts/flixo-local-site
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e -- --project=chromium
+      - name: Verify packaged website works after disconnecting the network
+        env:
+          FLIXO_TARGET_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: npm run test:local-offline-browser
       - name: Upload browser runtime evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
