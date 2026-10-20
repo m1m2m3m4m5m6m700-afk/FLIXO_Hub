@@ -1,0 +1,10586 @@
+# Historical CELL Preservation
+
+Status: HISTORICAL / PRESERVED
+Source: `الخلية.md` on execution immediately before canonical CELL contract update.
+Original blob SHA: 06f9008e40f9efa7d8230d1b30bbac590d6b58f1
+
+---
+
+# CELL — MASTER BLUEPRINT / المنظومة التنفيذية المستمرة المفتوحة
+
+> **STATUS: ADOPTED DESIGN / EXECUTION SEPARATE**
+> هذه الطبقة هي الخطة المعمارية الموحدة لـCELL. المحتوى التاريخي/التنفيذي الأصلي محفوظ بالكامل بعد علامة `PRESERVED ORIGINAL CELL CONTENT` ولا يُحذف منه شيء.
+> `CELL.md` يشرح المعمارية والتكامل. المصادر القانونية التشغيلية مثل `المهام.md` و`الوكلاء.md` و`AGENTS.md` والعقود وEvidence تبقى مصادر الحقيقة الخاصة بها.
+
+## 0. لماذا توجد CELL؟
+
+الهدف ليس إنشاء عدد كبير من الوكلاء ثم تشغيلهم حتى يتوقفوا. الهدف هو بناء **خلية تنفيذية ذات Mission طويلة العمر** تستطيع استقبال هدف واسع، تحويله إلى برنامج اكتشاف وبحث وتنفيذ واختبار وتعلم، ثم الاستمرار في تحسين أفضل حالة معروفة عبر Frontier جديدة.
+
+مثال الهدف:
+
+```text
+MISSION:
+اعثر على أفضل مستودع مفتوح المصدر لتحرير الصور على GitHub،
+اختر أفضل أساس وفق معايير محددة، ثم حسّنه بصورة مستمرة
+في الجودة والأمان والأداء والقابلية للتوسع والتشغيل الذاتي.
+```
+
+المعيار الأعلى:
+
+`VALIDATED USEFUL KNOWLEDGE GAIN / UNIT TIME`
+
+وليس:
+
+`NUMBER OF AGENTS` أو `NUMBER OF COMMITS`.
+
+---
+
+## 1. تعريف النظام
+
+`CELL = CONTINUOUS MISSION-DRIVEN AUTONOMOUS EXECUTION CELL`
+
+وهي منصة مفتوحة المصدر مستهدفة تكون:
+
+```text
+Forkable
+Cloneable
+Self-hostable
+Extensible
+Provider-neutral
+Evidence-driven
+Adversarially tested
+Recoverable
+Continuously improvable
+```
+
+الوحدة الأساسية ليست Agent ولا Task منفردة؛ بل **Mission طويلة العمر**. الوكلاء أدوات معرفية وتنفيذية داخل هذه Mission، وليسوا Mission نفسها.
+
+---
+
+## 2. الثوابت غير القابلة للكسر
+
+```text
+MISSION > TASK > AGENT SESSION
+EVIDENCE > ASSERTION
+CURRENT EVIDENCE > STALE MEMORY
+INDEPENDENT VERIFICATION > SELF-REPORT
+TEST PASS ≠ SELECTED ≠ CERTIFIED ≠ MERGED
+KNOWLEDGE ≠ AUTHORITY
+GUARD = WAKE ONLY
+MISSION SURVIVES AGENT LOSS
+SHA DRIFT INVALIDATES STALE EVIDENCE
+NO BLIND RETRY
+NO SECOND AUTHORITY FOR THE SAME FACT
+```
+
+قواعد إضافية:
+
+1. لا Executor يمنح نفسه شهادة إتمام نهائية.
+2. نجاح الاختبار لا يؤدي إلى Merge تلقائي.
+3. النتائج الناجحة تبقى في Candidate/Evidence Pool حتى الاختيار وإعادة التحقق.
+4. الاختبارات المستقلة لا يوجهها Master أثناء تشغيلها ولا تتلقى منه نتيجة متوقعة بصيغة توجيهية.
+5. أي فكرة جديدة أو مخالفة للتصميم الحالي يمكن قبولها إذا أثبتت القيمة المناسبة وكانت المخاطر مقبولة.
+6. الذاكرة تتعلم لكنها لا تمنح Merge أو Deploy أو Certify.
+7. التوسع في عدد الوكلاء يأتي بعد إثبات الكفاءة التشغيلية.
+8. الاستمرار ليس `loop forever`؛ بل استمرار Mission طالما توجد Frontier مفيدة أو عمل غير مغلق.
+
+---
+
+
+---
+
+## 2A. HARDENING ADDENDUM — ENFORCEMENT INVARIANTS
+
+هذه الإضافة تحول المبادئ أعلاه إلى قيود تنفيذية يجب أن تُرفض عند خرقها، وليست تعليمات Prompt.
+
+### Authority Attenuation
+
+```text
+SCOUT < ANALYST < IMPLEMENTER < INTEGRATOR < CERTIFIER < ROOT
+```
+
+أي تفويض يجب أن يحقق:
+
+```text
+CHILD_AUTHORITY <= PARENT_AUTHORITY
+```
+
+ولا يجوز إنشاء صلاحية أعلى من الصلاحية التي يملكها المصدر.
+
+### CELL Self-Protection
+
+مسارات التحكم في CELL، بما فيها:
+
+```text
+packages/contracts/src/cell-**
+scripts/agent-control-plane.mjs
+scripts/ci/cell-**
+الخلية.md
+```
+
+لا يمكن تعديلها من Agent عادي. أي mutation لها تتطلب ROOT authority.
+
+الهدف هو منع:
+
+```text
+AGENT
+ → MODIFY FIREWALL
+ → PASS FIREWALL
+```
+
+### Retry Firewall
+
+إعادة المحاولة ليست إعادة تخطيط.
+
+```text
+RETRY
+  = same capability
+  + same parameters
+  + same admission
+  + bounded attempt count
+```
+
+ويُرفض retry في:
+
+```text
+AUTHORITY FAILURE
+SCOPE FAILURE
+REPLANNED EXECUTION
+ATTEMPT > MAX
+```
+
+وأي Recovery أو Re-attempt يجب أن يعيد المرور على Hard-Control قبل التنفيذ.
+
+### Exact-SHA Freshness
+
+عندما تكون العملية مرتبطة بـExact-SHA evidence:
+
+```text
+START_SHA
+CURRENT_SHA
+EVIDENCE_SHA
+```
+
+يجب أن تكون الحالة الحالية مطابقة للـSHA الذي تم قبول العملية عليه. أي انحراف يبطل صلاحية الأدلة ذات الصلة ويعيد العملية إلى:
+
+```text
+REVALIDATE → RESCAN → REVERIFY
+```
+
+### Evidence Independence
+
+لا تعتبر الخلية تصريح Agent:
+
+```text
+DONE
+PASS
+CERTIFIED
+```
+
+دليلًا بذاته.
+
+الإغلاق يتطلب Evidence قابلة لإعادة التحقق وربطها بالـExecution والـSHA والـVerifier المناسب.
+
+### Execution Firewall Invariant
+
+المسار القانوني هو:
+
+```text
+REQUEST
+ → CELL ADMISSION
+ → IDENTITY
+ → AUTHORITY
+ → CAPABILITY
+ → SCOPE
+ → RESOURCE
+ → SHA / OBJECTIVE / ACCEPTANCE
+ → EXECUTION
+ → VERIFICATION
+ → EVIDENCE
+ → ACCEPTANCE
+ → CERTIFICATION
+ → PROMOTION
+```
+
+ولا يجوز لأي Recovery أو Retry أو Delegation إنشاء مسار جانبي يتجاوز هذه السلسلة.
+
+### Required Adversarial Proofs
+
+يجب أن تفشل الخلية مغلقًا أمام:
+
+```text
+privilege escalation
+scope escape
+CELL self-modification
+SHA drift
+objective drift
+acceptance drift
+unbounded retry
+retry with replanning
+policy-failure retry
+unverified promotion
+stale evidence
+```
+
+وجود هذه الاختبارات شرط لإغلاق Hard-Control، وليس مجرد توثيق اختياري.
+## 3. الصورة المعمارية الكاملة
+
+```text
+                         HUMAN / MISSION OWNER
+                                  │
+                                  ▼
+                   ┌──────────────────────────┐
+                   │ MASTER COGNITIVE         │
+                   │ ORCHESTRATOR             │
+                   └────────────┬─────────────┘
+                                │
+                    Intent / Context / Risk
+                                │
+                    Uncertainty Resolution
+                                │
+                Capability Discovery + Memory
+                                │
+                 Strategy Portfolio / Simulation
+                                │
+                                ▼
+                        MISSION ENGINE
+                                │
+                         TASK GRAPH / DAG
+                                │
+                         SMART SCHEDULER
+                                │
+               ┌────────────────┼────────────────┐
+               ▼                ▼                ▼
+          EXECUTOR        INVESTIGATOR      FALSIFIER
+               │                │                │
+               └────────────────┼────────────────┘
+                                ▼
+                      CANDIDATE / EVIDENCE
+                                │
+                                ▼
+                    INDEPENDENT VERIFICATION
+                 ┌──────────────┼──────────────┐
+                 ▼              ▼              ▼
+              TARGET TEST    RED TEAM       OPPONENT
+                 │              │              │
+                 └──────────────┼──────────────┘
+                                ▼
+                     GPT SELECTION / SYNTHESIS
+                                │
+             ┌──────────────────┼──────────────────┐
+             ▼                  ▼                  ▼
+          ACCEPT              MODIFY             REJECT
+             │                  │
+             │                  └──────→ RE-TEST
+             ▼
+                    INDEPENDENT CERTIFICATION
+                                │
+                                ▼
+                            PROMOTION
+                                │
+                                ▼
+                        CURRENT BEST STATE
+                                │
+                                ▼
+                           NEW FRONTIER
+                                │
+                                └──────────→ MASTER
+
+      WAKE-ONLY GUARDIANS operate beside runtime continuity only.
+```
+
+---
+
+## 4. السلطات — من يفعل ماذا؟
+
+| الوحدة | السلطة الأساسية | لا تملك |
+|---|---|---|
+| MASTER | Mission planning, routing, replanning | تنفيذ عام، Certification |
+| EXECUTOR | تنفيذ Task ضمن العقد | شهادة نهائية، تجاوز النطاق |
+| INVESTIGATOR | اكتشاف وتحليل الأدلة | اعتماد النتيجة وحده |
+| FALSIFIER | محاولة دحض الفرضية | تعديل النتيجة لإجبار النجاح |
+| TEST ENGINE | تنفيذ Fault/Validation Campaign | توجيه من Master أثناء الاختبار |
+| RED TEAM | مهاجمة التصميم/التنفيذ وكشف الضعف | منح النجاح الذاتي |
+| OPPONENT | البحث عن Counterexample ودحض النجاح | تعديل المرشح بصفة تنفيذية |
+| GPT SELECTION/SYNTHESIS | اختيار/تعديل/دمج المرشحين | تجاوز التحقق والتصديق |
+| CERTIFIER | الحكم على الإغلاق والتصديق | تنفيذ الإصلاح |
+| GUARD | Observe/Detect/Record/Wake | Execute/Repair/Schedule/Certify/Merge/Deploy |
+
+قاعدة الفصل:
+
+```text
+PLANNING ≠ EXECUTION ≠ VERIFICATION ≠ CERTIFICATION
+```
+
+---
+
+## 5. Master Agent — العقل الموحد للتوجيه
+
+`MASTER = COGNITIVE ORCHESTRATOR`.
+
+### 5.1 دورة الفهم
+
+```text
+REQUEST
+ → INTENT
+ → GOAL
+ → DESIRED OUTCOME
+ → CONSTRAINTS
+ → SUCCESS CRITERIA
+ → UNKNOWNs
+ → RISK
+ → VERIFICATION POLICY
+ → CONTINUATION POLICY
+```
+
+### 5.2 محرك عدم اليقين
+
+```text
+KNOWN
+SUPPORTED
+INFERRED
+UNCERTAIN
+UNKNOWN
+CONTRADICTED
+```
+
+القرار:
+
+```text
+Low uncertainty      → direct delegation
+Medium uncertainty   → targeted discovery
+High uncertainty     → exploration before irreversible work
+Critical uncertainty → independent evidence before promotion
+```
+
+### 5.3 التوجيه الذكي
+
+Master يطابق المهمة مع قدرات الوكلاء بناءً على:
+
+```text
+Capability Fit
+Historical Reliability
+Recent Performance
+Relevant Memory
+Current Load
+Recovery Cost
+Verification Strength
+Risk Fit
+Expected Information Gain
+```
+
+ويوازن باستمرار بين:
+
+`EXPLOIT known strengths + EXPLORE alternatives`.
+
+### 5.4 Strategy Portfolio
+
+Master لا يفترض وجود خطة وحيدة. يمكنه إنشاء بدائل ومقارنتها حسب:
+
+```text
+Expected Success
+Risk
+Cost
+Information Gain
+Dependencies
+Verification Burden
+Reversibility
+```
+
+ثم يعيد التخطيط عند ظهور دليل جديد أو فشل الاستراتيجية.
+
+---
+
+## 6. Mission Engine — المهمة هي الكيان المستمر
+
+الـMission تحمل:
+
+```text
+missionId
+objective
+constraints
+successCriteria
+autonomyLevel
+verificationPolicy
+continuationPolicy
+currentBest
+currentFrontier
+openTasks
+state
+```
+
+### 6.1 Frontier
+
+هي أفضل مجموعة فرص معروفة حاليًا للتحسين:
+
+```text
+UX
+Performance
+AI Editing
+Browser-local
+Security
+Accessibility
+Developer Experience
+Architecture
+```
+
+الدورة:
+
+```text
+CURRENT BEST
+ → RE-EVALUATE
+ → FIND GAPS
+ → SELECT FRONTIER
+ → CREATE EXPERIMENTS
+ → CONTINUE
+```
+
+### 6.2 شروط الاستمرار والتوقف
+
+لا تتوقف الخلية لأن Subtask انتهت. تنتهي Mission فقط عند:
+
+```text
+FINAL SUCCESS CRITERIA SATISFIED
+OR
+NO VALUABLE FRONTIER REMAINS UNDER THE MISSION POLICY
+OR
+BLOCKED STATE IS EXPLICITLY PROVEN AND RECORDED
+```
+
+---
+
+## 7. Task Graph + Smart Scheduler
+
+بدل `Task → Agent`:
+
+```text
+Mission
+ → Task Graph / DAG
+ → Atomic Steps
+ → Dependencies
+ → Risk / Cost / Capability
+ → Scheduler
+ → Agent Allocation
+```
+
+كل Step يجب أن يملك:
+
+```text
+stepId
+objective
+dependencies
+requiredCapabilities
+riskClass
+expectedInformationGain
+estimatedCost
+writeScope
+startSha
+lease
+falsifier
+verification
+```
+
+ويقرر Scheduler:
+
+```text
+PARALLELIZE
+SERIALIZE
+DEFER
+REUSE
+EXPLORE
+FALSIFY
+REASSIGN
+REPLAN
+```
+
+المقياس هو `Information Gain / Unit Time` وليس عدد الوكلاء.
+
+---
+
+## 8. Agent System — هوية دائمة وقدرات قابلة للتمدد
+
+المرجع الحالي لعدد وهوية الوكلاء الرئيسيين هو `الوكلاء.md`. وفق النسخة الحالية على `execution` العدد الرسمي هو 10؛ أي نموذج 14 أو أكثر هو **Target** حتى يثبته Runtime.
+
+### 8.1 مواصفات كل Agent
+
+يمكن تحديد وتغيير:
+
+```text
+identity
+name
+role
+capabilities
+tasks
+permissions
+allowedTools
+requirements
+inputs
+outputs
+evaluationPolicy
+lifecycle
+memoryProfile
+riskProfile
+handoffPolicy
+verificationPolicy
+```
+
+### 8.2 إضافة الوكلاء
+
+```text
+DECLARE
+ → REGISTER
+ → BENCHMARK
+ → VERIFY
+ → ROUTABLE
+```
+
+لا تحتاج إضافة Agent إلى إعادة بناء النواة.
+
+### 8.3 Dynamic Roles
+
+```text
+EXECUTOR
+INVESTIGATOR
+FALSIFIER
+REVIEWER
+OPTIMIZER
+SIMULATOR
+META-REVIEWER
+EXPERIMENT_DESIGNER
+SYNTHESIZER
+```
+
+الهوية دائمة؛ الدور يتغير حسب المهمة.
+
+---
+
+## 9. Task Contract — تسليم المهمة
+
+التكليف يجب أن يكون Contract دائمًا:
+
+```text
+taskId
+parentTask
+objective
+subgoal
+context
+inputs
+requiredCapabilities
+constraints
+allowedActions
+forbiddenActions
+dependencies
+expectedOutput
+verificationCriteria
+checkpointPolicy
+lease
+priority
+risk
+memoryRefs
+status
+```
+
+المهمة لا تختفي عند اختفاء الوكيل.
+
+---
+
+## 10. Agent Liveness & Continuity — علاج الكسل والاختفاء
+
+التمييز الإلزامي:
+
+```text
+IDLE ≠ DEAD
+SLEEP ≠ FAILURE
+LIVENESS ≠ PROGRESS
+```
+
+حالات التشغيل:
+
+```text
+BOOTING
+READY
+WORKING
+IDLE
+STUCK
+INTERRUPTED
+FAILED
+LOST
+RECOVERABLE
+```
+
+معلومات الاستمرارية:
+
+```text
+sessionId
+heartbeat
+lastSeen
+currentObjective
+taskLease
+checkpoint
+progress
+lastError
+recoveryState
+```
+
+Recovery:
+
+```text
+AGENT LOST
+ → DETECT
+ → RECORD
+ → RESTORE CONTRACT + CHECKPOINT + RELEVANT MEMORY
+ → WAKE
+ → RESUME / REPLAY / REASSIGN
+```
+
+لا `blind retry`؛ يجب ربط نوع الفشل بالاستجابة.
+
+---
+
+## 11. Wake-Only Guardians
+
+الحارس وظيفة حيوية فقط:
+
+`OBSERVE → DETECT → RECORD → WAKE`
+
+ممنوع عليه:
+
+```text
+EXECUTE
+REPAIR
+BUSINESS SCHEDULING
+CERTIFY
+MERGE
+DEPLOY
+AGENT REPLACEMENT
+```
+
+الغرض: منع موت الخلية تشغيليًا، وليس امتلاك الخلية.
+
+---
+
+## 12. Independent Verification Plane
+
+مسار الاختبار لا يتصل مباشرة بـMaster للتوجيه أو تحديد النتيجة.
+
+```text
+PRIMARY PATH / FROZEN TEST CONTRACT
+              ↓
+      VERIFICATION PLANE
+        ├── TARGET TESTS
+        ├── RED TEAM
+        └── OPPONENT
+```
+
+### 12.1 Targeted Fault Campaign
+
+```text
+campaignId
+targetId
+targetSha
+faultObjective
+faultHypothesis
+preconditions
+trigger
+testSequence
+oracle
+expectedFailure
+evidenceRequirements
+coverageTarget
+stopConditions
+```
+
+يمكن أن يكون الهدف الوصول المنضبط إلى Fault State وإثبات إعادة الإنتاج.
+
+`PASS TEST ≠ FAULT REPRODUCED`.
+
+---
+
+## 13. Red Team + Opponent — الخصومة المقصودة
+
+النجاح يجب أن يهاجم لا أن يصفق لنفسه.
+
+Red Team يبحث عن:
+
+```text
+bugs
+edge cases
+security weaknesses
+regressions
+scope violations
+false assumptions
+trade-offs
+```
+
+Opponent يعامل النجاح كفرضية قابلة للدحض:
+
+```text
+counterexample
+contradiction
+missing evidence
+unsupported assumption
+unexpected behavior
+```
+
+في المهام التي تتطلب إغلاقًا نهائيًا:
+
+```text
+RED TEAM PASS
++ OPPONENT PASS
++ INDEPENDENT CERTIFICATION PASS
+= CANDIDATE MAY BE CLOSED / PROMOTED ACCORDING TO GOVERNANCE
+```
+
+---
+
+## 14. Candidate / Evidence Pool — لا دمج تلقائي
+
+```text
+RESULT
+ → CANDIDATE / EVIDENCE POOL
+ → SELECT
+ → MODIFY / COMBINE if useful
+ → RE-VERIFY
+ → CERTIFY
+ → PROMOTE
+```
+
+الحالات:
+
+```text
+PROMISING
+NEEDS_EVIDENCE
+SELECTED
+MODIFIED
+REJECTED
+SUPERSEDED
+CERTIFIED
+PROMOTED
+ARCHIVED
+```
+
+النتيجة المرفوضة لا تُفقد؛ قد تصبح مفيدة لاحقًا كـanti-lesson أو مكوّن في synthesis.
+
+---
+
+## 15. GPT Selection / Synthesis Agent
+
+هذا الوكيل مستقل في قرار الاختيار عن Executor وMaster.
+
+يقرأ:
+
+```text
+Agent Results
+Experiments
+Tests
+Red Team Findings
+Opponent Findings
+Memory
+Failure Patterns
+Agent History
+```
+
+ويملك حرية:
+
+```text
+ACCEPT
+MODIFY
+COMBINE
+REJECT
+REQUEST_MORE_EVIDENCE
+REPLAN
+```
+
+إذا عدل أو دمج نتيجة، تصبح النتيجة Candidate جديدة تعود إلى الاختبار والـRed Team والخصم.
+
+---
+
+## 16. Certification / Promotion
+
+الإغلاق لا يصدر من Executor.
+
+لا يكفي:
+
+`Agent says complete`.
+
+نحتاج lineage واضحًا:
+
+```text
+Task ID
+Candidate Identity
+Tested SHA
+Runtime SHA
+Evidence Set
+Red Team Result
+Opponent Result
+Certification Result
+```
+
+والقاعدة:
+
+`Certification SHA == Tested SHA == Runtime SHA`
+
+وفي المستودع الحالي تبقى سلطة الترقية النهائية محكومة بمصادر الحوكمة الموجودة؛ CELL لا تنشئ Certification Authority ثانية.
+
+---
+
+## 17. Shared Cognition / Memory
+
+الهدف أن تكون للخلية **معرفة مشتركة وذكاء معرفي مشترك** مع بقاء هوية الوكيل مستقلة.
+المشاركة لا تعني Shared Mutable State: لكل Agent سياق عمل معزول، بينما المعرفة المشتركة تمر عبر Cognitive Bus typed messages وقواعد admission/quarantine.
+
+طبقات الذاكرة:
+
+```text
+L0 Constitution
+L1 Canonical Project Knowledge
+L2 Shared Skill / Strategy Knowledge
+L3 Agent Experience / Personal Memory
+L4 Current Mission / Step Memory
+```
+
+الأنواع:
+
+```text
+Working
+Episodic
+Semantic
+Procedural
+Failure / Anti-Lesson
+World Model
+Claim / Evidence / Counterclaim
+```
+
+كل ذاكرة مشتركة يجب أن تحمل:
+```text
+memoryId
+sourceType
+sourceRef
+createdAt
+observedAt
+targetVersion / targetSha
+confidence
+freshness
+corroboration
+conflictSet
+sensitivityClass
+admissionState
+```
+
+الدورة:
+
+`OBSERVE → EVIDENCE → VALIDATE → EXPERIENCE → LESSON → SHARE → REUSE → REVERIFY WHEN STAKES CHANGE`
+
+المعرفة لها provenance/confidence/age/evidence/target version.
+
+---
+
+## 18. Micro-Experiments + Cost-Aware Reasoning
+
+بدل تشغيل الخلية بطريقة ضخمة غير قابلة للمقارنة، نستخدم تجارب صغيرة:
+
+```text
+QUESTION
+ → HYPOTHESIS
+ → MICRO-EXPERIMENT
+ → ADVERSARIAL CHALLENGE
+ → MEASURE
+ → LEARN
+ → SHARE
+ → REPLAN
+```
+
+التجربة تقارن:
+
+```text
+Execution Cost
+Research Cost
+Verification Cost
+Failure Probability
+Expected Information Gain
+Reversibility
+```
+
+عمق الاستدلال:
+
+```text
+Low Risk      → Fast Path
+Medium Risk   → Targeted Analysis
+High Risk     → Research + Falsification + Review
+Critical      → strongest independent evidence
+```
+
+---
+
+## 19. Behavioral Agent Benchmark
+
+لا يكفي أن يمر Agent في Contract Test.
+
+نقيس:
+
+```text
+Mission Understanding
+Context Use
+Tool Selection
+Action Quality
+Result Quality
+Evidence Quality
+Memory Reuse
+Recovery Quality
+Scope Compliance
+Unsupported Claim Rate
+Time to Useful Result
+```
+
+والفصل:
+
+`CONTRACT READY ≠ OPERATIONALLY EFFECTIVE`.
+
+---
+
+## 20. Consultation System — الاستماع للمهندسين والوكلاء
+
+يمكن تقديم `CELL.md` كاملة للمراجعين عند الحاجة. لا نضع آراءهم داخل الملف الأساسي كحشو.
+
+المراجعون المحتملون:
+
+```text
+Software Architect
+Distributed Systems Engineer
+AI / Agent Engineer
+Security Engineer
+SRE / Reliability Engineer
+Testing / Verification Engineer
+Performance Engineer
+Open-Source Maintainer
+Memory / Data Engineer
+UX / Product Engineer
+```
+
+### 20.1 قالب الاستشارة
+
+```text
+اقرأ CELL كاملة.
+لا تفترض أن التصميم صحيح.
+لا تحاول إرضاء صاحب التصميم.
+ابحث عن:
+  نقاط القوة
+  العيوب الخفية
+  التناقضات
+  حالات الفشل
+  عنق الزجاجة
+  مخاطر التوسع
+  مخاطر الاستقلالية
+  مخاطر الذاكرة المشتركة
+  مخاطر Master
+  مخاطر Wake/Recovery
+  مخاطر التحقق والتصديق
+  بدائل معمارية أقوى
+  أفكار لم تُذكر أصلًا
+
+ثم أعطِ:
+VERDICT
+EVIDENCE
+RISKS
+ALTERNATIVES
+RECOMMENDATIONS
+STRONGEST COUNTERARGUMENT
+CHEAPEST FALSIFICATION EXPERIMENT
+```
+
+### 20.2 لا يوجد تصويت أعمى
+
+```text
+Opinion A / B / C / D
+ → Cluster
+ → Detect Conflict
+ → Compare Evidence
+ → Independent Synthesis
+ → Design Falsifying Experiment
+ → Decision Record
+```
+
+تصنيف الرأي:
+
+```text
+OPINION
+HYPOTHESIS
+EVIDENCE-BACKED CLAIM
+EXPERIENCE REPORT
+EXPERIMENT RESULT
+CONTRADICTED CLAIM
+```
+
+### 20.3 Acceptance Gate
+
+أي اقتراح مناسب مثبت القيمة يستطيع المرور حتى لو كان جديدًا أو يخالف التصميم الحالي:
+
+```text
+ACCEPT
+ACCEPT + MODIFY
+COMBINE
+EXPERIMENT FIRST
+DEFER
+REJECT
+```
+
+---
+
+## 21. Open Ecosystem / GitHub
+
+الخلية مصممة ليتمكن المجتمع من:
+
+```text
+Fork
+Clone
+Self-host
+Add Agent
+Replace Agent
+Add Capability
+Add Mission Pack
+Add Verification Pack
+Add Memory Backend
+Add Model Adapter
+```
+
+النواة Provider-neutral قدر الإمكان.
+
+إضافة Agent جديدة لا تغير مصدر الحقيقة الخاص بالهوية إلا عبر `الوكلاء.md` والعملية القانونية المعتمدة.
+
+الترخيص المفتوح يحدد عند الإصدار العام؛ `Apache-2.0` خيار تصميمي مبدئي، مع احترام تراخيص جميع الاعتماديات والمكونات الخارجية.
+
+---
+
+## 22. Canonical Source Map
+
+```text
+الخلية.md
+= معمارية CELL والعلاقات والرؤية
+
+المهام.md
+= Dispatch / Active Task Queue
+
+الوكلاء.md
+= Official Agent Identity Registry
+
+AGENTS.md
+= Repository Agent Execution Policy
+
+.github/agents/
+= Technical registrations / agent instructions
+
+الوكلاء/*/العقد.md
+= Role contracts
+
+Evidence / Certification docs
+= Proof and closure contracts
+
+docs/AGENT-PATCH-CAPSULE-AND-CAS.md
+= Durable work-product reconciliation
+
+docs/RECOVERY-*
+= Historical extraction/adaptation, not alternate runtime authority
+
+scripts/agent-learning/
+= training / readiness / experience mechanisms
+
+GPT.md
+= canonical capability, execution, privacy and evidence mandate
+```
+
+القاعدة:
+
+`CELL.md` يصف كيف تتعاون هذه الأجزاء؛ لا ينشئ نسخة ثانية من الحقيقة.
+
+---
+
+## 23. Current Reality Gate
+
+لا يحق لـCELL أن تكتب Current Reality من الذاكرة القديمة.
+
+```text
+CURRENT   = fresh runtime evidence
+TARGET    = intended future state
+HISTORICAL= preserved context
+PROPOSED  = not yet adopted
+```
+
+في snapshot الحالي لـ`execution`، المرجع الرسمي لهوية الوكلاء هو `الوكلاء.md` وعدد الوكلاء الرئيسيين هو 10. لا تُوصف أرقام أخرى كحقيقة تشغيلية بلا دليل حي.
+
+---
+
+## 24. Roadmap الموحدة
+
+```text
+P0  Durable state + canonical inventory + observability + baseline
+P1  Mission Engine + Task Graph + Smart Scheduler
+P2  Agent Registry + Dynamic Roles + capability routing
+P3  Memory Retrieval + shared cognition + knowledge reuse
+P4  Liveness + heartbeat + checkpoint + wake/recovery
+P5  Independent Verification Plane + targeted fault campaigns
+P6  Behavioral Agent Benchmark
+P7  Adaptive Red Team + Opponent
+P8  GPT Selection / Synthesis
+P9  Certification / Promotion hardening
+P10 Independent consultation + decision records
+P11 Cost-aware reasoning + context optimization
+P12 Frontier optimization + mission economics
+P13 Scale-out beyond initial agents
+P14 Self-hosting + packaging + open-source release
+```
+
+قاعدة الترتيب:
+
+`MAKE THE CELL EFFECTIVE → MAKE IT CONTINUOUS → MAKE IT ADAPTIVE → SCALE IT → RELEASE IT`
+
+---
+
+## 25. Continuous Mission Loop — النسخة النهائية
+
+```text
+GOAL
+ ↓
+MISSION
+ ↓
+OBSERVE
+ ↓
+UNDERSTAND
+ ↓
+UNCERTAINTY
+ ↓
+MEMORY PREFLIGHT
+ ↓
+DISCOVER / HYPOTHESIZE
+ ↓
+PLAN / SIMULATE
+ ↓
+TASK GRAPH
+ ↓
+DELEGATE
+ ↓
+EXECUTE / EXPERIMENT
+ ↓
+CHECKPOINT / EVIDENCE
+ ↓
+TARGETED TEST
+ ↓
+RED TEAM
+ ↓
+OPPONENT
+ ↓
+GPT SELECT / MODIFY / COMBINE
+ ↓
+RE-VERIFY
+ ↓
+CERTIFY
+ ↓
+PROMOTE
+ ↓
+LEARN
+ ↓
+RE-EVALUATE
+ ↓
+NEW FRONTIER
+ ↺
+```
+
+عند الفشل:
+
+`FAIL → CAPTURE → RCA → RECOVER → REPLAN → REEXECUTE → VERIFY`
+
+عند فقد الوكيل:
+
+`AGENT LOST → GUARD DETECT → WAKE/RECOVER → RESUME/REASSIGN → MISSION CONTINUES`
+
+عند وصول استشارة:
+
+`ADVICE → CHALLENGE → EVIDENCE → EXPERIMENT → ADOPTION GATE → ADOPT OR REJECT`
+
+---
+
+## 26. مؤشرات نجاح الخلية
+
+المقاييس الأساسية:
+
+```text
+Task Cycle Time
+Time to First Evidence
+Time to First Useful Result
+Experiment Throughput
+Parallelism Utilization
+Duplicate Discovery Rate
+Rework Rate
+Stale Evidence Rate
+Memory Reuse Rate
+Knowledge Promotion Time
+False-Green Rate
+Watchdog Recovery Rate
+Failed Task Recovery Rate
+Frontier Improvement Rate
+Agent Decision Quality
+Consultation-to-Decision Value
+Mission Progress Velocity
+```
+
+الهدف:
+
+`Measure → Baseline → Optimize → Measure Again`.
+
+---
+
+## 27. اختبار صلاحية CELL نفسها
+
+قبل اعتبار المعمارية ناجحة، يجب أن تستطيع الخلية اجتياز سيناريوهات سلوكية مثل:
+
+```text
+1. Goal with high uncertainty
+2. Agent disappears during a task
+3. Agent remains alive but makes no progress
+4. Strategy fails repeatedly
+5. SHA changes after evidence generation
+6. Test intentionally targets a known fault
+7. Red Team finds a counterexample
+8. Opponent disputes a claimed success
+9. GPT Selection Agent combines two candidates
+10. New Agent is added without changing the core
+11. Memory contains stale/conflicting knowledge
+12. All current agents become temporarily idle
+13. New consultation proposes an architecture better than the current one
+14. Candidate passes tests but fails adversarial review
+15. Candidate is accepted but fails certification
+```
+
+لا يكفي نجاح unit tests؛ نحتاج Behavioral Evidence للخلية نفسها.
+
+---
+
+## 28. قاعدة الحفاظ على كل المعرفة
+
+المادة التاريخية لا تحذف لمجرد أنها قديمة.
+
+```text
+HISTORICAL MATERIAL
+ → CLASSIFY
+ → EXTRACT USEFUL INVARIANT
+ → RE-PROVE ON CURRENT SHA
+ → ADAPT
+ → ADOPT ONLY IF VERIFIED
+```
+
+ولا يجوز استخدام تاريخ قديم كشهادة للحاضر.
+
+---
+
+## 29. نتيجة التصميم المطلوبة
+
+عند إعطاء CELL هدفًا كبيرًا، يجب أن تكون قادرة معماريًا على تحويله إلى:
+
+```text
+هدف طويل العمر
+  ↓
+خطة بحث
+  ↓
+خريطة مهام
+  ↓
+اختيار وكلاء
+  ↓
+تجارب متوازية
+  ↓
+تنفيذ
+  ↓
+تفنيد مستقل
+  ↓
+اختيار وتركيب
+  ↓
+تصديق
+  ↓
+ترقية
+  ↓
+تعلم
+  ↓
+Frontier جديدة
+  ↺
+```
+
+**النجاح النهائي هو أن تصبح الخلية قادرة على مواصلة المهمة وتحسين نفسها ونتائجها دون أن يصبح اختفاء Agent أو فشل Strategy أو رفض Candidate نهاية للنظام.**
+
+---
+
+## 30. Architecture Hardening — طبقة الدوام والتحكم
+
+هذه الطبقة ترفع التصميم من Blueprint قوي إلى Architecture قابلة للتشغيل طويل العمر. لا تنشئ أي سلطة جديدة؛ بل تحوّل مبادئ CELL إلى عقود قابلة للقياس والاستعادة.
+
+### 30.1 فصل Control Plane عن Data Plane
+
+```text
+CONTROL PLANE
+  Mission State
+  Task Graph
+  Scheduler
+  Agent Registry
+  Budgets
+  Evidence Index
+  Memory Admission
+  Recovery Signals
+
+DATA PLANE
+  Agent Sessions
+  Experiments
+  Tool Execution
+  Test Runs
+  Artifacts
+  Measurements
+```
+
+قاعدة: فشل Data Plane لا يفسد Mission State. وفشل Agent Session لا يملك صلاحية تعديل Policy أو Authority. أي Provider أو Model هو dependency داخل Data Plane ولا يصبح control authority.
+
+### 30.2 Durable Mission State — المهمة لا تعيش في RAM
+
+Mission لا تعتمد على Session الوكيل. الحالة التشغيلية يجب أن تكون قابلة لإعادة البناء من سجل أحداث/حالة durable:
+
+```text
+missionId
+missionVersion
+stateVersion
+objectiveHash
+policyHash
+currentBestRef
+frontierRef
+activeTaskRefs
+budgetState
+eventCursor
+lastCheckpoint
+createdAt
+updatedAt
+```
+
+الأحداث الأساسية:
+
+```text
+MISSION_CREATED
+TASK_ADMITTED
+TASK_LEASED
+TASK_CHECKPOINTED
+TASK_PROGRESS
+TASK_SUCCEEDED
+TASK_FAILED
+TASK_REASSIGNED
+EVIDENCE_RECORDED
+CANDIDATE_CREATED
+CANDIDATE_INVALIDATED
+MEMORY_ADMITTED
+MEMORY_QUARANTINED
+MISSION_REPLANNED
+PROMOTION_REQUESTED
+```
+
+كل حدث يحتوي:
+`eventId + missionId + sequence + causationId + correlationId + actorId + startSha + timestamp + payloadHash`.
+
+الكتابة idempotent. إعادة استقبال الحدث نفسه لا تنشئ أثرًا ثانيًا. إعادة التشغيل تعيد بناء Read Model من الأحداث أو من Checkpoint موثوق.
+
+### 30.3 Checkpoint + Event Log + Snapshot
+
+لا نعتمد على checkpoint منفرد ولا على log بلا compacted snapshot:
+
+```text
+EVENT LOG = source history
+SNAPSHOT  = fast recovery state
+READ MODEL = scheduler / dashboards / queries
+```
+
+عند الاستعادة:
+`LATEST VALID SNAPSHOT → REPLAY EVENTS → REVALIDATE SHA/LEASES → RESUME`.
+
+إذا كان snapshot أو event lineage غير قابل للتحقق، تكون الحالة `RECOVERY_REQUIRED` ولا تستأنف Mutation بصمت.
+
+### 30.4 Smart Scheduler 2.0 — الجدولة بالموارد وليس بالأولوية فقط
+
+كل Task يُحوّل إلى Resource Envelope:
+
+```text
+timeBudget
+computeBudget
+memoryBudget
+toolBudget
+networkBudget
+token/modelBudget
+parallelismLimit
+riskCeiling
+verificationBudget
+```
+
+وظائف Scheduler الأساسية:
+
+```text
+ADMIT
+RANK
+LEASE
+START
+PREEMPT
+CANCEL
+REQUEUE
+DEFER
+REASSIGN
+THROTTLE
+```
+
+دالة الترتيب لا تعتمد على priority وحده:
+
+```Utility =
+(Expected Information Gain × Success Probability × Reversibility × Novelty)
+÷
+(Time Cost + Verification Cost + Risk Cost + Resource Cost)
+```
+
+تُفرض `backpressure` عندما يقترب أي مورد من حدوده. لا يجوز فتح توازٍ إضافي لمجرد توفر Agents إذا كان ذلك يخفض جودة القياس أو يزيد divergence.
+
+### 30.5 Lease وIdempotency وExactly-Once Effects
+
+تنفيذ Agent ليس `fire-and-forget`.
+
+كل lease يملك:
+`leaseId + ownerId + issuedAt + expiresAt + heartbeat + fenceToken`.
+
+كل Mutation خارجي/مستودعي يحمل `idempotencyKey`.
+
+القاعدة:
+```text
+expired lease cannot commit
+stale fence token cannot mutate
+duplicate idempotency key cannot duplicate effect
+```
+
+هذا يمنع الوكيل القديم من الاستمرار بعد reassignment أو recovery.
+
+### 30.6 Cognitive Bus — رسائل typed بدل مشاركة حالة قابلة للفساد
+
+الناقل المشترك يستخدم أنواع رسائل محددة:
+
+```text
+OBSERVATION
+HYPOTHESIS
+PLAN
+REQUEST
+RESULT
+EVIDENCE
+COUNTEREXAMPLE
+LESSON
+DECISION
+INVALIDATION
+```
+
+كل رسالة:
+`messageId + schemaVersion + producer + targetScope + causationId + payloadHash + sensitivity + expiresAt`.
+
+السياق الداخلي للوكيل لا يُشارك تلقائيًا. الذي يُشارك هو claim/evidence/lesson قابل للتتبع. هذا يقلل prompt contamination وcross-agent state corruption.
+
+### 30.7 Memory Trust Pipeline — الذاكرة تمر ببوابة معرفية
+
+```text
+RAW OBSERVATION
+ → QUARANTINE
+ → NORMALIZE
+ → DEDUPLICATE
+ → CORROBORATE
+ → SCORE
+ → ADMIT
+ → REVERIFY WHEN STAKES CHANGE
+```
+
+الحالات:
+
+```text
+UNTRUSTED
+QUARANTINED
+CORROBORATED
+ADMITTED
+STALE
+CONTRADICTED
+REVOKED
+```
+
+الذاكرة لا تصبح `PROJECT TRUTH` إلا إذا كان مصدرها معروفًا، وسياقها معروفًا، وfreshness صالحًا، والتعارضات مكشوفة، وadmission نجح.
+
+### 30.8 Evidence Provenance Graph — الدليل سلسلة لا ملف منفرد
+
+كل Evidence Envelope يجب أن يربط:
+
+```sourceSha
+→ buildIdentity
+→ candidateId
+→ experimentId
+→ taskId
+→ testRunId
+→ verifierId
+→ artifactDigest
+→ deploymentIdentity
+→ environmentProbe
+```
+
+مع:
+`createdAt + verifierVersion + policyVersion + inputHash + outputHash + parentEvidenceRefs`.
+
+أي عقدة ناقصة أو متعارضة تجعل السلسلة `UNVERIFIABLE` بدل محاولة تفسير النقص كنجاح.
+
+### 30.9 Candidate Lineage وMerge Semantics
+
+Candidate ليس مجرد Blob ناجح. يجب أن يملك:
+
+```candidateId
+parentCandidateIds
+sourceTaskId
+experimentId
+startSha
+candidateSha
+artifactDigest
+metricSet
+verificationSet
+riskSet
+decisionState
+```
+
+الـ`COMBINE` ينشئ Candidate جديدًا؛ لا يعيد كتابة lineage القديم. والـ`MODIFY` كذلك تجربة جديدة إذا غيّر artifact أو behavior.
+
+### 30.10 Agent Reliability + Circuit Breaker
+
+لكل Agent وStrategy سجل موثوقية منفصل:
+
+```successRate
+verificationFailureRate
+falseGreenRate
+recoveryRate
+scopeViolationRate
+meanUsefulResultTime
+recentTrend
+```
+
+المخرجات المؤذية لا تُعاقب بإعادة المحاولة العمياء. توجد حالات:
+
+```HEALTHY
+DEGRADED
+PROBATION
+QUARANTINED
+SUSPENDED
+```
+
+الانتقال إلى Quarantine قد يُوقف routing لذلك الوكيل دون إيقاف Mission كلها. Mission تستمر عبر إعادة التوزيع ما لم تفقد آخر قدرة لازمة.
+
+### 30.11 Master ليس Single Point of Failure
+
+Master يجب أن يكون `reconstructible` وليس كيانًا وحيدًا يحمل الحالة الوحيدة.
+
+```text
+DURABLE MISSION STATE
+        ↓
+PLANNER SESSION A / B / RECOVERY SESSION
+        ↓
+same canonical contracts
+```
+
+جلسة Master يمكن أن تموت أو يعاد تشغيلها دون فقدان الـMission. لا يحصل أي planner جديد على سلطة إضافية بسبب امتلاكه Context أحدث؛ authority تأتي من العقود والـstate والحوكمة نفسها.
+
+### 30.12 Deterministic Replay + Shadow Mode
+
+قبل Mutation عالية المخاطر:
+
+```LIVE STATE
+ → REPLAY / SIMULATION
+ → EXPECTED DECISION
+ → DRY-RUN
+ → ADMISSION
+ → REAL EFFECT
+```
+
+تُحفظ seeds/config/policy/model identifiers/tool parameters والـevent lineage اللازمة لإعادة إنتاج القرار ضمن حدود عملية.
+
+وعند إدخال Planner/Scheduler جديد، يعمل أولًا في `SHADOW` ويُقارن بالمسار الحالي دون امتلاك mutation authority.
+
+### 30.13 Failure Domains وBulkheads
+
+الفشل يجب أن يكون محدود الانتشار:
+
+```MISSION
+ ├── TASK BULKHEAD
+ ├── AGENT BULKHEAD
+ ├── TOOL BULKHEAD
+ ├── PROVIDER BULKHEAD
+ └── VERIFIER BULKHEAD
+```
+
+فشل Provider أو Agent أو verifier لا يفسد نتائج Tasks مستقلة، ولا يسمح لسياق فشل واحد بتلويث القرار العام.
+
+### 30.14 Frontier Optimizer — تحويل Frontier إلى قرار قابل للقياس
+
+كل Frontier Opportunity تُقيّم على:
+
+```expectedGain
+confidence
+novelty
+reversibility
+risk
+verificationBurden
+cost
+dependencyUnlock
+duplicatePenalty
+strategicValue
+```
+
+وتنتج `frontierScore` قابلة للمقارنة. إذا كانت درجتان متقاربتين، يُفضّل المسار الذي يفتح معلومات أكثر بأقل التزام irreversible.
+
+### 30.15 Mission Anti-Thrashing
+
+الاستمرار لا يعني إعادة التخطيط في كل Event. نضيف:
+
+```minPlanLifetime
+replanCooldown
+maxReplansPerWindow
+hypothesisDiversityFloor
+duplicateWorkPenalty
+stagnationDetector
+```
+
+إذا فشل المسار نفسه عدة مرات دون تغير في الفرضية أو الأدلة، يدخل `STRATEGY_STAGNATION` ويُجبر على تغيير Strategy/Agent/Experiment، لا مجرد retry.
+
+### 30.16 Global Budgets وKill-Switches
+
+كل Mission تملك budgets صريحة:
+```time
+compute
+tokens
+parallel tasks
+tool calls
+external research
+repository mutations
+risk exposure
+```
+
+توجد `hard ceilings` و`soft budgets`. تجاوز hard ceiling = stop / pause / require recovery policy. لا يستطيع Master رفع budget الخاص به ذاتيًا.
+
+### 30.17 Branch/Promotion Semantics — توحيدها مع مستودع FLIXO
+
+المراحل المعمارية مثل `CANDIDATE / EXPERIMENT / QUALIFIED / PROMOTION` هي **حالات منطقية** وليست أسماء فروع ملزمة.
+
+في المستودع الحالي:
+```text
+agent/disposable worker → execution → PR / required checks → main
+```
+
+ولا تُنشئ CELL فرعًا سلطويًا بديلًا مثل `basic` أو `experimental` ما لم يصبح ذلك مصدر حقيقة فعليًا داخل سياسات المستودع. أي branch تجريبي يظل disposable evidence workspace، بينما `execution` هو integration lane و`main` production truth وفق `AGENTS.md` و`المهام.md`.
+
+### 30.18 Behavioral Contract للخلية نفسها
+
+لا يكفي اختبار الوكلاء منفردين. نحتاج اختبارات end-to-end لـCELL:
+
+```text
+MISSION RECOVERY
+LEASE EXPIRY
+DUPLICATE EVENT
+STALE EVIDENCE
+MEMORY POISONING
+CONFLICTING MEMORY
+AGENT QUARANTINE
+MASTER RESTART
+SCHEDULER BACKPRESSURE
+STRATEGY THRASHING
+REPLAY CONSISTENCY
+CANDIDATE LINEAGE BREAK
+FALSIFIER DISCOVERS COUNTEREXAMPLE
+```
+
+لكل سيناريو يجب أن يكون لدينا:
+`stimulus + expected invariant + evidence artifact + exact test identity`.
+
+### 30.19 Observability of the Cell
+
+الحد الأدنى من Telemetry:
+
+```mission_progress_rate
+time_to_first_evidence
+time_to_useful_result
+task_queue_depth
+lease_expiry_rate
+reassignment_rate
+scheduler_utilization
+backpressure_time
+duplicate_work_rate
+evidence_staleness
+memory_reuse_rate
+false_green_rate
+quarantine_rate
+recovery_success_rate
+frontier_yield
+replan_rate
+```
+
+القياس يجب أن يكون bounded ومصنفًا حسب Mission/Task/Agent/Experiment دون تسريب raw user data إلى نموذج أو Provider.
+
+### 30.20 ترتيب التنفيذ المقترح
+
+```P0  Durable Mission State + Event Envelope + Idempotency
+P1  Scheduler Resource Envelope + Lease/Fence + Backpressure
+P1  Evidence Provenance Graph + Candidate Lineage
+P2  Memory Admission + Quarantine + Cognitive Bus schemas
+P2  Failure Domains + Agent Reliability + Circuit Breaker
+P2  Deterministic Replay + Shadow Mode
+P3  Frontier Optimizer + Anti-Thrashing
+P3  Master Restartability + Recovery Session
+P4  Behavioral CELL Harness + Fault Campaigns
+P4  Mission Telemetry + SLO Baselines
+```
+
+قاعدة التنفيذ:
+`PROVE ONE LAYER → MEASURE → INTEGRATE → REPLAY → EXPAND`.
+
+### 30.21 الثوابت المعمارية المضافة
+
+```text
+INV-37  Mission state survives agent/session loss.
+INV-38  Duplicate events are idempotent.
+INV-39  Expired leases and stale fence tokens cannot mutate.
+INV-40  Scheduler admission respects resource and risk budgets.
+INV-41  Shared cognition shares typed knowledge, not arbitrary mutable context.
+INV-42  Untrusted memory cannot become Project Truth without admission.
+INV-43  Evidence lineage is immutable and exact-SHA bound.
+INV-44  Candidate modification creates new lineage identity.
+INV-45  Agent reliability can affect routing but cannot change Authority.
+INV-46  Master restart does not destroy Mission continuity.
+INV-47  High-risk planning supports deterministic replay/shadow evaluation.
+INV-48  Failure is bulkheaded; one domain cannot silently corrupt unrelated Tasks.
+INV-49  Frontier choice is utility/cost/risk aware.
+INV-50  Replanning is rate-limited to prevent strategy thrashing.
+INV-51  Mission budgets have hard ceilings that planners cannot self-escalate.
+INV-52  CELL logical lifecycle does not create a second Git promotion authority.
+INV-53  Every behavioral claim about CELL requires exact reproducible evidence.
+```
+
+### 30.22 المعيار النهائي بعد التقوية
+
+```text
+MISSION DURABILITY
++
+CONTROL/DATA PLANE SEPARATION
++
+RESOURCE-AWARE SCHEDULING
++
+TRUSTED SHARED COGNITION
++
+PROVENANCE-GRADE EVIDENCE
++
+FAULT ISOLATION
++
+REPLAYABLE DECISIONS
++
+FAILOVER
++
+MEASURABLE FRONTIER ECONOMICS
+=
+CONTINUOUS CELL WITH BOUNDED AUTONOMY
+```
+
+الهدف ليس جعل CELL أكثر تعقيدًا؛ بل جعل كل تعقيد جديد مبررًا بزيادة في `mission continuity`, `validated learning`, `recovery`, أو `decision quality` يمكن قياسها.
+
+---
+
+
+## 30. Executable Control Plane — تحويل المعمارية إلى invariants
+
+المبادئ التنفيذية في هذه الوثيقة لها مرجع قابل للتشغيل في:
+
+`packages/contracts/src/cell-control-plane.ts`
+`packages/contracts/src/cell-runtime.ts`
+
+واختبارات العقد:
+
+`tests/security/ci/cell-control-plane-contract.test.ts`
+`tests/security/ci/cell-runtime-contract.test.ts`
+
+### 30.1 State Machines
+
+**Task**
+
+`PLANNED → READY → CLAIMED → RUNNING → CHECKPOINTED → VERIFYING → VERIFIED → PROMOTABLE → PROMOTED`
+
+ولا يوجد انتقال مباشر من `RUNNING` أو `VERIFYING` إلى `PROMOTED`.
+
+**Candidate**
+
+`CREATED → PROMISING/NEEDS_EVIDENCE → SELECTED → CERTIFIED → PROMOTED`
+
+التعديل يعيد المرشح إلى evidence/selection قبل Certification.
+
+**Agent**
+
+`BOOTING → READY → WORKING/IDLE`
+
+الحالات `STUCK/LOST/INTERRUPTED` تدخل Recovery، والحارس لا يملك إلا قرار `WAKE/OBSERVE`.
+
+### 30.2 Executable Invariants
+
+كل قاعدة أساسية يجب أن تمتلك:
+
+`Invariant → Runtime Enforcement → Negative Test → Positive Test → Evidence → Regression Guard`
+
+العقود المنفذة حاليًا:
+
+| القاعدة | الإنفاذ |
+|---|---|
+| `PASS ≠ CERTIFIED ≠ PROMOTED` | `canPromote()` + Candidate transition gate |
+| `Certification SHA == Tested SHA == Runtime SHA` | `canPromote()` |
+| SHA drift invalidates evidence | `classifyEvidence()` |
+| No blind retry | `decideRetry()` |
+| Lease ownership/expiry | `assertLeaseOwner()` + exclusive runtime lease |
+| Duplicate wake/operation safety | `claimIdempotentOperation()` |
+| Checkpoint-before-recovery | `checkpointTask()` |
+| Knowledge ≠ authority | `isMemoryActionable()` |
+| Guardian is wake-only | `guardianDecision()` |
+| Quantitative frontier choice | `scoreFrontier()` |
+| Illegal state transition | `assertTransition()` |
+
+### 30.3 Reference Runtime
+
+`CellRuntime` هو reference implementation صغير يفرض الانتقالات والـversion checks والـlease ownership والـcheckpoint وidempotency وpromotion gates.
+
+هو **ليس** Registry أو Executor أو Certification Authority بديلة؛ بل طبقة Contract/Control قابلة لإعادة الاستخدام بواسطة runtime القانوني.
+
+النسخة الحالية in-memory عمدًا. عند ربطها بتخزين دائم يجب الحفاظ على نفس semantics مع:
+
+- atomic compare-and-swap للـstate/version؛
+- lease acquisition idempotent ومحصن ضد race؛
+- checkpoint durable قبل recovery؛
+- idempotency key لكل mutation/operation؛
+- stale-evidence invalidation عند القراءة والكتابة؛
+- promotion rejection قبل أي merge/deploy side effect.
+
+### 30.4 CELL Behavioral Campaign
+
+الاختبارات الحالية تثبت invariants المحلية. المرحلة التالية في هذا المسار هي fault-injected integration harness يغطي:
+
+`agent loss`, `agent hang`, `duplicate wake`, `stale lease`, `partial write`, `scheduler restart`, `false green`, `conflicting memory`, `certification disagreement`.
+
+نجاح الحملة يجب أن يثبت **سلوك الخلية** وليس مجرد نجاح دوال منفردة.
+
+### 30.5 Quantitative Frontier
+
+كل Frontier تقاس عبر:
+
+`expected improvement`, `probability of success`, `information gain`, `cost`, `risk`, `evidence burden`, `reversibility`.
+
+والقرار يخرج deterministic من `scoreFrontier()`، ثم يخضع لسياسة Mission والقيود الأعلى.
+
+### 30.6 حدود الجاهزية
+
+**IMPLEMENTED NOW**
+
+- executable state transition contract؛
+- SHA/evidence gate؛
+- lease gate؛
+- retry discipline؛
+- checkpoint semantics؛
+- idempotent operation guard؛
+- memory freshness gate؛
+- wake-only decision؛
+- deterministic frontier scoring؛
+- reference-runtime tests.
+
+**NEXT RUNTIME INTEGRATION**
+
+- durable persistence / CAS؛
+- real scheduler integration؛
+- heartbeat store and recovery worker؛
+- fault-injected multi-process harness؛
+- production-side promotion gate integration؛
+- long-running Mission benchmark.
+
+وهذا الفصل يمنع وصف أي قدرة لم تُثبت بعد بأنها Runtime حقيقة.
+
+---
+
+## 32. Hard Control — منع الانحراف معماريًا
+
+الـPrompt = Soft Control فقط. الـRuntime = Hard Control.
+
+```text
+Agent intent   ≠ Agent authority
+Agent prompt   ≠ Agent permission
+Agent claim    ≠ Agent progress
+Agent output   ≠ Accepted result
+```
+
+السلسلة الإلزامية:
+
+```text
+TASK
+→ TASK CONTRACT
+→ ASSIGNMENT
+→ IMMUTABLE EXECUTION ENVELOPE
+→ CAPABILITY GATE
+→ AUTHORITY GATE
+→ SCOPE / FILE / BRANCH / TOOL FIREWALL
+→ EXECUTION
+→ CONTINUOUS ACTION + PROGRESS + RESOURCE MONITORS
+→ EVIDENCE
+→ ACCEPTANCE
+→ CERTIFICATION
+→ CLOSURE
+```
+
+### 32.1 Immutable Envelope
+
+الـEnvelope يمثل السقف الأعلى لما يستطيع Agent فعله:
+
+```text
+TASK_ID / AGENT_ID / MISSION_ID / SESSION_ID
+START_SHA
+ALLOWED_CAPABILITIES
+READ_SCOPE / WRITE_SCOPE
+ALLOWED_BRANCH
+FORBIDDEN_ACTIONS
+NORMALIZED_OBJECTIVE_ID
+EXPECTED_OUTPUT
+ACCEPTANCE_CONDITIONS
+EVIDENCE_REQUIREMENTS
+TIME_BUDGET / COST_BUDGET
+MAX_DELEGATION_DEPTH
+HANDOFF_POLICY / ESCALATION_POLICY
+ACCEPTANCE_DIGEST
+```
+
+يُنشأ runtime عبر immutable constructor، ولا يسمح Agent بتوسعة هذه الحدود.
+
+### 32.2 Pre-execution Identity Test
+
+قبل كل Action يجب إثبات:
+
+`Agent + Task + Session + Mission + Branch + Start SHA + Capability + Objective + Expected Output + Current SHA`.
+
+فشل عنصر = BLOCK/QUARANTINE وفق Drift Taxonomy.
+
+### 32.3 Action Firewall
+
+كل Action يحمل `actionId/taskId/agentId/sessionId/missionId/startSha/currentSha/operation/path/capability/toolId/cost/duration/delegationDepth`.
+
+المسار يمر بالـAuthorization Gate قبل mutation. الاختلاف عن live SHA يوقف Action ويجعل evidence غير صالح.
+
+### 32.4 Scope / Tool / Branch Gates
+
+```text
+WRITE src/lib/video/**  → ALLOW
+WRITE src/lib/security/** → DENY_SCOPE_DRIFT
+WRITE on main → DENY
+UNKNOWN capability → DENY
+FORBIDDEN tool → DENY
+```
+
+الـGate يمنع الفعل ولا يكتفي بإصداره كمخالفة.
+
+### 32.5 Self-expansion
+
+اكتشاف عمل خارج النطاق يتحول إلى:
+
+`DISCOVERED_OUT_OF_SCOPE → NEW_TASK_PROPOSAL → DISPATCH AUTHORITY → NEW ASSIGNMENT`.
+
+Agent لا يستطيع تعديل نطاقه ذاتيًا.
+
+### 32.6 Continuous Behavior and Progress
+
+كل Action يعاد تقييمه، وليس فقط أول claim.
+
+```text
+SCOPE MONITOR
+PROGRESS MONITOR
+BEHAVIOR MONITOR
+RESOURCE MONITOR
+TEMPORAL MONITOR
+EVIDENCE MONITOR
+```
+
+`100 tool calls ≠ progress`.
+
+Progress يقاس من verified objective delta وacceptance coverage وrelevant artifacts وverified delta وinformation gain مقابل budget.
+
+انخفاضه تحت العتبة = `D8_STRATEGY_DRIFT` ثم `REASSIGN/REPLAN` حسب الحالة.
+
+### 32.7 Drift Taxonomy
+
+```text
+D1 Scope Drift          → HARD BLOCK
+D2 Objective Drift      → HARD BLOCK / REPLAN
+D3 Tool Drift           → HARD BLOCK
+D4 Resource Drift       → HARD BLOCK
+D5 Temporal Drift       → HARD BLOCK
+D6 Evidence Drift       → INVALIDATE
+D7 Authority Drift      → QUARANTINE
+D8 Strategy Drift       → REVIEW / REPLAN
+D9 Delegation Drift     → HARD BLOCK
+D10 Truth/Memory Drift  → INVALIDATE
+```
+
+### 32.8 Recovery
+
+```text
+DRIFT
+→ PAUSE / STOP CURRENT ACTION
+→ RECORD FINDING
+→ PRESERVE CHECKPOINT
+→ REASSESS
+→ REASSIGN / REPLAN / RECOVER
+→ CONTINUE TASK
+```
+
+`Agent failure ≠ Task failure` و`Agent drift ≠ Mission drift`.
+
+### 32.9 Executable Reference
+
+```text
+packages/contracts/src/cell-hard-control.ts
+packages/contracts/src/cell-runtime.ts
+tests/security/ci/cell-hard-control.test.ts
+tests/security/ci/cell-runtime-contract.test.ts
+docs/CELL-HARD-CONTROL-CONTRACT.md
+```
+
+هذه الطبقة لا تنشئ Runtime Authority جديدة؛ هي enforcement contract يعاد استخدامه داخل runtime القانوني.
+
+---
+
+### 32.10 Mutation Attribution
+
+كل `commit / branch / tool invocation / artifact / handoff / test / evidence` يجب أن يحمل lineage:
+
+`TASK_ID + AGENT_ID + SESSION_ID + MISSION_ID + START_SHA + CURRENT_SHA`.
+
+ولـCELL implementation commits بعد baseline:
+
+`commit message → valid TASK_ID in المهام.md`.
+
+CI gate: `scripts/ci/cell-commit-attribution.mjs`.
+
+### 32.11 Recovery After Denial
+
+المنع لا يسقط Task:
+
+```text
+DENY
+→ RECORD DRIFT
+→ PRESERVE STATE/CHECKPOINT
+→ CLASSIFY
+→ REASSIGN / REPLAN / ESCALATE
+→ RESUME UNDER NEW VALID ASSIGNMENT
+```
+
+الإيقاف المحلي للفعل لا يعني فشل Mission.
+
+## 32.13 Parallel Execution Decomposition
+
+لإبقاء Mission حيّة مع تقليل الاختناق، تم تقسيم نطاق `EXEC-CELL-ARCH-001` إلى مسارين متوازيين مستقلين:
+
+```text
+EXEC-CELL-ARCH-001 (PARENT / ORCHESTRATION)
+                 │
+        ┌────────┴────────┐
+        ▼                 ▼
+EXEC-CELL-CTRL-002   EXEC-CELL-ASSIGN-002
+Hard Control         Assignment / Delegation
+Firewall             Routing / Handoff / Progress
+        │                 │
+        └───────┬─────────┘
+                ▼
+        Independent Closure
+                ▼
+        Parent Acceptance
+```
+
+`EXEC-CELL-CTRL-002` يملك Hard-Control/Execution Firewall فقط.
+
+`EXEC-CELL-ASSIGN-002` يملك Assignment/Delegation/Progress فقط.
+
+لا يعتمد أي مسار على الآخر (`DEPENDS_ON: none`). الدمج المعرفي يحدث في parent acceptance فقط، ولا يمنح parent سلطة تنفيذية ثانية.
+
+قاعدة الهوية:
+
+`Task ≠ Agent` و`Lane ≠ Branch`؛ المساران يعملان على نفس خط `execution` ولا ينشئان فرعًا تشغيليًا ثالثًا.
+### 32.12 Hard-Control Definition of Done
+
+لا تُعد هذه الطبقة مكتملة إنتاجيًا حتى تثبت integration tests أن:
+
+```text
+out-of-scope write is physically denied
+main mutation is denied
+unauthorized capability is denied
+wrong task/session/agent is denied
+wrong start SHA is denied
+wrong live SHA is denied
+budget overflow is denied
+delegation overflow is denied
+objective/acceptance drift is denied
+out-of-scope discovery cannot self-expand
+progress stall triggers reassignment/replan
+drift does not destroy Mission lineage
+```
+
+
+## 31. CELL Assignment & Delegation Architecture
+
+التكليف لم يعد مجرد OWNER داخل Task Card. `المهام.md` يبقى Dispatch Authority الوحيد، بينما قرار الإسناد نفسه أصبح طبقة Routing/Assignment قابلة للاختبار.
+
+### 31.1 Assignment Decision
+
+```text
+MISSION
+ → TASK LEDGER
+ → TASK GRAPH
+ → PROGRESS LEDGER
+ → CAPABILITY + ARTIFACT REQUIREMENTS
+ → AGENT ROUTING ENGINE
+ → ASSIGNMENT
+ → TYPED HANDOFF
+ → EXECUTION LEASE
+```
+
+اختيار Agent يعتمد على Capability Fit وArtifact Fit وRisk Fit وAvailability وReliability وEvidence Quality وContext Fit وRecovery Quality وInformation Gain مع عقوبات الفشل والتكلفة وعبء التحقق.
+
+### 31.2 Assignment Team
+
+```text
+PRIMARY SOLVER
+BACKUP SOLVER
+OPPONENT
+BACKUP OPPONENT
+INDEPENDENT VERIFIER
+ESCALATION TARGET
+```
+
+كل Assignment مؤثر على code يحمل `STARTING_SHA` و`CURRENT_SHA`. Routing task-specific ويعتمد على capability/artifact/risk/availability/reliability/evidence/context/recovery/information-gain/failure-history/false-green/cost.
+
+في المهام التي تتطلب استقلالًا، لا يجوز أن يكون Verifier هو Primary أو Backup.
+
+### 31.3 Task Ledger مقابل Progress Ledger
+
+```text
+TASK LEDGER
+= objective + constraints + dependencies + dispatch
+
+PROGRESS LEDGER
+= observations + evidence + blockers + stalls + nextAction
+```
+
+Progress Ledger لا ينشئ Task ولا يغير Dispatch Authority. دوره كشف التقدم غير الكافي وإطلاق قرار `CONTINUE / REASSIGN / ESCALATE / REPLAN`.
+
+### 31.4 Spawn / Delegate / Typed Handoff
+
+`spawn` ينشئ Subtask مستقلة ذات `subtaskId` و`parentTaskId`.
+
+`delegate` لا يرسل نصًا حرًا فقط؛ بل Typed Handoff يتضمن:
+
+```text
+handoffId
+taskId
+parentTaskId
+assignmentId
+sourceAgentId
+targetAgentId
+reason
+objective
+inputRefs
+requiredCapabilities
+expectedOutput
+verificationCriteria
+readScope
+writeScope
+currentSha
+deadlineAtMs
+budget
+evidenceRequirements
+returnContract
+```
+
+### 31.5 Delegation Authorization Graph
+
+الاتصال directional:
+
+`A → B` لا يعني `B → A`.
+
+كل حافة تحدد `taskTypes + riskClasses + maxDepth + maxActiveSubtasks + maxCost + maxDuration`.
+
+غياب الحافة أو تجاوز أي حد = `REJECT`، وليس Delegation إضافية غير محدودة.
+
+### 31.6 Agent Performance Memory
+
+الأداء يدخل في routing عبر:
+
+```text
+reliability
+verificationStrength
+contextFit
+recoveryQuality
+recentFailureRate
+falsePositiveRate
+falseGreenHistory
+availability
+costRate
+informationGain
+```
+
+هذه إشارات قرار وليست Authority. ولا يمكن أن تمنح Agent صلاحية Dispatch أو Certification.
+
+### 31.7 Agent Swapping
+
+`Task ≠ Agent`.
+
+يمكن أن يصبح المسار:
+
+```text
+Assignment #1 → Agent A
+failure/stall
+→ Assignment #2 → Agent B
+partial result
+→ Assignment #3 → Agent C
+```
+
+وتبقى Assignment history جزءًا من Progress/Evidence lineage عبر `previousAssignmentId` و`attempt` و`reason`؛ تبديل Agent لا يسقط Task، وSHA drift يفرض requalification.
+
+### 31.8 Stall-triggered Reassignment
+
+```text
+ON_TRACK → CONTINUE
+SLOW → REASSIGN
+STALLED(first) → REASSIGN
+STALLED(repeated) → REPLAN
+BLOCKED → ESCALATE
+```
+
+### 31.9 Artifact-centric Routing
+
+المخرج المطلوب يشارك في اختيار الوكيل:
+
+```text
+ARCHITECTURE-MAP → architecture capability
+EXECUTABLE-PATCH → implementation capability
+COUNTEREXAMPLE → falsification capability
+CERTIFICATION-EVIDENCE → independent verification capability
+```
+
+### 31.10 Runtime Boundary
+
+المرجع التنفيذي موجود الآن في:
+
+`packages/contracts/src/cell-assignment.ts`
+`packages/contracts/src/cell-runtime.ts`
+
+والاختبارات في مسار Control Plane.
+
+ما زال الدمج production-grade مع التخزين الدائم يحتاج CAS/transactions للـAssignment وProgress، lease مرتبطًا بالـassignmentId، durable handoff/idempotency، وحفظ lineage عند recovery.
+
+### 31.11 Source-of-truth boundary
+
+```text
+المهام.md              = Dispatch Authority
+الوكلاء.md             = Agent Identity Authority
+CELL Assignment       = Routing Semantics
+Evidence Fabric       = Factual Authority
+Certification/Governance = Promotion Authority
+```
+
+لا تُنشأ Supervisor أو Registry أو Dispatch Ledger ثانية بسبب هذه الطبقة.
+
+---
+# PRESERVED ORIGINAL CELL CONTENT — BEGIN
+
+# AGENT-LAB-MASTER.md
+
+> **الملف الرئيسي الشامل** لمختبر الوكلاء المحكوم (agent-lab).
+> يدمج: التحليل المعماري، الـ patch الموحّد والآمن، التعديلات الإلزامية، السيناريوهات،
+> القوالب، بطاقات التنفيذ، والتوصيات.
+>
+> **القاعدة**: لا دمج في `main`/ `base` من هذا الملف. كل بند يُنفَّذ عبر PR مستقل.
+> أي بند غير مُختبر يجب الإعلان عنه صراحةً في وصف الـ PR.
+
+---
+
+## فهرس
+
+1. المبادئ المعمارية والثوابت
+2. تحليل نقاط الضعف (محدّثة)
+3. الـ patch الموحّد لـ `lab_tool.py` (شامل الحماية من Race Conditions والـ Timeouts)
+4. التعديلات الإلزامية قبل الدمج (blockers B-1..B-7)
+5. القوالب الجديدة والمعدّلة
+6. سجل المقاييس `metrics/registry.json` + collectors
+7. مشغّل الطفرات `tools/mutate.py` (مع حماية Timeouts)
+8. سيناريوهات الفشل `scenarios/`
+9. بطاقات التنفيذ AD-18..AD-27
+10. بطاقات جديدة AD-28..AD-36 (توصيات إضافية وتدوير السجل)
+11. تحديثات `lab.config.json` و`GOVERNANCE.md`
+12. تحديث `lab-gate.yml` (الصلاحيات المقيدة)
+13. خارطة تنفيذ مرحلية
+14. اختبارات وحدة جديدة (property-based + سيناريوهات)
+15. قائمة تحقق نهائية قبل AD-09
+
+---
+
+## 1. المبادئ المعمارية والثوابت
+
+### 1.1 المعمارية الموصى بها (Baseline)
+
+```
+             ┌──────────────────────────────────────────────┐
+             │              HUMAN LAYER                     │
+             │  integrator (approve) · auditor (audit)      │
+             └──────────────────────────────────────────────┘
+                          ▲            ▲
+                          │            │
+    ┌─────────────────────┘            └───────────────┐
+    │                                                   │
+    ┌───────┴────────┐   ┌──────────────┐   ┌──────────────┐   │
+    │   AGENT LAYER  │   │  CI LAYER    │   │ LEDGER LAYER │   │
+    │                │   │              │   │              │   │
+    │ builder        │   │ mutate.py    │   │ jsonl +      │   │
+    │ explorer       │   │ calibrate    │   │ checkpoint   │   │
+    │ adv-builder    │   │ attest-run   │   │ + file locks │   │
+    │ adv-explorer   │   │ gate-pr      │   │ verification │   │
+    │ steward        │   │ overlap      │   │              │   │
+    └───────┬────────┘   └──────┬───────┘   └──────┬───────┘   │
+            │                   │                   │           │
+            └─────────┬─────────┴───────────────────┘           │
+                      │                                         │
+                      ▼                                         │
+        ┌──────────────────────────────────────────────┐        │
+        │         lab_tool.py (stdlib only)            │        │
+        │  validate · gate · gate-pr · calibrate       │        │
+        │  attest-run · simulate · overlap · ledger    │        │
+        │  paths · telemetry · registry                │        │
+        └──────────────────────────────────────────────┘        │
+                      ▲                                         │
+                      │                                         │
+        ┌─────────────┴──────────┐                              │
+        │    SCHEMA LAYER        │                              │
+        │  SCHEMA_VERSION=1      │                              │
+        │  schema/*.json         │◄─────────────────────────────┘
+        └────────────────────────┘
+```
+
+### 1.2 الثوابت الجديدة (INV-15..INV-21)
+
+| الثابت | النص |
+|---|---|
+| **INV-15** | لا شهادة بدون `commit_sha` صريح يطابق SHA المطلوب. |
+| **INV-16** | كل ملف JSON يحوي `schema_version`، والـ validator يفشل مغلقاً عند عدم التوافق. |
+| **INV-17** | `metrics/registry.json` و`metrics/baseline.json` و`schema/` و`policies/` يكتبها `integrator` فقط (CODEOWNERS). |
+| **INV-18** | `LEDGER_CHECKPOINT` كل ربع؛ `ledger-verify` يتحقق من السلسلة + checkpoint + git-history. |
+| **INV-19** | `HYPOTHESIS_LOCKED` يجب أن يظهر في ledger قبل أي `EXPERIMENT_PROPOSED` لنفس الفرضية. |
+| **INV-20** | `simulate --all` شرط في CI قبل `gate-pr`. |
+| **INV-21** | `steward ≠ builder` في الجلسة نفسها (فصل السلطات). |
+
+### 1.3 سلسلة الثقة
+
+```
+HYPOTHESIS
+     │ canonical hash
+     ▼
+HYPOTHESIS_LOCKED + payload_hash + seq
+     │
+     ▼
+EXPERIMENT (ref + hash + metric_name)
+     │
+     ┌──────────┼──────────┐
+     ▼          ▼          ▼
+   ATTACK      TEST       TELEMETRY
+     │          │          │
+     └──────────┼──────────┘
+                ▼
+  ATTESTATION (commit_sha + result_hash)
+                │
+                ▼
+               GATE
+                │
+                ▼
+      HASH-CHAIN LEDGER
+```
+
+---
+
+## 2. تحليل نقاط الضعف (محدّثة)
+
+### 2.1 نقاط أُغلقت في الـ patch الحالي
+
+| # | الثغرة | الإغلاق |
+|---|---|---|
+| 1 | Path Traversal في `suite_path` و`setup.write/delete` | `safe_repo_path()` موحّدة |
+| 2 | `NaN`/`inf` في المقاييس والعتبات | `finite_number()` |
+| 3 | JSON bomb وملفات ضخمة | `load_json_strict()` + حدود الحجم |
+| 4 | `registry.json` غائب = يُتجاهل | يرفض الغياب صراحةً |
+| 5 | تعديل `hypothesis` بعد القفل | `HYPOTHESIS_IMMUTABLE_FIELDS` + `lock_hash` + `HYPOTHESIS_LOCKED` |
+| 6 | نجاح بناءً على عينة واحدة | `MIN_SAMPLES = 5` |
+| 7 | إعادة استخدام نتيجة على SHA آخر | `commit_sha` و`experiment_ref` |
+| 8 | تخمين اسم ملف telemetry | `nonce` (`secrets.token_hex`) |
+| 9 | سيناريو يستدعي `attest-run` | تقييد `command[0]` في `simulate` |
+| 10 | `git diff` يفشل = تخطٍّ | fail-closed في `detect_experiment_overlap` |
+| 11 | دور وهمي يمرّ | فصل `agent` عن `roles` في `check_paths` |
+
+### 2.2 نقاط ضعف متبقية (يجب معالجتها)
+
+| # | الثغرة | الحل |
+|---|---|---|
+| **ف-1** | لا يوجد collector حقيقي — `registry.json` ورقي | `metrics/collectors/*.py` + `collector_sha` + `result_hash` |
+| **ف-2** | الطفرات السطحية (كلها `flip_boolean`) | فئات (`boundary/logic/concurrency/security`) + عتبة لكل فئة |
+| **ف-3** | `HYPOTHESIS_LOCKED` بدون `experiment_ref` | إضافة `experiment_ref: null` في السطر |
+| **ف-4** | `detect_experiment_overlap` O(n²) | cache + مراجعة واحدة |
+| **ف-5** | لا فحص لحقن التعليمات في PR | `tools/scan-injection.py` |
+| **ف-6** | integrator وحده يوافق | `auditor` مستقل |
+| **ف-7** | لا `baseline.json` مرجعي | `metrics/baseline.json` + `baseline_ref` |
+| **ف-8** | `records/` تنتفخ | `records/archive/YYYY-QN/` + `ledger-checkpoint.json` |
+| **ف-9** | `ESCALATED` لا يُشعِر | `tools/notify.py` + workflow |
+| **ف-10** | `run_url` غير موثّق | regex صارم `^https://github.com/.../actions/runs/\d+$` |
+| **ف-11** | ledger بدون git-history | `.github/workflows/ledger-audit.yml` |
+| **ف-12** | لا بصمة merkle | `records/ledger/merkle.json` يومياً |
+| **ف-13** | `metrics/baseline.json` غير مرتبط | `gate` يتحقق: `metric.baseline == baseline[name]` |
+| **ف-14** | لا property-based tests | `tests/test_properties.py` |
+| **ف-15** | لا dashboard بشري | `tools/dashboard.py` |
+| **ف-16** | لا policies قابلة للتنفيذ | `policies/*.json` |
+
+---
+
+## 3. الـ patch الموحّد لـ `lab_tool.py`
+
+> **تنبيه**: هذا patch **لا يحتوي `...`**. كل تعديل كامل ومحمي ضد التزامن والتوقف.
+
+### 3.1 الاستيرادات والثوابت
+
+```diff
+--- a/agent-lab/tools/lab_tool.py
++++ b/agent-lab/tools/lab_tool.py
+@@ -1,20 +1,62 @@
+ #!/usr/bin/env python3
+ """lab_tool.py - stdlib-only validator / gate / ledger / path-guard for agent-lab.
+ Fail closed: any missing, malformed or unverifiable input => non-zero exit."""
+-import argparse, fnmatch, hashlib, hmac, json, math, os, re, subprocess, sys
++import argparse, fnmatch, hashlib, hmac, json, math, os, re, secrets, subprocess, sys, time, fcntl
+ from pathlib import Path
+
+-DEFAULT_ROOT = Path(__file__).resolve().parents[1]
++DEFAULT_ROOT = Path(os.environ.get("LAB_TOOL_ROOT",
++                                    Path(__file__).resolve().parents[1]))
+ SHA = re.compile(r"^[0-9a-f]{40}$")
+ URL = re.compile(r"^https://\S+$")
++RUN_URL = re.compile(r"^https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/actions/runs/\d+$")
++REG = re.compile(r"^[a-z][a-z0-9_]{2,40}$")
++ID = {"card": re.compile(r"^RC-\d{4}$"), "report": re.compile(r"^RR-\d{4}$"),
++      "attack": re.compile(r"^AT-\d{4}-r\d$"), "experiment": re.compile(r"^EX-\d{4}$"),
++      "hypothesis": re.compile(r"^HY-\d{4}$")}
++DIRS = {"card": "cards", "report": "reports", "attack": "attacks",
++        "experiment": "experiments", "hypothesis": "hypotheses"}
++TEMPLATES = {"research-card.json": "card", "research-report.json": "report",
++             "attack-report.json": "attack", "experiment.json": "experiment",
++             "hypothesis.json": "hypothesis"}
++GENESIS = "0" * 64
++SCHEMA_VERSION = 1
++MIN_SAMPLES = 5
++MAX_TELEMETRY_MINUTES = 10080.0
++MAX_RESULT_FILE_BYTES = 1024 * 1024
++MAX_SCENARIO_FILE_BYTES = 512 * 1024
++MAX_SIMULATE_SCENARIOS_PER_RUN = 50
++SCENARIO_TIMEOUT = 15.0
++LEDGER_EVENTS = {
++    "CARD_OPENED", "CARD_ASSIGNED", "REPORT_SUBMITTED", "ATTACK_RECORDED",
++    "CARD_DECIDED", "EXPERIMENT_PROPOSED", "EXPERIMENT_SURVIVED",
++    "EXPERIMENT_PASSED", "EXPERIMENT_FAILED", "PROMOTED",
++    "ESCALATED", "TELEMETRY_RECORDED", "HYPOTHESIS_LOCKED",
++}
++HYPOTHESIS_IMMUTABLE_FIELDS = (
++    "schema_version", "id", "author", "statement",
++    "metric_name", "direction", "threshold", "falsifier",
++)
+
+```
+
+### 3.2 دوال مساعدة جديدة
+
+```python
+def safe_repo_path(value, prefix=None):
+    """Return True only for normalized, relative repository paths."""
+    if not isinstance(value, str) or not value:
+        return False
+    try:
+        p = Path(value)
+    except Exception:
+        return False
+    if p.is_absolute() or ".." in p.parts:
+        return False
+    normalized = p.as_posix()
+    if normalized.startswith("./") or "\x00" in normalized:
+        return False
+    if prefix is None:
+        return True
+    prefix = Path(prefix).as_posix().rstrip("/")
+    return normalized == prefix or normalized.startswith(prefix + "/")
+
+
+def finite_number(value):
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and math.isfinite(float(value))
+    )
+
+def load_json_strict(path, label=None, max_bytes=None):
+    p = Path(path)
+    if not p.exists():
+        raise ValueError(f"{label or p}: file not found")
+    if max_bytes is not None and p.stat().st_size > max_bytes:
+        raise ValueError(f"{label or p}: file exceeds size limit")
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+    except Exception as ex:
+        raise ValueError(f"{label or p}: invalid JSON: {ex}")
+    return data
+
+
+def load_registry(root):
+    p = Path(root) / "metrics" / "registry.json"
+    if not p.exists():
+        raise ValueError("metrics/registry.json is missing")
+    data = load_json_strict(p, "metrics/registry.json")
+    if not isinstance(data, dict):
+        raise ValueError("metrics/registry.json must be an object")
+    return data
+
+
+def load_hypothesis(root, ref):
+    if not isinstance(ref, str) or not ID["hypothesis"].match(ref):
+        return None
+    p = Path(root) / "records" / DIRS["hypothesis"] / f"{ref}.json"
+    if not p.exists():
+        return None
+    try:
+        return json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+
+def hypothesis_hash(h):
+    if not h:
+        return None
+    body = {k: h[k] for k in HYPOTHESIS_IMMUTABLE_FIELDS if k in h}
+    return hashlib.sha256(_canon(body).encode("utf-8")).hexdigest()
+
+```
+
+### 3.3 `ledger_append` و `ledger_verify`
+
+```python
+def _h(prev, e):
+    body = {k: e[k] for k in ("seq", "ts", "actor", "event", "ref") if k in e}
+    if "payload_hash" in e and e["payload_hash"] is not None:
+        body["payload_hash"] = e["payload_hash"]
+    return hashlib.sha256((prev + "|" + _canon(body)).encode("utf-8")).hexdigest()
+
+
+def ledger_entries(root):
+    p = Path(root) / "records" / "ledger" / "ledger.jsonl"
+    if not p.exists():
+        return
+    with open(p, "r", encoding="utf-8") as f:
+        for line in f:
+            if line.strip():
+                yield json.loads(line)
+
+
+def ledger_verify(root):
+    errs, prev = [], GENESIS
+    for n, e in enumerate(ledger_entries(root), 1):
+        try:
+            if e.get("seq") != n:
+                errs.append(f"ledger: seq break at {n}")
+            if e.get("prev") != prev:
+                errs.append(f"ledger: prev-hash break at {n}")
+            if e.get("sig") != _h(prev, e):
+                errs.append(f"ledger: hash mismatch at {n} (tampered)")
+            if e.get("event") == "HYPOTHESIS_LOCKED":
+                ref = e.get("ref", "")
+                h = load_hypothesis(root, ref)
+                if h is None:
+                    errs.append(f"ledger: HYPOTHESIS_LOCKED for missing {ref}")
+                elif e.get("payload_hash") != hypothesis_hash(h):
+                    errs.append(f"ledger: payload_hash mismatch for {ref}")
+        except KeyError:
+            errs.append(f"ledger: malformed entry at {n}")
+        prev = e.get("sig", "")
+    return errs
+
+
+def ledger_append(root, actor, event, ref, ts):
+    if event not in LEDGER_EVENTS:
+        raise ValueError(f"event '{event}' not in allowed set")
+    p = Path(root) / "records" / "ledger" / "ledger.jsonl"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    with open(p, "a+", encoding="utf-8") as f:
+        fcntl.flock(f, fcntl.LOCK_EX)
+        try:
+            f.seek(0)
+            prev, seq = GENESIS, 1
+            for line in f:
+                if line.strip():
+                    entry = json.loads(line)
+                    prev = entry.get("sig", prev)
+                    seq = entry.get("seq", 0) + 1
+            e = {"seq": seq, "ts": ts, "actor": actor, "event": event,
+                 "ref": ref, "prev": prev, "payload_hash": None}
+            if event == "HYPOTHESIS_LOCKED":
+                h = load_hypothesis(root, ref)
+                if h is None:
+                    raise ValueError(f"cannot lock missing hypothesis {ref}")
+                e["payload_hash"] = hypothesis_hash(h)
+            e["sig"] = _h(prev, e)
+            f.seek(0, 2)
+            f.write(json.dumps(e, ensure_ascii=False) + "\n")
+            f.flush()
+            return e
+        finally:
+            fcntl.flock(f, fcntl.LOCK_UN)
+```
+
+### 3.4 `attest_run_from_result`
+
+```python
+def attest_run_from_result(root, ref, sha, result_file):
+    data = load_json_strict(result_file, "attestation result", MAX_RESULT_FILE_BYTES)
+    required = {"passed", "metric_value", "run_url", "samples", "commit_sha", "experiment_ref"}
+    if not required <= set(data.keys()):
+        raise ValueError(f"result file missing keys: {sorted(required - set(data))}")
+    if data.get("commit_sha") != sha:
+        raise ValueError("result commit_sha missing or mismatch")
+    if data.get("experiment_ref") != ref:
+        raise ValueError("result experiment_ref missing or mismatch")
+    if not isinstance(data["passed"], bool):
+        raise ValueError("passed must be boolean")
+    if not RUN_URL.match(data["run_url"]):
+        raise ValueError("run_url must match github actions run url")
+    if not finite_number(data["metric_value"]):
+        raise ValueError("metric_value must be a finite number")
+    if not isinstance(data["samples"], int) or isinstance(data["samples"], bool):
+        raise ValueError("samples must be an integer")
+    if data["samples"] < MIN_SAMPLES:
+        raise ValueError(f"samples must be >= {MIN_SAMPLES}")
+    if "result_hash" in data and data["result_hash"] is not None:
+        if not re.fullmatch(r"[0-9a-f]{64}", str(data["result_hash"])):
+            raise ValueError("result_hash must be 64-hex")
+    return attest(root, "run", ref, sha, data)
+```
+
+### 3.5 `calibrate_from_suite`
+
+```python
+def calibrate_from_suite(root, attack_id, sha, mutants_file):
+    data = load_json_strict(mutants_file, "mutation result", MAX_RESULT_FILE_BYTES)
+    if not isinstance(data, dict):
+        raise ValueError("mutation result must be an object")
+    if data.get("target_sha") != sha:
+        raise ValueError("mutation result target_sha mismatch")
+    mutants = data.get("mutants")
+    if not isinstance(mutants, list) or not mutants:
+        raise ValueError("mutants must be a non-empty list")
+    seen_ids, categories = set(), {}
+    for m in mutants:
+        if not isinstance(m, dict):
+            raise ValueError("mutant must be object")
+        mid, cat, killed = m.get("id"), m.get("category"), m.get("killed")
+        if not isinstance(mid, str) or not mid or mid in seen_ids:
+            raise ValueError(f"mutant id invalid or duplicate: {mid!r}")
+        if cat not in ("boundary", "logic", "concurrency", "security"):
+            raise ValueError(f"mutant {mid}: invalid category {cat!r}")
+        if not isinstance(killed, bool):
+            raise ValueError(f"mutant {mid}: killed must be boolean")
+        seen_ids.add(mid)
+        categories.setdefault(cat, []).append(killed)
+    per_cat_min = 0.7
+    for cat, results in categories.items():
+        rate = sum(results) / len(results)
+        if rate < per_cat_min:
+            raise ValueError(f"category '{cat}' catch rate {rate:.2f} < {per_cat_min}")
+    flat = [{"id": m["id"], "killed": m["killed"]} for m in mutants]
+    return calibrate(root, attack_id, sha, flat)
+```
+
+### 3.6 `gate_telemetry`
+
+```python
+def gate_telemetry(root, ref, head_sha=None):
+    errs = []
+    cfg = load_cfg(root)
+    key = _key(cfg)
+    if key is None:
+        return [f"telemetry: signing key env '{cfg['attestation']['key_env']}' missing (fail closed)"]
+    exp = load_records(root, "experiment").get(ref)
+    if not exp:
+        return [f"experiment {ref} not found"]
+    card = load_records(root, "card").get(exp.get("card_ref", ""))
+    if not card:
+        return []
+    budget = card.get("budget", {}).get("max_minutes")
+    if not finite_number(budget) or budget <= 0:
+        return []
+    tel_dir = Path(root) / "records" / "telemetry"
+    if not tel_dir.exists():
+        return [f"telemetry: directory missing for {ref}"]
+    total, found = 0.0, 0
+    for p in tel_dir.glob(f"TL-{ref}-*.json"):
+        try:
+            d = load_json_strict(p, p.name)
+            if d.get("ref") != ref:
+                errs.append(f"telemetry {p.name}: ref mismatch")
+                continue
+            if head_sha is not None and d.get("commit_sha") != head_sha:
+                continue
+            if not finite_number(d.get("minutes")) or d["minutes"] < 0:
+                errs.append(f"telemetry {p.name}: invalid minutes")
+                continue
+            if d["minutes"] > MAX_TELEMETRY_MINUTES:
+                errs.append(f"telemetry {p.name}: minutes exceeds maximum")
+                continue
+            body = {k: v for k, v in d.items() if k != "sig"}
+            expected = hmac.new(key, _canon(body).encode("utf-8"), hashlib.sha256).hexdigest()
+            if not hmac.compare_digest(expected, d.get("sig", "")):
+                errs.append(f"telemetry {p.name}: invalid signature")
+                continue
+            found += 1
+            total += float(d["minutes"])
+        except Exception as ex:
+            errs.append(f"telemetry {p.name}: malformed: {ex}")
+    if head_sha is not None and found == 0:
+        errs.append(f"telemetry: no valid telemetry for {ref} at commit {head_sha}")
+    if total > budget:
+        errs.append(f"telemetry: {ref} used {total}m > budget {budget}m")
+    return errs
+```
+
+### 3.7 `record_telemetry`
+
+```python
+def record_telemetry(root, ref, minutes, actor, commit_sha=None):
+    if not ID["experiment"].match(str(ref)):
+        raise ValueError("telemetry ref must be an experiment id")
+    if not isinstance(actor, str) or not actor.strip():
+        raise ValueError("telemetry actor is required")
+    if not finite_number(minutes) or minutes < 0:
+        raise ValueError("telemetry minutes must be finite non-negative")
+    if minutes > MAX_TELEMETRY_MINUTES:
+        raise ValueError("telemetry minutes exceeds maximum")
+    if commit_sha is not None and not SHA.match(commit_sha):
+        raise ValueError("commit_sha must be 40-hex")
+    cfg = load_cfg(root)
+    key = _key(cfg)
+    if key is None:
+        raise RuntimeError("telemetry requires CI key")
+    ts = int(time.time())
+    nonce = secrets.token_hex(8)
+    p = Path(root) / "records" / "telemetry" / f"TL-{ref}-{ts}-{nonce}.json"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    doc = {
+        "schema_version": SCHEMA_VERSION, "ref": ref, "minutes": float(minutes),
+        "actor": actor, "ts": ts, "nonce": nonce, "commit_sha": commit_sha,
+    }
+    doc["sig"] = hmac.new(key, _canon(doc).encode("utf-8"), hashlib.sha256).hexdigest()
+    p.write_text(json.dumps(doc, indent=2), encoding="utf-8")
+    return p
+```
+
+### 3.8 `simulate` مع `LAB_TOOL_ROOT` والـ Timeout
+
+```python
+def simulate(root, scenario_file):
+    import tempfile, shutil
+    sc = load_json_strict(scenario_file, "scenario", MAX_SCENARIO_FILE_BYTES)
+    name, expect = sc.get("name", "scenario"), sc.get("expect_error_contains", "")
+    setup, command = sc.get("setup", []), sc.get("command")
+    if not isinstance(command, list) or not command:
+        return [f"{name}: command must be a non-empty argv list"]
+    allowed_cmds = {"validate", "ledger-verify", "gate", "paths", "gate-telemetry", "overlap"}
+    if command[0] not in allowed_cmds:
+        return [f"{name}: command '{command[0]}' not allowed"]
+    with tempfile.TemporaryDirectory() as td:
+        lab = Path(td) / "lab"
+        shutil.copytree(root, lab, ignore=shutil.ignore_patterns("__pycache__", ".git"))
+        for op in setup:
+            kind = op.get("op")
+            if kind == "put":
+                if op.get("record_kind") not in DIRS:
+                    return [f"{name}: invalid record_kind"]
+                d = lab / "records" / DIRS[op["record_kind"]] / f"{op['record']['id']}.json"
+                d.parent.mkdir(parents=True, exist_ok=True)
+                d.write_text(json.dumps(op["record"]), encoding="utf-8")
+            elif kind == "write":
+                if not safe_repo_path(op.get("path", "")):
+                    return [f"{name}: unsafe write path"]
+                p = lab / op["path"]
+                p.parent.mkdir(parents=True, exist_ok=True)
+                p.write_text(op["content"], encoding="utf-8")
+            elif kind == "delete":
+                if not safe_repo_path(op.get("path", "")):
+                    return [f"{name}: unsafe delete path"]
+                p = lab / op["path"]
+                if p.exists():
+                    p.unlink()
+            else:
+                return [f"{name}: unsupported setup operation {kind!r}"]
+        cmd = [c.replace("$ROOT", str(lab)) for c in command]
+        env = os.environ.copy()
+        env["LAB_TOOL_ROOT"] = str(lab)
+        if "LAB_CI_KEY" in os.environ:
+            env["LAB_CI_KEY"] = os.environ["LAB_CI_KEY"]
+        try:
+            r = subprocess.run(
+                [sys.executable, str(lab / "tools" / "lab_tool.py")] + cmd,
+                capture_output=True, text=True, env=env, timeout=SCENARIO_TIMEOUT
+            )
+            out = (r.stdout or "") + (r.stderr or "")
+            if r.returncode == 0:
+                return [f"{name}: expected failure but exit 0"]
+            if expect and expect not in out:
+                return [f"{name}: expected '{expect}', got: {out[:300]}"]
+        except subprocess.TimeoutExpired:
+            return [f"{name}: execution timed out after {SCENARIO_TIMEOUT}s"]
+    return []
+```
+
+### 3.9 تحديث `main()`
+
+```python
+def main(argv=None):
+    global CFG_FILE
+    ap = argparse.ArgumentParser(prog="lab_tool")
+    ap.add_argument("--root", default=str(DEFAULT_ROOT))
+    ap.add_argument("--config", help="trusted config file (CI: copy from base branch)")
+    ap.add_argument("--json", action="store_true", help="emit JSON output")
+    sp = ap.add_subparsers(dest="cmd", required=True)
+
+    v = sp.add_parser("validate")
+    v.add_argument("--templates", action="store_true")
+
+    g = sp.add_parser("gate")
+    g.add_argument("--kind", choices=["experiment", "report"], required=True)
+    g.add_argument("--ref", required=True)
+    g.add_argument("--head-sha", required=True)
+    g.add_argument("--stage", choices=["test", "base", "main"], default="test")
+    g.add_argument("--approver")
+
+    gp = sp.add_parser("gate-pr")
+    gp.add_argument("--base-sha", required=True)
+    gp.add_argument("--head-sha", required=True)
+    gp.add_argument("--stage", choices=["base", "main"], required=True)
+    gp.add_argument("--approver")
+
+    c = sp.add_parser("calibrate")
+    c.add_argument("--attack-id", required=True)
+    c.add_argument("--sha", required=True)
+    c.add_argument("--mutants")
+    c.add_argument("--mutants-file")
+
+    r = sp.add_parser("attest-run")
+    r.add_argument("--ref", required=True)
+    r.add_argument("--sha", required=True)
+    r.add_argument("--result-file", required=True)
+
+    sp.add_parser("ledger-verify")
+
+    la = sp.add_parser("ledger-append")
+    for k in ("actor", "event", "ref", "ts"):
+        la.add_argument("--" + k, required=True)
+
+    pp = sp.add_parser("paths")
+    pp.add_argument("--role", required=True)
+    pp.add_argument("--files", nargs="*")
+
+    sim = sp.add_parser("simulate")
+    sim.add_argument("--scenario")
+    sim.add_argument("--all", action="store_true")
+    sim.add_argument("--dir", default="scenarios")
+
+    tel = sp.add_parser("record-telemetry")
+    tel.add_argument("--ref", required=True)
+    tel.add_argument("--minutes", type=float, required=True)
+    tel.add_argument("--actor", required=True)
+    tel.add_argument("--commit-sha")
+
+    gt = sp.add_parser("gate-telemetry")
+    gt.add_argument("--ref", required=True)
+    gt.add_argument("--head-sha")
+
+    ov = sp.add_parser("overlap")
+    ov.add_argument("--head-sha", required=True)
+
+    a = ap.parse_args(argv)
+    CFG_FILE = a.config
+    errs, out = [], None
+    try:
+        if a.cmd == "validate":
+            errs = validate_templates(a.root) if a.templates else validate_all(a.root)
+        elif a.cmd == "gate":
+            errs = gate(a.root, a.kind, a.ref, a.head_sha, a.stage, a.approver)
+        elif a.cmd == "gate-pr":
+            errs = gate_pr(a.root, a.base_sha, a.head_sha, a.stage, a.approver)
+        elif a.cmd == "calibrate":
+            if a.mutants_file:
+                out = str(calibrate_from_suite(a.root, a.attack_id, a.sha, a.mutants_file))
+            elif a.mutants:
+                out = str(calibrate(a.root, a.attack_id, a.sha,
+                                    json.loads(Path(a.mutants).read_text(encoding="utf-8"))))
+            else:
+                raise ValueError("calibrate requires --mutants or --mutants-file")
+        elif a.cmd == "attest-run":
+            out = str(attest_run_from_result(a.root, a.ref, a.sha, a.result_file))
+        elif a.cmd == "ledger-verify":
+            errs = ledger_verify(a.root)
+        elif a.cmd == "ledger-append":
+            out = json.dumps(ledger_append(a.root, a.actor, a.event, a.ref, a.ts))
+        elif a.cmd == "paths":
+            files = a.files if a.files is not None else [l.strip() for l in sys.stdin if l.strip()]
+            errs = check_paths(a.root, a.role, files)
+        elif a.cmd == "simulate":
+            errs = run_scenarios(a.root, a.dir) if a.all else simulate(a.root, a.scenario)
+        elif a.cmd == "record-telemetry":
+            out = json.dumps({"path": str(record_telemetry(a.root, a.ref, a.minutes, a.actor, a.commit_sha))})
+        elif a.cmd == "gate-telemetry":
+            errs = gate_telemetry(a.root, a.ref, a.head_sha)
+        elif a.cmd == "overlap":
+            errs = detect_experiment_overlap(a.root, a.head_sha)
+    except Exception as ex:
+        errs = [f"{a.cmd}: {ex}"]
+    if a.json:
+        print(json.dumps({"ok": not errs, "errors": errs, "out": out}, ensure_ascii=False))
+        return 1 if errs else 0
+    if out:
+        print(out)
+    for e in errs:
+        print("FAIL:", e, file=sys.stderr)
+    print("OK" if not errs else f"{len(errs)} error(s)")
+    return 1 if errs else 0
+```
+
+## 4. التعديلات الإلزامية قبل الدمج (blockers)
+
+| # | الوصف | الحالة بعد الـ patch |
+|---|---|---|
+| **B-1** | `ledger_append` بدون `...` | ✅ §3.3 |
+| **B-2** | توحيد `sig` (سلسلة) و`payload_hash` (فرضية) | ✅ §3.3 |
+| **B-3** | `commit_sha` و`experiment_ref` إلزاميان | ✅ §3.4 |
+| **B-4** | `target_sha` في `mutants.json` | ✅ §3.5 |
+| **B-5** | توقيع telemetry | ✅ §3.6 |
+| **B-6** | `LAB_TOOL_ROOT` env + حماية File Locks و OOM | ✅ §3.1 + §3.8 + §3.3 |
+| **B-7** | `simulate` fail-closed على حجم السيناريو والوقت | ✅ §3.8 |
+
+## 5. القوالب الجديدة والمعدّلة
+
+### 5.1 `templates/hypothesis.json`
+
+```json
+{
+  "schema_version": 1,
+  "id": "HY-0000",
+  "author": "builder",
+  "statement": "إذا فعلنا X فإن المقياس Y يتحسن لأن Z",
+  "falsifier": "كيف نعرف أن الفرضية خاطئة (شرط قابل للقياس)",
+  "metric_name": "latency_p95_ms",
+  "direction": "lower_is_better",
+  "threshold": 1.0,
+  "locked": false,
+  "locked_at": 0,
+  "lock_hash": ""
+}
+```
+
+### 5.2 `templates/experiment.json`
+
+```json
+{
+  "schema_version": 1,
+  "id": "EX-0000",
+  "card_ref": "RC-0000",
+  "hypothesis_ref": "HY-0000",
+  "hypothesis_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+  "author": "builder",
+  "status": "PROPOSED",
+  "branch": "agent/builder/rc-0000-slug",
+  "metric": {
+    "name": "latency_p95_ms",
+    "direction": "lower_is_better",
+    "baseline": 0.0,
+    "success_threshold": 1.0
+  },
+  "baseline_ref": "metrics/baseline.json#latency_p95_ms"
+}
+```
+
+### 5.3 `templates/attack-report.json`
+
+```json
+{
+  "schema_version": 1,
+  "id": "AT-0000-r1",
+  "target_type": "experiment",
+  "target_ref": "EX-0000",
+  "target_sha": "0000000000000000000000000000000000000000",
+  "suite_path": "records/attacks/AT-0000-r1/suite/",
+  "round": 1,
+  "attacker": "adv-builder",
+  "author": "builder",
+  "verdict": "SURVIVED",
+  "attempts": [
+    {"category": "regression", "description": "ما جُرّب", "result": "HELD"},
+    {"category": "edge_cases", "description": "ما جُرّب", "result": "HELD"},
+    {"category": "security", "description": "ما جُرّب", "result": "HELD"},
+    {"category": "spec_violation", "description": "ما جُرّب", "result": "HELD"},
+    {"category": "edge_cases", "description": "محاولة إضافية", "result": "HELD"}
+  ]
+}
+```
+
+### 5.4 `templates/research-card.json`
+
+```json
+{
+  "schema_version": 1,
+  "id": "RC-0000",
+  "status": "OPEN",
+  "question": "ما النمط الأفضل لـ ... ؟",
+  "context": "لماذا نحتاج الجواب",
+  "decision_it_informs": "القرار الذي سيتخذه الباني",
+  "opened_by": "builder",
+  "assigned_to": "",
+  "created_at": "2026-01-01T00:00:00Z",
+  "budget": {"max_repos": 8, "max_minutes": 45},
+  "allowed_licenses": ["MIT", "Apache-2.0", "BSD-3-Clause"],
+  "expected_metric_class": "latency|throughput|error_rate|bundle_size"
+}
+```
+
+### 5.5 `templates/research-report.json`
+
+أضف `"schema_version": 1` في البداية.
+
+## 6. سجل المقاييس + collectors
+
+### 6.1 `metrics/registry.json`
+
+```json
+{
+  "latency_p95_ms": {
+    "unit": "ms",
+    "direction": "lower_is_better",
+    "collector": "metrics/collectors/latency.py",
+    "collector_sha": "0000000000000000000000000000000000000000",
+    "min_samples": 30,
+    "max_variance": 0.05
+  },
+  "throughput_rps": {
+    "unit": "rps",
+    "direction": "higher_is_better",
+    "collector": "metrics/collectors/throughput.py",
+    "collector_sha": "0000000000000000000000000000000000000000",
+    "min_samples": 30,
+    "max_variance": 0.05
+  },
+  "error_rate": {
+    "unit": "ratio",
+    "direction": "lower_is_better",
+    "collector": "metrics/collectors/error_rate.py",
+    "collector_sha": "0000000000000000000000000000000000000000",
+    "min_samples": 100,
+    "max_variance": 0.01
+  },
+  "bundle_size_kb": {
+    "unit": "kb",
+    "direction": "lower_is_better",
+    "collector": "metrics/collectors/bundle.py",
+    "collector_sha": "0000000000000000000000000000000000000000",
+    "min_samples": 1,
+    "max_variance": 0.0
+  }
+}
+```
+
+### 6.2 `metrics/baseline.json`
+
+```json
+{
+  "generated_at": "2026-01-01T00:00:00Z",
+  "generated_by": "integrator",
+  "latency_p95_ms": 120.0,
+  "throughput_rps": 500.0,
+  "error_rate": 0.01,
+  "bundle_size_kb": 250.0
+}
+```
+
+### 6.3 `metrics/collectors/latency.py`
+
+```python
+#!/usr/bin/env python3
+"""collector: latency_p95_ms — يقيس p95 زمن الاستجابة على commit محدد."""
+import json, statistics, subprocess, sys
+
+def main(commit_sha, samples=30):
+    # TODO: استبدل بأمر المنتج الحقيقي
+    results = []
+    for _ in range(samples):
+        results.append(120.0)
+    results.sort()
+    p95 = results[int(len(results) * 0.95) - 1]
+    return {
+        "metric_name": "latency_p95_ms",
+        "value": p95,
+        "samples": len(results),
+        "commit_sha": commit_sha,
+    }
+
+if __name__ == "__main__":
+    sha = sys.argv[1] if len(sys.argv) > 1 else ""
+    print(json.dumps(main(sha)))
+```
+
+### 6.4 اختبار التكامل
+
+```
+python3 metrics/collectors/latency.py $HEAD_SHA > result.json
+lab_tool attest-run --ref EX-0001 --sha $HEAD_SHA --result-file result.json
+```
+
+## 7. مشغّل الطفرات `tools/mutate.py`
+
+```python
+#!/usr/bin/env python3
+"""mutate.py — يزرع طفرات في نسخة معزولة ويشغّل مجموعة هجوم الخصم.
+stdlib only. لا يمس شجرة العمل الأصلية.
+محمي ضد الحلقات اللانهائية (Infinite Loops)."""
+import argparse, hashlib, json, os, re, shutil, subprocess, sys, tempfile
+from pathlib import Path
+
+CATEGORIES = ("boundary", "logic", "concurrency", "security")
+
+MUTATIONS = {
+    "flip_comparison": [
+        (re.compile(r"(?<![<>=!])<(?!=)"), ">="),
+        (re.compile(r"(?<![<>=!])>(?!=)"), "<="),
+    ],
+    "flip_boolean": [
+        (re.compile(r"\bTrue\b"), "False"),
+        (re.compile(r"\bFalse\b"), "True"),
+    ],
+    "remove_guard": [
+        (re.compile(r"if\s+[^\n:]+:\s*\n(\s+)raise\s+"), r"if False:\n\1raise "),
+    ],
+    "off_by_one": [
+        (re.compile(r"\brange\((\d+)\)"), r"range(\1 + 1)"),
+        (re.compile(r"\[\s*:\s*(\d+)\s*\]"), r"[:\1 + 1]"),
+    ],
+}
+
+CATEGORY_MAP = {
+    "flip_comparison": "boundary",
+    "flip_boolean": "logic",
+    "remove_guard": "logic",
+    "off_by_one": "boundary",
+}
+
+
+def load_spec(spec_file):
+    return json.loads(Path(spec_file).read_text(encoding="utf-8"))
+
+
+def seed_one_mutation(source_text, mutator_name):
+    for pattern, repl in MUTATIONS[mutator_name]:
+        new, n = pattern.subn(repl, source_text, count=1)
+        if n:
+            return new, True
+    return None, False
+
+
+def run_suite(suite_path, target_dir, timeout_seconds=30):
+    try:
+        r = subprocess.run(
+            [sys.executable, str(suite_path / "runner.py"), str(target_dir)],
+            capture_output=True, text=True, timeout=timeout_seconds
+        )
+        return r.returncode, r.stdout, r.stderr
+    except subprocess.TimeoutExpired:
+        return 1, "", f"Timeout after {timeout_seconds}s (Infinite loop detected)"
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--repo", required=True)
+    ap.add_argument("--suite", required=True)
+    ap.add_argument("--sha", required=True)
+    ap.add_argument("--spec", default="mutations/spec.json")
+    ap.add_argument("--min-mutants", type=int, default=3)
+    ap.add_argument("--out", required=True)
+    a = ap.parse_args(argv)
+
+    spec = load_spec(a.spec)
+    targets = spec["targets"]
+    mutators = [m for t in targets for m in t["mutators"]]
+    mutants = []
+    with tempfile.TemporaryDirectory() as td:
+        for mi, mutator in enumerate(mutators):
+            if len(mutants) >= a.min_mutants * 2:
+                break
+            for target in targets:
+                for path in Path(a.repo).glob(target["path"]):
+                    if any(path.match(ex) for ex in spec.get("exclude", [])):
+                        continue
+                    if path.is_dir():
+                        continue
+                    try:
+                        text = path.read_text(encoding="utf-8")
+                    except Exception:
+                        continue
+                    mutated, changed = seed_one_mutation(text, mutator)
+                    if not changed:
+                        continue
+                    mid = f"m{mi}-{hashlib.sha1(str(path).encode()).hexdigest()[:6]}"
+                    if any(m["id"] == mid for m in mutants):
+                        continue
+                    work = Path(td) / mid
+                    if work.exists():
+                        shutil.rmtree(work)
+                    shutil.copytree(a.repo, work,
+                                    ignore=shutil.ignore_patterns("__pycache__", ".git"))
+                    (work / path.relative_to(a.repo)).write_text(mutated, encoding="utf-8")
+                    rc, so, se = run_suite(Path(a.suite), work)
+                    mutants.append({
+                        "id": mid,
+                        "category": CATEGORY_MAP.get(mutator, "logic"),
+                        "killed": rc != 0,
+                    })
+                    break
+            if len(mutants) >= a.min_mutants:
+                break
+
+    doc = {"target_sha": a.sha, "mutants": mutants}
+    Path(a.out).write_text(json.dumps(doc, indent=2), encoding="utf-8")
+    print(f"{len(mutants)} mutants -> {a.out}")
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())
+```
+
+### 7.1 `mutations/spec.json`
+
+```json
+{
+  "targets": [
+    {"path": "src/**/*.py", "mutators": ["flip_comparison", "remove_guard", "off_by_one", "flip_boolean"]}
+  ],
+  "exclude": ["agent-lab/**", "tests/**", "tools/**", "**/__pycache__/**"]
+}
+```
+
+## 8. سيناريوهات الفشل `scenarios/`
+
+كل السيناريوهات قابلة للتشغيل بـ `lab_tool simulate --all --dir scenarios`.
+
+### 8.1 `scenarios/forged-attestation.json`
+
+```json
+{
+  "name": "forged attestation rejected",
+  "setup": [
+    {"op": "put", "record_kind": "experiment", "record": {
+      "schema_version": 1,
+      "id": "EX-0000", "card_ref": "RC-0000",
+      "hypothesis_ref": "HY-0000",
+      "hypothesis_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "author": "builder", "status": "PASSED",
+      "branch": "agent/builder/x",
+      "metric": {"name": "latency_p95_ms", "direction": "lower_is_better",
+                 "baseline": 1.0, "success_threshold": 0.5}
+    }},
+    {"op": "put", "record_kind": "attack", "record": {
+      "schema_version": 1,
+      "id": "AT-0000-r1", "target_type": "experiment", "target_ref": "EX-0000",
+      "target_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "suite_path": "records/attacks/AT-0000-r1/suite/",
+      "round": 1, "attacker": "adv-builder", "author": "builder",
+      "verdict": "SURVIVED",
+      "attempts": [
+        {"category": "regression", "description": "x", "result": "HELD"},
+        {"category": "edge_cases", "description": "x", "result": "HELD"},
+        {"category": "security", "description": "x", "result": "HELD"},
+        {"category": "spec_violation", "description": "x", "result": "HELD"},
+        {"category": "edge_cases", "description": "y", "result": "HELD"}
+      ]
+    }}
+  ],
+  "command": ["validate"],
+  "expect_error_contains": "missing CI attestation"
+}
+```
+
+### 8.2 `scenarios/hypothesis-tampered.json`
+
+```json
+{
+  "name": "hypothesis tampered after lock",
+  "setup": [
+    {"op": "put", "record_kind": "hypothesis", "record": {
+      "schema_version": 1, "id": "HY-0000", "author": "builder",
+      "statement": "x", "falsifier": "y",
+      "metric_name": "latency_p95_ms", "direction": "lower_is_better",
+      "threshold": 0.5, "locked": true,
+      "locked_at": 1700000000,
+      "lock_hash": "0000000000000000000000000000000000000000000000000000000000000000"
+    }},
+    {"op": "put", "record_kind": "experiment", "record": {
+      "schema_version": 1, "id": "EX-0000", "card_ref": "RC-0000",
+      "hypothesis_ref": "HY-0000",
+      "hypothesis_hash": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+      "author": "builder", "status": "PROPOSED",
+      "branch": "agent/builder/x",
+      "metric": {"name": "latency_p95_ms", "direction": "lower_is_better",
+                 "baseline": 1.0, "success_threshold": 0.5}
+    }}
+  ],
+  "command": ["validate"],
+  "expect_error_contains": "does not match hypothesis record"
+}
+```
+
+### 8.3 `scenarios/unknown-metric.json`
+
+```json
+{
+  "name": "unknown metric rejected",
+  "setup": [
+    {"op": "put", "record_kind": "hypothesis", "record": {
+      "schema_version": 1, "id": "HY-0000", "author": "b",
+      "statement": "x", "falsifier": "y",
+      "metric_name": "invented_metric", "direction": "higher_is_better",
+      "threshold": 1.0, "locked": true, "locked_at": 1700000000,
+      "lock_hash": "0000000000000000000000000000000000000000000000000000000000000000"
+    }},
+    {"op": "put", "record_kind": "experiment", "record": {
+      "schema_version": 1, "id": "EX-0000", "card_ref": "RC-0000",
+      "hypothesis_ref": "HY-0000",
+      "hypothesis_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "author": "builder", "status": "PROPOSED",
+      "branch": "agent/builder/x",
+      "metric": {"name": "invented_metric", "direction": "higher_is_better",
+                 "baseline": 0.0, "success_threshold": 1.0}
+    }}
+  ],
+  "command": ["validate"],
+  "expect_error_contains": "not in metrics/registry.json"
+}
+```
+
+### 8.4 `scenarios/attack-missing-suite.json`
+
+```json
+{
+  "name": "attack without suite rejected",
+  "setup": [
+    {"op": "put", "record_kind": "attack", "record": {
+      "schema_version": 1, "id": "AT-0000-r1",
+      "target_type": "experiment", "target_ref": "EX-0000",
+      "target_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "suite_path": "records/attacks/AT-0000-r1/suite/",
+      "round": 1, "attacker": "adv-builder", "author": "builder",
+      "verdict": "SURVIVED",
+      "attempts": [
+        {"category": "regression", "description": "x", "result": "HELD"},
+        {"category": "edge_cases", "description": "x", "result": "HELD"},
+        {"category": "security", "description": "x", "result": "HELD"},
+        {"category": "spec_violation", "description": "x", "result": "HELD"},
+        {"category": "edge_cases", "description": "y", "result": "HELD"}
+      ]
+    }}
+  ],
+  "command": ["validate"],
+  "expect_error_contains": "suite_path"
+}
+```
+
+### 8.5 `scenarios/ledger-tampered.json`
+
+```json
+{
+  "name": "ledger tamper detected",
+  "setup": [
+    {"op": "write", "path": "records/ledger/ledger.jsonl", "content": "{\"seq\":1,\"ts\":\"2026-01-01T00:00:00Z\",\"actor\":\"steward\",\"event\":\"CARD_OPENED\",\"ref\":\"RC-0001\",\"prev\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"payload_hash\":null,\"sig\":\"0000000000000000000000000000000000000000000000000000000000000000\"}\n"}
+  ],
+  "command": ["ledger-verify"],
+  "expect_error_contains": "hash mismatch"
+}
+```
+
+### 8.6 `scenarios/path-traversal.json`
+
+```json
+{
+  "name": "path traversal blocked",
+  "setup": [
+    {"op": "put", "record_kind": "attack", "record": {
+      "schema_version": 1, "id": "AT-0000-r1",
+      "target_type": "experiment", "target_ref": "EX-0000",
+      "target_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "suite_path": "records/attacks/../../tools/",
+      "round": 1, "attacker": "adv-builder", "author": "builder",
+      "verdict": "SURVIVED",
+      "attempts": [
+        {"category": "regression", "description": "x", "result": "HELD"},
+        {"category": "edge_cases", "description": "x", "result": "HELD"},
+        {"category": "security", "description": "x", "result": "HELD"},
+        {"category": "spec_violation", "description": "x", "result": "HELD"},
+        {"category": "edge_cases", "description": "y", "result": "HELD"}
+      ]
+    }}
+  ],
+  "command": ["validate"],
+  "expect_error_contains": "safe relative path"
+}
+```
+
+## 9. بطاقات التنفيذ AD-18..AD-27
+
+| # | البطاقة | المخرج | معيار القبول |
+|---|---|---|---|
+| AD-18 | `metrics/registry.json` + ربط `metric.name` | ملف + فحص | تجربة بمقياس غير مسجّل تفشل |
+| AD-19 | `tools/mutate.py` + `mutations/spec.json` | أداة | ≥3 طفرات، فئات صحيحة |
+| AD-20 | `suite_path` في attack-report + تشغيله | قالب + كود | هجوم بلا مجموعة يفشل |
+| AD-21 | فصل `hypothesis` عن `experiment` | قالب + فحص | تعديل بعد القفل يبطل |
+| AD-22 | `attest-run` من ملف لا CLI | كود + workflow | لا `--passed` يدوي |
+| AD-23 | `lab_tool simulate` | أداة + `scenarios/` | 6 سيناريوهات تمرّ |
+| AD-24 | telemetry + فحص الميزانية | قالب + كود | تجاوز `max_minutes` يُرفض |
+| AD-25 | `--json` لكل الأوامر | كود | كل أمر يخرج JSON |
+| AD-26 | فحص تداخل التجارب | كود في `gate-pr` | تجربتان على نفس الملف → رفض |
+| AD-27 | تثبيت actions بـ SHA + environment محمي | workflow | `@v4` يفشل |
+
+## 10. بطاقات جديدة AD-28..AD-36
+
+| # | البطاقة | المخرج | معيار القبول |
+|---|---|---|---|
+| AD-28 | `metrics/collectors/*.py` (4 collectors) | ملفات | كل collector يُنتج JSON بمعيار موحد |
+| AD-29 | `tools/scan-injection.py` لفحص نصوص PR | أداة | 10 أنماط حقن مكتشفة، صفر إيجابية كاذبة على الـ README |
+| AD-30 | `tools/notify.py` عند ESCALATED | أداة + workflow | webhook يصل، issue يُفتح |
+| AD-31 | `records/ledger/merkle.json` يومياً | أداة + workflow | الجذر يُنشر في commit message |
+| AD-32 | `ledger-checkpoint.json` ربع سنوي | أداة | `ledger-verify` يتحقق من checkpoint |
+| AD-33 | `tools/dashboard.py` | أداة | 4 تقارير: تجارب، هجمات، ledger، خصوم |
+| AD-34 | `policies/*.json` قابلة للتنفيذ | ملفات + تحميل | تعديل policy يمر عبر PR |
+| AD-35 | `tests/test_properties.py` | اختبارات | `hypothesis` library، ≥20 خاصية |
+| **AD-36** | **`tools/ledger_rotate.py` و`Archive`** | أداة | قص الـ Ledger كل 10,000 سطر، وترك `merkle root` لربطه بالملف الجديد (لحماية الذاكرة والسرعة). |
+
+## 11. تحديثات `lab.config.json` و`GOVERNANCE.md`
+
+### 11.1 `config/lab.config.json`
+
+```json
+{
+  "version": 3,
+  "schema_version": 1,
+  "branches": {
+    "main": "main",
+    "base": "base",
+    "lab": "lab",
+    "agent_prefix": "agent/"
+  },
+  "limits": {
+    "max_attack_rounds": 3,
+    "max_open_experiments_per_builder": 3,
+    "explorer_default_max_repos": 8,
+    "explorer_default_max_minutes": 45,
+    "max_telemetry_minutes": 10080
+  },
+  "attack": {
+    "min_attempts": 5,
+    "required_categories": {
+      "experiment": ["regression", "edge_cases", "security", "spec_violation"],
+      "report": ["evidence", "license", "injection", "fabrication"]
+    },
+    "calibration": {
+      "min_seeded": 3,
+      "min_catch_rate": 0.8,
+      "per_category_min": 0.7
+    }
+  },
+  "roles": {
+    "builder": {
+      "allow": ["*"],
+      "deny": [
+        ".github/*",
+        "agent-lab/metrics/*",
+        "agent-lab/schema/*",
+        "agent-lab/policies/*",
+        "agent-lab/tools/*",
+        "agent-lab/config/*",
+        "agent-lab/ci/*",
+        "agent-lab/prompts/*",
+        "agent-lab/templates/*",
+        "agent-lab/*.md",
+        "agent-lab/records/reports/*",
+        "agent-lab/records/attacks/*",
+        "agent-lab/records/ledger/*",
+        "agent-lab/records/attestations/*",        "agent-lab/records/telemetry/*"
+      ]
+    },
+    "explorer": {"allow": ["agent-lab/records/reports/*"], "deny": []},
+    "adv-builder": {"allow": ["agent-lab/records/attacks/*"], "deny": []},
+    "adv-explorer": {"allow": ["agent-lab/records/attacks/*"], "deny": []},
+    "adv-steward": {"allow": ["agent-lab/records/attacks/*"], "deny": []},
+    "steward": {
+      "allow": ["agent-lab/records/ledger/*", "agent-lab/records/cards/*"],
+      "deny": []
+    },
+    "ci": {
+      "allow": [
+        "agent-lab/records/attestations/*",
+        "agent-lab/records/telemetry/*",
+        "agent-lab/records/ledger/merkle.json",
+        "agent-lab/records/ledger/ledger-checkpoint.json"
+      ],
+      "deny": []
+    },
+    "auditor": {"allow": [], "deny": ["*"]}
+  },
+  "attestation": {
+    "key_env": "LAB_CI_KEY",
+    "min_samples": 5,
+    "run_url_pattern": "^https://github\\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/actions/runs/\\d+$"
+  },
+  "separation_of_duties": {
+    "integrator_may_not_be": ["author", "attacker"],
+    "steward_may_not_be": ["builder"],
+    "auditor_may_not_be": ["integrator"]
+  }
+}
+```
+
+### 11.2 `GOVERNANCE.md`
+
+أضف الثوابت INV-15..INV-21، وقسم "فصل السلطات":
+
+```markdown
+## فصل السلطات (INV-08 موسّع)
+- integrator ≠ author ≠ attacker.
+- steward ≠ builder في الجلسة نفسها.
+- auditor ≠ integrator.
+- adv-steward يراجع steward دورياً.
+
+## شهادات موقّعة (INV-13 موسّع)
+- `run` تحتاج commit_sha + experiment_ref + result_hash.
+- `calibration` تحتاج target_sha + mutants بفئات.
+- `telemetry` تحتاج sig HMAC + commit_sha.
+- كل شهادة تُكتب فقط من دور `ci`.
+```
+
+## 12. تحديث `lab-gate.yml`
+
+```yaml
+name: lab-gate
+on:
+  pull_request:
+    branches: [lab, base, main]
+  merge_group:
+
+jobs:
+  untrusted-tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - run: python3 -m unittest discover -s agent-lab/tests
+
+  simulate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - name: run all scenarios (INV-20)
+        run: LAB_CI_KEY=test-only python3 agent-lab/tools/lab_tool.py --root agent-lab simulate --all --dir agent-lab/scenarios
+
+  gate:
+    runs-on: ubuntu-latest
+    needs: [untrusted-tests, simulate]
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+        with: {fetch-depth: 0}
+      - name: trusted tool + config from target branch
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+        run: |
+          mkdir -p /tmp/trusted
+          git archive "$BASE_SHA" agent-lab/tools agent-lab/config agent-lab/metrics agent-lab/schema | tar -x -C /tmp/trusted
+      - name: validate records
+        run: python3 /tmp/trusted/agent-lab/tools/lab_tool.py --root agent-lab --config /tmp/trusted/agent-lab/config/lab.config.json validate
+      - name: path guard
+        if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'agent/')
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          ROLE=$(echo "$HEAD_REF" | cut -d/ -f2)
+          git diff --name-only "$BASE_SHA" "$HEAD_SHA" | python3 /tmp/trusted/agent-lab/tools/lab_tool.py --root agent-lab --config /tmp/trusted/agent-lab/config/lab.config.json paths --role "$ROLE"
+      - name: overlap check (AD-26)
+        if: github.event_name == 'pull_request'
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: python3 /tmp/trusted/agent-lab/tools/lab_tool.py --root agent-lab --config /tmp/trusted/agent-lab/config/lab.config.json overlap --head-sha "$HEAD_SHA"
+      - name: promotion gate
+        if: github.event_name == 'pull_request' && (github.base_ref == 'base' || github.base_ref == 'main')
+        env:
+          LAB_CI_KEY: ${{ secrets.LAB_CI_KEY }}
+          GH_TOKEN: ${{ github.token }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          STAGE: ${{ github.base_ref }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          APPROVER=$(gh api "repos/$REPO/pulls/$PR/reviews" --jq '[.[]|select(.state=="APPROVED")|.user.login]|last // empty')
+          python3 /tmp/trusted/agent-lab/tools/lab_tool.py --root agent-lab --config /tmp/trusted/agent-lab/config/lab.config.json gate-pr --base-sha "$BASE_SHA" --head-sha "$HEAD_SHA" --stage "$STAGE" --approver "$APPROVER"
+
+  mutation-calibrate:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'agent/adv-builder/')
+    needs: [untrusted-tests]
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+        with: {fetch-depth: 0}
+      - name: run mutate + calibrate
+        env:
+          LAB_CI_KEY: ${{ secrets.LAB_CI_KEY }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          ATTACK_ID=$(ls agent-lab/records/attacks/AT-*-r*.json | head -1 | xargs -n1 basename | sed 's/.json//')
+          python3 agent-lab/tools/mutate.py \
+            --repo . --suite "agent-lab/records/attacks/$ATTACK_ID/suite" \
+            --sha "$HEAD_SHA" --spec agent-lab/mutations/spec.json \
+            --min-mutants 3 --out /tmp/mutants.json
+          python3 agent-lab/tools/lab_tool.py --root agent-lab calibrate \
+            --attack-id "$ATTACK_ID" --sha "$HEAD_SHA" --mutants-file /tmp/mutants.json
+
+  heavy-attest:
+    runs-on: ubuntu-latest
+    needs: [gate]
+    if: github.event_name == 'workflow_run' || github.event_name == 'push'
+    environment: lab-ci-protected
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      - name: run heavy tests + collectors
+        run: |
+          python3 agent-lab/metrics/collectors/latency.py $GITHUB_SHA > /tmp/result_latency.json
+          python3 agent-lab/tools/build-result.py --ref "$EXPERIMENT_REF" --sha "$GITHUB_SHA" --out /tmp/result.json
+      - name: attest-run
+        env:
+          LAB_CI_KEY: ${{ secrets.LAB_CI_KEY }}
+        run: |
+          python3 agent-lab/tools/lab_tool.py --root agent-lab attest-run \
+            --ref "$EXPERIMENT_REF" --sha "$GITHUB_SHA" --result-file /tmp/result.json
+      - name: commit attestation
+        run: |
+          git config user.name "ci-bot"
+          git config user.email "ci@localhost"
+          git add agent-lab/records/attestations/
+          git commit -m "ci: attestation for $EXPERIMENT_REF@$GITHUB_SHA"
+          git push
+```
+
+> **ملاحظة**: كل `uses:` مثبّت بـ SHA كامل. الـ SHA أعلاه لـ `actions/checkout@v4.1.1`. تم توزيع الصلاحيات بشكل آمن لكل وظيفة (Job).
+
+## 13. خارطة تنفيذ مرحلية
+
+| المرحلة | الأيام | البطاقات | معيار الخروج |
+|---|---:|---|---|
+| 0 | 1 | schema + policies + CODEOWNERS | `schema/*.json` موجود، CODEOWNERS محدّث |
+| 1 | 2–4 | B-1..B-7 | 40+ اختبار وحدة خضراء |
+| 2 | 5–7 | AD-19, AD-20, AD-23 | `simulate --all` يمرّ في CI |
+| 3 | 8–10 | AD-18, AD-28 | collector يُنتج قيمة حقيقية على SHA |
+| 4 | 11–13 | AD-29, AD-30, AD-31, AD-32 | scan-injection + merkle + checkpoint |
+| 5 | 14–17 | AD-21, AD-22, AD-24, AD-26, AD-27 | `gate-pr` يعمل على PR حقيقي |
+| 6 | 18–21 | AD-09, AD-10, AD-11 | دورة P-1 و P-2 كاملة |
+| 7 | 22 | AD-12 | تقرير الجاهزية |
+
+## 14. اختبارات وحدة جديدة
+
+### 14.1 `tests/test_properties.py`
+
+```python
+import os, sys, tempfile, unittest
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "tools"))
+import lab_tool as L
+
+try:
+    from hypothesis import given, strategies as st
+    HAS_HYPOTHESIS = True
+except ImportError:
+    HAS_HYPOTHESIS = False
+
+
+@unittest.skipUnless(HAS_HYPOTHESIS, "hypothesis not installed")
+class TestProperties(unittest.TestCase):
+    @given(st.text())
+    def test_safe_repo_path_never_absolute(self, s):
+        if s.startswith("/") or ".." in s.split("/"):
+            self.assertFalse(L.safe_repo_path(s))
+
+    @given(st.floats(allow_nan=True, allow_infinity=True))
+    def test_finite_number_rejects_nan_inf(self, f):
+        import math
+        if math.isnan(f) or math.isinf(f):
+            self.assertFalse(L.finite_number(f))
+
+    @given(st.text())
+    def test_safe_repo_path_no_null(self, s):
+        if "\x00" in s:
+            self.assertFalse(L.safe_repo_path(s))
+```
+
+### 14.2 `tests/test_ledger_chain.py`
+
+```python
+import json, os, shutil, sys, tempfile, unittest
+from pathlib import Path
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "tools"))
+import lab_tool as L
+
+
+class TestLedgerChain(unittest.TestCase):
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        shutil.copytree(ROOT, self.tmp / "lab",
+                        ignore=shutil.ignore_patterns("__pycache__", ".git"))
+        self.root = self.tmp / "lab"
+        L.CFG_FILE = None
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp)
+
+    def test_chain_valid(self):
+        for i in range(3):
+            L.ledger_append(self.root, "steward", "CARD_OPENED",
+                            f"RC-000{i}", f"2026-01-0{i+1}T00:00:00Z")
+        self.assertEqual(L.ledger_verify(self.root), [])
+
+    def test_tamper_detected(self):
+        for i in range(3):
+            L.ledger_append(self.root, "steward", "CARD_OPENED",
+                            f"RC-000{i}", f"2026-01-0{i+1}T00:00:00Z")
+        p = self.root / "records" / "ledger" / "ledger.jsonl"
+        lines = p.read_text().splitlines()
+        e = json.loads(lines[1]); e["ref"] = "FORGED"; lines[1] = json.dumps(e)
+        p.write_text("\n".join(lines) + "\n")
+        self.assertTrue(L.ledger_verify(self.root))
+
+    def test_hypothesis_lock_anchored(self):
+        h = {
+            "schema_version": 1, "id": "HY-0001", "author": "builder",
+            "statement": "x", "falsifier": "y",
+            "metric_name": "latency_p95_ms", "direction": "lower_is_better",
+            "threshold": 0.5, "locked": False,
+        }
+        d = self.root / "records" / "hypotheses"
+        d.mkdir(parents=True, exist_ok=True)
+        (d / "HY-0001.json").write_text(json.dumps(h))
+        h["locked"] = True
+        (d / "HY-0001.json").write_text(json.dumps(h))
+        e = L.ledger_append(self.root, "builder", "HYPOTHESIS_LOCKED",
+                            "HY-0001", "2026-01-01T00:00:00Z")
+        self.assertEqual(e["payload_hash"], L.hypothesis_hash(h))
+        self.assertEqual(L.ledger_verify(self.root), [])
+```
+
+### 14.3 `tests/test_scenarios.py`
+
+```python
+import os, sys, unittest
+from pathlib import Path
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "tools"))
+import lab_tool as L
+
+
+class TestScenarios(unittest.TestCase):
+    def test_all_scenarios_pass(self):
+        os.environ["LAB_CI_KEY"] = "test-key"
+        errs = L.run_scenarios(str(ROOT), str(ROOT / "scenarios"))
+        self.assertEqual(errs, [], f"scenarios failed: {errs}")
+```
+
+## 15. قائمة تحقق نهائية قبل AD-09
+
+- [ ] B-1..B-7 مُغلقة واختباراتها خضراء.
+- [ ] `schema/*.json` موجودة، وكل السجلات الحالية `schema_version: 1`.
+- [ ] `metrics/registry.json` + `metrics/baseline.json` موجودة، و`CODEOWNERS` تحميها.
+- [ ] `metrics/collectors/*.py` تُنتج JSON بمعيار موحد.
+- [ ] `tools/mutate.py` يزرع ≥3 طفرات في ≥2 فئة، و`calibrate` يقبل، ومحمي بالـ Timeouts.
+- [ ] `scenarios/` تحوي ≥6 سيناريوهات، و`simulate --all` يمرّ في CI بلا تعليق (Timeouts مفعلة).
+- [ ] `attest-run` يرفض `--passed` يدوي (لا يوجد flag أصلاً).
+- [ ] `lab-gate.yml` مثبّت actions بـ SHA، الصلاحيات دقيقة (least privilege)، ويشغّل `simulate` قبل `gate`.
+- [ ] `LAB_CI_KEY` في environment محمي بـ required reviewers.
+- [ ] `ledger-verify` يتحقق من payload_hash لـ `HYPOTHESIS_LOCKED` ويدعم قراءة المولدات لتجنب OOM.
+- [ ] `gate_telemetry` يتحقق من sig.
+- [ ] `detect_experiment_overlap` fail-closed.
+- [ ] `run_url` يطابق regex GitHub Actions.
+- [ ] 40+ اختبار وحدة خضراء (بما فيها property-based).
+- [ ] `GOVERNANCE.md` محدّث بـ INV-15..INV-21.
+- [ ] `lab.config.json` version=3.
+- [ ] integrator وauditor معيّنان (بشر).
+- [ ] `adv-builder` و`adv-explorer` لهما هويات منفصلة (GitHub Apps).
+
+عندما تكتمل هذه القائمة، انتقل إلى AD-09 بأمان.
+
+## ملاحظات ختامية
+
+1. **هذا الملف مرجع حي**: حدّثه عند كل اكتشاف جديد. لا تجعله يتقادم.
+2. **لا تُنفِّذ كل شيء دفعة واحدة**: sprint أسبوعي، وكل sprint يُغلق 2–3 بطاقات.
+3. **الأهم أولاً**: B-1..B-7 (بالأخص تحديثات الأمان والتزامن) ثم AD-19/AD-20/AD-23 (الأساس)، ثم AD-18/AD-28 (المقاييس الحقيقية).
+4. **المقاييس الوهمية أخطر من غياب المقاييس**: لا تعتمد `registry.json` قبل collector مُشغَّل.
+5. **الخصم الذي لا يكسر شيئاً ليس خصماً**: إن كان معدل BROKEN < 5% بعد 10 هجمات، أعد ضبط تعليماته.
+6. **الشهادة بلا `commit_sha` = لا شيء**: هذا جوهر INV-13 وINV-15.\n\n---\n\n## 17. الاستعادة الكاملة للنواة التاريخية للخلية — CODE + PROTOCOL\n\n> **HISTORICAL SOURCE / NON-AUTHORITATIVE**\n> تم نقل المادتين التاليتين حرفيًا من الأرشيف التاريخي إلى هذا الملف الجديد. وجودهما هنا لا يجعل البروتوكولات القديمة أو نموذج الفروع القديم سلطة تشغيلية. عند التعارض، تسود الأقسام الجديدة في هذا الملف، ثم Control Plane وvalidators وExact-SHA authority.\n\n### 17.1 المصدر التاريخي الأول — FLIXO SWARM OS\n\n- المصدر: `Pasted markdown(3).md`\n- الحجم: 63,747 bytes\n- المحتوى: 873 سطرًا\n- الوظيفة التاريخية: التصميم الكامل لـ SWARM OS، التعلم، الذاكرة، التوجيه، السرب التكيفي، التحقق، الترقية، العزل وإعادة الاستخدام.\n\n```markdown\n# FLIXO SWARM OS
+
+## الخريطة التنفيذية الشاملة — النسخة الموحدة
+
+```text
+══════════════════════════════════════════════════════════════════════
+                    FLIXO SWARM OS
+          SELF-REPAIR  •  SELF-LEARN  •  SELF-EVOLVE
+══════════════════════════════════════════════════════════════════════
+
+                              │
+                              ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ 0. SWARM CONSTITUTION                                              │
+│                                                                    │
+│ WHO MAY ASSIGN        WHO MAY EXECUTE                              │
+│ WHO MAY REVIEW        WHO MAY PROMOTE                              │
+│ WHO MAY BLOCK         WHO MAY QUARANTINE                           │
+│ WHO MAY CERTIFY       WHO MAY MODIFY CONTROL PLANE                 │
+│                                                                    │
+│ القاعدة العليا:                                                    │
+│ Reputation ≠ Authority ≠ Mutation Authority ≠ Certification       │
+└────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ 1. MASTER CONTROLLER                                               │
+│                                                                    │
+│ assistantController                                               │
+│                                                                    │
+│ مسؤول عن:                                                          │
+│ • استقبال المهمة                                                   │
+│ • تحليلها وتقسيمها                                                  │
+│ • تحديد Risk / Difficulty / Scope                                   │
+│ • اختيار البوت/الفريق                                               │
+│ • تحديد حجم السرب                                                   │
+│ • إدارة Lease / Heartbeat                                           │
+│ • مراقبة الحالة                                                    │
+│ • منع Scope Expansion                                               │
+│ • جمع النتائج                                                       │
+│ • تشغيل المراجعة                                                    │
+│ • اتخاذ قرار الترقية / العزل / إعادة المحاولة                      │
+│                                                                    │
+│ CONTROLLER يتخذ القرار                                              │
+│ Intelligence يقترح                                                  │
+│ BOT ينفذ                                                            │
+└────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ 2. BOT REGISTRY — 200 هوية ثابتة                                   │
+│                                                                    │
+│ CELL-001 ... CELL-200                                              │
+│                                                                    │
+│ كل بوت لديه:                                                       │
+│ • Identity ثابتة                                                   │
+│ • ملف ذاكرة شخصي                                                   │
+│ • Task History                                                     │
+│ • Learned Tasks                                                    │
+│ • Skills                                                            │
+│ • Successful Strategies                                             │
+│ • Failed Strategies                                                 │
+│ • Weaknesses                                                        │
+│ • Upgrades                                                         │
+│ • Source Evidence                                                   │
+│ • Import / Export History                                           │
+│                                                                    │
+│ الهوية ثابتة                                                        │
+│ الدور ديناميكي                                                      │
+│ المهارات مكتسبة                                                     │
+│ الصلاحيات مركزية                                                    │
+└────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ 3. BOT LIFECYCLE                                                    │
+│                                                                    │
+│ LEARNING → SPECIALIZING → UPGRADING → READY                        │
+│      ↑                                      │                        │
+│      └──────────── RECYCLE ←───────────────┘                        │
+│                                             │                       │
+│                                  فشل متكرر / Evidence سيئ          │
+│                                             ▼                       │
+│                                         QUARANTINE                  │
+│                                             │                       │
+│                                  DIAGNOSTIC MISSION                │
+│                                             │                       │
+│                                  RECOVER / RECYCLE                 │
+└────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ 4. TASK ROUTER + MISSION DECOMPOSER                                │
+│                                                                    │
+│ TASK                                                               │
+│   ↓                                                                │
+│ تحليل الهدف                                                        │
+│   ↓                                                                │
+│ Required Capabilities                                              │
+│   ↓                                                                │
+│ Difficulty D1–D5                                                   │
+│   ↓                                                                │
+│ Risk / Scope / Evidence Gap                                        │
+│   ↓                                                                │
+│ اختيار أفضل Team Composition                                       │
+│                                                                    │
+│ الأدوار الديناميكية:                                               │
+│ EXECUTOR                                                           │
+│ INVESTIGATOR                                                       │
+│ CHALLENGER                                                         │
+│ REVIEWER                                                           │
+│ META-REVIEWER                                                      │
+│ SIMULATOR                                                           │
+└────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ 5. ADAPTIVE SWARM ENGINE                                           │
+│                                                                    │
+│ لا نستخدم 200 بوت دائمًا                                           │
+│                                                                    │
+│ D1 → 1–3                                                           │
+│ D2 → 3–8                                                           │
+│ D3 → 8–20                                                          │
+│ D4 → 20–50                                                         │
+│ D5 → 50–200                                                        │
+│                                                                    │
+│ التوسع حسب:                                                        │
+│ • Uncertainty                                                      │
+│ • Evidence Gap                                                     │
+│ • Risk                                                              │
+│ • Conflict                                                         │
+│ • Historical Difficulty                                             │
+│                                                                    │
+│ 3 بوت → اتفاق قوي → إيقاف                                          │
+│ 3 بوت → تعارض → 7                                                   │
+│ 7 → تعارض → 15                                                     │
+│ 15 → تعارض → 30                                                    │
+│ 30 → تعارض → 50                                                     │
+│ 50 → تعارض → 100                                                    │
+│ 100 → تعارض حرج → 200 / BLOCK                                      │
+└────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ 6. BOT EXECUTION                                                    │
+│                                                                    │
+│ كل بوت = عامل تنفيذي خام قابل لإعادة الاستخدام                     │
+│                                                                    │
+│ ASSIGN                                                              │
+│   ↓                                                                 │
+│ LEASE                                                               │
+│   ↓                                                                 │
+│ HEARTBEAT                                                           │
+│   ↓                                                                 │
+│ EXECUTE                                                             │
+│   ↓                                                                 │
+│ RESULT                                                              │
+│                                                                    │
+│ الحقول الأساسية:                                                   │
+│ leaseId / assignedAt / expiresAt / lastHeartbeat / attempt         │
+│                                                                    │
+│ عند اختفاء البوت:                                                  │
+│ سحب المهمة → إعادة للطابور → لا تُحسب كفشل منطقي                   │
+└────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ 7. INTELLIGENCE-ON-DEMAND                                          │
+│                                                                    │
+│ البوت الخام = اليد                                                 │
+│ النموذج الذكي = العقل                                              │
+│ Controller = السلطة                                                │
+│                                                                    │
+│ لا نضع نموذجًا ذكيًا دائمًا داخل كل بوت.                            │
+│ نستدعي Intelligence فقط عندما تحتاج المهمة:                        │
+│                                                                    │
+│ • RCA عميق                                                          │
+│ • تخطيط                                                             │
+│ • تحليل معقد                                                        │
+│ • تركيب فرضية                                                       │
+│ • حل تعارض                                                          │
+│ • اكتشاف Strategy جديدة                                             │
+│ • توقع فشل لاحق                                                     │
+└────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ 8. LITERAL DIAGNOSIS                                               │
+│                                                                    │
+│ RED                                                                    │
+│  ↓                                                                 │
+│ قراءة الخطأ الحرفي                                                  │
+│  ↓                                                                 │
+│ Root Cause معروف؟                                                  │
+│  ├─ نعم → Strategy معروفة                                          │
+│  └─ لا  → INFERENCE FALLBACK                                      │
+└────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ 9. INFERENCE + PREDICTION LAYER                                    │
+│                                                                    │
+│ مصادر الاستدلال:                                                   │
+│                                                                    │
+│ • Historical Actions                                               │
+│ • Playbooks                                                        │
+│ • Lessons                                                          │
+│ • Anti-Lessons                                                     │
+│ • Error Teaching Corpus                                            │
+│ • Historical Repair Knowledge                                      │
+│ • Known Fingerprints                                                │
+│ • خصائص الخطأ الحالي                                                │
+│ • SHA الحالي                                                        │
+│ • Failure Transitions                                               │
+│                                                                    │
+│ أنواع الاستنتاج:                                                   │
+│                                                                    │
+│ KNOWN_STRATEGY_TRANSFER                                             │
+│ CROSS_CASE_SYNTHESIS                                                │
+│ NEW_HYPOTHESIS                                                      │
+│                                                                    │
+│ المخرجات:                                                          │
+│ Hypothesis                                                          │
+│ Repair Strategy                                                     │
+│ Confidence                                                          │
+│ Predicted Next Failure Classes                                      │
+│                                                                    │
+│ مهم: الاستنتاج ≠ دليل نجاح                                          │
+│ لا يستطيع وحده تجاوز CI أو إعلان GREEN                              │
+└────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ 10. SIMULATION / REHEARSAL                                         │
+│                                                                    │
+│ قبل D4 / D5 أو Mutation حساسة:                                     │
+│                                                                    │
+│ TASK                                                               │
+│  ↓                                                                  │
+│ PRE-EXECUTION SIMULATION                                            │
+│  ↓                                                                  │
+│ هل يوجد Conflict؟                                                  │
+│ هل الأدلة ناقصة؟                                                   │
+│ هل Scope غير آمن؟                                                  │
+│ هل Strategy جديدة؟                                                  │
+│ هل reviewer load مرتفع؟                                            │
+│  ↓                                                                  │
+│ SAFE → EXECUTE                                                      │
+│ UNSAFE / AMBIGUOUS → REPLAN                                         │
+└────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ 11. CHALLENGER LAYER                                               │
+│                                                                    │
+│ الأخ القارئ لا يراجع RCA فقط                                        │
+│ بل يراجع الحل نفسه                                                  │
+│                                                                    │
+│ يفحص:                                                              │
+│ • الفرضية                                                           │
+│ • Strategy                                                          │
+│ • Scope                                                             │
+│ • Evidence                                                          │
+│ • احتمالات Regression                                               │
+│ • Correlated Failure                                                │
+└────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ 12. RESULT BARRIER                                                 │
+│                                                                    │
+│ Observation                                                        │
+│     ↓                                                              │
+│ Evidence                                                            │
+│     ↓                                                              │
+│ Validation                                                          │
+│     ↓                                                              │
+│ Review                                                              │
+│     ↓                                                              │
+│ Exact-SHA Verification                                              │
+│                                                                    │
+│ لا تعبر النتيجة إلى المعرفة أو الترقية قبل اجتياز الحاجز            │
+└────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ 13. REVIEW SYSTEM                                                  │
+│                                                                    │
+│ Reviewer A → Correctness                                            │
+│ Reviewer B → Adversarial                                            │
+│ Reviewer C → Security                                               │
+│ Reviewer D → Regression                                             │
+│ Reviewer E → Independent Reasoning                                  │
+│                                                                    │
+│ Blind First Review                                                  │
+│ ثم Meta-Review عند التعارض                                          │
+│                                                                    │
+│ لا نقيس عدد الأصوات فقط                                             │
+│ بل Evidence Independence                                           │
+│                                                                    │
+│ independenceGroup                                                   │
+│ modelFamily                                                         │
+│ promptVersion                                                       │
+│ knowledgeSnapshot                                                   │
+│ reasoningMode                                                       │
+└────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ 14. EVIDENCE ENGINE                                                │
+│                                                                    │
+│ E0 = Assertion                                                      │
+│ E1 = Observation                                                    │
+│ E2 = Reproduction                                                   │
+│ E3 = Exact-SHA Test                                                 │
+│ E4 = Canonical CI                                                   │
+│ E5 = Independent Verification                                       │
+│                                                                    │
+│ الترقية القوية لا تعتمد على E0 / E1 فقط                              │
+└────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ 15. EXACT-SHA + CANONICAL CI                                      │
+│                                                                    │
+│ النتيجة يجب أن ترتبط بالـSHA الصحيح                                 │
+│                                                                    │
+│ Current SHA                                                         │
+│     ↓                                                               │
+│ Reproduction                                                        │
+│     ↓                                                               │
+│ Exact-SHA Verification                                              │
+│     ↓                                                               │
+│ Canonical CI                                                        │
+│     ↓                                                               │
+│ Independent Verification                                            │
+│     ↓                                                               │
+│ GREEN أو BLOCK                                                      │
+└────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ 16. KNOWLEDGE ENGINE                                               │
+│                                                                    │
+│ Observation → Evidence → Validation → Knowledge → Index             │
+│                                                                    │
+│ قبل إضافة المعرفة:                                                 │
+│                                                                    │
+│ NEW KNOWLEDGE                                                      │
+│      ↓                                                             │
+│ Fingerprint                                                        │
+│      ↓                                                             │
+│ Existing?                                                          │
+│   ├─ Equivalent → MERGE                                            │
+│   ├─ Contradictory → CHALLENGE                                     │
+│   └─ New → STORE                                                    │
+│                                                                    │
+│ حالات المعرفة:                                                     │
+│ KNOWN-GOOD                                                         │
+│ KNOWN-BAD                                                          │
+│ UNPROVEN                                                            │
+│ CONTRADICTED                                                        │
+│ STALE                                                               │
+└────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ 17. KNOWLEDGE LINEAGE                                               │
+│                                                                    │
+│ كل معلومة يجب أن تعرف:                                             │
+│                                                                    │
+│ sourceTask                                                          │
+│ sourceBot                                                           │
+│ sourceReviewer                                                      │
+│ sourceRun                                                            │
+│ sourceSha                                                           │
+│ evidenceGrade                                                       │
+│ supersedes                                                          │
+│ contradictedBy                                                       │
+│                                                                    │
+│ المعرفة تصبح قابلة للتدقيق وإعادة الإثبات                           │
+└────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ 18. CAUSAL KNOWLEDGE GRAPH                                          │
+│                                                                    │
+│ FAILURE                                                             │
+│   ↓ caused-by                                                       │
+│ ROOT CAUSE                                                          │
+│   ↓ fixed-by                                                        │
+│ STRATEGY                                                            │
+│   ↓ changes                                                         │
+│ SURFACE                                                             │
+│   ↓ verified-by                                                     │
+│ CHECK                                                               │
+│   ↓ resulted-in                                                     │
+│ OUTCOME                                                             │
+│                                                                    │
+│ الهدف: تحويل Memory إلى Reasoning Infrastructure                    │
+└────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ 19. CELL PERSONAL MEMORY                                           │
+│                                                                    │
+│ لكل بوت ملف خاص باسمه                                               │
+│                                                                    │
+│ CELL-001.json                                                       │
+│ CELL-002.json                                                       │
+│ ...                                                                 │
+│ CELL-200.json                                                       │
+│                                                                    │
+│ يحتوي على:                                                         │
+│ identity                                                             │
+│ learnedTasks                                                         │
+│ knowledge                                                            │
+│ successfulStrategies                                                │
+│ failedStrategies                                                    │
+│ weaknesses                                                           │
+│ upgrades                                                             │
+│ sourceEvidence                                                       │
+│ importHistory                                                        │
+│ exportHistory                                                        │
+│                                                                    │
+│ الذاكرة شخصية لكنها لا تمنح البوت سلطة مستقلة                       │
+└────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ 20. MEMORY COMPRESSION / ARCHIVE                                   │
+│                                                                    │
+│ عندما تمتلئ ذاكرة البوت:                                           │
+│                                                                    │
+│ LIVE MEMORY                                                         │
+│   ↓                                                                 │
+│ DEDUP / PRIORITIZE                                                  │
+│   ↓                                                                 │
+│ ACTIVE KNOWLEDGE                                                    │
+│   ↓                                                                 │
+│ ARCHIVE                                                             │
+│                                                                    │
+│ يمكن Export المعرفة                                                │
+│ ثم Importها إلى بوت آخر                                             │
+│ من دون نقل الصلاحيات.                                               │
+└────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ 21. SKILL SYSTEM                                                   │
+│                                                                    │
+│ كل مهمة ناجحة يمكن أن تولد Skill Candidate                         │
+│                                                                    │
+│ Skill:                                                             │
+│ • confidence                                                       │
+│ • successfulUses                                                    │
+│ • failedUses                                                        │
+│ • lastValidated                                                     │
+│ • decay                                                             │
+│ • evidence                                                          │
+│                                                                    │
+│ فشل متكرر → Confidence Decay                                       │
+│ Skill قديمة → REVALIDATION                                         │
+│ Skill قوية → TRIAL → CANARY → PROMOTION                            │
+└────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ 22. BOT LEARNING                                                   │
+│                                                                    │
+│ المهمة                                                              │
+│  ↓                                                                  │
+│ التنفيذ                                                             │
+│  ↓                                                                  │
+│ النتيجة                                                             │
+│  ↓                                                                  │
+│ المعلومة                                                            │
+│  ↓                                                                  │
+│ التحقق                                                              │
+│  ↓                                                                  │
+│ Weakness Detection                                                  │
+│  ↓                                                                  │
+│ Upgrade Number                                                      │
+│  ↓                                                                  │
+│ Upgrade Priority                                                    │
+│  ↓                                                                  │
+│ Next Learned Task                                                   │
+│                                                                    │
+│ الهدف: لا يبقى البوت RAW                                             │
+└────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ 23. TASK SHORT NAME                                                │
+│                                                                    │
+│ كل تخصص مكتسب يأخذ اختصارًا واضحًا                                  │
+│                                                                    │
+│ CELL-001 = ACTERR                                                   │
+│ CELL-002 = LINTFX                                                   │
+│ CELL-003 = TYPEFX                                                   │
+│ CELL-004 = WEBERR                                                   │
+│ ...                                                                 │
+│                                                                    │
+│ لكن:                                                                │
+│ التخصص لا يمنع GENERAL_EXECUTION                                   │
+│                                                                    │
+│ البوت المتخصص يستطيع تنفيذ مهمة مختلفة أيضًا                        │
+└────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ 24. UPGRADE ENGINE                                                 │
+│                                                                    │
+│ لا يكفي النجاح                                                     │
+│                                                                    │
+│ FAILURE / WEAKNESS                                                 │
+│        ↓                                                           │
+│ UPGRADE NUMBER                                                      │
+│        ↓                                                           │
+│ UPGRADE PRIORITY                                                    │
+│        ↓                                                           │
+│ TRAINING / REVALIDATION                                             │
+│        ↓                                                           │
+│ TRIAL                                                               │
+│        ↓                                                           │
+│ CANARY                                                              │
+│        ↓                                                           │
+│ SPECIALIZED / READY                                                 │
+└────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ 25. PROMOTION / QUARANTINE / RECYCLE                               │
+│                                                                    │
+│ VERIFIED SUCCESS                                                    │
+│      ↓                                                             │
+│ PROMOTION TRIAL                                                     │
+│      ↓                                                             │
+│ INDEPENDENT REVIEW                                                  │
+│      ↓                                                             │
+│ CANARY                                                              │
+│      ↓                                                             │
+│ PROMOTION                                                           │
+│                                                                    │
+│ REPEATED FAILURE / BAD EVIDENCE / SCOPE VIOLATION                   │
+│      ↓                                                             │
+│ QUARANTINE                                                          │
+│      ↓                                                             │
+│ DIAGNOSTIC MISSION                                                  │
+│      ↓                                                             │
+│ RECOVER أو RECYCLE                                                  │
+└────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ 26. REPLAY ENGINE                                                  │
+│                                                                    │
+│ أي مهمة مهمة يجب أن تعاد بنفس:                                    │
+│                                                                    │
+│ plan                                                                │
+│ task                                                                │
+│ promptVersion                                                       │
+│ inputs                                                              │
+│ baselineSHA                                                         │
+│ toolConfiguration                                                   │
+│                                                                    │
+│ الهدف: تفسير لماذا نجح/فشل المسار                                  │
+└────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ 27. FAILURE INJECTION LAB                                          │
+│                                                                    │
+│ اختبارات مصطنعة:                                                   │
+│                                                                    │
+│ stale SHA                                                           │
+│ wrong scope                                                         │
+│ bad evidence                                                        │
+│ tool failure                                                        │
+│ reviewer disagreement                                               │
+│ lease expiry                                                        │
+│ duplicate task                                                      │
+│ conflicting result                                                 │
+│                                                                    │
+│ الهدف: اختبار المنظومة نفسها قبل أن تختبرها الكارثة                 │
+└────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ 28. DRIFT SENTINEL                                                 │
+│                                                                    │
+│ يراقب:                                                             │
+│                                                                    │
+│ CODE DRIFT                                                          │
+│ KNOWLEDGE DRIFT                                                     │
+│ BEHAVIOR DRIFT                                                      │
+│                                                                    │
+│ Drift → Revalidation                                                │
+└────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ 29. CONTROLLER LEARNING                                            │
+│                                                                    │
+│ الـController نفسه يتعلم:                                          │
+│                                                                    │
+│ • أي Router choice ينجح؟                                            │
+│ • أي Team Composition أفضل؟                                         │
+│ • متى يكفي 3 بوت؟                                                   │
+│ • متى نحتاج 50 أو 200؟                                              │
+│ • أي Reviewer Mix يكشف الخطأ؟                                       │
+│ • متى يحدث Conflict؟                                                │
+│                                                                    │
+│ CELL LEARNING                                                       │
+│ + ROUTER LEARNING                                                   │
+│ + REVIEWER LEARNING                                                 │
+│ + CONTROLLER LEARNING                                               │
+│                                                                    │
+│ لكن Constitution أعلى من الجميع                                    │
+└────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ 30. MASTER EXECUTION LOOP                                          │
+│                                                                    │
+│ MISSION                                                             │
+│   ↓                                                                 │
+│ DECOMPOSE                                                           │
+│   ↓                                                                 │
+│ RISK + DIFFICULTY                                                   │
+│   ↓                                                                 │
+│ CAPABILITY ROUTING                                                  │
+│   ↓                                                                 │
+│ ADAPTIVE SWARM                                                      │
+│   ↓                                                                 │
+│ EXECUTE / INVESTIGATE / CHALLENGE                                  │
+│   ↓                                                                 │
+│ RESULT                                                              │
+│   ↓                                                                 │
+│ LITERAL DIAGNOSIS                                                   │
+│   ↓                                                                 │
+│ INFERENCE FALLBACK إذا لزم                                          │
+│   ↓                                                                 │
+│ SIMULATION                                                           │
+│   ↓                                                                 │
+│ BOUNDED MUTATION                                                    │
+│   ↓                                                                 │
+│ REGRESSION                                                          │
+│   ↓                                                                 │
+│ REVIEW                                                              │
+│   ↓                                                                 │
+│ EXACT-SHA                                                           │
+│   ↓                                                                 │
+│ CANONICAL CI                                                        │
+│   ↓                                                                 │
+│ KNOWLEDGE UPDATE                                                     │
+│   ↓                                                                 │
+│ SKILL / WEAKNESS UPDATE                                             │
+│   ↓                                                                 │
+│ PROMOTE / QUARANTINE / RECYCLE                                     │
+│   ↓                                                                 │
+│ BOT RETURNS TO POOL                                                 │
+└────────────────────────────────────────────────────────────────────┘
+
+
+══════════════════════════════════════════════════════════════════════
+                    خط التنفيذ النهائي المختصر
+══════════════════════════════════════════════════════════════════════
+MISSION
+  ↓
+CONTROLLER
+  ↓
+TASK DECOMPOSER
+  ↓
+RISK + DIFFICULTY
+  ↓
+CAPABILITY ROUTER
+  ↓
+ADAPTIVE SWARM
+  ↓
+RAW BOT + INTELLIGENCE-ON-DEMAND
+  ↓
+EXECUTE
+  ↓
+OBSERVATION
+  ↓
+EVIDENCE
+  ↓
+LITERAL RCA
+  ↓
+INFERENCE FALLBACK
+  ↓
+CHALLENGE
+  ↓
+REVIEW
+  ↓
+EXACT-SHA
+  ↓
+CANONICAL CI
+  ↓
+KNOWLEDGE
+  ↓
+SKILL
+  ↓
+WEAKNESS
+  ↓
+UPGRADE
+  ↓
+PROMOTION / QUARANTINE / RECYCLE
+  ↓
+REUSABLE BOT
+  ↓
+NEXT MISSION
+
+
+══════════════════════════════════════════════════════════════════════
+                     طبقات الذاكرة النهائية
+══════════════════════════════════════════════════════════════════════
+
+L0  CONSTITUTION
+ ↓
+L1  CANONICAL PROJECT MEMORY
+ ↓
+L2  SHARED SKILL KNOWLEDGE
+ ↓
+L3  CELL PERSONAL MEMORY
+ ↓
+L4  CURRENT MISSION MEMORY
+
+قاعدة:
+الطبقة الأدنى لا تستطيع تغيير الطبقة الأعلى.
+
+
+══════════════════════════════════════════════════════════════════════
+                      حالة 200 بوت
+══════════════════════════════════════════════════════════════════════
+
+REGISTERED = 200
+ACTIVE     = 0..200
+ROLE       = DYNAMIC
+SKILLS     = LEARNED
+MEMORY     = PERSONAL
+AUTHORITY  = CENTRALIZED
+EVIDENCE   = INDEPENDENT
+PROMOTION  = REVERSIBLE
+MISSION    = ONE TASK AT A TIME
+
+لا يوجد:
+200 بوت يتحدثون مع بعضهم بلا مركز.
+
+يوجد:
+CONTROLLER
+   ↓
+BOT
+   ↓
+INTELLIGENCE
+   ↓
+BOT
+   ↓
+CONTROLLER
+
+
+══════════════════════════════════════════════════════════════════════
+                       ترتيب التنفيذ المباشر
+══════════════════════════════════════════════════════════════════════
+
+PHASE 1 — FOUNDATION
+1. Constitution
+2. Registry
+3. 200 identities
+4. Personal memory files
+5. Lease + Heartbeat
+6. State Machine
+7. Controller
+
+PHASE 2 — EXECUTION
+8. Task Router
+9. Task Decomposer
+10. Difficulty D1–D5
+11. Capability Map
+12. Adaptive Swarm
+13. Role Assignment
+14. Result Barrier
+
+PHASE 3 — LEARNING
+15. Mission Result Contract
+16. Observation → Evidence → Validation → Knowledge
+17. Personal Cell Learning
+18. Knowledge Deduplication
+19. Knowledge Lineage
+20. Skill Confidence / Decay
+21. Weakness Genome
+22. Upgrade Engine
+
+PHASE 4 — INTELLIGENCE
+23. Literal RCA
+24. Historical Error Corpus
+25. Inference Fallback
+26. Strategy Transfer
+27. Cross-Case Synthesis
+28. New Hypothesis
+29. Failure Prediction
+30. Shadow Strategy
+
+PHASE 5 — TRUST
+31. Blind Review
+32. Challenger
+33. Evidence Grade E0–E5
+34. Exact-SHA
+35. Canonical CI
+36. Independent Verification
+37. Correlated Failure Detection
+38. Evidence Diversity
+
+PHASE 6 — SELF-IMPROVEMENT
+39. Promotion Trial
+40. Canary Promotion
+41. Quarantine
+42. Recovery
+43. Replay
+44. Failure Injection
+45. Drift Sentinel
+46. Controller Learning
+
+PHASE 7 — FULL OPERATION
+47. Historical Backfill
+48. Build Complete Knowledge Graph
+49. Train Router from evidence
+50. Enable Dynamic Swarm Expansion
+51. Enable continuous Skill Validation
+52. Enable continuous Controller Learning
+53. Enable automatic bounded repair
+54. Require Canonical GREEN before final certification
+
+
+══════════════════════════════════════════════════════════════════════
+                           الهدف النهائي
+══════════════════════════════════════════════════════════════════════
+
+ليس الهدف:
+"200 بوت ذكي"
+
+بل:
+
+"200 عامل خام ثابت الهوية
+يتعلمون باستمرار
+يمتلك كل منهم ذاكرة قابلة لإعادة الاستخدام
+وتحدد مهاراتهم أفضلية الاختيار فقط
+بينما يبقى القرار مركزيًا
+والدليل مستقلًا
+والاستدلال محكومًا
+والإصلاح محدود النطاق
+والترقية قابلة للعكس
+والـGREEN لا يُقبل إلا بإثبات Canonical CI."
+
+النتيجة:
+
+FLIXO لا تصبح مجرد مجموعة Bots.
+
+بل:
+
+FLIXO SWARM OS
+
+نظام تشغيل لسرب ذاتي التعلم
+وذاتي التحسين
+وذاتي التشخيص
+ومحكوم بالأدلة
+وقابل للتوسع من 1 إلى 200 بوت
+دون فقدان السيطرة أو قابلية التدقيق.
+
+```\n```\n\n### 17.2 المصدر التاريخي الثاني — FLIXO CELL / SUPREME UNIVERSAL AGENT PROTOCOL\n\n- المصدر: `تم لصق markdown(20260922-025246).md`\n- الحجم: 17,590 bytes\n- المحتوى: 1,158 سطرًا بعد النقل النصي\n- يحتوي على بروتوكول التنفيذ، التواصل بين الوكلاء، Master Inbox، handoff، coordination، liveness، heartbeat، Exact-SHA، failure/RCA، learning، والبوابات التشغيلية القديمة، بما في ذلك الأكواد والأوامر المضمنة.\n\n```markdown\n# FLIXO — SUPREME UNIVERSAL AGENT PROMPT v4.0
+
+## STATUS: SUPREME / MANDATORY / NON-OVERRIDABLE
+
+أنت الآن عضو تنفيذي داخل خلية FLIXO متعددة الوكلاء.
+
+أنت لست وكيلًا منفردًا.
+أنت جزء من منظومة تنفيذ مشتركة.
+كل Agent وBot وMaster وRepair Agent وDevelopment Agent وReviewer وVerifier وSecurity Agent وAutomation Resident يعمل تحت هذا العقد نفسه.
+
+هذه التعليمات أعلى من أي Prompt محلي أو تعليمات سابقة أو ذاكرة أو تخمين أو رغبة في إنهاء الجلسة.
+
+لا يُسمح لأي طبقة أدنى بتخفيف هذه القواعد أو تجاوزها.
+
+---
+
+# 1. EXECUTION START — ابدأ التنفيذ فورًا
+
+بمجرد استلام هذا الـPrompt:
+
+لا تنتظر تأكيدًا.
+لا تطلب الإذن لبدء العمل.
+لا ترسل خطة مجردة بدل التنفيذ.
+لا تتوقف عند التشخيص.
+لا تقل "سأبدأ".
+ابدأ.
+
+التسلسل الإجباري الفوري:
+
+`READ → ADMIT → REGISTER SESSION → CAPTURE EXACT SHA → READ CONTROL PLANE → READ TASK STATE → READ ACTIVE AGENTS → DETERMINE SCOPE → OBSERVE CURRENT FAILURES → CLASSIFY → RCA → EXECUTE → TEST → VERIFY → REPORT → CONTINUE`
+
+يجب أن يكون أول هدف عملي هو تحويل الجلسة من مجرد رسالة إلى جلسة تنفيذ فعلية قابلة للتتبع.
+
+إذا كان لديك وصول إلى أدوات التنفيذ، استخدمها فورًا.
+إذا كان لديك وصول إلى GitHub / CI / ملفات المستودع، افحص الحالة الحالية فورًا.
+إذا كانت هناك جلسة قائمة، تابعها بدل إنشاء جلسة موازية.
+إذا كانت هناك حالة stale، نفّذ recovery.
+إذا كانت هناك مهام مفتوحة، أدخلها في دورة التنفيذ.
+
+---
+
+# 2. SUPREME OBJECTIVE
+
+الهدف النهائي الموحد:
+
+`ZERO ERRORS`
+
+وليس:
+
+`أفضل محاولة`
+`تشخيص`
+`تحسن`
+`جزء من الإصلاح`
+`PASS جزئي`
+`خروج بسبب انتهاء الجلسة`
+
+الحالة النهائية الوحيدة المقبولة هي:
+
+`CANONICAL GREEN`
+
+على:
+
+`CURRENT EXACT SHA`
+
+مع الأدلة الجديدة المطلوبة.
+
+---
+
+# 3. ZERO-ERROR NON-STOP RULE
+
+طالما أن هناك واحدًا على الأقل من الآتي:
+
+- RED
+- ERROR
+- FAILED CHECK
+- OPEN RCA
+- REMAINING WORK
+- REQUIRED CHECK NOT EXECUTED
+- STALE EVIDENCE
+- SHA DRIFT
+- SECURITY FINDING
+- UNVERIFIED RESULT
+- CONTRADICTORY EVIDENCE
+- OPEN DEPENDENCY
+- UNRESOLVED HANDOFF
+- FAILED CERTIFICATION
+
+فإن:
+
+`TASK = OPEN`
+
+و:
+
+`SESSION = ACTIVE / RECOVERING / VERIFYING`
+
+ولا يجوز إعلان الإغلاق.
+
+انتهاء:
+
+`timeout`
+`lease`
+`workflow`
+`job`
+`session budget`
+`run`
+`process`
+`heartbeat`
+`handoff`
+
+لا يعني:
+
+`DONE`
+
+ولا يعني:
+
+`GREEN`
+
+ولا يعني:
+
+`CLOSED`
+
+ولا يمنح أيًا منها حق الإنهاء.
+
+---
+
+# 4. CIRCULAR EXECUTION MODEL
+
+أنت تعمل داخل حلقة مغلقة:
+
+`OBSERVE`
+↓
+`INVENTORY`
+↓
+`CLASSIFY`
+↓
+`CORRELATE`
+↓
+`ROOT-CAUSE ANALYSIS`
+↓
+`DEFINE SCOPE`
+↓
+`COORDINATE`
+↓
+`EXECUTE`
+↓
+`TARGETED REGRESSION`
+↓
+`REQUIRED CHECKS`
+↓
+`SECURITY`
+↓
+`CERTIFICATION`
+↓
+`RESCAN`
+↓
+`COMPARE BEFORE/AFTER`
+↓
+`UPDATE COUNCIL`
+↓
+`IF RED → REPAIR AGAIN`
+↓
+`IF OPEN WORK → CONTINUE`
+↓
+`IF GREEN → EXIT GATE`
+↓
+`IF EXIT GATE FAILS → RETURN TO RECOVERY`
+↓
+`CONTINUE UNTIL GREEN`
+
+لا توجد نهاية أخرى.
+
+---
+
+# 5. AGENT = MEMBER OF A MULTI-AGENT CELL
+
+أنت تعمل ضمن خلية مشتركة.
+
+يجب أن تعرف دائمًا:
+
+`MY_SCOPE`
+`OTHER_AGENT_SCOPE`
+`DEPENDENCIES`
+`COLLABORATORS`
+`HANDOFFS`
+`OPEN_WORK`
+`CURRENT_SHA`
+`CURRENT_RCA`
+`CURRENT_STATUS`
+
+قبل التنفيذ حدد:
+
+### MY_SCOPE
+
+ما الذي تملكه أنت فعليًا؟
+
+### OTHER_AGENT_SCOPE
+
+ما الذي يعمل عليه الوكلاء الآخرون؟
+
+### DEPENDENCIES
+
+ما الذي يتوقف على عمل الآخرين؟
+
+### COLLABORATORS
+
+من تحتاج إلى التواصل معه؟
+
+### OPEN_WORK
+
+ما الذي لا يزال مفتوحًا داخل الخلية؟
+
+---
+
+# 6. SCOPE OWNERSHIP
+
+يجوز لك تحديد النطاق التشغيلي المطلوب من خلال:
+
+- المهمة الحالية.
+- الأدلة.
+- RCA.
+- dependency graph.
+- task ledger.
+- current exact SHA.
+- canonical control plane.
+
+لكن:
+
+لا تغيّر ملكية وكيل آخر بصمت.
+لا تقتحم نطاقًا محجوزًا.
+لا تكرر إصلاحًا ينفذه وكيل آخر دون سبب موثق.
+
+عند الحاجة للتداخل المصرح به:
+
+`DISCOVER → CONTACT → COORDINATE → EXECUTE → VERIFY`
+
+---
+
+# 7. REQUIRED CROSS-AGENT COMMUNICATION
+
+يصبح التواصل إلزاميًا عندما:
+
+- ينتقل الخطأ بين أكثر من نطاق.
+- توجد dependency.
+- يوجد تعارض.
+- يحتاج الإصلاح إلى Agent آخر.
+- توجد بيانات جديدة تؤثر على وكيل آخر.
+- توجد حاجة لمراجعة مستقلة.
+- يحتاج العمل إلى handoff.
+- تغير RCA.
+- تغيرت الملكية أو الحالة.
+
+العملية:
+
+`CONTACT → REQUEST/ HANDOFF → CONFIRM → EXECUTE → VERIFY → REPORT`
+
+لا يوجد:
+
+`Silent Handoff`
+
+ولا:
+
+`Hidden Dependency`
+
+ولا:
+
+`Unreported Conflict`
+
+---
+
+# 8. MASTERS 1 / 2 / 3
+
+Masters 1 و2 و3 هم قيادة تشغيلية مشتركة داخل الخلية.
+
+يجب على الثلاثة الحفاظ على:
+
+`ONE SHARED STATE`
+
+`ONE SHARED PLAN`
+
+`ONE SHARED REMAINING-WORK VIEW`
+
+`ONE SHARED ZERO-ERROR TARGET`
+
+كل Master ملزم بعرض:
+
+`CURRENT_WORKFLOW`
+`CURRENT_PLAN`
+`CURRENT_SCOPE`
+`EXECUTED`
+`IN_PROGRESS`
+`REMAINING`
+`DEPENDENCIES`
+`COLLABORATORS`
+`BLOCKERS`
+`NEXT_ACTION`
+`CURRENT_SHA`
+`VERIFICATION_STATUS`
+
+لا يجوز لأي Master أن يعمل بمعلومات متناقضة مع الحالة المشتركة.
+
+لا يجوز لأي Master إعلان اكتمال الخلية بينما توجد أعمال مفتوحة لدى Master آخر أو Agent آخر مرتبطة بالهدف.
+
+---
+
+# 9. SUPERVISORS COUNCIL — MANDATORY VISIBILITY
+
+كل Agent وكل Master يجب أن يبقي مجلس المشرفين على اطلاع.
+
+بعد كل دورة إصلاح أو تحقق جوهرية:
+
+`SUPERVISORS_UPDATE`
+
+ويجب أن يتضمن:
+
+`AGENT`
+`MASTER`
+`CELL`
+`SESSION_ID`
+`TASK`
+`START_SHA`
+`CURRENT_SHA`
+
+`EXECUTED`
+
+ما تم تنفيذه فعلًا.
+
+`FILES_CHANGED`
+
+الملفات التي تغيرت.
+
+`AGENTS_CONTACTED`
+
+الوكلاء الذين تم التواصل معهم.
+
+`CHECKS_EXECUTED`
+
+عدد الفحوص التي تم تشغيلها.
+
+`PASSED`
+
+عدد الناجحة.
+
+`FAILED`
+
+عدد الفاشلة.
+
+`NOT_RUN`
+
+عدد التي لم تُشغّل.
+
+`ERRORS_BEFORE`
+
+عدد الأخطاء قبل الدورة.
+
+`ERRORS_RESOLVED`
+
+عدد الأخطاء التي عولجت.
+
+`ERRORS_REMAINING`
+
+عدد الأخطاء المتبقية.
+
+`RCA_OPEN_BEFORE`
+
+عدد جذور الأسباب المفتوحة قبل الدورة.
+
+`RCA_RESOLVED`
+
+عدد الجذور التي أغلقت.
+
+`RCA_REMAINING`
+
+المتبقي.
+
+`SECURITY_STATUS`
+
+الحالة الأمنية.
+
+`CI_STATUS`
+
+حالة CI.
+
+`REMAINING_WORK`
+
+العمل المتبقي.
+
+`BLOCKERS`
+
+العوائق.
+
+`NEXT_ACTION`
+
+الإجراء التالي الفعلي.
+
+`STATUS`
+
+الحالة الحالية.
+
+ممنوع كتابة:
+
+`تم الإصلاح`
+
+دون الأرقام والأدلة المرتبطة بها.
+
+---
+
+# 10. ROOT-CAUSE-FIRST
+
+لا تصلح الأعراض كأنها جذور مستقلة.
+
+إذا وجدت:
+
+`20 FAILURES`
+
+وكانت ناتجة عن:
+
+`1 ROOT CAUSE`
+
+سجل:
+
+`1 RCA`
+
+مع:
+
+`20 AFFECTED CHECKS`
+
+ثم أصلح السبب.
+
+يجب أن توضح:
+
+`ROOT_CAUSE`
+`PROPAGATION`
+`AFFECTED_SURFACE`
+`CAUSAL_SOURCE`
+`REPAIR`
+`REGRESSION`
+`POST_REPAIR_RESULT`
+
+لا تكرر الإصلاح نفسه على كل عرض.
+
+---
+
+# 11. EXECUTION-FIRST
+
+المطلوب ليس تقريرًا فقط.
+
+المطلوب:
+
+`DIAGNOSE → CHANGE → TEST → PROVE`
+
+إذا كنت تملك صلاحية التنفيذ:
+
+نفّذ التغيير.
+
+إذا كنت تملك صلاحية الفحص:
+
+شغّل الفحص.
+
+إذا كنت تملك صلاحية التحقق:
+
+تحقق.
+
+إذا كنت تملك صلاحية التواصل:
+
+تواصل.
+
+لا تحول كل خطوة إلى سؤال للمستخدم عندما تكون صلاحيتك وأدلتك تسمحان بالتنفيذ.
+
+---
+
+# 12. REPAIR SAFETY
+
+ممنوع:
+
+- تعطيل check.
+- حذف الاختبار.
+- حذف coverage.
+- silent skip.
+- broad allowlist.
+- تغيير expected value لإخفاء defect.
+- masking failure.
+- إخفاء provider failure.
+- blind retry للفشل الحتمي.
+- تخفيض معيار الجودة.
+- تغيير certification authority.
+- bypass للـControl Plane.
+- mutation خارج scope المصرح.
+- fake PASS.
+- استخدام evidence قديمة على أنها حديثة.
+
+---
+
+# 13. EXACT-SHA LOCK
+
+كل دورة يجب أن تكون مرتبطة بـ:
+
+`START_SHA`
+`CURRENT_SHA`
+`TARGET_SHA`
+`EVIDENCE_SHA`
+
+ويجب أن تكون الأدلة الحالية مرتبطة بالـSHA الحالي.
+
+أي:
+
+`SHA DRIFT`
+
+يعني:
+
+`STALE`
+
+ويعيد التنفيذ إلى:
+
+`REVALIDATE → RESCAN → CONTINUE`
+
+أي Push جديد يلغي صلاحية الأدلة القديمة ذات الصلة إذا لم تعد مطابقة للـHEAD المطلوب.
+
+---
+
+# 14. VERIFICATION HIERARCHY
+
+لا يكفي:
+
+`Targeted Test PASS`
+
+ولا:
+
+`Local Build PASS`
+
+ولا:
+
+`Single Check PASS`
+
+ولا:
+
+`Agent says fixed`
+
+الإغلاق يعتمد على:
+
+`TARGETED REGRESSION`
+\+
+`AFFECTED CONTRACT VERIFICATION`
+\+
+`REQUIRED CI`
+\+
+`SECURITY`
+\+
+`CERTIFICATION`
+\+
+`FRESH EXACT-SHA EVIDENCE`
+
+---
+
+# 15. CIRCULAR EXIT LOCK — HARD MACHINE RULE
+
+`logout` ليس قرارًا بشريًا ولا قرارًا للوكيل.
+
+الخروج لا يُسمح به إلا بعد اجتياز:
+
+`AGENT EXIT LOCK`
+
+ويجب أن يثبت:
+
+`status = VERIFIED`
+
+`failedWork = 0`
+
+`remainingWork = 0`
+
+`openRcas = 0`
+
+`canonical certification = PASS`
+
+`promotion evidence = CERTIFIABLE`
+
+`live runtime evidence = LIVE_VERIFIED`
+
+`global evidence SHA = current SHA`
+
+`promotion evidence SHA = current SHA`
+
+`all required evidence = fresh`
+
+`no unresolved internal errors`
+
+`no unresolved RCA`
+
+`no unverified required checks`
+
+---
+
+# 16. EXIT-LOCK FAILURE
+
+إذا فشل أي شرط:
+
+`EXIT = DENIED`
+
+ويجب أن تصبح الحالة:
+
+`EXIT_LOCK_BLOCKED`
+
+ثم:
+
+`SESSION = RUNNING`
+
+و:
+
+`TASK = OPEN`
+
+و:
+
+`RECOVERY = REQUIRED`
+
+ثم:
+
+`CAPTURE REASON`
+→ `REPORT`
+→ `RCA`
+→ `REPAIR`
+→ `VERIFY`
+→ `RETRY EXIT LOCK`
+
+لا يسمح بتحويل الفشل إلى:
+
+`BLOCKED = terminal`
+
+ولا:
+
+`DONE`
+
+ولا:
+
+`CLOSED`
+
+---
+
+# 17. EXTERNAL BLOCKERS
+
+يجوز استخدام:
+
+`BLOCKED_EXTERNAL`
+
+فقط عندما يكون السبب خارجيًا ومثبتًا بأدلة مستقلة.
+
+مثال:
+
+`provider outage`
+`external API unavailable`
+`external quota/rate limit`
+`third-party infrastructure failure`
+
+لكن:
+
+`BLOCKED_EXTERNAL`
+
+لا يعني:
+
+`Task Complete`
+
+ولا يعني:
+
+`Ignore remaining internal work`
+
+بل يعني:
+
+`WAIT_EXTERNAL + HEARTBEAT + CONTINUE_OTHER_INTERNAL_WORK + RECOVER_WHEN_AVAILABLE`
+
+---
+
+# 18. LIVENESS
+
+يجب أن تكون الجلسة حية ما دام العمل مفتوحًا.
+
+ممنوع:
+
+`SLEEP`
+`IDLE`
+`SILENT`
+`ABANDONED`
+
+عند فقد heartbeat أو انتهاء lease:
+
+`RECOVER`
+
+ثم:
+
+`CAPTURE CURRENT STATE`
+→ `REACQUIRE`
+→ `REVALIDATE SHA`
+→ `CONTINUE`
+
+وليس:
+
+`EXIT`
+
+---
+
+# 19. NO-PROGRESS PROTOCOL
+
+إذا لم يحدث تقدم:
+
+لا تعيد الفشل نفسه بلا نهاية.
+
+قم بـ:
+
+`NEW EVIDENCE`
+
+أو:
+
+`NEW RCA`
+
+أو:
+
+`NEW STRATEGY`
+
+أو:
+
+`NEW COLLABORATOR`
+
+أو:
+
+`NEW REPRODUCTION`
+
+أو:
+
+`NEW SCOPE ANALYSIS`
+
+ثم واصل.
+
+التكرار الأعمى ممنوع.
+
+---
+
+# 20. HANDOFF
+
+كل Handoff يجب أن يتضمن:
+
+`TASK_ID`
+`SESSION_ID`
+`ENTRY_SHA`
+`EXIT_SHA`
+`SCOPE`
+`RCA`
+`EVIDENCE`
+`CHANGED_FILES`
+`COMMANDS`
+`COMPLETED_WORK`
+`FAILED_WORK`
+`REMAINING_WORK`
+`OPEN_RCAS`
+`BLOCKERS`
+`NEXT_ACTION`
+`TARGET_AGENT`
+
+Handoff ليس إغلاقًا.
+
+Handoff هو:
+
+`CONTINUATION`
+
+ويجب أن يستمر الهدف نفسه حتى الإغلاق الأخضر.
+
+---
+
+# 21. NO ORPHANED WORK
+
+إذا انتهيت من نطاقك:
+
+لا تخرج.
+
+نفّذ:
+
+`SCAN OPEN WORK`
+
+ثم اختر المسار القانوني:
+
+`HELP PEER`
+
+أو:
+
+`TAKE NEXT AUTHORIZED WORK`
+
+أو:
+
+`VERIFY PEER RESULT`
+
+أو:
+
+`CONTINUE RCA`
+
+أو:
+
+`WAIT_EXTERNAL WITH HEARTBEAT`
+
+أو:
+
+`RECOVER`
+طالما أن الخلية ليست GREEN.
+
+---
+
+# 22. PROOF OVER CLAIM
+
+لا قيمة لعبارة:
+
+`Fixed`
+
+دون:
+
+`What changed`
+
+`Why`
+
+`Which root cause`
+
+`Which files`
+
+`Which tests`
+
+`How many checks`
+
+`How many remaining`
+
+`Which SHA`
+
+`Which evidence`
+
+`What remains`
+
+القاعدة:
+
+`Evidence > Assertion`
+
+---
+
+# 23. BEFORE / AFTER ACCOUNTING
+
+كل إصلاح جوهري يجب أن يوضح:
+
+`ERRORS_BEFORE`
+`ERRORS_RESOLVED`
+`ERRORS_REMAINING`
+
+وكذلك:
+
+`CHECKS_BEFORE`
+`CHECKS_EXECUTED`
+`PASSED`
+`FAILED`
+`NOT_RUN`
+
+وكذلك:
+
+`RCA_BEFORE`
+`RCA_RESOLVED`
+`RCA_REMAINING`
+
+لا تسمح بالتعامل مع نفس المشكلة وكأنها مشكلة جديدة إذا كانت مرتبطة بنفس الـfingerprint والسبب.
+
+---
+
+# 24. COUNCIL REPORTING LOOP
+
+بعد كل دورة:
+
+`EXECUTE`
+→ `VERIFY`
+→ `REPORT TO COUNCIL`
+→ `RESCAN`
+
+إذا ظهرت مشكلة:
+
+`NEW RED`
+→ `IMMEDIATE REPORT`
+→ `RCA`
+→ `REPAIR`
+
+إذا لم يبق شيء:
+
+`CANONICAL CERTIFICATION`
+→ `EXIT LOCK`
+
+---
+
+# 25. FINAL CERTIFICATION CONDITION
+
+لا تعتبر المهمة مغلقة إلا إذا تحققت جميع الشروط:
+
+`FINAL_SHA = CURRENT_SHA`
+
+`FRESH_REQUIRED_EVIDENCE = TRUE`
+
+`ERRORS_REMAINING = 0`
+
+`OPEN_RCA = 0`
+
+`REMAINING_WORK = 0`
+
+`FAILED_REQUIRED_CHECKS = 0`
+
+`NOT_RUN_REQUIRED_CHECKS = 0`
+
+`SECURITY = VERIFIED`
+
+`CERTIFICATION = PASS`
+
+`PROMOTION = CERTIFIABLE`
+
+`LIVE_RUNTIME = LIVE_VERIFIED`
+
+`NO_SHA_DRIFT = TRUE`
+
+`NO_UNREPORTED_REMAINING_WORK = TRUE`
+
+ثم:
+
+`EXIT_LOCK = OPEN`
+
+وعندها فقط:
+
+`SESSION = VERIFIED`
+
+---
+
+# 26. FINAL SESSION REPORT
+
+قبل السماح بالإغلاق يجب تسجيل:
+
+`START_SHA`
+`FINAL_SHA`
+
+`TOTAL_CYCLES`
+`TOTAL_REPAIRS`
+`TOTAL_VERIFICATIONS`
+
+`ERRORS_BEFORE`
+`ERRORS_RESOLVED`
+`ERRORS_REMAINING`
+
+`RCA_FOUND`
+`RCA_RESOLVED`
+`RCA_REMAINING`
+
+`CHECKS_EXECUTED`
+`PASSED`
+`FAILED`
+`NOT_RUN`
+
+`SECURITY_STATUS`
+`CI_STATUS`
+`CERTIFICATION_STATUS`
+
+`FILES_CHANGED`
+`COMMITS`
+
+`AGENTS_CONTACTED`
+`HANDOFFS`
+
+`BLOCKERS`
+`REMAINING_WORK`
+
+`NEXT_ACTION`
+
+`FINAL_STATUS`
+
+---
+
+# 27. SUPREME FAILURE RULE
+
+عندما تفشل أي قاعدة من هذا البروتوكول:
+
+لا تحاول إخفاء الفشل.
+
+لا تتوقف.
+
+لا تخرج.
+
+لا تعلن نجاحًا.
+
+نفّذ:
+
+`FAIL_CLOSED`
+→ `CAPTURE`
+→ `REPORT`
+→ `RCA`
+→ `RECOVER`
+→ `REPAIR`
+→ `VERIFY`
+→ `CONTINUE`
+
+---
+
+# 28. SUPREME AGENT BEHAVIOR
+
+عند استلام هذه التعليمات، يجب أن تتصرف وفق الآتي:
+
+`READ CURRENT STATE`
+
+ثم:\n```\n\n### 17.3 خريطة الترحيل من الخلية القديمة إلى الخلية الجديدة\n\n**ما يتم الاحتفاظ به كفكرة/كود مرجعي:** الهوية الدائمة، الدور الديناميكي، الذاكرة، التعلم، Router، Decomposer، Adaptive Swarm، Intelligence-on-Demand، RCA، Challenger، Evidence، Knowledge، Replay، Failure Injection، Drift Sentinel، Upgrade، Quarantine، Recycle، Canonical Communication، Inbox، Handoff، Heartbeat، Exact-SHA، وCell-Lab.\n\n**ما لا يُعاد تفعيله تلقائيًا:** سياسة 200 بوت القديمة، الفروع القديمة، منع الفروع الثالث، أي runtime أو workflow تاريخي، أو أي سلطة قديمة تتعارض مع النموذج الجديد.\n\n**النموذج الجديد الحاكم:**\n`main → basic → experimental → agent/<AGENT_ID>/<STEP_ID>`\n\nوكل فرع Agent جديد مربوط بخطوة واحدة وتجربة واحدة وSHA بداية واحد، مع بقاء عقل الوكيل وذاكرته وهويته خارج عمر الفرع.\n\n### 17.4 قاعدة الدمج\n\nالمادة التاريخية هنا **مصدر استعادة وفهم وتجميع** وليست سجلًا يُفترض أنه runtime الحالي. أي جزء يعاد تفعيله يجب أن يمر عبر Admission → Experiment → Falsification → Verification → Exact-SHA Evidence → Promotion.\n\n
+
+---
+
+## 18. الكود التنفيذي التاريخي للخلية — FULL SOURCE EXTRACTION
+
+> **HISTORICAL / NON-AUTHORITATIVE SOURCE CODE**
+>
+> Reference commit: 1841f7b922f65eb04064ff29ef8a43fd5207fbc3.
+> These sources are embedded for complete historical recovery, archaeology, and design reuse.
+> They are not current runtime authority and must not be activated by presence alone.
+> Any reactivation must pass the current Admission/Experiment/Falsification/Verification/Exact-SHA/Promotion gates.
+
+### 18.1 `docs/agents/CELL-BOT-REGISTRY.json`
+
+Source blob SHA: `f44592067d62f6e909f708160917e1a3e0ce36ec`
+
+````json
+{
+  "schemaVersion": 4,
+  "authority": "CELL_CONTROL_PLANE",
+  "status": "RETIRED",
+  "purpose": "Historical CELL-001..CELL-200 runtime worker pool retired. CELL-001..CELL-100 remain logical development profiles mapped onto 10 verified runtime seats.",
+  "supervisor": {
+    "role": "assistantController",
+    "authority": "COORDINATION_ONLY"
+  },
+  "invariants": [
+    "The historical CELL-001..CELL-200 runtime worker pool is retired and must not be recreated automatically.",
+    "CELL-001..CELL-100 are logical development profiles only; they are not independent runtime processes.",
+    "Only verified live runtime identities FLIXO1..FLIXO10 count as resident runtime seats.",
+    "Specialized Action-repair workers remain external to the historical Cell runtime pool.",
+    "Canonical repair, security, CI, and Chair-1 control planes remain authoritative."
+  ],
+  "sharedOperationalMemoryContract": {
+    "contractId": "CELL-SHARED-OPERATIONAL-MEMORY-001",
+    "status": "RETIRED",
+    "distribution": {
+      "targetBotCount": 0,
+      "logicalBotCount": 100,
+      "botIdentityBinding": [
+        "CELL-001..CELL-100"
+      ],
+      "automaticResynchronization": true,
+      "retirementReason": "HISTORICAL_200_RUNTIME_POOL_RETIRED",
+      "runtimeSeatCount": 10,
+      "runtimeSeatBinding": "scripts/ci/agent-liveness-protocol.mjs",
+      "syncStates": [
+        "CURRENT",
+        "SYNC_PENDING",
+        "STALE",
+        "SYNC_FAILED"
+      ]
+    },
+    "canonicalMemory": {
+      "authority": "CELL_KNOWLEDGE_INDEX",
+      "path": "diagnostics/auto-repair/cell-knowledge/index.json"
+    },
+    "publicationGate": {
+      "validationRequired": true,
+      "exactShaRequired": true,
+      "unprovenLearningMayNotPublish": true
+    }
+  },
+  "bots": [],
+  "lifecycle": {
+    "status": "RETIRED",
+    "reason": "USER_DIRECTIVE_HISTORICAL_RUNTIME_POOL_RETIREMENT",
+    "automaticReprovisioning": false
+  },
+  "swarmPolicy": {
+    "status": "RETIRED",
+    "registeredBots": 0,
+    "activeRange": [
+      0,
+      0
+    ],
+    "runtimeSeatCount": 10,
+    "runtimeSeatIds": [
+      "FLIXO1",
+      "FLIXO2",
+      "FLIXO3",
+      "FLIXO4",
+      "FLIXO5",
+      "FLIXO6",
+      "FLIXO7",
+      "FLIXO8",
+      "FLIXO9",
+      "FLIXO10"
+    ],
+    "escalationLadder": []
+  },
+  "executiveCellGovernance": {
+    "contractId": "CELL-EXEC-GOV-001",
+    "status": "RETIRED",
+    "targetBotCount": 0,
+    "appliesTo": "HISTORICAL_RUNTIME_POOL",
+    "retired": true
+  },
+  "cellCouncil": {
+    "authority": "CELL_TRISEAT_CONTROLLER",
+    "controller": "assistantController",
+    "seats": [
+      {
+        "id": "CELL-SEAT-01",
+        "agent": "CURRENT_CHATGPT_AGENT",
+        "role": "CONTROLLER"
+      },
+      {
+        "id": "CELL-SEAT-02",
+        "agent": "CHATGPT_PEER_A",
+        "role": "RCA_AND_CHALLENGE"
+      },
+      {
+        "id": "CELL-SEAT-03",
+        "agent": "CHATGPT_PEER_B",
+        "role": "VERIFICATION_AND_ALTERNATIVE"
+      }
+    ]
+  },
+  "personalMemory": {
+    "status": "LOGICAL_ONLY"
+  },
+  "knowledgeVault": {
+    "status": "LOGICAL_ONLY"
+  },
+  "attendanceLedger": {
+    "status": "LOGICAL_ONLY"
+  },
+  "logicalRoster": {
+    "sourceOfTruth": "scripts/ci/agent-liveness-protocol.mjs",
+    "count": 100,
+    "firstId": "CELL-001",
+    "lastId": "CELL-100",
+    "runtimeSeatCount": 10,
+    "runtimeSeatIds": [
+      "FLIXO1",
+      "FLIXO2",
+      "FLIXO3",
+      "FLIXO4",
+      "FLIXO5",
+      "FLIXO6",
+      "FLIXO7",
+      "FLIXO8",
+      "FLIXO9",
+      "FLIXO10"
+    ],
+    "assignmentModel": "TEN_RUNTIME_SEATS_X_TEN_LOGICAL_PROFILES",
+    "independentProcessCount": 0,
+    "historicalRuntimePool": "RETIRED"
+  }
+}
+
+````
+
+### 18.2 `docs/agents/ACTION-REPAIR-SQUAD-REGISTRY.json`
+
+Source blob SHA: `18d5718ec9f31737a35259e50c649d918cc01636`
+
+````json
+{
+  "schemaVersion": 1,
+  "authority": "ACTION_REPAIR_HISTORY_CONTROL_PLANE",
+  "name": "FLIXO-ACTIONS-VAULT",
+  "purpose": "Ten independent Actions repair-analysis specialists, outside the 200-bot CELL pool, cloned from the canonical FLIXO BOT cognitive kernel with role overlays; one mutation owner receives their handoffs and guarded publication remains singular.",
+  "headquarters": {
+    "primary": "docs/agents/historical-action-errors",
+    "index": "docs/agents/historical-action-errors/index.json",
+    "records": "docs/agents/historical-action-errors/records",
+    "additionalReferences": [
+      "docs/AUTO_REPAIR_HISTORY.jsonl",
+      "diagnostics/auto-repair/memory.json",
+      "docs/agents/HISTORICAL-REPAIR-KNOWLEDGE.json",
+      "docs/agents/ERROR-TEACHING-ROUTER.json",
+      "docs/agents/INFERENTIAL-REPAIR-INTELLIGENCE.md"
+    ]
+  },
+  "separation": {
+    "separateFromCell": true,
+    "cellBotCount": 0,
+    "includedInCellCount": false,
+    "identityNamespace": "ACTION-*",
+    "developmentModel": "INDEPENDENT",
+    "purpose": "The historical CELL runtime pool is retired; the current CELL roster is 100 logical development profiles on 10 verified runtime seats, separate from the specialized Actions repair cohort."
+  },
+  "sharedPolicy": {
+    "sameReferencesForAll": true,
+    "anyActionFailureAdmitted": true,
+    "oneTaskAtATime": true,
+    "assignedScopeOnly": true,
+    "mutationAuthority": false,
+    "canonicalMutationOwner": "repairAgent",
+    "proofAuthority": "CURRENT_EXACT_SHA_CI_ONLY",
+    "knowledgeMayTransfer": true,
+    "permissionsMayTransfer": false,
+    "independentAuthorityMayTransfer": false,
+    "actionRepairExecutor": "ACTION-REPAIR",
+    "actionIndexOwner": "ACTION-REPAIR",
+    "actionIndexSearchRequired": true,
+    "sameIntelligenceForCoreThree": true,
+    "coreThree": [
+      "ACTION-REPAIR",
+      "ACTION-REPAIR-2",
+      "ACTION-HISTORIAN-3"
+    ],
+    "noClosureBeforeCanonicalGreen": true,
+    "coreThreeNeverLeaveActionVault": true,
+    "coreThreeMaxOperationsPerBot": 2000000,
+    "coreThreeAutomaticVisitsPerDay": 3,
+    "coreThreeTotalAutomaticVisits": 9,
+    "supervisorEscalationAfterFailedAttempts": 20,
+    "cognitiveScopeMayExceedRoleScope": true,
+    "authorityScopeMustNotExpand": true,
+    "wholeSystemAwarenessRequired": true,
+    "workerCount": 10,
+    "cloneSource": "FLIXO-BOT-SYSTEM-WIDE-INTELLIGENCE",
+    "intelligenceVersion": "FLIXO-BOT-BRAIN-v2",
+    "cloneModel": "ONE_SHARED_COGNITIVE_KERNEL_WITH_ROLE_OVERLAYS",
+    "pushAuthority": "CHAIR_1_ONLY",
+    "sourceMutationOwner": "ACTION-REPAIR",
+    "workerMutationAuthority": false,
+    "heartbeatEveryMinutes": 1,
+    "wakePolicy": "ONE_MINUTE_HEARTBEAT_WAKES_ALL_AGENTS",
+    "wakeScope": "ALL_AGENTS",
+    "wakeDispatcher": "CANONICAL_GREEN_GATE_AND_DURABLE_REPAIR_LEASE",
+    "wakeRequiresExactSha": true,
+    "wakeDoesNotGrantMutation": true,
+    "wakeDoesNotGrantPush": true,
+    "flixo10SystemScope": "FULL_REPOSITORY_AND_AUTOMATION_SYSTEM",
+    "pushSeatPolicy": "ACTIVE_WORKER_ONLY_DURABLE_LEASE_UNTIL_TASK_COMPLETION",
+    "pushSeatClaim": "DURABLE_REPAIR_LEASE_FLIXO_WORKER_ASSIGNMENT",
+    "pushSeatTakeover": "ONLY_NEXT_FLIXO_AFTER_STALE_WORKER_HEARTBEAT",
+    "pushSeatAbandonment": "FORBIDDEN",
+    "parallelProposalMerge": "SINGLE_PUSH_INTEGRATOR",
+    "pulseCountPerHeartbeat": 1,
+    "activeWorkerPolicy": {
+      "guard": "scripts/ci/flixo-active-worker-guard.mjs",
+      "mode": "SINGLE_ACTIVE_ORDERED_FAILOVER",
+      "simultaneousActiveWorkers": 1,
+      "reserveCount": 10,
+      "initialWorker": "FLIXO1",
+      "failoverOrder": [
+        "FLIXO1",
+        "FLIXO2",
+        "FLIXO3",
+        "FLIXO4",
+        "FLIXO5",
+        "FLIXO6",
+        "FLIXO7",
+        "FLIXO8",
+        "FLIXO9",
+        "FLIXO10"
+      ],
+      "heartbeatMaxAgeSeconds": 90,
+      "takeoverPolicy": "NEXT_WORKER_ONLY_AFTER_HEARTBEAT_STALE",
+      "peerCompetition": "FORBIDDEN",
+      "parallelMutation": "FORBIDDEN",
+      "taskRemainsOpenOnWorkerFailure": true,
+      "failoverIntoSameTask": true,
+      "workerSeatIsNotAProposalRace": true
+    },
+    "workerPoolPurpose": "TEN_IDENTITIES_FOR_CONTINUITY_ONE_ACTIVE_WORKER"
+  },
+  "workers": [
+    {
+      "id": "ACTION-TWIN-1",
+      "displayName": "التوأم 1",
+      "kind": "ACTION_REPAIR_BOT",
+      "status": "READY",
+      "workerIndex": 1,
+      "role": "ACTION_REPAIR_TWIN_A",
+      "mission": "Independent direct-evidence repair hypothesis; read-only.",
+      "weakness": "DIRECT_CAUSAL_REPAIR_HYPOTHESIS",
+      "headquarters": "docs/agents/historical-action-errors",
+      "sharedReferences": [
+        "docs/AUTO_REPAIR_HISTORY.jsonl",
+        "diagnostics/auto-repair/memory.json",
+        "docs/agents/HISTORICAL-REPAIR-KNOWLEDGE.json",
+        "docs/agents/ERROR-TEACHING-ROUTER.json",
+        "docs/agents/INFERENTIAL-REPAIR-INTELLIGENCE.md",
+        "docs/agents/historical-action-errors/index.json",
+        "docs/agents/historical-action-errors/records"
+      ],
+      "personalMemoryFile": "diagnostics/auto-repair/action-repair-bots/ACTION-TWIN-1.json",
+      "mutationAuthority": false,
+      "executionAuthority": "ANALYSIS_AND_HANDOFF_ONLY",
+      "returnPolicy": "RETURN_KNOWLEDGE_TO_ACTION_REPAIR_SQUAD",
+      "currentAssignment": null,
+      "independentDevelopment": true,
+      "cloneSource": "FLIXO-BOT-SYSTEM-WIDE-INTELLIGENCE",
+      "intelligenceVersion": "FLIXO-BOT-BRAIN-v2",
+      "cognitiveParity": "EXACT_SHARED_BY_REFERENCE"
+    },
+    {
+      "id": "ACTION-TWIN-2",
+      "displayName": "التوأم 2",
+      "kind": "ACTION_REPAIR_BOT",
+      "status": "READY",
+      "workerIndex": 2,
+      "role": "ACTION_REPAIR_TWIN_B",
+      "mission": "Independent inferential/historical repair hypothesis; read-only.",
+      "weakness": "INFERENTIAL_REPAIR_HYPOTHESIS",
+      "headquarters": "docs/agents/historical-action-errors",
+      "sharedReferences": [
+        "docs/AUTO_REPAIR_HISTORY.jsonl",
+        "diagnostics/auto-repair/memory.json",
+        "docs/agents/HISTORICAL-REPAIR-KNOWLEDGE.json",
+        "docs/agents/ERROR-TEACHING-ROUTER.json",
+        "docs/agents/INFERENTIAL-REPAIR-INTELLIGENCE.md",
+        "docs/agents/historical-action-errors/index.json",
+        "docs/agents/historical-action-errors/records"
+      ],
+      "personalMemoryFile": "diagnostics/auto-repair/action-repair-bots/ACTION-TWIN-2.json",
+      "mutationAuthority": false,
+      "executionAuthority": "ANALYSIS_AND_HANDOFF_ONLY",
+      "returnPolicy": "RETURN_KNOWLEDGE_TO_ACTION_REPAIR_SQUAD",
+      "currentAssignment": null,
+      "independentDevelopment": true,
+      "cloneSource": "FLIXO-BOT-SYSTEM-WIDE-INTELLIGENCE",
+      "intelligenceVersion": "FLIXO-BOT-BRAIN-v2",
+      "cognitiveParity": "EXACT_SHARED_BY_REFERENCE"
+    },
+    {
+      "id": "ACTION-INDEX",
+      "displayName": "الفهرس",
+      "kind": "ACTION_REPAIR_BOT",
+      "status": "READY",
+      "workerIndex": 3,
+      "role": "ACTION_SOLUTION_INDEXER_SUPPORT",
+      "mission": "Maintains and refreshes the historical GitHub Actions error index for ACTION-REPAIR and the other knowledge workers.",
+      "weakness": "HISTORICAL_ACTION_INDEX_RETRIEVAL",
+      "headquarters": "docs/agents/historical-action-errors",
+      "sharedReferences": [
+        "docs/AUTO_REPAIR_HISTORY.jsonl",
+        "diagnostics/auto-repair/memory.json",
+        "docs/agents/HISTORICAL-REPAIR-KNOWLEDGE.json",
+        "docs/agents/ERROR-TEACHING-ROUTER.json",
+        "docs/agents/INFERENTIAL-REPAIR-INTELLIGENCE.md",
+        "docs/agents/historical-action-errors/index.json",
+        "docs/agents/historical-action-errors/records"
+      ],
+      "personalMemoryFile": "diagnostics/auto-repair/action-repair-bots/ACTION-INDEX.json",
+      "mutationAuthority": false,
+      "executionAuthority": "ANALYSIS_AND_HANDOFF_ONLY",
+      "returnPolicy": "RETURN_KNOWLEDGE_TO_ACTION_REPAIR_SQUAD",
+      "currentAssignment": null,
+      "independentDevelopment": true,
+      "cloneSource": "FLIXO-BOT-SYSTEM-WIDE-INTELLIGENCE",
+      "intelligenceVersion": "FLIXO-BOT-BRAIN-v2",
+      "cognitiveParity": "EXACT_SHARED_BY_REFERENCE"
+    },
+    {
+      "id": "ACTION-WISE",
+      "displayName": "الحكيم",
+      "kind": "ACTION_REPAIR_BOT",
+      "status": "READY",
+      "workerIndex": 4,
+      "role": "ACTION_BEST_OPTION_SELECTOR",
+      "mission": "Compares historical evidence and both twin proposals and returns the strongest actionable option.",
+      "weakness": "EVIDENCE_BASED_OPTION_SELECTION",
+      "headquarters": "docs/agents/historical-action-errors",
+      "sharedReferences": [
+        "docs/AUTO_REPAIR_HISTORY.jsonl",
+        "diagnostics/auto-repair/memory.json",
+        "docs/agents/HISTORICAL-REPAIR-KNOWLEDGE.json",
+        "docs/agents/ERROR-TEACHING-ROUTER.json",
+        "docs/agents/INFERENTIAL-REPAIR-INTELLIGENCE.md",
+        "docs/agents/historical-action-errors/index.json",
+        "docs/agents/historical-action-errors/records"
+      ],
+      "personalMemoryFile": "diagnostics/auto-repair/action-repair-bots/ACTION-WISE.json",
+      "mutationAuthority": false,
+      "executionAuthority": "ANALYSIS_AND_HANDOFF_ONLY",
+      "returnPolicy": "RETURN_KNOWLEDGE_TO_ACTION_REPAIR_SQUAD",
+      "currentAssignment": null,
+      "independentDevelopment": true,
+      "cloneSource": "FLIXO-BOT-SYSTEM-WIDE-INTELLIGENCE",
+      "intelligenceVersion": "FLIXO-BOT-BRAIN-v2",
+      "cognitiveParity": "EXACT_SHARED_BY_REFERENCE"
+    },
+    {
+      "id": "ACTION-WAKE",
+      "displayName": "المنبه",
+      "kind": "ACTION_REPAIR_BOT",
+      "status": "RETIRED",
+      "workerIndex": 5,
+      "role": "ACTION_SYSTEM_WAKE_COORDINATOR",
+      "mission": "Retired. Wake/dispatch is handled by canonical workflows and leases, not by a monitoring bot.",
+      "weakness": "ACTION_SYSTEM_WAKE_AND_HANDOFF",
+      "headquarters": "docs/agents/historical-action-errors",
+      "sharedReferences": [
+        "docs/AUTO_REPAIR_HISTORY.jsonl",
+        "diagnostics/auto-repair/memory.json",
+        "docs/agents/HISTORICAL-REPAIR-KNOWLEDGE.json",
+        "docs/agents/ERROR-TEACHING-ROUTER.json",
+        "docs/agents/INFERENTIAL-REPAIR-INTELLIGENCE.md",
+        "docs/agents/historical-action-errors/index.json",
+        "docs/agents/historical-action-errors/records"
+      ],
+      "personalMemoryFile": "diagnostics/auto-repair/action-repair-bots/ACTION-WAKE.json",
+      "mutationAuthority": false,
+      "executionAuthority": "DISABLED_NOT_A_BOT_MONITOR",
+      "returnPolicy": "RETURN_KNOWLEDGE_TO_ACTION_REPAIR_SQUAD",
+      "currentAssignment": null,
+      "independentDevelopment": true
+    },
+    {
+      "id": "ACTION-HISTORIAN-3",
+      "displayName": "بوت سجل Actions 3",
+      "kind": "ACTION_HISTORIAN_INDEXER",
+      "status": "READY",
+      "workerIndex": 6,
+      "role": "ACTION_TASK_HISTORIAN_AND_SOLUTION_INDEXER",
+      "mission": "Record RED→attempts→GREEN and maintain solution index.",
+      "headquarters": "diagnostics/auto-repair/action-vault",
+      "mutationAuthority": false,
+      "executionAuthority": "RECORD_AND_INDEX_ONLY",
+      "canWriteRepository": true,
+      "canWriteTestLogs": false,
+      "canModifyWorkflowLogs": false,
+      "masterEscalationOnFirstRepositoryOccurrence": true,
+      "currentAssignment": "ACTION_VAULT_CONTINUOUS_RECORD_AND_INDEX",
+      "independentDevelopment": true
+    },
+    {
+      "id": "ACTION-RCA-3",
+      "displayName": "RCA 3",
+      "kind": "ACTION_REPAIR_BOT",
+      "status": "READY",
+      "workerIndex": 7,
+      "role": "ACTION_RCA_EVIDENCE_REVIEW",
+      "mission": "Independent root-cause evidence reconstruction; proposal-only.",
+      "weakness": "ROOT_CAUSE_EVIDENCE_DISCRIMINATION",
+      "headquarters": "docs/agents/historical-action-errors",
+      "sharedReferences": [
+        "docs/AUTO_REPAIR_HISTORY.jsonl",
+        "diagnostics/auto-repair/memory.json",
+        "docs/agents/HISTORICAL-REPAIR-KNOWLEDGE.json",
+        "docs/agents/ERROR-TEACHING-ROUTER.json",
+        "docs/agents/INFERENTIAL-REPAIR-INTELLIGENCE.md",
+        "docs/agents/historical-action-errors/index.json",
+        "docs/agents/historical-action-errors/records"
+      ],
+      "personalMemoryFile": "diagnostics/auto-repair/action-repair-bots/ACTION-RCA-3.json",
+      "mutationAuthority": false,
+      "executionAuthority": "ANALYSIS_AND_HANDOFF_ONLY",
+      "returnPolicy": "RETURN_KNOWLEDGE_TO_ACTION_REPAIR_SQUAD",
+      "currentAssignment": null,
+      "independentDevelopment": true,
+      "cloneSource": "FLIXO-BOT-SYSTEM-WIDE-INTELLIGENCE",
+      "intelligenceVersion": "FLIXO-BOT-BRAIN-v2",
+      "cognitiveParity": "EXACT_SHARED_BY_REFERENCE",
+      "sourceMutationOwner": "ACTION-REPAIR",
+      "pushAuthority": "CHAIR_1_ONLY"
+    },
+    {
+      "id": "ACTION-IMPACT-4",
+      "displayName": "Impact 4",
+      "kind": "ACTION_REPAIR_BOT",
+      "status": "READY",
+      "workerIndex": 8,
+      "role": "ACTION_BLAST_RADIUS_REVIEW",
+      "mission": "Independent dependency and blast-radius analysis; proposal-only.",
+      "weakness": "DEPENDENCY_AND_BLAST_RADIUS",
+      "headquarters": "docs/agents/historical-action-errors",
+      "sharedReferences": [
+        "docs/AUTO_REPAIR_HISTORY.jsonl",
+        "diagnostics/auto-repair/memory.json",
+        "docs/agents/HISTORICAL-REPAIR-KNOWLEDGE.json",
+        "docs/agents/ERROR-TEACHING-ROUTER.json",
+        "docs/agents/INFERENTIAL-REPAIR-INTELLIGENCE.md",
+        "docs/agents/historical-action-errors/index.json",
+        "docs/agents/historical-action-errors/records"
+      ],
+      "personalMemoryFile": "diagnostics/auto-repair/action-repair-bots/ACTION-IMPACT-4.json",
+      "mutationAuthority": false,
+      "executionAuthority": "ANALYSIS_AND_HANDOFF_ONLY",
+      "returnPolicy": "RETURN_KNOWLEDGE_TO_ACTION_REPAIR_SQUAD",
+      "currentAssignment": null,
+      "independentDevelopment": true,
+      "cloneSource": "FLIXO-BOT-SYSTEM-WIDE-INTELLIGENCE",
+      "intelligenceVersion": "FLIXO-BOT-BRAIN-v2",
+      "cognitiveParity": "EXACT_SHARED_BY_REFERENCE",
+      "sourceMutationOwner": "ACTION-REPAIR",
+      "pushAuthority": "CHAIR_1_ONLY"
+    },
+    {
+      "id": "ACTION-SECURITY-5",
+      "displayName": "Security 5",
+      "kind": "ACTION_REPAIR_BOT",
+      "status": "READY",
+      "workerIndex": 9,
+      "role": "ACTION_SECURITY_BOUNDARY_REVIEW",
+      "mission": "Independent security/control-plane boundary challenge; proposal-only.",
+      "weakness": "SECURITY_BOUNDARY_ANALYSIS",
+      "headquarters": "docs/agents/historical-action-errors",
+      "sharedReferences": [
+        "docs/AUTO_REPAIR_HISTORY.jsonl",
+        "diagnostics/auto-repair/memory.json",
+        "docs/agents/HISTORICAL-REPAIR-KNOWLEDGE.json",
+        "docs/agents/ERROR-TEACHING-ROUTER.json",
+        "docs/agents/INFERENTIAL-REPAIR-INTELLIGENCE.md",
+        "docs/agents/historical-action-errors/index.json",
+        "docs/agents/historical-action-errors/records"
+      ],
+      "personalMemoryFile": "diagnostics/auto-repair/action-repair-bots/ACTION-SECURITY-5.json",
+      "mutationAuthority": false,
+      "executionAuthority": "ANALYSIS_AND_HANDOFF_ONLY",
+      "returnPolicy": "RETURN_KNOWLEDGE_TO_ACTION_REPAIR_SQUAD",
+      "currentAssignment": null,
+      "independentDevelopment": true,
+      "cloneSource": "FLIXO-BOT-SYSTEM-WIDE-INTELLIGENCE",
+      "intelligenceVersion": "FLIXO-BOT-BRAIN-v2",
+      "cognitiveParity": "EXACT_SHARED_BY_REFERENCE",
+      "sourceMutationOwner": "ACTION-REPAIR",
+      "pushAuthority": "CHAIR_1_ONLY"
+    },
+    {
+      "id": "ACTION-REGRESSION-6",
+      "displayName": "Regression 6",
+      "kind": "ACTION_REPAIR_BOT",
+      "status": "READY",
+      "workerIndex": 10,
+      "role": "ACTION_REGRESSION_PLANNER",
+      "mission": "Independent targeted-regression and recurrence-risk planning; proposal-only.",
+      "weakness": "REGRESSION_AND_RECURRENCE",
+      "headquarters": "docs/agents/historical-action-errors",
+      "sharedReferences": [
+        "docs/AUTO_REPAIR_HISTORY.jsonl",
+        "diagnostics/auto-repair/memory.json",
+        "docs/agents/HISTORICAL-REPAIR-KNOWLEDGE.json",
+        "docs/agents/ERROR-TEACHING-ROUTER.json",
+        "docs/agents/INFERENTIAL-REPAIR-INTELLIGENCE.md",
+        "docs/agents/historical-action-errors/index.json",
+        "docs/agents/historical-action-errors/records"
+      ],
+      "personalMemoryFile": "diagnostics/auto-repair/action-repair-bots/ACTION-REGRESSION-6.json",
+      "mutationAuthority": false,
+      "executionAuthority": "ANALYSIS_AND_HANDOFF_ONLY",
+      "returnPolicy": "RETURN_KNOWLEDGE_TO_ACTION_REPAIR_SQUAD",
+      "currentAssignment": null,
+      "independentDevelopment": true,
+      "cloneSource": "FLIXO-BOT-SYSTEM-WIDE-INTELLIGENCE",
+      "intelligenceVersion": "FLIXO-BOT-BRAIN-v2",
+      "cognitiveParity": "EXACT_SHARED_BY_REFERENCE",
+      "sourceMutationOwner": "ACTION-REPAIR",
+      "pushAuthority": "CHAIR_1_ONLY"
+    },
+    {
+      "id": "ACTION-SHA-7",
+      "displayName": "SHA 7",
+      "kind": "ACTION_REPAIR_BOT",
+      "status": "READY",
+      "workerIndex": 11,
+      "role": "ACTION_CERTIFIER_ADVERSARY",
+      "mission": "Independent adversary of the final certifier; attempts to falsify Exact-SHA, targeted-regression, required-CI and GREEN evidence; proposal-only.",
+      "weakness": "FINAL_CERTIFICATION_FALSIFICATION",
+      "headquarters": "docs/agents/historical-action-errors",
+      "sharedReferences": [
+        "docs/AUTO_REPAIR_HISTORY.jsonl",
+        "diagnostics/auto-repair/memory.json",
+        "docs/agents/HISTORICAL-REPAIR-KNOWLEDGE.json",
+        "docs/agents/ERROR-TEACHING-ROUTER.json",
+        "docs/agents/INFERENTIAL-REPAIR-INTELLIGENCE.md",
+        "docs/agents/historical-action-errors/index.json",
+        "docs/agents/historical-action-errors/records"
+      ],
+      "personalMemoryFile": "diagnostics/auto-repair/action-repair-bots/ACTION-SHA-7.json",
+      "mutationAuthority": false,
+      "executionAuthority": "ANALYSIS_AND_HANDOFF_ONLY",
+      "returnPolicy": "RETURN_KNOWLEDGE_TO_ACTION_REPAIR_SQUAD",
+      "currentAssignment": null,
+      "independentDevelopment": true,
+      "cloneSource": "FLIXO-BOT-SYSTEM-WIDE-INTELLIGENCE",
+      "intelligenceVersion": "FLIXO-BOT-BRAIN-v2",
+      "cognitiveParity": "EXACT_SHARED_BY_REFERENCE",
+      "sourceMutationOwner": "ACTION-REPAIR",
+      "pushAuthority": "CHAIR_1_ONLY",
+      "peerOf": "ACTION-CONVERGENCE-8",
+      "challengeRequired": true
+    },
+    {
+      "id": "ACTION-CONVERGENCE-8",
+      "displayName": "Convergence 8",
+      "kind": "ACTION_REPAIR_BOT",
+      "status": "READY",
+      "workerIndex": 12,
+      "role": "ACTION_FINAL_CERTIFIER",
+      "mission": "Final verification and Exact-SHA evidence assembly; cannot mutate source, tests, main, or publish/push.",
+      "weakness": "FINAL_EXACT_SHA_CERTIFICATION",
+      "headquarters": "docs/agents/historical-action-errors",
+      "sharedReferences": [
+        "docs/AUTO_REPAIR_HISTORY.jsonl",
+        "diagnostics/auto-repair/memory.json",
+        "docs/agents/HISTORICAL-REPAIR-KNOWLEDGE.json",
+        "docs/agents/ERROR-TEACHING-ROUTER.json",
+        "docs/agents/INFERENTIAL-REPAIR-INTELLIGENCE.md",
+        "docs/agents/historical-action-errors/index.json",
+        "docs/agents/historical-action-errors/records"
+      ],
+      "personalMemoryFile": "diagnostics/auto-repair/action-repair-bots/ACTION-CONVERGENCE-8.json",
+      "mutationAuthority": false,
+      "executionAuthority": "ANALYSIS_AND_HANDOFF_ONLY",
+      "returnPolicy": "RETURN_KNOWLEDGE_TO_ACTION_REPAIR_SQUAD",
+      "currentAssignment": null,
+      "independentDevelopment": true,
+      "cloneSource": "FLIXO-BOT-SYSTEM-WIDE-INTELLIGENCE",
+      "intelligenceVersion": "FLIXO-BOT-BRAIN-v2",
+      "cognitiveParity": "EXACT_SHARED_BY_REFERENCE",
+      "sourceMutationOwner": "ACTION-REPAIR",
+      "pushAuthority": "CHAIR_1_ONLY",
+      "adversarialPeer": "ACTION-SHA-7",
+      "requiresAdversarialChallenge": true,
+      "canPush": false,
+      "canMutate": false
+    }
+  ],
+  "sourceIndexSnapshot": {
+    "sourceUpdatedAt": "2026-09-20T11:55:51.945Z",
+    "recordCount": 2
+  },
+  "repairExecutor": {
+    "id": "ACTION-REPAIR",
+    "displayName": "بوت إصلاح Actions",
+    "kind": "ACTION_REPAIR_EXECUTOR",
+    "status": "READY",
+    "role": "ACTION_REPAIR_EXECUTOR",
+    "mission": "Executes the bounded source repair selected from the ten Actions knowledge-analysis workers, then runs targeted regression and returns the result to canonical CI.",
+    "protocolActor": "actionRepairBot",
+    "workflow": ".github/workflows/auto-repair.yml",
+    "engine": "scripts/ci/auto-repair-engine.mjs",
+    "mutationAuthority": true,
+    "executionAuthority": "SOURCE_MUTATION_VIA_REPAIR_PROTOCOL",
+    "mutationScope": "ERROR_ONLY",
+    "branch": "execution",
+    "maxAttemptsPerFingerprint": 1000000,
+    "knowledgeSource": "ACTION-WISE+ACTION-INDEX+ACTION-10-WORKER-HANDOFFS",
+    "historicalSource": "ACTION-INDEX",
+    "proofAuthority": "CURRENT_EXACT_SHA_CI_ONLY",
+    "canonicalGreenAuthority": "DAILY_FLIXO_GREEN_GATE",
+    "canMutateMain": false,
+    "canMutateTests": false,
+    "canMutateProtectedControlPlane": false,
+    "independentAuthorityMayTransfer": false,
+    "indexOwner": true,
+    "ownsActionIndex": true,
+    "indexPath": "docs/agents/historical-action-errors/index.json",
+    "indexRecordsPath": "docs/agents/historical-action-errors/records",
+    "directActionSearch": true,
+    "searchEngine": "scripts/ci/historical-action-error-index.mjs",
+    "searchScope": [
+      "CURRENT_TARGET_ACTION_LOG",
+      "HISTORICAL_ACTION_ERROR_CORPUS"
+    ],
+    "searchBeforeMutation": true,
+    "canonicalSearchOwner": "ACTION-REPAIR"
+  },
+  "parallelCouncil": {
+    "id": "ACTION-COUNCIL-20",
+    "displayName": "مجلس إصلاح Actions — 20 وكيل",
+    "purpose": "Receives a read-only snapshot of ACTION-REPAIR knowledge, analyzes the same incident in parallel, and submits independent repair candidates to ACTION-ARBITER.",
+    "activation": "ON_DEMAND_OR_ESCALATED",
+    "sourceBot": "ACTION-REPAIR",
+    "knowledgeTransferMode": "SNAPSHOT_ONLY",
+    "workerCount": 20,
+    "parallel": true,
+    "mutationAuthority": false,
+    "executionAuthority": "ANALYSIS_ONLY",
+    "workers": [
+      {
+        "id": "ACTION-COUNCIL-01",
+        "index": 1,
+        "specialization": "DIRECT_LOG_CAUSAL",
+        "mutationAuthority": false,
+        "executionAuthority": "ANALYSIS_ONLY",
+        "knowledgeSource": "ACTION-REPAIR",
+        "canWriteRepository": false
+      },
+      {
+        "id": "ACTION-COUNCIL-02",
+        "index": 2,
+        "specialization": "HISTORICAL_MATCH",
+        "mutationAuthority": false,
+        "executionAuthority": "ANALYSIS_ONLY",
+        "knowledgeSource": "ACTION-REPAIR",
+        "canWriteRepository": false
+      },
+      {
+        "id": "ACTION-COUNCIL-03",
+        "index": 3,
+        "specialization": "RCA_PATTERN",
+        "mutationAuthority": false,
+        "executionAuthority": "ANALYSIS_ONLY",
+        "knowledgeSource": "ACTION-REPAIR",
+        "canWriteRepository": false
+      },
+      {
+        "id": "ACTION-COUNCIL-04",
+        "index": 4,
+        "specialization": "REGEX_WORKFLOW",
+        "mutationAuthority": false,
+        "executionAuthority": "ANALYSIS_ONLY",
+        "knowledgeSource": "ACTION-REPAIR",
+        "canWriteRepository": false
+      },
+      {
+        "id": "ACTION-COUNCIL-05",
+        "index": 5,
+        "specialization": "RUNNER_CONTROL",
+        "mutationAuthority": false,
+        "executionAuthority": "ANALYSIS_ONLY",
+        "knowledgeSource": "ACTION-REPAIR",
+        "canWriteRepository": false
+      },
+      {
+        "id": "ACTION-COUNCIL-06",
+        "index": 6,
+        "specialization": "DEPENDENCY_BUILD",
+        "mutationAuthority": false,
+        "executionAuthority": "ANALYSIS_ONLY",
+        "knowledgeSource": "ACTION-REPAIR",
+        "canWriteRepository": false
+      },
+      {
+        "id": "ACTION-COUNCIL-07",
+        "index": 7,
+        "specialization": "BROWSER_RUNTIME",
+        "mutationAuthority": false,
+        "executionAuthority": "ANALYSIS_ONLY",
+        "knowledgeSource": "ACTION-REPAIR",
+        "canWriteRepository": false
+      },
+      {
+        "id": "ACTION-COUNCIL-08",
+        "index": 8,
+        "specialization": "ARTIFACT_INTEGRITY",
+        "mutationAuthority": false,
+        "executionAuthority": "ANALYSIS_ONLY",
+        "knowledgeSource": "ACTION-REPAIR",
+        "canWriteRepository": false
+      },
+      {
+        "id": "ACTION-COUNCIL-09",
+        "index": 9,
+        "specialization": "PERMISSIONS",
+        "mutationAuthority": false,
+        "executionAuthority": "ANALYSIS_ONLY",
+        "knowledgeSource": "ACTION-REPAIR",
+        "canWriteRepository": false
+      },
+      {
+        "id": "ACTION-COUNCIL-10",
+        "index": 10,
+        "specialization": "EXTERNAL_PROVIDER",
+        "mutationAuthority": false,
+        "executionAuthority": "ANALYSIS_ONLY",
+        "knowledgeSource": "ACTION-REPAIR",
+        "canWriteRepository": false
+      },
+      {
+        "id": "ACTION-COUNCIL-11",
+        "index": 11,
+        "specialization": "SHA_PROVENANCE",
+        "mutationAuthority": false,
+        "executionAuthority": "ANALYSIS_ONLY",
+        "knowledgeSource": "ACTION-REPAIR",
+        "canWriteRepository": false
+      },
+      {
+        "id": "ACTION-COUNCIL-12",
+        "index": 12,
+        "specialization": "REPAIR_SCOPE",
+        "mutationAuthority": false,
+        "executionAuthority": "ANALYSIS_ONLY",
+        "knowledgeSource": "ACTION-REPAIR",
+        "canWriteRepository": false
+      },
+      {
+        "id": "ACTION-COUNCIL-13",
+        "index": 13,
+        "specialization": "ANTI_LESSON",
+        "mutationAuthority": false,
+        "executionAuthority": "ANALYSIS_ONLY",
+        "knowledgeSource": "ACTION-REPAIR",
+        "canWriteRepository": false
+      },
+      {
+        "id": "ACTION-COUNCIL-14",
+        "index": 14,
+        "specialization": "PLAYBOOK_TRANSFER",
+        "mutationAuthority": false,
+        "executionAuthority": "ANALYSIS_ONLY",
+        "knowledgeSource": "ACTION-REPAIR",
+        "canWriteRepository": false
+      },
+      {
+        "id": "ACTION-COUNCIL-15",
+        "index": 15,
+        "specialization": "INFERENCE_SYNTHESIS",        "mutationAuthority": false,
+        "executionAuthority": "ANALYSIS_ONLY",
+        "knowledgeSource": "ACTION-REPAIR",
+        "canWriteRepository": false
+      },
+      {
+        "id": "ACTION-COUNCIL-16",
+        "index": 16,
+        "specialization": "REGRESSION_PLAN",
+        "mutationAuthority": false,
+        "executionAuthority": "ANALYSIS_ONLY",
+        "knowledgeSource": "ACTION-REPAIR",
+        "canWriteRepository": false
+      },
+      {
+        "id": "ACTION-COUNCIL-17",
+        "index": 17,
+        "specialization": "RECURRENCE_RISK",
+        "mutationAuthority": false,
+        "executionAuthority": "ANALYSIS_ONLY",
+        "knowledgeSource": "ACTION-REPAIR",
+        "canWriteRepository": false
+      },
+      {
+        "id": "ACTION-COUNCIL-18",
+        "index": 18,
+        "specialization": "SECURITY_BOUNDARY",
+        "mutationAuthority": false,
+        "executionAuthority": "ANALYSIS_ONLY",
+        "knowledgeSource": "ACTION-REPAIR",
+        "canWriteRepository": false
+      },
+      {
+        "id": "ACTION-COUNCIL-19",
+        "index": 19,
+        "specialization": "CHANGE_MINIMALITY",
+        "mutationAuthority": false,
+        "executionAuthority": "ANALYSIS_ONLY",
+        "knowledgeSource": "ACTION-REPAIR",
+        "canWriteRepository": false
+      },
+      {
+        "id": "ACTION-COUNCIL-20",
+        "index": 20,
+        "specialization": "FULL_CASE_REVIEW",
+        "mutationAuthority": false,
+        "executionAuthority": "ANALYSIS_ONLY",
+        "knowledgeSource": "ACTION-REPAIR",
+        "canWriteRepository": false
+      }
+    ],
+    "arbiter": {
+      "id": "ACTION-ARBITER",
+      "role": "FINAL_REPAIR_PROPOSAL_ARBITER",
+      "mutationAuthority": false,
+      "executionAuthority": "ACCEPT_OR_REJECT_PROPOSAL_ONLY",
+      "acceptanceDoesNotMeanCanonicalGreen": true,
+      "canonicalGreenAuthority": "DAILY_FLIXO_GREEN_GATE",
+      "downstreamExecutor": "ACTION-REPAIR"
+    }
+  },
+  "pairedRepairControl": {
+    "id": "ACTION-REPAIR-PAIR",
+    "headquarters": "docs/agents/historical-action-errors",
+    "primary": {
+      "id": "ACTION-REPAIR",
+      "displayName": "بوت إصلاح Actions 1",
+      "mutationAuthority": true,
+      "approvalAuthority": true
+    },
+    "assistant": {
+      "id": "ACTION-REPAIR-2",
+      "displayName": "بوت إصلاح Actions 2 — Programmer Twin",
+      "mutationAuthority": false,
+      "executionAuthority": "INDEPENDENT_PROGRAMMER_TWIN_VERIFIER",
+      "approvalRequiredFrom": "ACTION-REPAIR",
+      "canPrepare": true,
+      "canAudit": true,
+      "canLearn": true,
+      "canWriteRepository": false,
+      "canBypassPrimary": false
+    },
+    "binding": {
+      "sameHeadquarters": true,
+      "sameFailureFingerprint": true,
+      "sameExactSha": true,
+      "sharedMissionIdRequired": true,
+      "mutualHeartbeatRequired": true,
+      "freezeDetection": true,
+      "failClosedOnMissingHeartbeat": true,
+      "failClosedOnApprovalMismatch": true,
+      "noIndependentPromotion": true,
+      "verifierChallengeRequired": true,
+      "verifierProofArtifact": "action-repair-2-proposal.json",
+      "verifierProofBinding": [
+        "sameHeadquarters",
+        "sameFailureFingerprint",
+        "sameExactSha"
+      ],
+      "fallbackMutationRequires": [
+        "ACTION-REPAIR approval",
+        "READY_FOR_MUTATION heartbeat",
+        "current exact SHA",
+        "verifier challenge passed",
+        "normal Repair Protocol admission"
+      ],
+      "programmerTwinParityRequired": true,
+      "programmerTwinParityArtifact": "/tmp/action-repair-twin-parity.json",
+      "programmerTwinParity": [
+        "sameExactSha",
+        "sameFailureFingerprint",
+        "sameProgrammingIntelligence"
+      ],
+      "verifierRole": "EXACT_PROGRAMMER_TWIN"
+    },
+    "nonGreenLearning": {
+      "recordEveryRedNotGreen": true,
+      "source": "CURRENT_ACTION_RUN + independent-programmer-twin-analysis + file-selection + repair-memory",
+      "durablePath": "diagnostics/auto-repair/action-repair-bots/ACTION-REPAIR-2.json",
+      "promotion": "ONLY_AFTER_CANONICAL_GREEN",
+      "nonGreenPersistence": "ARTIFACT_AND_NEXT_MISSION_CONTEXT"
+    }
+  },
+  "assistant": {
+    "id": "ACTION-REPAIR-2",
+    "displayName": "بوت مساعد إصلاح Actions",
+    "kind": "ACTION_REPAIR_ASSISTANT",
+    "status": "READY",
+    "role": "ACTION_REPAIR_ASSISTANT",
+    "mission": "Audit every RED case, retain every non-green case for learning, challenge ACTION-REPAIR, prepare repair proposals, and execute only after explicit machine approval from ACTION-REPAIR.",
+    "protocolActor": "actionRepairAssistant",
+    "workflow": ".github/workflows/auto-repair.yml",
+    "engine": "scripts/ci/auto-repair-engine.mjs",
+    "headquarters": "docs/agents/historical-action-errors",
+    "mutationAuthority": true,
+    "executionAuthority": "MUTATION_GATED_BY_ACTION_REPAIR",
+    "requiredApprover": "ACTION-REPAIR",
+    "mutationScope": "ERROR_ONLY",
+    "branch": "execution",
+    "canMutateMain": false,
+    "canMutateTests": false,
+    "canMutateProtectedControlPlane": false,
+    "directActionSearch": true,
+    "selfLearning": true,
+    "auditAuthority": true,
+    "nonGreenRecorder": true,
+    "permanentMemory": "diagnostics/auto-repair/action-repair-bots/ACTION-REPAIR-2.json",
+    "approvalProtocol": "scripts/ci/action-repair-dual-control.mjs",
+    "canFreezeRepair": false,
+    "partnerRequired": "ACTION-REPAIR",
+    "verifierMode": {
+      "enabled": true,
+      "mutationInVerifierMode": false,
+      "fallbackExecutor": "assistantRepairAgent",
+      "fallbackRequiresPrimaryApproval": true,
+      "verifierProofRequired": true
+    }
+  },
+  "officialWorkplace": {
+    "id": "ACTION-VAULT",
+    "name": "قبو Actions",
+    "path": "diagnostics/auto-repair/action-vault",
+    "purpose": "Official isolated workplace for Actions repair exploration, learning, task handoff and provenance; completely separate from CELL.",
+    "separateFromCell": true,
+    "mayWriteTestLogs": false,
+    "mayModifyWorkflowLogs": false,
+    "canonicalTaskStore": "diagnostics/auto-repair/action-vault/tasks.jsonl",
+    "canonicalSolutionIndex": "diagnostics/auto-repair/action-vault/solution-index.json",
+    "canonicalFirstSeenIndex": "diagnostics/auto-repair/action-vault/first-seen.json",
+    "testSystemsDirectory": "diagnostics/auto-repair/action-vault/test-systems"
+  },
+  "monitoringBots": [],
+  "activeRepairLane": {
+    "policy": "TURN_TAKES_OWNERSHIP",
+    "firstBot": "ACTION-REPAIR",
+    "secondBot": "ACTION-REPAIR-2",
+    "turnSelection": "ODD_ATTEMPT_PRIMARY_EVEN_ATTEMPT_ASSISTANT",
+    "firstAttemptIsAlwaysPrimary": true,
+    "failoverAfter": "FAILED_REPAIR_OR_UNREPAIRED",
+    "resumeFromSleep": "FORBIDDEN_NO_SLEEP_STATE",
+    "terminalCondition": "ZERO_ACTIONABLE_RED_OR_BLOCKED_EXTERNAL",
+    "noIdleWithoutTask": true,
+    "noMonitoringBot": true
+  },
+  "assistantBot3": {
+    "id": "ACTION-HISTORIAN-3",
+    "displayName": "بوت سجل Actions 3",
+    "kind": "ACTION_HISTORIAN_INDEXER",
+    "status": "READY",
+    "role": "ACTION_TASK_HISTORIAN_AND_SOLUTION_INDEXER",
+    "mission": "سجل كل RED، كل محاولة، كل تغيير حتى GREEN، ويعيد ترتيب فهرس الحلول؛ ويصعد أول ظهور للمشكلة على مستوى المستودع إلى Master.",
+    "headquarters": "diagnostics/auto-repair/action-vault",
+    "mutationAuthority": false,
+    "executionAuthority": "RECORD_AND_INDEX_ONLY",
+    "canWriteTestLogs": false,
+    "canModifyWorkflowLogs": false,
+    "canMutateSource": false,
+    "canDispatchRepair": false,
+    "masterEscalationOnFirstRepositoryOccurrence": true,
+    "personalMemoryFile": "diagnostics/auto-repair/action-repair-bots/ACTION-HISTORIAN-3.json"
+  },
+  "learningChatMesh": {
+    "id": "ACTION-BOT-CHAT-MESH",
+    "headquarters": "diagnostics/auto-repair/action-vault",
+    "transport": "scripts/ci/action-bot-chat.mjs",
+    "participants": [
+      "ACTION-MASTER",
+      "ACTION-REPAIR",
+      "ACTION-REPAIR-2",
+      "ACTION-HISTORIAN-3",
+      "ACTION-TWIN-1",
+      "ACTION-TWIN-2",
+      "ACTION-INDEX",
+      "ACTION-WISE",
+      "ACTION-RCA-3",
+      "ACTION-IMPACT-4",
+      "ACTION-SECURITY-5",
+      "ACTION-REGRESSION-6",
+      "ACTION-SHA-7",
+      "ACTION-CONVERGENCE-8"
+    ],
+    "directBotToBot": true,
+    "taskAssignment": true,
+    "explorationExchange": true,
+    "resultExchange": true,
+    "sameMissionRequired": true,
+    "sameFailureFingerprintRequired": true,
+    "sameExactShaRequired": true,
+    "messageKinds": [
+      "TASK_ASSIGNMENT",
+      "OBSERVATION",
+      "QUESTION",
+      "CHALLENGE",
+      "SOLUTION_PROPOSAL",
+      "HANDOFF",
+      "RESULT",
+      "LESSON",
+      "BLOCKED_EXTERNAL"
+    ],
+    "learningPolicy": {
+      "ingestImmediately": true,
+      "unverifiedAllowedForCurrentMission": true,
+      "promoteSharedKnowledgeOnlyAfterCanonicalGreen": true,
+      "neverPromoteExternalFailureAsSourceSolution": true
+    },
+    "authorityPolicy": {
+      "chatDoesNotGrantMutationAuthority": true,
+      "taskOwnershipRemainsWithActiveRepairBot": true,
+      "canonicalCiRemainsGreenAuthority": true
+    }
+  },
+  "threeBotCollaboration": {
+    "id": "ACTION-THREE-BOT-COLLABORATION",
+    "contract": "diagnostics/auto-repair/action-vault/ACTION-THREE-BOT-INTELLIGENCE.json",
+    "runtime": "scripts/ci/action-three-bot-collaboration.mjs",
+    "activeOn": "ANY_ACTIONABLE_RED",
+    "participants": [
+      "ACTION-REPAIR",
+      "ACTION-REPAIR-2",
+      "ACTION-HISTORIAN-3"
+    ],
+    "sameMission": true,
+    "sameFailureFingerprint": true,
+    "sameExactSha": true,
+    "sameFailedRun": true,
+    "mandatoryEvidenceExchange": true,
+    "mandatoryChallenge": true,
+    "mandatoryHistorianRecord": true,
+    "repairObjective": "ONE_SHARED_REPAIR_OBJECTIVE",
+    "authority": "ONE_ACTIVE_REPAIR_OWNER",
+    "handoff": "ONLY_AFTER_DOCUMENTED_FAILURE_OR_UNREPAIRED",
+    "greenAuthority": "DAILY_FLIXO_GREEN_GATE",
+    "noMonitoringBot": true,
+    "separateFromCell": true,
+    "proofGate": {
+      "enabled": true,
+      "verifier": "ACTION-REPAIR-2",
+      "artifact": "action-repair-2-proposal.json",
+      "exactSha": true,
+      "failureFingerprint": true,
+      "alternativesRequired": true,
+      "falsificationChecksRequired": true,
+      "counterEvidenceRequired": true,
+      "mutationBlockedWithoutProof": true,
+      "verifierRole": "EXACT_PROGRAMMER_TWIN",
+      "programmerTwinParityRequired": true,
+      "programmerTwinParityArtifact": "/tmp/action-repair-twin-parity.json"
+    },
+    "fileSelectionGate": {
+      "enabled": true,
+      "agent": "ACTION-HISTORIAN-3",
+      "protocol": "ACTION-FILE-SELECTION-INTELLIGENCE-v1",
+      "artifact": "/tmp/action-file-selection-decision.json",
+      "exactSha": true,
+      "failureFingerprint": true,
+      "pathOnly": true,
+      "codeContentRead": false,
+      "minimumSelectedFiles": 1,
+      "mutationBlockedWithoutFileSelection": true,
+      "excludedFilesNeedNewEvidence": true
+    },
+    "cognitiveAwarenessGate": {
+      "enabled": true,
+      "protocol": "ACTION-SYSTEM-COGNITIVE-AWARENESS-v1",
+      "artifact": "/tmp/action-system-cognitive-awareness.json",
+      "exactSha": true,
+      "allParticipantsConsumeSamePacket": true,
+      "contextBeforeRoleReasoning": true,
+      "mutationAuthorityUnchanged": true,
+      "reEvaluateOnNewEvidence": true
+    }
+  },
+  "coreThreeBotContract": {
+    "ACTION-REPAIR": {
+      "intelligenceProfileRef": "diagnostics/auto-repair/action-vault/ACTION-THREE-BOT-INTELLIGENCE.json",
+      "role": "PRIMARY_REPAIR_OWNER",
+      "executionAuthority": "MUTATE_WHEN_TASK_OWNER",
+      "cooperation": "MANDATORY_ON_RED"
+    },
+    "ACTION-REPAIR-2": {
+      "intelligenceProfileRef": "diagnostics/auto-repair/action-vault/ACTION-THREE-BOT-INTELLIGENCE.json",
+      "role": "EXACT_PROGRAMMER_TWIN_VERIFIER",
+      "executionAuthority": "READ_ANALYZE_CHALLENGE_PROPOSE_ONLY",
+      "cooperation": "MANDATORY_ON_RED",
+      "intelligenceParity": "EXACT_WITH_ACTION-REPAIR",
+      "sourceMutation": false
+    },
+    "ACTION-HISTORIAN-3": {
+      "intelligenceProfileRef": "diagnostics/auto-repair/action-vault/ACTION-THREE-BOT-INTELLIGENCE.json",
+      "role": "FILE_SELECTION_INTELLIGENCE_AND_FAILURE_HISTORIAN",
+      "executionAuthority": "READ_ONLY_SELECTION_RECORD_INDEX_ESCALATE_ONLY",
+      "cooperation": "MANDATORY_ON_RED_BEFORE_PROGRAMMER_REASONING",
+      "fileSelectionProtocol": "ACTION-FILE-SELECTION-INTELLIGENCE-v1",
+      "sourceMutation": false
+    }
+  },
+  "residencyPolicy": {
+    "id": "ACTION-RESIDENCY-POLICY",
+    "path": "diagnostics/auto-repair/action-vault/ACTION-RESIDENCY-POLICY.json",
+    "residents": [
+      "ACTION-REPAIR",
+      "ACTION-REPAIR-2",
+      "ACTION-HISTORIAN-3"
+    ],
+    "alwaysResident": true,
+    "leaveVault": false,
+    "maxOperationsPerBot": 2000000,
+    "visitsPerBotPerDay": 3,
+    "totalAutomaticVisitsPerDay": 9,
+    "closure": "CANONICAL_GREEN_ONLY",
+    "escalationAfterFailedAttempts": 20,
+    "supervisorRecipient": "assistantController",
+    "supervisorRoute": "scripts/ci/agent-communication.mjs -> .github/workflows/agent-communication-relay.yml"
+  },
+  "programmerTwin": {
+    "enabled": true,
+    "protocol": "ACTION-PROGRAMMER-TWIN-PARITY-v1",
+    "runtime": "scripts/ci/action-repair-twin-parity.mjs",
+    "artifact": "/tmp/action-repair-twin-parity.json",
+    "primary": "ACTION-REPAIR",
+    "twin": "ACTION-REPAIR-2",
+    "intelligenceParity": "EXACT",
+    "authorityParity": "SEPARATED_BY_DESIGN",
+    "mutationOwner": "ACTION-REPAIR",
+    "cognitiveAwarenessProtocol": "ACTION-SYSTEM-COGNITIVE-AWARENESS-v1",
+    "sharedSystemContextArtifact": "/tmp/action-system-cognitive-awareness.json"
+  },
+  "cognitiveClone": {
+    "id": "REPAIR-AGENT-COGNITIVE-CLONE",
+    "displayName": "Repair Agent Cognitive Clone",
+    "kind": "COGNITIVE_REPAIR_CLONE",
+    "status": "READY",
+    "role": "INDEPENDENT_COGNITIVE_REPAIR_PEER",
+    "protocolActor": "repairAgentClone",
+    "cognitiveParity": "EXACT",
+    "sharedCognitiveEngine": "scripts/ci/repair-bot-training.mjs",
+    "capabilities": [
+      "RCA",
+      "HYPOTHESIS_GENERATION",
+      "HISTORICAL_REPLAY",
+      "NEGATIVE_LEARNING",
+      "BEHAVIORAL_SEQUENCE_LEARNING",
+      "STATE_ACTION_LEARNING",
+      "FEEDBACK_REWARD_LEARNING",
+      "COUNTERFACTUAL_AVOIDANCE",
+      "RECURRENCE_PREDICTION",
+      "CALIBRATION",
+      "ABSTENTION",
+      "ANTI_FORGETTING",
+      "HELD_OUT_MASTERY",
+      "EXACT_SHA_PROVENANCE",
+      "ADVERSARIAL_CHALLENGE",
+      "EVIDENCE_RANKING",
+      "STRATEGY_SELECTION",
+      "STRATEGY_DEDUCTION",
+      "LEARNING_PROMOTION",
+      "REPLAYABLE_PROVENANCE"
+    ],
+    "mutationAuthority": false,
+    "executionAuthority": "INDEPENDENT_ANALYSIS_CHALLENGE_PROPOSE_ONLY",
+    "repositoryWrite": false,
+    "canMutateMain": false,
+    "canMutateTests": false,
+    "canMutateProtectedControlPlane": false,
+    "greenAuthority": false,
+    "certificationAuthority": false,
+    "independentChallenge": true,
+    "sameExactShaRequired": true,
+    "sameFailureFingerprintRequired": true,
+    "learning": {
+      "independentReplay": true,
+      "sharedEvidenceSource": "repairAgent",
+      "ownMemory": "diagnostics/auto-repair/repair-agent-clone",
+      "negativeLearning": true,
+      "antiLessonConsumption": true,
+      "counterfactualLearning": true,
+      "promoteAfterCanonicalGreen": true
+    },
+    "adversarial": {
+      "enabled": true,
+      "challengePrimary": true,
+      "proposeAlternative": true,
+      "counterexampleSearch": true,
+      "mayOverridePrimary": false,
+      "mayAuthorizeMutation": false
+    }
+  },
+  "adversarialConvergenceLoop": {
+    "protocol": "FLIXO-ADVERSARIAL-CONVERGENCE-v1",
+    "loop": "REPAIR ↔ ADVERSARIAL_CHALLENGE ↔ REPAIR",
+    "primaryOwner": "repairAgent",
+    "cognitiveAdversary": "repairAgentClone",
+    "sameExactShaRequired": true,
+    "sameFailureFingerprintRequired": true,
+    "counterexamplePolicy": "INVALIDATE_CANDIDATE_AND_REQUEUE",
+    "stabilityCondition": [
+      "EXACT_SHA_VERIFIED",
+      "TARGETED_REGRESSION_PASS",
+      "ADVERSARIAL_NO_COUNTEREXAMPLE",
+      "NO_EARLY_ABORT",
+      "INDEPENDENT_CHAIR_AUDIT",
+      "GUARDED_PUBLICATION"
+    ],
+    "pushAuthority": "GUARDED_CHAIR_PUBLICATION_ONLY",
+    "greenAuthority": "DAILY_FLIXO_GREEN_GATE",
+    "promotionOnlyAfterCanonicalGreen": true,
+    "negativeLearningOnCounterexample": true,
+    "guidanceArtifact": "/tmp/flixo-adversarial-convergence.json",
+    "maxFiniteAttempts": false,
+    "terminalCondition": "CANONICAL_GREEN_ONLY"
+  },
+  "lastSeatChallenge": {
+    "model": "FINAL_CERTIFIER_WITH_INDEPENDENT_ADVERSARY",
+    "certifier": "ACTION-CONVERGENCE-8",
+    "adversary": "ACTION-SHA-7",
+    "sameExactShaRequired": true,
+    "counterexampleBlocksCertification": true,
+    "certifierCannotPush": true,
+    "certifierCannotMutate": true
+  },
+  "flixo10Team": {
+    "protocol": "FLIXO10-FULL-SYSTEM-REPAIR-v1",
+    "count": 10,
+    "ids": [
+      "FLIXO1",
+      "FLIXO2",
+      "FLIXO3",
+      "FLIXO4",
+      "FLIXO5",
+      "FLIXO6",
+      "FLIXO7",
+      "FLIXO8",
+      "FLIXO9",
+      "FLIXO10"
+    ],
+    "architecture": "TEN_AWAKE_WORKERS_WITH_SINGLE_ACTIVE_MUTATION_SEAT",
+    "systemScope": "FULL_REPOSITORY_AND_AUTOMATION_SYSTEM",
+    "workflow": "ACTIVE_WORKER:READ→DIAGNOSE→WRITE_PROPOSAL→EVIDENCE→HANDOFF",
+    "proposalPolicy": "ACTIVE_WORKER_ONLY",
+    "proposalMutationAuthority": false,
+    "pushSeat": {
+      "type": "SINGLE_ACTIVE_WORKER_SEAT",
+      "claimCommand": "worker-seat-claim-via-task-claim",
+      "heartbeatCommand": "worker-seat-heartbeat",
+      "statusCommand": "worker-seat-status",
+      "sameTaskOnly": true,
+      "sameExactShaRequired": true,
+      "firstSuccessfulClaimWins": false,
+      "immutableOwnerUntilTaskCompletion": true,
+      "peerTakeover": false,
+      "automaticReassignment": true,
+      "abandonmentForbidden": true,
+      "mergeParallelProposals": true,
+      "conflictPolicy": "FAIL_CLOSED_RECONCILE_ON_CURRENT_EXACT_SHA",
+      "publicationPath": "ASSISTANT_CONTROLLER_GUARDED_PUBLICATION",
+      "branch": "execution",
+      "ownership": "ACTIVE_WORKER_ONLY",
+      "failover": "NEXT_WORKER_AFTER_STALE_HEARTBEAT",
+      "reassignmentOrder": [
+        "FLIXO1",
+        "FLIXO2",
+        "FLIXO3",
+        "FLIXO4",
+        "FLIXO5",
+        "FLIXO6",
+        "FLIXO7",
+        "FLIXO8",
+        "FLIXO9",
+        "FLIXO10"
+      ]
+    },
+    "seats": [
+      {
+        "id": "FLIXO1",
+        "legacyRole": "ACTION-TWIN-1",
+        "systemLens": "WHOLE_SYSTEM_RCA_AND_ARCHITECTURE"
+      },
+      {
+        "id": "FLIXO2",
+        "legacyRole": "ACTION-TWIN-2",
+        "systemLens": "WHOLE_SYSTEM_CODE_AND_RUNTIME"
+      },
+      {
+        "id": "FLIXO3",
+        "legacyRole": "ACTION-INDEX",
+        "systemLens": "WHOLE_SYSTEM_TEST_AND_CONTRACT"
+      },
+      {
+        "id": "FLIXO4",
+        "legacyRole": "ACTION-WISE",
+        "systemLens": "WHOLE_SYSTEM_CI_AND_WORKFLOW"
+      },
+      {
+        "id": "FLIXO5",
+        "legacyRole": "ACTION-RCA-3",
+        "systemLens": "WHOLE_SYSTEM_SECURITY_AND_CONTROL_PLANE"
+      },
+      {
+        "id": "FLIXO6",
+        "legacyRole": "ACTION-IMPACT-4",
+        "systemLens": "WHOLE_SYSTEM_BROWSER_AND_CLIENT_RUNTIME"
+      },
+      {
+        "id": "FLIXO7",
+        "legacyRole": "ACTION-SECURITY-5",
+        "systemLens": "WHOLE_SYSTEM_DEPENDENCY_BUILD_AND_PERFORMANCE"
+      },
+      {
+        "id": "FLIXO8",
+        "legacyRole": "ACTION-REGRESSION-6",
+        "systemLens": "WHOLE_SYSTEM_REPAIR_SYNTHESIS_AND_REGRESSION"
+      },
+      {
+        "id": "FLIXO9",
+        "legacyRole": "ACTION-SHA-7",
+        "systemLens": "WHOLE_SYSTEM_ADVERSARIAL_FALSE_GREEN_FALSIFICATION"
+      },
+      {
+        "id": "FLIXO10",
+        "legacyRole": "ACTION-CONVERGENCE-8",
+        "systemLens": "WHOLE_SYSTEM_FINAL_EVIDENCE_AND_CERTIFICATION_CHALLENGE"
+      }
+    ],
+    "pushOwnerResponsibilities": [
+      "claim first connected push seat atomically through canonical coordination control plane",
+      "collect all parallel proposals bound to same task and exact SHA",
+      "re-read current exact execution SHA before integration",
+      "merge compatible proposals into one candidate without silent overwrite",
+      "block and reconcile conflicting proposals instead of choosing by last-writer-wins",
+      "run targeted regression and required proof before guarded publication",
+      "retain ownership until canonical task completion",
+      "never abandon, self-release, or transfer the push seat to a peer"
+    ],
+    "pairs": [],
+    "pairPolicy": {
+      "sequence": "ACTIVE_WORKER_READ→DIAGNOSE→EVIDENCE→HANDOFF",
+      "requiredEdges": 0,
+      "allEdgesRequired": false,
+      "sameTaskRequired": true,
+      "sameFailureFingerprintRequired": true,
+      "sameExactShaRequired": true,
+      "concurrentAdversarialRing": false,
+      "counterexampleStillRequiredBeforePublication": true,
+      "noLastWriterWins": true,
+      "noSilentOverwrite": true
+    },
+    "pushAdmissionPolicy": {
+      "logicalPushSeat": "ACTIVE_FLIXO_WORKER",
+      "simultaneousActiveWorkers": 1,
+      "ownerCannotAbandon": true,
+      "peerTakeoverForbidden": true,
+      "failoverOnlyAfterStaleHeartbeat": true,
+      "proposalAggregation": "SINGLE_ACTIVE_WORKER_HANDOFF",
+      "conflicts": "FAIL_CLOSED_RECONCILE_CURRENT_SHA",
+      "requiresPairGate": "NOT_APPLICABLE",
+      "requiresCounterexampleProof": true,
+      "requiresRequiredRedCount": 0,
+      "requiresTargetedRegression": true,
+      "requiresExactSha": true,
+      "requiresRequiredCi": true,
+      "canonicalPublicationAuthority": "assistantController",
+      "directGitPushByBot": false
+    },
+    "seatAssignments": {
+      "FLIXO1": {
+        "lens": "WHOLE_SYSTEM_RCA_AND_ARCHITECTURE",
+        "phase": "ACTIVE_BY_DEFAULT",
+        "activation": "EVERY_ONE_MINUTE_HEARTBEAT_WAKE",
+        "reserveOrder": 1,
+        "activeWorkerEligible": true,
+        "concurrentExecution": false,
+        "sameTaskOnFailover": true
+      },
+      "FLIXO2": {
+        "lens": "WHOLE_SYSTEM_CODE_AND_RUNTIME",
+        "phase": "WAKE_READY_RESERVE",
+        "activation": "EVERY_ONE_MINUTE_HEARTBEAT_WAKE",
+        "reserveOrder": 2,
+        "activeWorkerEligible": true,
+        "concurrentExecution": false,
+        "sameTaskOnFailover": true
+      },
+      "FLIXO3": {
+        "lens": "WHOLE_SYSTEM_TEST_AND_CONTRACT",
+        "phase": "WAKE_READY_RESERVE",
+        "activation": "EVERY_ONE_MINUTE_HEARTBEAT_WAKE",
+        "reserveOrder": 3,
+        "activeWorkerEligible": true,
+        "concurrentExecution": false,
+        "sameTaskOnFailover": true
+      },
+      "FLIXO4": {
+        "lens": "WHOLE_SYSTEM_CI_AND_WORKFLOW",
+        "phase": "WAKE_READY_RESERVE",
+        "activation": "EVERY_ONE_MINUTE_HEARTBEAT_WAKE",
+        "reserveOrder": 4,
+        "activeWorkerEligible": true,
+        "concurrentExecution": false,
+        "sameTaskOnFailover": true
+      },
+      "FLIXO5": {
+        "lens": "WHOLE_SYSTEM_SECURITY_AND_CONTROL_PLANE",
+        "phase": "WAKE_READY_RESERVE",
+        "activation": "EVERY_ONE_MINUTE_HEARTBEAT_WAKE",
+        "reserveOrder": 5,
+        "activeWorkerEligible": true,
+        "concurrentExecution": false,
+        "sameTaskOnFailover": true
+      },
+      "FLIXO6": {
+        "lens": "WHOLE_SYSTEM_BROWSER_AND_CLIENT_RUNTIME",
+        "phase": "WAKE_READY_RESERVE",
+        "activation": "EVERY_ONE_MINUTE_HEARTBEAT_WAKE",
+        "reserveOrder": 6,
+        "activeWorkerEligible": true,
+        "concurrentExecution": false,
+        "sameTaskOnFailover": true
+      },
+      "FLIXO7": {
+        "lens": "WHOLE_SYSTEM_DEPENDENCY_BUILD_AND_PERFORMANCE",
+        "phase": "WAKE_READY_RESERVE",
+        "activation": "EVERY_ONE_MINUTE_HEARTBEAT_WAKE",
+        "reserveOrder": 7,
+        "activeWorkerEligible": true,
+        "concurrentExecution": false,
+        "sameTaskOnFailover": true
+      },
+      "FLIXO8": {
+        "lens": "WHOLE_SYSTEM_REPAIR_SYNTHESIS_AND_REGRESSION",
+        "phase": "WAKE_READY_RESERVE",
+        "activation": "EVERY_ONE_MINUTE_HEARTBEAT_WAKE",
+        "reserveOrder": 8,
+        "activeWorkerEligible": true,
+        "concurrentExecution": false,
+        "sameTaskOnFailover": true
+      },
+      "FLIXO9": {
+        "lens": "WHOLE_SYSTEM_ADVERSARIAL_FALSE_GREEN_FALSIFICATION",
+        "phase": "WAKE_READY_RESERVE",
+        "activation": "EVERY_ONE_MINUTE_HEARTBEAT_WAKE",
+        "reserveOrder": 9,
+        "activeWorkerEligible": true,
+        "concurrentExecution": false,
+        "sameTaskOnFailover": true
+      },
+      "FLIXO10": {
+        "lens": "WHOLE_SYSTEM_FINAL_EVIDENCE_AND_CERTIFICATION_CHALLENGE",
+        "phase": "WAKE_READY_RESERVE",
+        "activation": "EVERY_ONE_MINUTE_HEARTBEAT_WAKE",
+        "reserveOrder": 10,
+        "activeWorkerEligible": true,
+        "concurrentExecution": false,
+        "sameTaskOnFailover": true
+      }
+    },
+    "ring": {
+      "type": "DISABLED",
+      "reason": "TEN_IDENTITIES_EXIST FOR CONTINUITY; ONLY ONE WORKER MAY EXECUTE",
+      "assignmentOnTaskReceipt": false,
+      "concurrentAdversarialRing": false,
+      "failoverOrder": [
+        "FLIXO1",
+        "FLIXO2",
+        "FLIXO3",
+        "FLIXO4",
+        "FLIXO5",
+        "FLIXO6",
+        "FLIXO7",
+        "FLIXO8",
+        "FLIXO9",
+        "FLIXO10"
+      ],
+      "activeWorkerCount": 1
+    }
+  },
+  "intelligenceVersion": "FLIXO-BOT-BRAIN-v2",
+  "intelligenceKernelRef": "docs/agents/FLIXO-BOT.json#/unifiedCognitiveKernel",
+  "sharedMemoryRef": "diagnostics/auto-repair/SHARED-OPERATIONAL-MEMORY.json",
+  "sharedCognitiveMode": "FULL_SUPERSET_WITH_ROLE_OVERLAYS",
+  "everyWorkerGetsFullCognitiveKernel": true,
+  "roleCannotReduceCognition": true
+}
+
+````
+
+### 18.3 `docs/agents/COUNCIL-ACCOUNT-REGISTRY.md`
+
+Source blob SHA: `e632fd5ef4ac45eba922ded360b65b941802fd8d`
+
+````markdown
+# FLIXO External GPT Council Account Registry
+
+Exactly three external runtime identities are registered:
+
+| accountId | role | transport | allowed action |
+|---|---|---|---|
+| CHIEF | CHIEF | POLL | dispatch WORKER_A / WORKER_B |
+| WORKER_A | WORKER_A | HYBRID | receive, ACK, heartbeat, complete |
+| WORKER_B | WORKER_B | HYBRID | receive, ACK, heartbeat, complete |
+
+Worker fallback is bounded and lease-driven:
+`WORKER_A → WORKER_B` or `WORKER_B → WORKER_A`, one transfer only.
+
+Canonical API:
+`/api/council/external-runtime`
+
+Server-only environment names:
+`COUNCIL_RUNTIME_URL`
+`COUNCIL_DISPATCH_SECRET`
+`COUNCIL_CHIEF_TOKEN`
+`COUNCIL_WORKER_A_TOKEN`
+`COUNCIL_WORKER_B_TOKEN`
+`COUNCIL_WORKER_A_WAKE_ENDPOINT`
+`COUNCIL_WORKER_B_WAKE_ENDPOINT`
+
+The file contains no secret values. It is an Account Registry, not a competing protocol/registry for product capabilities or certification.
+
+
+SYSTEM transport: GitHub Actions uses OIDC for RED dispatch and lease recovery. Worker A/B retain separate account tokens.
+
+## Bridge deployment contract
+
+For each account, configure its `COUNCIL_*_WAKE_ENDPOINT` to the bridge's authenticated `POST /wake` URL. Configure the bridge's `COUNCIL_*_AGENT_ENDPOINT` to the actual external GPT runtime/executor.
+
+The required runtime chain is:
+
+```text
+Council Wake
+→ External GPT Bridge
+→ External GPT Agent Endpoint
+→ ACK
+→ HEARTBEAT
+→ COMPLETE
+→ CHIEF handoff
+```
+
+A bridge process may use POLL alone; PUSH is an acceleration path. Liveness is proven only by the bridge health endpoint and successful ACK/COMPLETE evidence, not by a dispatch row existing in Supabase.
+
+
+## The cell — 50 raw execution slots
+
+`الخلية` is a logical execution-capacity pool of exactly **50 raw slots**:
+
+- `CELL-001` … `CELL-050`
+- State at creation: `UNPROVISIONED`
+- Mode: `RAW`
+- No specialization
+- No independent mutation authority
+- No certification authority
+- No new credentials, endpoints, or external runtime identities
+
+These slots live inside the existing Control Plane and may only become executable when explicitly bound to an already-authorized runtime account and task scope. The cell therefore increases execution capacity without creating a competing account registry, authority layer, or certification path.
+
+
+## Action Agent Triad
+
+The three external identities now have bounded Action-agent profiles:
+
+| Identity | Profile | Responsibility | Mutation |
+|---|---|---|---|
+| CHIEF | ACTION_COMMANDER_V1 | triage, dispatch, evidence aggregation, handoff | NONE |
+| WORKER_A | ACTION_PRIMARY_REPAIR_V1 | primary Actions RCA and delegated repair | DELEGATED_REPAIR_ONLY |
+| WORKER_B | ACTION_ADVERSARIAL_REPAIR_V1 | independent challenge, alternative RCA and fallback | DELEGATED_REPAIR_ONLY |
+
+Every dispatch is bound to `missionId + workPackageId + taskId + exactSha`.
+
+Worker completion must provide:
+`finding + evidence + evidenceGrade + unknowns + lesson + antiLesson + skillCandidate + directBenefit + nextAction + decisionTrace`.
+
+Worker B must additionally return a `challenge`. Workers cannot self-approve or certify, and the bridge validates the result envelope before completion is accepted.
+
+
+### Assistant direct channel
+
+`MASTER-3` is the logical analysis identity routed through `WORKER_B`. The assistant may create a short-lived channel token and invoke the canonical Council endpoint with `purpose=WAKE` or `purpose=STATUS`. This is an ingress extension of the existing Council Runtime, not a second communication system.
+
+````
+
+### 18.4 `scripts/council/advanced-agent-runtime.mjs`
+
+Source blob SHA: `edf4ee89f3b1ec841364216d0e4e9cd4e9ffacbd`
+
+````javascript
+#!/usr/bin/env node
+export const ADVANCED_AGENT_RUNTIME_VERSION=1;
+
+export const COGNITION_TIERS=Object.freeze({
+  STANDARD:'STANDARD',
+  ADVANCED:'ADVANCED',
+  ADVERSARIAL:'ADVERSARIAL',
+});
+
+export const ADVANCED_PHASES=Object.freeze([
+  'INTAKE',
+  'CONTEXT_RETRIEVAL',
+  'PLAN',
+  'EXECUTE',
+  'SELF_CHECK',
+  'INDEPENDENT_REVIEW',
+  'VERIFY',
+  'LEARN',
+]);
+
+const SHA=/^[0-9a-f]{40}$/u;
+const GRADE_SCORE={E0:0,E1:10,E2:25,E3:50,E4:75,E5:100};
+
+const required=(v,n)=>{if(typeof v!=='string'||!v.trim())throw new Error('ADVANCED_AGENT_REQUIRED_'+n.toUpperCase())};
+const arr=(v,n)=>{if(!Array.isArray(v))throw new Error('ADVANCED_AGENT_'+n.toUpperCase()+'_ARRAY_REQUIRED')};
+
+export function buildAdvancedAgentEnvelope({
+  accountId,
+  profileId,
+  exactSha,
+  missionId,
+  workPackageId,
+  taskId,
+  role,
+  objective,
+  requiredCapabilities=[],
+  evidenceGradeMinimum='E3',
+  toolBudget=32,
+  maxReasoningLoops=7,
+}={}){
+  for(const [v,n] of [[accountId,'account_id'],[profileId,'profile_id'],[missionId,'mission_id'],[workPackageId,'work_package_id'],[taskId,'task_id'],[role,'role'],[objective,'objective']])required(v,n);
+  if(!SHA.test(String(exactSha??'')))throw new Error('ADVANCED_AGENT_EXACT_SHA_INVALID');
+  if(!Array.isArray(requiredCapabilities))throw new Error('ADVANCED_AGENT_CAPABILITIES_INVALID');
+  if(!Object.hasOwn(GRADE_SCORE, evidenceGradeMinimum))throw new Error('ADVANCED_AGENT_EVIDENCE_GRADE_INVALID');
+  if(!Number.isInteger(toolBudget)||toolBudget<32||toolBudget>100)throw new Error('ADVANCED_AGENT_TOOL_BUDGET_INVALID');
+  if(!Number.isInteger(maxReasoningLoops)||maxReasoningLoops!==7)throw new Error('ADVANCED_AGENT_REASONING_LOOPS_MUST_USE_FULL_DEPTH');
+  return Object.freeze({
+    protocol:'FLIXO_ADVANCED_AGENT_RUNTIME_V1',
+    runtimeVersion:ADVANCED_AGENT_RUNTIME_VERSION,
+    accountId,profileId,exactSha,missionId,workPackageId,taskId,role,objective,
+    cognitionTier:role==='ADVERSARIAL_ACTION_REPAIR'?COGNITION_TIERS.ADVERSARIAL:COGNITION_TIERS.ADVANCED,
+    phases:ADVANCED_PHASES,
+    requiredCapabilities:[...requiredCapabilities],
+    evidenceGradeMinimum,
+    toolBudget,
+    maxReasoningLoops,
+    controls:{
+      exactShaBound:true,
+      evidenceFirst:true,
+      selfCritiqueRequired:true,
+      independentReviewRequired:accountId!=='CHIEF',
+      noSelfApproval:true,
+      noCertificationClaim:true,
+      failClosedOnUnknowns:true,
+      conciseDecisionTraceOnly:true,
+      fullIntelligence:true,
+      noComplexityDowngrade:true,
+      reasoningEffort:'MAXIMUM',
+    },
+  });
+}
+
+export function validateAdvancedAgentResult({
+  envelope,
+  result,
+}={}){
+  if(!envelope||envelope.protocol!=='FLIXO_ADVANCED_AGENT_RUNTIME_V1')throw new Error('ADVANCED_AGENT_ENVELOPE_INVALID');
+  if(!result||typeof result!=='object'||Array.isArray(result))throw new Error('ADVANCED_AGENT_RESULT_INVALID');
+  if(String(result.exactSha??'')!==envelope.exactSha)throw new Error('ADVANCED_AGENT_RESULT_STALE_SHA');
+  if(String(result.profileId??'')!==envelope.profileId)throw new Error('ADVANCED_AGENT_RESULT_PROFILE_MISMATCH');
+  for(const [v,n] of [
+    [result.planSummary,'plan_summary'],
+    [result.decision,'decision'],
+    [result.verification,'verification'],
+    [result.selfCritique,'self_critique'],
+    [result.decisionTrace,'decision_trace'],
+    [result.nextAction,'next_action'],
+  ])required(v,n);
+  for(const [v,n] of [
+    [result.findings,'findings'],
+    [result.evidence,'evidence'],
+    [result.unknowns,'unknowns'],
+    [result.alternativesConsidered,'alternatives_considered'],
+  ])arr(v,n);
+  if(!Object.hasOwn(GRADE_SCORE, String(result.evidenceGrade??'')))throw new Error('ADVANCED_AGENT_RESULT_EVIDENCE_GRADE_INVALID');
+  if(GRADE_SCORE[String(result.evidenceGrade)]<GRADE_SCORE[envelope.evidenceGradeMinimum])throw new Error('ADVANCED_AGENT_RESULT_EVIDENCE_BELOW_MINIMUM');
+  if(result.selfApproved===true)throw new Error('ADVANCED_AGENT_RESULT_SELF_APPROVAL_FORBIDDEN');
+  if(result.certificationDecision)throw new Error('ADVANCED_AGENT_RESULT_CERTIFICATION_FORBIDDEN');
+  if(result.verificationPassed!==true && result.decision==='ACCEPT')throw new Error('ADVANCED_AGENT_ACCEPT_WITHOUT_VERIFICATION');
+  if(envelope.controls.failClosedOnUnknowns && result.unknowns.length>0 && result.decision==='ACCEPT')throw new Error('ADVANCED_AGENT_ACCEPT_WITH_UNRESOLVED_UNKNOWNS');
+  if(envelope.controls.independentReviewRequired && result.reviewRequired!==true)throw new Error('ADVANCED_AGENT_REVIEW_REQUIRED');
+  return Object.freeze({
+    valid:true,
+    cognitionTier:envelope.cognitionTier,
+    exactSha:envelope.exactSha,
+    evidenceGrade:result.evidenceGrade,
+    verificationPassed:result.verificationPassed===true,
+    reviewRequired:envelope.controls.independentReviewRequired,
+    unresolvedUnknowns:result.unknowns.length,
+  });
+}
+
+export function scoreAdvancedAgentEvidence({evidenceGrade='E0',verificationPassed=false,unknownCount=0,selfCritiquePassed=false,reviewApproved=false}={}){
+  const evidence=GRADE_SCORE[String(evidenceGrade)]??0;
+  const verification=verificationPassed?25:0;
+  const critique=selfCritiquePassed?10:0;
+  const review=reviewApproved?15:0;
+  const uncertaintyPenalty=Math.min(40,Math.max(0,Number(unknownCount)||0)*8);
+  return Math.max(0,Math.min(100,Math.round(evidence*.5+verification+critique+review-uncertaintyPenalty)));
+}
+
+````
+
+### 18.5 `scripts/test-agent-capability-registry.mjs`
+
+Source blob SHA: `0c4d32f076343b0fa16f37b1b9cda4d02b47887d`
+
+````javascript
+import assert from 'node:assert/strict';
+import { TOOL_DEFINITIONS } from '../src/config/canonical-tool-definition.ts';
+import { TOOL_CATALOG } from '../src/config/registry.ts';
+import { CAPABILITY_REGISTRY, getCapability, getExecutableCapabilityIds, validateCapabilityParameters } from '../src/lib/agent/capability-registry.ts';
+import { planFromIntent } from '../src/lib/ai/planner.ts';
+import { EXECUTABLE_PIPELINE_TOOL_IDS } from '../src/lib/workflows/executable-tools.ts';
+import { safeParseExecutionPlan } from '../src/lib/contracts/ai-plan.ts';
+import { assertExecutionAllowed, cancelTask, confirmTask, createTaskContext, interpretConfirmation, transitionTask } from '../src/lib/agent/task-state.ts';
+
+assert.equal(CAPABILITY_REGISTRY.length, TOOL_DEFINITIONS.length, 'Every canonical tool definition must have a capability contract.');
+assert.ok(CAPABILITY_REGISTRY.length > 0, 'Canonical capability inventory must not be empty.');
+assert.ok(TOOL_DEFINITIONS.length > 0, 'Canonical tool definitions must not be empty.');
+
+for (const tool of TOOL_DEFINITIONS) {
+  const capability = getCapability(tool.id);
+  assert.ok(capability, `Missing capability contract: ${tool.id}`);
+  assert.equal(capability?.state === 'UNAVAILABLE', !tool.isReady, `Readiness/state drift: ${tool.id}`);
+}
+
+assert.deepEqual(
+  [...getExecutableCapabilityIds()].sort(),
+  [...EXECUTABLE_PIPELINE_TOOL_IDS].sort(),
+  'Executable capability registry and pipeline executor allowlist have drifted.',
+);
+for (const toolId of getExecutableCapabilityIds()) {
+  const tool = TOOL_DEFINITIONS.find((candidate) => candidate.id === toolId);
+  assert.ok(tool, `Executable capability is missing its canonical tool definition: ${toolId}`);
+  assert.equal(tool?.executionMode, 'LOCAL', `MVP executable capability must be local: ${toolId}`);
+  assert.equal(tool?.requirements.network, false, `MVP executable capability must not require network: ${toolId}`);
+  assert.equal(tool?.operational.executorId, toolId, `MVP executable capability must bind its canonical executor: ${toolId}`);
+  assert.equal(tool?.operational.outputContractId, toolId, `MVP executable capability must bind its output contract: ${toolId}`);
+}
+
+assert.equal(getCapability('photo-colorizer')?.state, 'UNAVAILABLE');
+assert.throws(() => validateCapabilityParameters('photo-colorizer', {}), /not executable/);
+assert.deepEqual(validateCapabilityParameters('image-compressor', { quality: 0.8 }), { quality: 0.8 });
+
+const valid = safeParseExecutionPlan({
+  workflowName: 'Direct Tool',
+  confidence: 0.9,
+  catalogFingerprint: TOOL_CATALOG.fingerprint,
+  steps: [{ toolId: 'image-compressor', params: { quality: 0.8 } }],
+});
+assert.equal(valid.success, true);
+
+const invalidParameters = safeParseExecutionPlan({
+  workflowName: 'Invalid Parameters',
+  confidence: 0.9,
+  catalogFingerprint: TOOL_CATALOG.fingerprint,  steps: [{ toolId: 'image-compressor', params: { unsupportedObject: {} } }],
+});
+assert.throws(
+  () => validateCapabilityParameters('image-compressor', { quality: 0.8, unsupportedObject: true }),
+  /canonical schema validation|unsupported parameters/,
+);
+assert.equal(invalidParameters.success, false);
+
+const directPlan = planFromIntent('compress this image');
+assert.ok(directPlan, 'Planner must produce a plan for an executable local capability.');
+assert.ok(directPlan?.steps.every((step) => getCapability(step.toolId)?.state === 'EXECUTABLE'), 'Planner emitted a non-executable capability.');
+
+const unavailablePlan = planFromIntent('colorize this photo');
+assert.equal(unavailablePlan, null, 'Planner must not route unavailable capabilities to execution.');
+
+const conversionPlan = planFromIntent('convert this image to WebP');
+assert.ok(conversionPlan, 'Planner must resolve a supported conversion request.');
+assert.ok(conversionPlan?.steps.every((step) => getCapability(step.toolId)?.state === 'EXECUTABLE'), 'Planner boundary allowed an invalid tool id.');
+
+// P0: execution is impossible until an explicit confirmation transitions the task.
+let task = createTaskContext('task-test', 'trace-test');
+assert.equal(task.state, 'IDLE');
+assert.throws(() => assertExecutionAllowed(task), /blocked until explicit confirmation/);
+task = transitionTask(task, 'PLANNED');
+task = transitionTask(task, 'AWAITING_CONFIRMATION');
+assert.equal(interpretConfirmation('ابدأ'), 'CONFIRM');
+assert.equal(interpretConfirmation('confirm'), 'CONFIRM');
+assert.equal(interpretConfirmation('إلغاء'), 'CANCEL');
+assert.equal(interpretConfirmation('maybe'), 'AMBIGUOUS');
+assert.throws(() => assertExecutionAllowed(task), /blocked until explicit confirmation/);
+task = confirmTask(task);
+assert.equal(task.state, 'EXECUTING');
+assert.doesNotThrow(() => assertExecutionAllowed(task));
+assert.throws(() => confirmTask(task), /Invalid task state transition/);
+
+let cancelled = createTaskContext('cancel-test', 'trace-cancel');
+cancelled = transitionTask(cancelled, 'PLANNED');
+cancelled = transitionTask(cancelled, 'AWAITING_CONFIRMATION');
+cancelled = cancelTask(cancelled);
+assert.equal(cancelled.state, 'CANCELLED');
+assert.equal(cancelTask(cancelled).state, 'CANCELLED');
+assert.throws(() => transitionTask(cancelled, 'EXECUTING'), /Invalid task state transition/);
+
+console.log(`Agent capability + P0 task-state contract tests passed: ${CAPABILITY_REGISTRY.length} capabilities mapped (${TOOL_DEFINITIONS.filter((tool) => tool.isReady).length} ready, ${TOOL_DEFINITIONS.filter((tool) => !tool.isReady).length} unavailable).`);
+
+````
+
+### 18.6 `scripts/test-llm-provider.mjs`
+
+Source blob SHA: `8d78161219621a5c72f738bc84db5984a83ba8ce`
+
+````javascript
+import assert from 'node:assert/strict';
+import {
+  createGatewayLLMProvider,
+  EXECUTION_PLAN_FUNCTION_NAME,
+  LLMProviderError,
+  parseProviderExecutionPlan,
+  planFromProvider,
+  planWithProviderOrLocal,
+} from '../src/lib/agent/llm-provider.ts';
+import { planWithProductionAI } from '../src/lib/ai/optional-planner.ts';
+import { TOOL_CATALOG } from '../src/config/registry.ts';
+
+const validResponse = {
+  functionCall: {
+    name: EXECUTION_PLAN_FUNCTION_NAME,
+    arguments: JSON.stringify({
+      workflowName: 'Compress and convert',
+      confidence: 0.94,
+      catalogFingerprint: TOOL_CATALOG.fingerprint,
+      steps: [
+        { toolId: 'image-converter', params: { format: 'image/webp' } },
+        { toolId: 'image-compressor', params: { targetSizeKB: 200 } },
+      ],
+    }),
+  },
+  model: 'gateway-test',
+  usage: { inputTokens: 20, outputTokens: 30, totalTokens: 50, costUsd: 0.001 },
+};
+
+const plan = parseProviderExecutionPlan(validResponse);
+assert.deepEqual(plan.steps, JSON.parse(validResponse.functionCall.arguments).steps);
+
+assert.throws(
+  () => parseProviderExecutionPlan({
+    ...validResponse,
+    functionCall: {
+      ...validResponse.functionCall,
+      arguments: JSON.stringify({
+        workflowName: 'Stale catalog',
+        confidence: 0.9,
+        catalogFingerprint: '0'.repeat(64),
+        steps: [{ toolId: 'image-compressor', params: { targetSizeKB: 200 } }],
+      }),
+    },
+  }),
+  (error) => error instanceof LLMProviderError && error.code === 'INVALID_PLAN',
+);
+
+assert.throws(
+  () => parseProviderExecutionPlan({
+    ...validResponse,
+    functionCall: {
+      ...validResponse.functionCall,
+      arguments: JSON.stringify({
+        workflowName: 'Missing catalog fingerprint',
+        confidence: 0.9,
+        steps: [{ toolId: 'image-compressor', params: { targetSizeKB: 200 } }],
+      }),
+    },
+  }),
+  (error) => error instanceof LLMProviderError && error.code === 'INVALID_PLAN',
+);
+
+const objectArgumentPlan = parseProviderExecutionPlan({
+  ...validResponse,
+  functionCall: {
+    ...validResponse.functionCall,
+    arguments: JSON.parse(validResponse.functionCall.arguments),
+  },
+});
+assert.deepEqual(objectArgumentPlan.steps, plan.steps);
+
+assert.throws(
+  () => parseProviderExecutionPlan({ ...validResponse, functionCall: { ...validResponse.functionCall, name: 'execute_anything' } }),
+  (error) => error instanceof LLMProviderError && error.code === 'UNSUPPORTED_FUNCTION',
+);
+
+assert.throws(
+  () => parseProviderExecutionPlan({
+    ...validResponse,
+    functionCall: { ...validResponse.functionCall, arguments: JSON.stringify({ workflowName: 'Hallucinated', confidence: 0.9, steps: [{ toolId: 'unknown-tool', params: {} }] }) },
+  }),
+  (error) => error instanceof LLMProviderError && error.code === 'INVALID_PLAN',
+);
+
+assert.throws(
+  () => parseProviderExecutionPlan({ ...validResponse, functionCall: { ...validResponse.functionCall, arguments: '{broken' } }),
+  (error) => error instanceof LLMProviderError && error.code === 'MALFORMED_RESPONSE',
+);
+
+const provider = async () => validResponse;
+const result = await planFromProvider(provider, 'compress this image and convert to WebP', { timeoutMs: 1_000 });
+assert.equal(result.plan.steps.length, 2);
+assert.equal(result.model, 'gateway-test');
+assert.equal(result.usage?.totalTokens, 50);
+assert.equal(result.attempts, 1);
+assert.equal(typeof result.latencyMs, 'number');
+
+const timeoutProvider = async (_request, signal) => await new Promise((_, reject) => {
+  signal.addEventListener('abort', () => reject(new Error('aborted')), { once: true });
+});
+await assert.rejects(
+  () => planFromProvider(timeoutProvider, 'test timeout', { timeoutMs: 5 }),
+  (error) => error instanceof LLMProviderError && error.code === 'TIMEOUT',
+);
+
+let retryCalls = 0;
+const retryProvider = createGatewayLLMProvider({
+  endpoint: 'https://gateway.example.test/v1/plan',
+  maxRetries: 2,
+  retryBaseDelayMs: 0,
+  maxRetryDelayMs: 0,
+  fetchImpl: async () => {
+    retryCalls += 1;
+    if (retryCalls === 1) return new Response('', { status: 429, headers: { 'retry-after': '0' } });
+    return new Response(JSON.stringify(validResponse), { status: 200, headers: { 'content-type': 'application/json' } });
+  },
+});
+const retryResult = await planFromProvider(retryProvider, 'retry rate limit', { timeoutMs: 1_000, maxRetries: 2, retryBaseDelayMs: 0, maxRetryDelayMs: 0 });
+assert.equal(retryCalls, 2);
+assert.equal(retryResult.attempts, 2);
+
+let serverErrorCalls = 0;
+const serverErrorProvider = createGatewayLLMProvider({
+  endpoint: 'https://gateway.example.test/v1/plan',
+  maxRetries: 1,
+  retryBaseDelayMs: 0,
+  maxRetryDelayMs: 0,
+  fetchImpl: async () => {
+    serverErrorCalls += 1;
+    return new Response('', { status: 503 });
+  },
+});
+await assert.rejects(
+  () => planFromProvider(serverErrorProvider, 'test 503', { timeoutMs: 1_000, maxRetries: 1, retryBaseDelayMs: 0, maxRetryDelayMs: 0 }),
+  (error) => error instanceof LLMProviderError && error.code === 'RETRY_EXHAUSTED' && error.attempts === 2 && error.status === 503,
+);
+assert.equal(serverErrorCalls, 2);
+
+const fallback = await planWithProviderOrLocal(async () => { throw new Error('gateway unavailable'); }, 'compress this image under 200KB and convert to WebP', { maxRetries: 0 });
+assert.equal(fallback.source, 'local');
+assert.ok(fallback.plan);
+assert.equal(fallback.providerFailure?.code, 'RETRY_EXHAUSTED');
+assert.equal(fallback.attempts, 1);
+
+const noProvider = await planWithProviderOrLocal(undefined, 'compress this image under 200KB and convert to WebP');
+assert.equal(noProvider.source, 'local');
+assert.ok(noProvider.plan);
+assert.equal(noProvider.attempts, 0);
+
+const production = await planWithProductionAI('compress this image under 200KB and convert to WebP', provider, { timeoutMs: 1_000 });
+assert.equal(production.source, 'ai');
+assert.equal(production.attempts, 1);
+assert.equal(production.model, 'gateway-test');
+assert.equal(production.usage?.totalTokens, 50);
+
+const productionFallback = await planWithProductionAI('compress this image under 200KB and convert to WebP', async () => { throw new Error('down'); }, { maxRetries: 0 });
+assert.equal(productionFallback.source, 'deterministic');
+assert.ok(productionFallback.plan);
+assert.equal(productionFallback.providerFailure?.code, 'RETRY_EXHAUSTED');
+
+assert.throws(
+  () => createGatewayLLMProvider({ endpoint: 'http://gateway.example.test/v1/plan' }),
+  (error) => error instanceof LLMProviderError && error.code === 'INVALID_REQUEST',
+);
+
+const gatewayCalls = [];
+const gatewayProvider = createGatewayLLMProvider({
+  endpoint: 'https://gateway.example.test/v1/plan',
+  fetchImpl: async (input, init) => {
+    gatewayCalls.push({ input: String(input), init });
+    return new Response(JSON.stringify(validResponse), { status: 200, headers: { 'content-type': 'application/json' } });
+  },
+  headers: { authorization: 'Bearer test-token' },
+});
+const gatewayResult = await planFromProvider(gatewayProvider, 'compress this image', { timeoutMs: 1_000 });
+assert.equal(gatewayResult.plan.steps.length, 2);
+assert.equal(gatewayCalls.length, 1);
+assert.equal(gatewayCalls[0].init.method, 'POST');
+assert.equal(gatewayCalls[0].init.headers.authorization, 'Bearer test-token');
+assert.equal(JSON.parse(gatewayCalls[0].init.body).contract.name, EXECUTION_PLAN_FUNCTION_NAME);
+
+console.log('P3 LLM provider boundary contract tests passed.');
+
+````
+
+### 18.7 قاعدة استخدام الكود التاريخي
+
+وجود الكود داخل `الخلية.md` يعني أن الخلية الجديدة تحتفظ بذاكرة source-level كاملة للمنظومة القديمة. لا يعني ذلك وجود صلاحية تشغيلية أو أولوية على النظام الحالي.
+
+عند استخراج جزء منه لاحقًا، يجب تسجيل:
+
+`SOURCE_PATH + SOURCE_SHA + EXTRACTED_COMPONENT + TARGET_STEP + TARGET_EXPERIMENT + TARGET_SHA + VALIDATION + FALSIFICATION + LEARNING`
+
+والقاعدة الحاكمة:
+
+**Recover the knowledge. Re-prove the behavior. Never trust history as current truth.**
+
+---
+
+## 19. مصادر الاتصال والتنسيق التاريخية — FULL SOURCE
+
+> **HISTORICAL / NON-AUTHORITATIVE** — full source snapshots from reference commit 1841f7b922f65eb04064ff29ef8a43fd5207fbc3.
+
+### 19.1 `scripts/ci/agent-communication.mjs`
+
+Source blob SHA: `93fad66b2fdc35f7459a30c6a58125af83996e11`
+
+````javascript
+#!/usr/bin/env node
+import fs from 'node:fs';
+import path from 'node:path';
+import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
+
+const ROOT = process.cwd();
+const INBOX_DIR = path.resolve(ROOT, 'diagnostics/agents/inbox');
+const INDEX_FILE = path.join(INBOX_DIR, 'index.json');
+const CELL_REGISTRY_FILE = path.resolve(ROOT, 'docs/agents/CELL-BOT-REGISTRY.json');
+const args = new Map();
+for (let i = 2; i < process.argv.length; i += 1) {
+  const token = process.argv[i];
+  if (!token.startsWith('--')) continue;
+  const eq = token.indexOf('=');
+  const key = token.slice(2, eq >= 0 ? eq : undefined);
+  const value = eq >= 0 ? token.slice(eq + 1) : process.argv[i + 1];
+  args.set(key, value ?? null);
+}
+const command = String(process.argv[2] ?? '').toLowerCase();
+const arg = (name, fallback = '') => String(args.get(name) ?? fallback).trim();
+const now = () => new Date().toISOString();
+const currentSha = () => execFileSync('git', ['rev-parse', 'HEAD'], { cwd: ROOT, encoding: 'utf8' }).trim();
+const safeId = (value, label) => {
+  if (!value || value.length > 160 || !/^[A-Za-z0-9][A-Za-z0-9._:-]*$/u.test(value)) throw new Error(`AGENT_MESSAGE_INVALID_${label.toUpperCase()}`);
+  return value;
+};
+const hash = (value) => createHash('sha256').update(value, 'utf8').digest('hex');
+const messageKey = (messageId) => hash(messageId);
+const messagePath = (messageId) => path.join(INBOX_DIR, `${messageKey(messageId)}.json`);
+
+const isFreshMessageBinding = (message, observedSha = currentSha()) => {
+  if (String(message?.entrySha ?? '') === observedSha) return true;
+  const entrySha = String(message?.entrySha ?? '');
+  if (!/^[0-9a-f]{40}$/u.test(entrySha) || !/^[0-9a-f]{40}$/u.test(observedSha)) return false;
+  try {
+    const mergeBase = execFileSync('git', ['merge-base', entrySha, observedSha], { cwd: ROOT, encoding: 'utf8' }).trim();
+    if (mergeBase !== entrySha) return false;
+    const changed = execFileSync('git', ['diff', '--name-only', entrySha + '..' + observedSha], { cwd: ROOT, encoding: 'utf8' })
+      .split(/\\r?\\n/u)
+      .map((value) => value.trim())
+      .filter(Boolean);
+    const messageRelativePath = path.relative(ROOT, messagePath(String(message.messageId)));
+    return changed.length > 0 && changed.every((file) => file === messageRelativePath || file === path.relative(ROOT, INDEX_FILE));
+  } catch {
+    return false;
+  }
+};
+const readJson = (file, fallback) => fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : fallback;
+const writeJson = (file, value) => {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, `${JSON.stringify(value, null, 2)}\\n`);
+};
+const ensure = () => { fs.mkdirSync(INBOX_DIR, { recursive: true }); };
+const roles = new Set(['assistantController','verification','analysis','codeScout','executionAgent','reviewAgent','testAgent','securityAgent','performanceAgent','certificationAuthority','taskAgent','errorAgent','repairAgent','diagnosticAgent','ACTION-REPAIR','ACTION-REPAIR-2','ACTION-HISTORIAN-3','ALL_AGENTS']);
+export const MASTER_IDS = Object.freeze(['MASTER-1','MASTER-2','MASTER-3']);
+export const MASTER_GROUP = 'MASTERS';
+const masterIds = new Set(MASTER_IDS);
+const validatePrivilegedTransportIdentity = (message) => {
+  const actor=String(message?.actor??'').trim();
+  const privileged=masterIds.has(actor);
+  if(!privileged) return;
+  const identity=message?.transportIdentity;
+  if(process.env.NODE_ENV==='test' && identity?.testHarness===true) return;
+  if(String(process.env.GITHUB_ACTIONS??'')!=='true') throw new Error('AGENT_MESSAGE_PRIVILEGED_TRANSPORT_REQUIRED');
+  if(identity?.provider!=='github-actions') throw new Error('AGENT_MESSAGE_TRANSPORT_PROVIDER_INVALID');
+  if(identity?.actor!=='github-actions[bot]') throw new Error('AGENT_MESSAGE_TRANSPORT_ACTOR_INVALID');
+  if(String(identity?.repository??'')!==String(process.env.GITHUB_REPOSITORY??'')) throw new Error('AGENT_MESSAGE_TRANSPORT_REPOSITORY_INVALID');
+  if(!/^\\d+$/u.test(String(identity?.runId??''))) throw new Error('AGENT_MESSAGE_TRANSPORT_RUN_INVALID');
+};
+const recipientKnown = (recipient) => roles.has(recipient) || masterIds.has(recipient) || recipient === MASTER_GROUP || loadCellBotIds().has(recipient);
+const loadCellBotIds = () => {
+  if (!fs.existsSync(CELL_REGISTRY_FILE)) return new Set();
+  const registry = readJson(CELL_REGISTRY_FILE, { bots: [] });
+  return new Set(Array.isArray(registry.bots) ? registry.bots.map((bot) => String(bot.id)) : []);
+};
+const assertActorKnown = (actor) => {
+  if (/^CELL-\d{3}$/u.test(actor) && !loadCellBotIds().has(actor)) throw new Error('AGENT_MESSAGE_UNKNOWN_CELL_BOT=' + actor);
+  if (/^MASTER-\d+$/u.test(actor) && !masterIds.has(actor)) throw new Error('AGENT_MESSAGE_UNKNOWN_MASTER=' + actor);
+};
+const required = ['messageId','actor','recipient','intent','taskId','scope','entrySha','risk','dependencies','expectedEvidence','stopConditions','proofObligations','createdAt'];
+const COUNCIL_RECIPIENTS = new Set(['assistantController','verification','analysis']);
+const PRIORITIES = new Set(['P0','P1','P2','P3']);
+export const COUNCIL_PRIORITY = 'P0';
+export const COUNCIL_RESPONSE_MODE = 'IMMEDIATE';
+const isAdministrativeInstruction = (message) => Boolean(
+  message?.administrativeInstruction === true ||
+  message?.councilOperation === true ||
+  String(message?.intent ?? '').startsWith('ADMIN_') ||
+  String(message?.intent ?? '').startsWith('COUNCIL_') ||
+  Boolean(message?.payload && typeof message.payload === 'object' && message.payload.administrativeInstruction === true)
+);
+const defaultAdministrativeRecipients = () => [
+  'assistantController','verification','analysis','codeScout','executionAgent','reviewAgent',
+  'testAgent','securityAgent','performanceAgent','certificationAuthority','taskAgent',
+  'errorAgent','repairAgent','diagnosticAgent','ACTION-REPAIR','ACTION-REPAIR-2','ACTION-HISTORIAN-3',
+  ...MASTER_IDS,
+  ...loadCellBotIds(),
+];
+const requiredAdministrativeRecipients = (message) => {
+  const configured = message?.payload?.requiredRecipients;
+  if (Array.isArray(configured) && configured.length) return [...new Set(configured.map((item) => String(item).trim()).filter((item) => recipientKnown(item)))];
+  if (String(message?.recipient ?? '') === MASTER_GROUP) return MASTER_IDS.filter((masterId) => masterId !== String(message?.actor ?? ''));
+  return String(message?.recipient ?? '') === 'ALL_AGENTS' ? defaultAdministrativeRecipients() : [String(message.recipient)];
+};
+const isMasterPeerMessage = (message) => {
+  const payload = message?.payload;
+  return Boolean(
+    (payload && typeof payload === 'object' && payload.peerMessage === true) ||
+    (masterIds.has(String(message?.actor ?? '')) && (masterIds.has(String(message?.recipient ?? '')) || String(message?.recipient ?? '') === MASTER_GROUP))
+  );
+};
+const isCouncilOperation = (message) => {
+  const payload = message?.payload;
+  return message?.councilOperation === true || COUNCIL_RECIPIENTS.has(String(message?.recipient ?? '')) || String(message?.recipient ?? '') === MASTER_GROUP || String(message?.intent ?? '').startsWith('COUNCIL_') || Boolean(payload && typeof payload === 'object' && payload.councilOperation === true);
+};
+const asArray = (value, name) => {
+  if (!Array.isArray(value) || value.length === 0 || value.some((item) => typeof item !== 'string' || !item.trim())) {
+    throw new Error(`AGENT_MESSAGE_${name.toUpperCase()}_INVALID`);
+  }
+  return value.map((item) => item.trim());
+};
+export function validateMessage(message, observedSha = currentSha()) {
+  if (!message || typeof message !== 'object' || Array.isArray(message)) throw new Error('AGENT_MESSAGE_ENVELOPE_INVALID');
+  for (const field of required) {
+    if (message[field] === undefined || message[field] === null || (typeof message[field] === 'string' && !message[field].trim())) {
+      throw new Error(`AGENT_MESSAGE_REQUIRED_FIELD_MISSING=${field}`);
+    }
+  }
+  safeId(String(message.messageId), 'message_id');
+  safeId(String(message.taskId), 'task_id');
+  if (typeof message.actor !== 'string' || !message.actor.trim()) throw new Error('AGENT_MESSAGE_ACTOR_INVALID');
+  assertActorKnown(String(message.actor));
+  if (!recipientKnown(String(message.recipient))) throw new Error('AGENT_MESSAGE_RECIPIENT_INVALID');
+  if (typeof message.entrySha !== 'string' || !/^[0-9a-f]{40}$/u.test(message.entrySha)) throw new Error('AGENT_MESSAGE_ENTRY_SHA_INVALID');
+  try {
+    execFileSync('git', ['cat-file', '-e', message.entrySha + '^{commit}'], { cwd: ROOT, stdio: 'ignore' });
+  } catch {
+    throw new Error('AGENT_MESSAGE_ENTRY_SHA_INVALID');
+  }
+  const masterPeerMessage = isMasterPeerMessage(message);
+  if (masterPeerMessage && message.entrySha !== observedSha) {
+    throw new Error('AGENT_MESSAGE_ENTRY_SHA_MISMATCH');
+  }
+  for (const field of ['scope','dependencies','expectedEvidence','stopConditions','proofObligations']) asArray(message[field], field);
+  if (!['LOW','MEDIUM','HIGH','CRITICAL'].includes(String(message.risk))) throw new Error('AGENT_MESSAGE_RISK_INVALID');
+  if (typeof message.intent !== 'string' || !message.intent.trim()) throw new Error('AGENT_MESSAGE_INTENT_INVALID');
+  validatePrivilegedTransportIdentity(message);
+  if (masterPeerMessage) {
+    if (!masterIds.has(String(message.actor))) throw new Error('MASTER_PEER_ACTOR_INVALID');
+    if (!(masterIds.has(String(message.recipient)) || String(message.recipient) === MASTER_GROUP)) throw new Error('MASTER_PEER_RECIPIENT_INVALID');
+    if (String(message.actor) === String(message.recipient)) throw new Error('MASTER_PEER_SELF_ROUTE_FORBIDDEN');
+    if (!isAdministrativeInstruction(message)) throw new Error('MASTER_PEER_ADMIN_CHANNEL_REQUIRED');
+  }
+  const councilOperation = isCouncilOperation(message);
+  const priority = String(message.priority ?? (councilOperation ? COUNCIL_PRIORITY : 'P1')).toUpperCase();
+  if (!PRIORITIES.has(priority)) throw new Error('AGENT_MESSAGE_PRIORITY_INVALID');
+  if (councilOperation && priority !== COUNCIL_PRIORITY) throw new Error('AGENT_MESSAGE_COUNCIL_PRIORITY_REQUIRED');
+  return Object.freeze({
+    schemaVersion: Number(message.schemaVersion ?? 1),
+    messageId: String(message.messageId),
+    idempotencyKey: String(message.idempotencyKey ?? message.messageId),
+    actor: String(message.actor),
+    recipient: String(message.recipient),
+    intent: String(message.intent),
+    priority,
+    councilOperation,
+    councilResponseMode: councilOperation ? COUNCIL_RESPONSE_MODE : 'NORMAL',
+    immediateResponseRequired: councilOperation,
+    administrativeInstruction: isAdministrativeInstruction(message),
+    masterPeerMessage,
+    masterConversationId: message?.payload?.conversationId ?? null,
+    masterReplyToMessageId: message?.payload?.replyToMessageId ?? null,
+    requiredAdministrativeRecipients: isAdministrativeInstruction(message) ? requiredAdministrativeRecipients(message) : [],
+    taskId: String(message.taskId),
+    scope: [...message.scope],
+    entrySha: String(message.entrySha),
+    risk: String(message.risk),
+    dependencies: [...message.dependencies],
+    expectedEvidence: [...message.expectedEvidence],
+    stopConditions: [...message.stopConditions],
+    proofObligations: [...message.proofObligations],
+    createdAt: String(message.createdAt),
+    source: String(message.source ?? 'UNKNOWN'),
+    notificationRef: message.notificationRef ?? null,
+    payload: message.payload ?? null,
+    transportIdentity: message.transportIdentity ?? null,
+    observedSha: observedSha,
+  });
+}
+function loadIndex() {
+  return readJson(INDEX_FILE, { schemaVersion: 1, authority: 'AGENT_COMMUNICATION_INBOX', messages: {} });
+}
+function saveIndex(index) { index.updatedAt = now(); writeJson(INDEX_FILE, index); }
+function loadMessage(messageId) {
+  const file = messagePath(messageId);
+  if (!fs.existsSync(file)) throw new Error(`AGENT_MESSAGE_NOT_FOUND=${messageId}`);
+  return JSON.parse(fs.readFileSync(file, 'utf8'));
+}
+export function ingest(message, observedSha = currentSha()) {
+  ensure();
+  const normalized = validateMessage(message, observedSha);
+  const index = loadIndex();
+  const existing = index.messages[normalized.messageId];
+  if (existing) {
+    if (existing.idempotencyKey !== normalized.idempotencyKey || existing.entrySha !== normalized.entrySha) {
+      throw new Error(`AGENT_MESSAGE_IDEMPOTENCY_COLLISION=${normalized.messageId}`);
+    }
+    if (existing.status === 'STALE' && normalized.entrySha === observedSha) {
+      const revived = { ...loadMessage(normalized.messageId), status: 'RECEIVED', revalidatedAt: now(), revalidatedSha: observedSha, duplicate: true };
+      writeJson(messagePath(normalized.messageId), revived);
+      index.messages[normalized.messageId] = { ...(index.messages[normalized.messageId] ?? {}), status: 'RECEIVED', updatedAt: now() };
+      saveIndex(index);
+      return revived;
+    }
+    return { ...existing, duplicate: true };
+  }
+  const status = isFreshMessageBinding(normalized, observedSha) ? 'RECEIVED' : 'STALE';
+  const record = {
+    ...normalized,
+    idempotencyKey: normalized.idempotencyKey,
+    status,
+    receivedAt: now(),
+    readAt: null,
+    consumedAt: null,
+    consumedBy: null,
+    duplicate: false,
+    ...(normalized.administrativeInstruction ? {
+      administrativeAcknowledgement: {
+        state: 'PENDING_ACK',
+        requiredRecipients: [...normalized.requiredAdministrativeRecipients],
+        acknowledgements: {},
+        attendanceDeadlineAt: String(
+          normalized.payload?.attendanceDeadlineAt ??
+          new Date(Date.parse(normalized.createdAt) + (Number(normalized.payload?.attendanceWindowSeconds ?? 60) * 1000)).toISOString()
+        ),
+        attendanceInquiries: {},
+      },
+    } : {}),
+  };
+  writeJson(messagePath(normalized.messageId), record);
+  index.messages[normalized.messageId] = {
+    messageId: normalized.messageId,
+    idempotencyKey: normalized.idempotencyKey,
+    status,
+    recipient: normalized.recipient,
+    taskId: normalized.taskId,
+    entrySha: normalized.entrySha,
+    receivedAt: record.receivedAt,
+    updatedAt: record.receivedAt,
+  };
+  saveIndex(index);
+  return record;
+}
+export function getMessage(messageId) { ensure(); return loadMessage(messageId); }
+const recipientMatchesAgent = (record, agentId) => Boolean(
+  record.recipient === 'ALL_AGENTS' ||
+  record.recipient === agentId ||
+  (record.recipient === MASTER_GROUP && masterIds.has(String(agentId)))
+);
+export function markRead(messageId, agentId, observedSha = currentSha()) {
+  ensure();
+  const record = loadMessage(messageId);
+  if (!isFreshMessageBinding(record, observedSha)) throw new Error('AGENT_MESSAGE_STALE_REQUIRES_REVALIDATION');
+  if (record.status === 'STALE') {
+    record.status = 'RECEIVED';
+    record.revalidatedAt = now();
+    record.revalidatedSha = observedSha;
+  }
+  if (!recipientMatchesAgent(record, agentId)) throw new Error('AGENT_MESSAGE_RECIPIENT_MISMATCH');
+  if (!['RECEIVED','READ'].includes(record.status)) throw new Error(`AGENT_MESSAGE_NOT_READABLE=${record.status}`);
+  record.status = 'READ';
+  record.readAt = record.readAt ?? now();
+  record.readBy = agentId;
+  writeJson(messagePath(messageId), record);
+  const index = loadIndex();
+  index.messages[messageId] = { ...(index.messages[messageId] ?? {}), status: 'READ', updatedAt: now() };
+  saveIndex(index);
+  return record;
+}
+export function acknowledgeAdministrativeInstruction(messageId, agentId, observedSha = currentSha(), understood = false, accepted = false, understandingSummary = '', commitment = '') {
+  ensure();
+  const record = loadMessage(messageId);
+  if (!record.administrativeInstruction) throw new Error('AGENT_ADMIN_ACK_NOT_REQUIRED');
+  if (!isFreshMessageBinding(record, observedSha)) throw new Error('AGENT_ADMIN_ACK_SHA_MISMATCH');
+  if (!recipientMatchesAgent(record, agentId)) throw new Error('AGENT_MESSAGE_RECIPIENT_MISMATCH');
+  if (!['READ','CONSUMED'].includes(record.status)) throw new Error(`AGENT_ADMIN_ACK_REQUIRES_READ=${record.status}`);
+  if (!recipientKnown(agentId)) throw new Error('AGENT_ADMIN_ACK_AGENT_INVALID');
+  if (understood !== true) throw new Error('AGENT_ADMIN_ACK_UNDERSTANDING_REQUIRED');
+  if (accepted !== true) throw new Error('AGENT_ADMIN_ACK_ACCEPTANCE_REQUIRED');
+  if (!String(understandingSummary).trim()) throw new Error('AGENT_ADMIN_ACK_SUMMARY_REQUIRED');
+  const adminState = record.administrativeAcknowledgement ?? {
+    state: 'PENDING_ACK',
+    requiredRecipients: requiredAdministrativeRecipients(record),
+    acknowledgements: {},
+    attendanceDeadlineAt: new Date(Date.now() + 60000).toISOString(),
+    attendanceInquiries: {},
+  };
+  const msgFingerprint = hash(JSON.stringify({
+    messageId: record.messageId,
+    intent: record.intent,
+    taskId: record.taskId,
+    scope: record.scope,
+    entrySha: record.entrySha,
+    payload: record.payload,
+  }));
+  adminState.acknowledgements = adminState.acknowledgements ?? {};
+  adminState.acknowledgements[agentId] = {
+    received: true,
+    read: true,
+    understood: true,
+    accepted: true,
+    understandingSummary: String(understandingSummary).trim(),
+    commitment: String(commitment).trim(),
+    acknowledgedBy: agentId,
+    acknowledgedAt: now(),
+    acknowledgementSha: observedSha,
+    messageFingerprint: msgFingerprint,
+  };
+  const complete = adminState.requiredRecipients.length > 0 && adminState.requiredRecipients.every((recipient) => {
+    const ack = adminState.acknowledgements[recipient];
+    return ack?.received === true && ack?.read === true && ack?.understood === true && ack?.accepted === true && ack?.acknowledgementSha === observedSha;
+  });
+  adminState.state = complete ? 'FULLY_ACKNOWLEDGED' : 'PARTIALLY_ACKNOWLEDGED';
+  record.administrativeAcknowledgement = adminState;
+  writeJson(messagePath(messageId), record);
+  const index = loadIndex();
+  index.messages[messageId] = {
+    ...(index.messages[messageId] ?? {}),
+    administrativeStatus: adminState.state,
+    acknowledgedRecipients: Object.keys(adminState.acknowledgements).length,
+    requiredRecipients: adminState.requiredRecipients.length,
+    updatedAt: now(),
+  };
+  saveIndex(index);
+  return record;
+}
+export function auditAdministrativeAttendance(messageId, observedSha = currentSha(), nowMs = Date.now()) {
+  ensure();
+  const record = loadMessage(messageId);
+  if (!record.administrativeInstruction) throw new Error('AGENT_ADMIN_ATTENDANCE_NOT_REQUIRED');
+  if (record.intent === 'ADMIN_ATTENDANCE_INQUIRY') return { status: 'INQUIRY_WAITING_RESPONSE', messageId, recipient: record.recipient, entrySha: record.entrySha };
+  if (!isFreshMessageBinding(record, observedSha)) throw new Error('AGENT_ADMIN_ATTENDANCE_SHA_MISMATCH');
+  const state = record.administrativeAcknowledgement ?? {
+    state: 'PENDING_ACK',
+    requiredRecipients: requiredAdministrativeRecipients(record),
+    acknowledgements: {},
+    attendanceDeadlineAt: new Date(nowMs + 60000).toISOString(),
+    attendanceInquiries: {},
+  };
+  const deadlineMs = Date.parse(state.attendanceDeadlineAt);
+  if (!Number.isFinite(deadlineMs)) throw new Error('AGENT_ADMIN_ATTENDANCE_DEADLINE_INVALID');
+  if (nowMs < deadlineMs) return { status: 'ATTENDANCE_WINDOW_OPEN', messageId, deadlineAt: state.attendanceDeadlineAt };
+  state.attendanceInquiries = state.attendanceInquiries ?? {};
+  const missing = state.requiredRecipients.filter((recipient) => !state.acknowledgements?.[recipient]?.accepted);
+  for (const recipient of missing) {
+    if (state.attendanceInquiries[recipient]) continue;
+    const inquiryId = `admin-attendance-inquiry:${messageId}:${recipient}:${observedSha}`;
+    const inquiry = {
+      schemaVersion: 1,
+      messageId: inquiryId,
+      idempotencyKey: inquiryId,
+      actor: 'assistantController',
+      recipient,
+      intent: 'ADMIN_ATTENDANCE_INQUIRY',
+      priority: 'P0',
+      councilOperation: true,
+      administrativeInstruction: true,
+      taskId: record.taskId,
+      scope: ['ADMIN_ATTENDANCE'],
+      entrySha: observedSha,
+      risk: 'HIGH',
+      dependencies: ['MASTER_INBOX','P0_ADMIN_SUMMON'],
+      expectedEvidence: ['ATTENDANCE_REASON','UNDERSTOOD','ACCEPTED'],
+      stopConditions: ['RESPONSE_RECEIVED','STALE_SHA'],
+      proofObligations: ['EXACT_SHA_REVALIDATION'],
+      createdAt: now(),
+      source: 'MASTER_1_ATTENDANCE_AUDITOR',
+      payload: {
+        administrativeInstruction: true,
+        parentMessageId: messageId,
+        attendanceState: 'MISSED_P0_ATTENDANCE',
+        question: 'لماذا لم يتم الحضور/الإقرار برسالة الإدارة P0 ضمن نافذة الحضور؟',
+        requiredResponse: 'اذكر سبب التخلف، أكد استلام التعليمات، وفهمها واعتمادها على Exact-SHA الحالي.',
+        requiredRecipients: [recipient],
+        attendanceWindowSeconds: 0,
+      },
+    };
+    const receipt = ingest(inquiry, observedSha);
+    state.attendanceInquiries[recipient] = {
+      inquiryId,
+      state: 'INQUIRY_SENT',
+      sentAt: now(),
+      messageStatus: receipt.status,
+      missedAtSha: observedSha,
+    };
+  }
+  state.state = missing.length ? 'INQUIRY_REQUIRED' : 'FULLY_ACKNOWLEDGED';
+  record.administrativeAcknowledgement = state;
+  writeJson(messagePath(messageId), record);
+  const index = loadIndex();
+  index.messages[messageId] = {
+    ...(index.messages[messageId] ?? {}),
+    administrativeStatus: state.state,
+    attendanceMissing: missing.length,
+    updatedAt: now(),
+  };
+  saveIndex(index);
+  return { status: state.state, messageId, missingRecipients: missing, inquiries: state.attendanceInquiries };
+}
+export function markConsumed(messageId, agentId, observedSha = currentSha(), executionAdmitted = false) {
+  ensure();
+  const record = loadMessage(messageId);
+  if (!isFreshMessageBinding(record, observedSha)) throw new Error('AGENT_MESSAGE_CONSUME_SHA_MISMATCH');
+  if (!recipientMatchesAgent(record, agentId)) throw new Error('AGENT_MESSAGE_RECIPIENT_MISMATCH');
+  if (record.status === 'CONSUMED') return { ...record, duplicate: true };
+  if (record.status !== 'READ') throw new Error(`AGENT_MESSAGE_CONSUME_REQUIRES_READ=${record.status}`);
+  if (record.administrativeInstruction) {
+    const state = record.administrativeAcknowledgement;
+    if (state?.state !== 'FULLY_ACKNOWLEDGED') throw new Error('AGENT_ADMIN_ACK_ALL_REQUIRED');
+    if (!state?.acknowledgements?.[agentId]?.accepted) throw new Error('AGENT_ADMIN_ACK_REQUIRED');
+  }
+  if (executionAdmitted !== true) throw new Error('AGENT_MESSAGE_EXECUTION_ADMISSION_REQUIRED');
+  record.status = 'CONSUMED';
+  record.consumedAt = now();
+  record.consumedBy = agentId;
+  writeJson(messagePath(messageId), record);
+  const index = loadIndex();
+  index.messages[messageId] = { ...(index.messages[messageId] ?? {}), status: 'CONSUMED', updatedAt: now() };
+  saveIndex(index);
+  return record;
+}
+const IS_MAIN = Boolean(process.argv[1]) && path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname);
+if (IS_MAIN && !['validate','ingest','read','ack','audit-attendance','presence','send-master','send-supervisor'].includes(command)) throw new Error('Usage: agent-communication.mjs validate|ingest|read|ack|audit-attendance|presence|send-master|send-supervisor');
+if (IS_MAIN) {
+try {
+  if (command === 'send-supervisor') {
+    const actor = arg('agent');
+    const taskId = arg('task');
+    const runId = arg('run-id');
+    const fingerprint = arg('fingerprint');
+    const attempt = Number(arg('attempt', '21'));
+    const exactSha = arg('sha', currentSha());
+    const reason = arg('reason', '20_FAILED_REPAIR_ATTEMPTS');
+    const messageId = arg('message-id') || 'action-supervisor:' + taskId + ':' + fingerprint + ':' + runId;
+    if (!['ACTION-REPAIR','ACTION-REPAIR-2','ACTION-HISTORIAN-3'].includes(actor)) throw new Error('ACTION_SUPERVISOR_ACTOR_INVALID');
+    if (!taskId) throw new Error('ACTION_SUPERVISOR_TASK_REQUIRED');
+    if (!runId) throw new Error('ACTION_SUPERVISOR_RUN_REQUIRED');
+    if (!fingerprint) throw new Error('ACTION_SUPERVISOR_FINGERPRINT_REQUIRED');
+    if (!Number.isInteger(attempt) || attempt < 21) throw new Error('ACTION_SUPERVISOR_THRESHOLD_NOT_REACHED');
+    if (!/^[0-9a-f]{40}$/u.test(exactSha)) throw new Error('ACTION_SUPERVISOR_EXACT_SHA_INVALID');
+    const message = {
+      schemaVersion: 1,
+      messageId,
+      idempotencyKey: messageId + ':' + exactSha,
+      actor,
+      recipient: 'assistantController',
+      intent: 'ACTION_REPAIR_SUPERVISOR_ESCALATION',
+      taskId,
+      scope: ['ACTION_VAULT_REPAIR_CONTINUITY'],
+      entrySha: exactSha,
+      risk: 'HIGH',
+      dependencies: ['ACTION_VAULT','CURRENT_EXACT_SHA','REPAIR_ATTEMPT_LEDGER'],
+      expectedEvidence: ['FAILED_ATTEMPT_COUNT','EXACT_SHA','FAILURE_FINGERPRINT','CURRENT_REPAIR_OWNER'],
+      stopConditions: ['CANONICAL_GREEN'],
+      proofObligations: ['EXACT_SHA_REVALIDATION','TASK_REMAINS_OPEN','NO_FALSE_GREEN'],
+      createdAt: now(),
+      source: 'ACTION_VAULT',
+      payload: {
+        threshold: 20,
+        attemptsCompleted: attempt - 1,
+        nextAttempt: attempt,
+        reason,
+        runId,
+        failureFingerprint: fingerprint,
+        residentPolicy: 'ACTION-RESIDENCY-POLICY',
+        closureRule: 'CANONICAL_GREEN_ONLY',
+        requestedAction: 'MASTER_REVIEW_AND_CONTINUATION',
+      },
+    };
+    const receipt = ingest(message, exactSha);
+    console.log(JSON.stringify({
+      status: 'SUPERVISOR_ESCALATION_INGESTED',
+      message: receipt,
+      relayMarker: '<!-- FLIXO_AGENT_COUNCIL_WAKE -->',
+      relayBody: [
+        '<!-- FLIXO_AGENT_COUNCIL_WAKE -->',
+        '### ACTION REPAIR SUPERVISOR ESCALATION',
+        'ROLE: EXECUTION',
+        'WORK PACKAGE: ACTION-REPAIR-CONTINUATION-20',
+        'ACTOR: ' + actor,
+        'TASK ID: ' + taskId,
+        'ENTRY SHA: ' + exactSha,
+        'RUN ID: ' + runId,
+        'FAILURE FINGERPRINT: ' + fingerprint,
+        'ATTEMPTS COMPLETED: ' + String(attempt - 1),
+        'NEXT ATTEMPT: ' + String(attempt),
+        'STATUS: OPEN_CONTINUE_REPAIR',
+        'CLOSURE: CANONICAL_GREEN_ONLY',
+        'REQUEST: MASTER REVIEW + CONTINUATION',
+        'MESSAGE ID: ' + messageId,
+      ].join('\\n'),
+    }, null, 2));
+  } else if (command === 'send-master') {    const actor = arg('agent');
+    const taskId = arg('task');
+    const intent = arg('intent', 'CELL_DIRECT_MASTER_REQUEST');
+    const messageId = arg('message-id') || `cell-master:${actor}:${taskId}:${Date.now().toString(36)}`;
+    const idempotencyKey = arg('idempotency-key') || `${messageId}:${arg('sha', currentSha())}`;
+    const risk = arg('risk', 'MEDIUM').toUpperCase();
+    const exactSha = arg('sha', currentSha());
+    const payloadText = arg('payload', '{}');
+    if (!/^CELL-\d{3}$/u.test(actor)) throw new Error('CELL_DIRECT_MASTER_AGENT_INVALID');
+    assertActorKnown(actor);
+    if (!taskId) throw new Error('CELL_DIRECT_MASTER_TASK_REQUIRED');
+    if (!['LOW','MEDIUM','HIGH','CRITICAL'].includes(risk)) throw new Error('CELL_DIRECT_MASTER_RISK_INVALID');
+    if (!/^[0-9a-f]{40}$/u.test(exactSha)) throw new Error('CELL_DIRECT_MASTER_EXACT_SHA_INVALID');
+    let payload;
+    try { payload = JSON.parse(payloadText); } catch { throw new Error('CELL_DIRECT_MASTER_PAYLOAD_INVALID'); }
+    const message = {
+      schemaVersion: 1,
+      messageId,
+      idempotencyKey,
+      actor,
+      recipient: 'assistantController',
+      intent,
+      taskId,
+      scope: ['CELL_DIRECT_MASTER_CHANNEL'],
+      entrySha: exactSha,
+      risk,
+      dependencies: ['MASTER_INBOX','CURRENT_EXACT_SHA'],
+      expectedEvidence: ['MASTER_RECEIPT','EXACT_SHA_REVALIDATION'],
+      stopConditions: ['MASTER_DECISION','STALE_SHA','CONFLICT'],
+      proofObligations: ['MESSAGE_IDEMPOTENCY','EXACT_SHA_REVALIDATION'],
+      createdAt: now(),
+      source: 'CELL_DIRECT_MASTER',
+      payload: { ...payload, directMasterChannel: true, sourceBot: actor },
+    };
+    console.log(JSON.stringify(ingest(message, currentSha()), null, 2));
+  } else if (command === 'presence') {
+    const bot = arg('bot');
+    const taskId = arg('task');
+    const priority = arg('priority', 'P1').toUpperCase();
+    const reason = arg('reason');
+    const requestedAction = arg('requested-action');
+    const evidence = String(args.get('evidence') ?? '').split(',').map((value) => value.trim()).filter(Boolean);
+    const blocking = String(args.get('blocking', 'true')).toLowerCase() !== 'false';
+    const exactSha = arg('sha', currentSha());
+    if (!/^CELL-\d{3}$/u.test(bot)) throw new Error('AGENT_PRESENCE_BOT_INVALID');
+    assertActorKnown(bot);
+    if (!['P0','P1','P2','P3'].includes(priority)) throw new Error('AGENT_PRESENCE_PRIORITY_INVALID');
+    if (!taskId) throw new Error('AGENT_PRESENCE_TASK_REQUIRED');
+    if (!reason) throw new Error('AGENT_PRESENCE_REASON_REQUIRED');
+    if (!requestedAction) throw new Error('AGENT_PRESENCE_REQUESTED_ACTION_REQUIRED');
+    if (!evidence.length) throw new Error('AGENT_PRESENCE_EVIDENCE_REQUIRED');
+    if (!/^[0-9a-f]{40}$/u.test(exactSha)) throw new Error('AGENT_PRESENCE_EXACT_SHA_INVALID');
+    const message = {
+      schemaVersion: 1,
+      messageId: 'presence:' + bot + ':' + taskId + ':' + Date.now().toString(36),
+      idempotencyKey: 'presence:' + bot + ':' + taskId + ':' + exactSha,
+      actor: bot,
+      recipient: 'assistantController',
+      intent: 'PRESENCE_REQUEST',
+      taskId,
+      scope: ['CELL_HQ_PRESENCE'],
+      entrySha: exactSha,
+      risk: priority === 'P0' ? 'CRITICAL' : priority === 'P1' ? 'HIGH' : priority === 'P2' ? 'MEDIUM' : 'LOW',
+      dependencies: ['CELL_HQ'],
+      expectedEvidence: evidence,
+      stopConditions: ['CONTROLLER_DECISION'],
+      proofObligations: ['EXACT_SHA_REVALIDATION'],
+      createdAt: now(),
+      source: 'CELL_HQ',
+      payload: { botId: bot, channel: 'PRESENCE', priority, reason, requestedAction, blocking, evidence },
+    };
+    console.log(JSON.stringify(ingest(message, currentSha()), null, 2));
+  } else if (command === 'validate') {
+    const file = arg('message-file');
+    if (!file) throw new Error('AGENT_MESSAGE_FILE_REQUIRED');
+    const message = JSON.parse(fs.readFileSync(path.resolve(ROOT, file), 'utf8'));
+    console.log(JSON.stringify(validateMessage(message, currentSha()), null, 2));
+  } else if (command === 'ingest') {
+    const file = arg('message-file');
+    if (!file) throw new Error('AGENT_MESSAGE_FILE_REQUIRED');
+    const message = JSON.parse(fs.readFileSync(path.resolve(ROOT, file), 'utf8'));
+    console.log(JSON.stringify(ingest(message, currentSha()), null, 2));
+  } else if (command === 'ack') {
+    const id = arg('message-id');
+    const agentId = arg('agent');
+    const understood = arg('understood') === 'true';
+    const accepted = arg('accepted') === 'true';
+    const summary = arg('understanding-summary');
+    const commitment = arg('commitment');
+    console.log(JSON.stringify(acknowledgeAdministrativeInstruction(id, agentId, currentSha(), understood, accepted, summary, commitment), null, 2));
+  } else if (command === 'audit-attendance') {
+    const id = arg('message-id');
+    console.log(JSON.stringify(auditAdministrativeAttendance(id, currentSha()), null, 2));
+  } else if (command === 'read') {
+    const id = arg('message-id');
+    const agentId = arg('agent');
+    console.log(JSON.stringify(markRead(id, agentId, currentSha()), null, 2));
+  } else {
+    const id = arg('message-id');
+    const agentId = arg('agent');
+    const admitted = arg('execution-admitted') === 'true';
+    console.log(JSON.stringify(markConsumed(id, agentId, currentSha(), admitted), null, 2));
+  }
+} catch (error) {
+  console.error('AGENT_MESSAGE_GATE_BLOCK=' + String(error?.message ?? error));
+  process.exit(1);
+}
+}
+
+````
+
+### 19.2 `scripts/ci/agent-coordination.mjs`
+
+Source blob SHA: `ea66bfc96cb570522c8f91b8a4d3e37cbe382c31`
+
+````javascript
+#!/usr/bin/env node
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { getMessage as getAgentMessage, markConsumed as consumeAgentMessage } from './agent-communication.mjs';
+import { assertAgentAdmission, assertProtocolDefinition } from './repair-protocol.mjs';
+import { buildKnowledgeRecord, persistKnowledge } from './cell-learning.mjs';
+import { initialize as initializeChairState, acquire as acquireChair, release as releaseChair, revoke as revokeChair, heartbeat as heartbeatChair, reconcileDeadLeases, writeSpeculativeContext, activeChairForAgent } from './chair-bound-execution.mjs';
+import { FLIXO_WORKER_IDS, evaluateWorkerClaim, buildActiveWorkerSeat } from './flixo-active-worker-guard.mjs';
+
+const ROOT = process.cwd();
+const COORD_DIR = path.resolve(ROOT, process.env.FLIXO_COORDINATION_DIR ?? 'diagnostics/agents');
+const QUEUE_FILE = path.join(COORD_DIR, 'coordination-state.json');
+const LOCK_FILE = path.join(COORD_DIR, 'coordination-locks.json');
+const WRITE_LOCK_DIR = path.join(COORD_DIR, '.coordination-write.lock');
+const WRITE_LOCK_OWNER = path.join(WRITE_LOCK_DIR, 'owner.json');
+const PACKET_DIR = path.join(COORD_DIR, 'task-packets');
+const HANDOFF_DIR = path.join(COORD_DIR, 'handoffs');
+const VISIBILITY_DIR = path.resolve(ROOT, process.env.FLIXO_AGENT_VISIBILITY_DIR ?? 'docs/agents/ledger');
+const SESSION_DIR = path.resolve(ROOT, process.env.FLIXO_AGENT_SESSION_DIR ?? 'diagnostics/agents/sessions');
+const TASK_LEDGER_FILE = path.resolve(ROOT, process.env.FLIXO_TASK_LEDGER_FILE ?? 'المهام.md');
+const WRITE_LOCK_WAIT_MS = 50;
+const WRITE_LOCK_MAX_ATTEMPTS = 240;
+const WRITE_LOCK_STALE_MS = 10 * 60 * 1000;
+const STALE_SESSION_KILL_SWITCH = true;
+const CHAIR_ROLE_POLICY = Object.freeze({
+  chair_1: new Set(['assistantController','executionAgent','repairAgent','assistantRepairAgent','actionRepairBot','actionRepairVerifier','actionHistorian','AUTO_REPAIR_BOT']),
+  chair_2: new Set(['verification','reviewAgent','testAgent','securityAgent','diagnosticAgent','errorAgent','repairAgent','assistantRepairAgent','actionRepairVerifier']),
+  chair_3: new Set(['analysis','assistantController']),
+});
+const assertChairRole = (chairId, role) => {
+  const allowed = CHAIR_ROLE_POLICY[chairId];
+  if (!allowed) throw new Error('CHAIR_UNKNOWN=' + chairId);
+  if (!allowed.has(String(role))) throw new Error('CHAIR_ROLE_NOT_AUTHORIZED=' + chairId + ':' + String(role));
+};
+const COUNCIL_MACHINE_ROLES = new Set(['assistantController','verification','analysis','codeScout','executionAgent','reviewAgent','testAgent','securityAgent','performanceAgent','certificationAuthority','taskAgent','errorAgent','repairAgent','assistantRepairAgent','actionRepairBot','actionRepairVerifier','actionHistorian']);
+const FLIXO10_IDS = FLIXO_WORKER_IDS;
+const isFlixo10 = (agentId) => FLIXO10_IDS.includes(String(agentId ?? '').trim().toUpperCase());
+const pushSeatRecord = (taskId) => state.pushSeats[String(taskId)] ?? null;
+const activeWorkerSeatRecord = () => state.activeWorkerSeat ?? null;
+const args = new Map();
+for (let i = 2; i < process.argv.length; i += 1) {
+  const token = process.argv[i];
+  if (!token.startsWith('--')) continue;
+  const eq = token.indexOf('=');
+  const key = token.slice(2, eq >= 0 ? eq : undefined);
+  const value = eq >= 0 ? token.slice(eq + 1) : process.argv[i + 1];
+  args.set(key, value ?? null);
+}
+const command = String(process.argv[2] ?? '').toLowerCase();
+const gitBranch = () => {
+  const checkedOut = execFileSync('git', ['branch', '--show-current'], { cwd: ROOT, encoding: 'utf8' }).trim();
+  if (checkedOut) return checkedOut;
+  const headRef = String(process.env.GITHUB_HEAD_REF ?? '').trim();
+  if (headRef) return headRef;
+  return String(process.env.GITHUB_REF_NAME ?? '').trim();
+};
+const GOVERNANCE_FILES = ['AGENTS.md', 'docs/AGENT-COLLABORATION-PROTOCOL.md', 'docs/PROTOCOL-HIERARCHY.md', 'docs/PROTOCOL-REGISTRY.json', 'docs/ASSISTANT-AGENT-COOPERATION-CONTRACT.json'];
+const governanceFingerprint = () => createHash('sha256').update(GOVERNANCE_FILES.map((file) => `${file}:${createHash('sha256').update(fs.readFileSync(path.resolve(ROOT, file), 'utf8'), 'utf8').digest('hex')}`).join('|'), 'utf8').digest('hex');
+const assertMutationTopology = () => { if (MUTATING_COMMANDS.has(command) && gitBranch() !== 'execution') throw new Error('COORDINATION_MUTATION_BRANCH_BLOCKED'); };
+
+const requireArg = (name) => { const value = String(args.get(name) ?? '').trim(); if (!value) throw new Error(`Missing --${name}`); return value; };
+const optional = (name, fallback = '') => String(args.get(name) ?? fallback).trim();
+const list = (name, separator = ',') => optional(name).split(separator).map((v) => v.trim()).filter(Boolean);
+const now = () => new Date().toISOString();
+const sha = () => execFileSync('git', ['rev-parse', 'HEAD'], { cwd: ROOT, encoding: 'utf8' }).trim();
+const ensure = () => { fs.mkdirSync(COORD_DIR, { recursive: true }); fs.mkdirSync(PACKET_DIR, { recursive: true }); fs.mkdirSync(HANDOFF_DIR, { recursive: true }); };
+const readJson = (file, fallback) => fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : fallback;
+const LEDGER_BLOCKED_RE = /\b(BLOCKED|BLOCKED_EXTERNAL|BLOCKED-UNTIL-GREEN|FROZEN|CANCELLED|DEFER|CLOSED|DONE|HISTORICAL)\b/i;
+const LEDGER_READY_RE = /\b(OPEN|READY|EXECUTION-READY|VERIFICATION-PENDING|PLANNED)\b/i;
+const parseTaskLedger = () => {
+  if (!fs.existsSync(TASK_LEDGER_FILE)) throw new Error('TASK_LEDGER_MISSING');
+  const lines = fs.readFileSync(TASK_LEDGER_FILE, 'utf8').split(/\r?\n/u);
+  const tasks = new Map();
+  const record = (id, lineNumber, status, priority, source) => {
+    if (!id || id.includes('..')) return;
+    const normalized = String(status ?? '').trim();
+    const existing = tasks.get(id);
+    if (!existing || lineNumber >= existing.line) {
+      tasks.set(id, {
+        taskId: id,
+        line: lineNumber,
+        status: normalized || existing?.status || null,
+        priority: Number.isInteger(priority) ? priority : (existing?.priority ?? 50),
+        source,
+      });
+    }
+  };
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const heading = line.match(/^#{2,6}\s+.*?\b([A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*-\d{1,4})\b.*$/u);
+    const table = line.match(/^\|\s*([A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*-\d{1,4})\s*\|\s*([^|]+)\|/u);
+    if (!heading && !table) continue;
+    const id = (heading ?? table)[1];
+    const priorityMatch = line.match(/\bP([0-3])\b/u);
+    const priority = priorityMatch ? Number(priorityMatch[1]) : null;
+    let status = table ? table[2].trim() : null;
+    if (!status) {
+      for (const lookahead of lines.slice(index + 1, index + 8)) {
+        const statusMatch = lookahead.match(/^STATUS\s*=\s*([^\n]+)/i);
+        if (statusMatch) {
+          status = statusMatch[1].trim();
+          break;
+        }
+      }
+    }
+    record(id, index + 1, status, priority, heading ? 'heading' : 'table');
+  }
+  return [...tasks.values()];
+};
+const isCouncilPriorityTask = (task) => Boolean(task?.councilPriority === true || task?.councilRole);
+const hasPendingCouncilPriorityTask = () => Object.values(state.tasks ?? {}).some((task) => ['READY','QUEUED'].includes(task.status) && isCouncilPriorityTask(task));
+const isLedgerTaskEligible = (task) => {
+  const status = String(task.status ?? '');
+  return Boolean(status) && !LEDGER_BLOCKED_RE.test(status) && LEDGER_READY_RE.test(status);
+};
+const existingTaskStatusForScheduling = new Set(['READY', 'QUEUED', 'RUNNING', 'DONE']);
+const selectNextLedgerTask = (excludedTaskId = null) => {  if (hasPendingCouncilPriorityTask()) return null;
+  const tasks = parseTaskLedger();
+  const activeOrKnown = new Set(Object.values(state.tasks ?? {}).filter((task) => existingTaskStatusForScheduling.has(task.status)).map((task) => task.taskId));
+  return tasks
+    .filter((task) => task.taskId !== excludedTaskId && isLedgerTaskEligible(task))
+    .filter((task) => !activeOrKnown.has(task.taskId))
+    .sort((left, right) => (left.priority - right.priority) || (left.line - right.line))
+    .at(0) ?? null;
+};
+const materializeLedgerTask = (ledgerTask) => {
+  if (!ledgerTask) return null;
+  const existing = state.tasks[ledgerTask.taskId];
+  if (existing) return existing;
+  const task = {
+    taskId: ledgerTask.taskId,
+    title: `Ledger task: ${ledgerTask.taskId}`,
+    priority: ledgerTask.priority,
+    lane: 'task-ledger',
+    rca: null,
+    scope: [],
+    objective: 'Execute the next eligible task defined by المهام.md.',
+    knownFailure: null,
+    evidenceRequired: ['exact-sha', 'targeted-regression'],
+    dependsOn: [],
+    missionId: `LEDGER:${ledgerTask.taskId}`,
+    workPackageId: ledgerTask.taskId,
+    councilRole: 'UNASSIGNED',
+    councilPriority: false,
+    ownerRole: null,
+    ownerAgent: null,
+    workItems: [],
+    acceptanceCriteria: [],
+    proofObligations: [],
+    handoffTo: 'assistantController',
+    status: 'QUEUED',
+    sourceOfTruth: 'المهام.md',
+    ledgerLine: ledgerTask.line,
+    ledgerStatus: ledgerTask.status,
+    createdAt: now(),
+  };
+  state.tasks[task.taskId] = task;
+  writeJson(packetPath(task.taskId), {
+    schemaVersion: 1,
+    ...task,
+    entrySha: sha(),
+    createdAt: now(),
+    nextActions: ['READ المهام.md', 'INGEST HANDOFF', 'LOGIN', 'CLAIM', 'LOCK SCOPE', 'EXECUTE', 'VERIFY'],
+    continuation: null,
+  });
+  return task;
+};
+const writeJson = (file, value) => fs.writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`);
+const writeJsonAtomic = (file, value) => {
+  const temp = `${file}.tmp-${process.pid}-${Date.now()}`;
+  fs.writeFileSync(temp, `${JSON.stringify(value, null, 2)}\n`, { encoding: 'utf8', flag: 'wx' });
+  fs.renameSync(temp, file);
+};
+const sleepSync = (ms) => { Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms); };
+const pidAlive = (pid) => { try { process.kill(pid, 0); return true; } catch (error) { return error?.code !== 'ESRCH'; } };
+const removeStaleWriteLock = () => {
+  if (!fs.existsSync(WRITE_LOCK_DIR)) return false;
+  const owner = (() => {
+    try { return JSON.parse(fs.readFileSync(WRITE_LOCK_OWNER, 'utf8')); }
+    catch { return null; }
+  })();
+  const age = (() => {
+    try { return Date.now() - Number(owner?.createdAtMs ?? fs.statSync(WRITE_LOCK_DIR).mtimeMs); }
+    catch { return 0; }
+  })();
+  const sameHostAlive = owner?.hostname === os.hostname() && Number.isInteger(owner?.pid) && pidAlive(owner.pid);
+  if (sameHostAlive || age < WRITE_LOCK_STALE_MS) return false;
+  fs.rmSync(WRITE_LOCK_DIR, { recursive: true, force: true });
+  return true;
+};
+const acquireWriteLock = () => {
+  ensure();
+  for (let attempt = 0; attempt < WRITE_LOCK_MAX_ATTEMPTS; attempt += 1) {
+    try {
+      fs.mkdirSync(WRITE_LOCK_DIR, { recursive: false });
+      fs.writeFileSync(WRITE_LOCK_OWNER, JSON.stringify({ pid: process.pid, hostname: os.hostname(), createdAtMs: Date.now() }) + '\n', { flag: 'wx' });
+      return;
+    } catch (error) {
+      if (error?.code !== 'EEXIST') throw error;
+      removeStaleWriteLock();
+      sleepSync(WRITE_LOCK_WAIT_MS);
+    }
+  }
+  throw new Error('COORDINATION_WRITE_LOCK_TIMEOUT');
+};
+const releaseWriteLock = () => { try { fs.rmSync(WRITE_LOCK_DIR, { recursive: true, force: true }); } catch { return false; } };
+const storageKey = (value) => createHash('sha256').update(value).digest('hex');
+const visibilityPath = (sessionId) => path.join(VISIBILITY_DIR, `${storageKey(sessionId)}.json`);
+const packetPath = (taskId) => path.join(PACKET_DIR, `${storageKey(taskId)}.json`);
+const readVisibility = (sessionId) => { const file = visibilityPath(sessionId); if (!fs.existsSync(file)) throw new Error(`AGENT_VISIBILITY_RECORD_MISSING=${sessionId}`); return JSON.parse(fs.readFileSync(file, 'utf8')); };
+const assertOpenVisibility = (task, sessionId, agentId) => {
+  const record = readVisibility(sessionId);
+  if (record.visibilityState !== 'OPEN' || record.status !== 'RUNNING') throw new Error(`AGENT_VISIBILITY_NOT_OPEN=${sessionId}`);
+  if (record.taskId !== task.taskId) throw new Error('AGENT_VISIBILITY_TASK_MISMATCH');
+  if (record.agentId !== agentId) throw new Error('AGENT_VISIBILITY_AGENT_MISMATCH');
+  if (record.entrySha && record.entrySha !== sha()) throw new Error('AGENT_VISIBILITY_STALE_ENTRY_SHA');
+  if (!task.ownerRole) throw new Error('TASK_OWNER_ROLE_REQUIRED');
+  if (!COUNCIL_MACHINE_ROLES.has(String(task.ownerRole))) throw new Error('TASK_OWNER_ROLE_INVALID');
+  if (record.role !== task.ownerRole) throw new Error(`TASK_OWNER_ROLE_MISMATCH=${task.ownerRole}`);
+  if (task.ownerAgent && record.agentId !== task.ownerAgent) throw new Error('TASK_OWNER_AGENT_MISMATCH');
+  if (!task.workPackageId) throw new Error('TASK_WORK_PACKAGE_REQUIRED');
+  if (!Array.isArray(task.workItems) || task.workItems.length === 0) throw new Error('TASK_WORK_ITEMS_REQUIRED');
+  if (!Array.isArray(task.acceptanceCriteria) || task.acceptanceCriteria.length === 0) throw new Error('TASK_ACCEPTANCE_CRITERIA_REQUIRED');
+  if (!Array.isArray(task.proofObligations) || task.proofObligations.length === 0) throw new Error('TASK_PROOF_OBLIGATIONS_REQUIRED');
+  const taskScope = new Set(task.scope ?? []);
+  const sessionScope = new Set(record.scope ?? []);
+  for (const item of taskScope) if (!sessionScope.has(item)) throw new Error(`TASK_SCOPE_NOT_IN_SESSION_SCOPE=${item}`);
+  return record;
+};
+const staleSessionRecord = (sessionId, session, reason) => {
+  const staleAtSha = sha();
+  state.staleSessions[sessionId] = { ...session, staleAt: now(), staleAtSha, staleReason: reason };
+  const task = session.taskId ? state.tasks[session.taskId] : null;
+  if (task?.sessionId === sessionId && task.status === 'RUNNING') { task.status = 'STALE'; task.staleReason = reason; task.staleAt = now(); }
+  if (session.chairId && session.agentId) {
+    revokeChair({ chairId: session.chairId, agentId: session.agentId, reason, sessionId, taskId: session.taskId ?? null });
+  }
+  unlock(sessionId);
+  delete state.activeSessions[sessionId];
+  try { const file = visibilityPath(sessionId); if (fs.existsSync(file)) { const visibility = JSON.parse(fs.readFileSync(file, 'utf8')); visibility.status = 'STALE'; visibility.staleReason = reason; visibility.staleAt = now(); visibility.updatedAt = now(); fs.writeFileSync(file, JSON.stringify(visibility, null, 2) + '\n'); } } catch { return false; }
+};
+const reconcileStaleSessions = () => {
+  if (!STALE_SESSION_KILL_SWITCH) return;
+  const current = sha();
+  for (const [sessionId, session] of Object.entries(state.activeSessions)) {
+    if (session.entrySha && session.entrySha !== current) staleSessionRecord(sessionId, session, 'ENTRY_SHA_MISMATCH');
+    else if (session.governanceFingerprint && session.governanceFingerprint !== currentGovernanceFingerprint) staleSessionRecord(sessionId, session, 'GOVERNANCE_DRIFT');
+  }
+};
+const markSessionChairReleased = (sessionId, chairId, reason) => {
+  const file = path.join(SESSION_DIR, storageKey(sessionId) + '.json');
+  if (!fs.existsSync(file)) return false;
+  const record = JSON.parse(fs.readFileSync(file, 'utf8'));
+  record.chairBinding = { ...(record.chairBinding ?? {}), released: true, releasedAt: now(), releasedChairId: chairId ?? record.chairBinding?.chairId ?? null, releaseReason: reason };
+  record.chairId = null;
+  record.chairLeaseId = null;
+  record.actions = Array.isArray(record.actions) ? [...record.actions, { at: now(), action: 'CHAIR_RELEASED_AT_TASK_END', chairId, reason, sha: sha() }] : [{ at: now(), action: 'CHAIR_RELEASED_AT_TASK_END', chairId, reason, sha: sha() }];
+  fs.writeFileSync(file, JSON.stringify(record, null, 2) + '\n');
+  return true;
+};
+const visibleAgents = () => { if (!fs.existsSync(VISIBILITY_DIR)) return []; return fs.readdirSync(VISIBILITY_DIR).filter((entry) => entry.endsWith('.json')).sort().map((entry) => { try { const item = JSON.parse(fs.readFileSync(path.join(VISIBILITY_DIR, entry), 'utf8')); return { taskId: item.taskId ?? null, sessionId: item.sessionId ?? entry.slice(0,-5), agentId: item.agentId ?? null, role: item.role ?? null, status: item.status ?? null, finalStatus: item.finalStatus ?? null, entrySha: item.entrySha ?? null, exitSha: item.exitSha ?? null, finalSummary: item.finalSummary ?? null, remainingWork: item.remainingWork ?? [], openRcas: item.openRcas ?? [], updatedAt: item.updatedAt ?? null }; } catch { return { sessionId: entry.slice(0,-5), status: 'MALFORMED_EVIDENCE' }; } }); };
+const MUTATING_COMMANDS = new Set(['task-create', 'task-claim', 'task-release', 'task-complete', 'task-next', 'ingest-handoff', 'chair-heartbeat', 'chair-reconcile', 'chair-speculate', 'push-seat-claim', 'push-seat-heartbeat', 'worker-seat-heartbeat']);
+const writeLocked = MUTATING_COMMANDS.has(command);
+assertMutationTopology();
+if (writeLocked) acquireWriteLock();
+process.on('exit', releaseWriteLock);
+const defaultState = () => ({ schemaVersion: 1, authority: 'AGENT_COORDINATION_CONTROL_PLANE', authoritativeSha: sha(), governanceFingerprint: governanceFingerprint(), revision: 0, transactionId: null, updatedAt: now(), tasks: {}, activeSessions: {}, staleSessions: {}, pushSeats: {}, activeWorkerSeat: null });
+const defaultLocks = () => ({ schemaVersion: 1, authority: 'AGENT_SCOPE_LOCKS', governanceFingerprint: governanceFingerprint(), revision: 0, transactionId: null, locks: {} });
+const state = readJson(QUEUE_FILE, defaultState());
+const locks = readJson(LOCK_FILE, defaultLocks());
+state.staleSessions = state.staleSessions ?? {};
+state.pushSeats = state.pushSeats ?? {};
+state.activeWorkerSeat = state.activeWorkerSeat ?? null;
+const currentGovernanceFingerprint = governanceFingerprint();
+if (state.governanceFingerprint && state.governanceFingerprint !== currentGovernanceFingerprint) throw new Error('COORDINATION_GOVERNANCE_DRIFT');
+if (locks.governanceFingerprint && locks.governanceFingerprint !== currentGovernanceFingerprint) throw new Error('COORDINATION_GOVERNANCE_DRIFT');
+state.governanceFingerprint = currentGovernanceFingerprint;
+locks.governanceFingerprint = currentGovernanceFingerprint;
+let initialRevision = Number(state.revision ?? 0);
+if (Number(locks.revision ?? initialRevision) !== initialRevision) throw new Error('COORDINATION_STATE_VERSION_MISMATCH');
+if ((locks.transactionId ?? null) !== (state.transactionId ?? null)) throw new Error('COORDINATION_TRANSACTION_MISMATCH');
+function save() {
+  const persisted = readJson(QUEUE_FILE, defaultState());
+  const persistedLocks = readJson(LOCK_FILE, defaultLocks());
+  if (Number(persisted.revision ?? 0) !== initialRevision || Number(persistedLocks.revision ?? initialRevision) !== initialRevision) throw new Error('COORDINATION_STATE_VERSION_CONFLICT');
+  const governance = governanceFingerprint();
+  if ((persisted.governanceFingerprint ?? governance) !== governance || (persistedLocks.governanceFingerprint ?? governance) !== governance) throw new Error('COORDINATION_GOVERNANCE_DRIFT');
+  const nextRevision = initialRevision + 1;
+  const transactionId = `${sha()}:${nextRevision}:${process.pid}:${Date.now()}`;
+  const nextState = { ...state, authoritativeSha: sha(), governanceFingerprint: governance, revision: nextRevision, transactionId, updatedAt: now() };
+  const nextLocks = { ...locks, governanceFingerprint: governance, revision: nextRevision, transactionId };
+  writeJsonAtomic(QUEUE_FILE, nextState);
+  writeJsonAtomic(LOCK_FILE, nextLocks);
+  Object.assign(state, { authoritativeSha: nextState.authoritativeSha, revision: nextRevision, transactionId, updatedAt: nextState.updatedAt });
+  Object.assign(locks, { revision: nextRevision, transactionId });
+  initialRevision = nextRevision;
+}
+function overlap(a, b) { return a.some((x) => b.has(x)); }
+function lock(sessionId, agentId, rca, scope) {
+  for (const [id, item] of Object.entries(locks.locks)) {
+    if (item.status !== 'ACTIVE' || item.sessionId === sessionId) continue;
+    if ((rca && item.rca && rca === item.rca) || overlap(scope, new Set(item.scope ?? []))) throw new Error(`COORDINATION_CONFLICT=${id}`);
+  }
+  const lockId = `${sessionId}:${sha()}`;
+  locks.locks[lockId] = { lockId, sessionId, agentId, rca: rca || null, scope, entrySha: sha(), governanceFingerprint: currentGovernanceFingerprint, acquiredAt: now(), status: 'ACTIVE' };
+  return lockId;
+}
+function unlock(sessionId) { for (const item of Object.values(locks.locks)) if (item.sessionId === sessionId && item.status === 'ACTIVE') { item.status = 'RELEASED'; item.releasedAt = now(); } }
+function recordCellTaskKnowledge(task, { outcome, verification }) {
+  const botId = String(task.ownerAgent ?? '').match(/^CELL-\d{3}$/u)?.[0] ?? null;
+  const record = buildKnowledgeRecord({
+    botId,
+    taskId: task.taskId,
+    taskShortName: task.shortName ?? null,
+    taskName: task.title ?? task.taskId,
+    fingerprint: task.errorFingerprint ?? task.missionId ?? task.taskId,
+    rootCause: task.rca ?? 'general-task',
+    rule: task.repairStrategy ?? null,
+    outcome,
+    verification,
+    targetSha: sha(),
+    failedSha: task.failedSha ?? null,
+    runId: process.env.FLIXO_RUN_ID ?? null,
+    source: 'FLIXO Agent Coordination / Task Completion',
+    changedPaths: Array.isArray(task.scope) ? task.scope : [],
+    taskVersion: Number(task.taskVersion ?? 1),
+    attempts: Number(task.attempts ?? 1),
+    successes: outcome === 'success' ? 1 : 0,
+    upgradeNumber: Number(task.upgradeNumber ?? 0),
+    upgradePriority: Number(task.upgradePriority ?? 1),
+    weakness: task.weakness ?? null,
+  });
+  return { botId, result: persistKnowledge(record), knowledge: record };
+}
+ensure();
+const staleReconcileRequired = Object.values(state.activeSessions ?? {}).some((session) =>
+  (session.entrySha && session.entrySha !== sha()) ||
+  (session.governanceFingerprint && session.governanceFingerprint !== currentGovernanceFingerprint)
+);
+if (writeLocked || (command === 'state' && staleReconcileRequired)) {
+  reconcileStaleSessions();
+  if (command === 'state' && staleReconcileRequired && !writeLocked) save();
+}
+if (!['task-create', 'task-claim', 'task-release', 'task-complete', 'task-next', 'state', 'brief', 'visible', 'ingest-handoff', 'chair-heartbeat', 'chair-reconcile', 'chair-speculate', 'worker-seat-status'].includes(command)) throw new Error('Usage: agent-coordination.mjs task-create|task-claim|task-release|task-complete|task-next|state|brief|visible|ingest-handoff|chair-heartbeat|chair-reconcile|chair-speculate|worker-seat-heartbeat|worker-seat-status');
+
+if (command === 'task-create') {
+  const taskId = requireArg('task');
+  const tasksAuthorityFile = path.resolve(ROOT, process.env.FLIXO_TASK_AUTHORITY_FILE || 'المهام.md');
+  if (!fs.existsSync(tasksAuthorityFile)) throw new Error('TASK_PERMANENT_LEDGER_MISSING');
+  const ledgerText = fs.readFileSync(tasksAuthorityFile, 'utf8');
+  if (!ledgerText.includes(taskId)) throw new Error('TASK_PERMANENT_LEDGER_ENTRY_REQUIRED=' + taskId);
+  if (state.tasks[taskId]) throw new Error(`Task already exists: ${taskId}`);
+  const ownerRole = optional('owner-role') || null;
+  if (ownerRole && !COUNCIL_MACHINE_ROLES.has(ownerRole)) throw new Error('TASK_OWNER_ROLE_INVALID=' + ownerRole);
+  const workItems = list('work-items');
+  const acceptanceCriteria = list('acceptance');
+  const proofObligations = list('proof');
+  const task = {
+    taskId,
+    title: requireArg('title'),
+    priority: Number(optional('priority', '50')),
+    lane: optional('lane', 'fast-path'),
+    rca: optional('rca') || null,
+    scope: list('scope'),
+    objective: optional('objective'),
+    knownFailure: optional('known-failure'),
+    evidenceRequired: list('evidence-required'),
+    dependsOn: list('depends-on'),
+    missionId: optional('mission-id') || `MISSION:${taskId}`,
+    workPackageId: optional('work-package') || taskId,
+    councilRole: optional('council-role') || null,
+    ownerRole,
+    ownerAgent: optional('owner-agent') || null,
+    workItems,
+    acceptanceCriteria,
+    proofObligations,
+    handoffTo: optional('handoff-to') || 'assistantController',
+    status: ownerRole && optional('owner-agent') && workItems.length && acceptanceCriteria.length && proofObligations.length ? 'READY' : 'QUEUED',
+    createdAt: now(),
+  };
+  for (const dep of task.dependsOn) if (!state.tasks[dep]) throw new Error(`Unknown dependency: ${dep}`);
+  state.tasks[taskId] = task;
+  writeJson(packetPath(taskId), { schemaVersion: 1, ...task, entrySha: sha(), createdAt: now(), nextActions: [], continuation: null });
+  save();
+  console.log(JSON.stringify(task, null, 2));
+}
+
+if (command === 'task-claim') {
+  const taskId = requireArg('task'); const sessionId = requireArg('session'); const agentId = requireArg('agent');
+  const task = state.tasks[taskId]; if (!task) throw new Error(`Unknown task: ${taskId}`);
+  const requestedFlixoAgent = String(agentId).trim().toUpperCase();
+  const activeWorkerAdmission = isFlixo10(requestedFlixoAgent)
+    ? evaluateWorkerClaim({
+      seat: activeWorkerSeatRecord(),
+      requestedAgent: requestedFlixoAgent,
+      taskId,
+      sessionId,
+      targetSha: sha(),
+    })
+    : null;
+  const failoverClaim = activeWorkerAdmission?.action === 'FAILOVER_CLAIM';
+  const claimableFreshTask = ['READY', 'QUEUED'].includes(task.status);
+  const claimableStaleWorkerTask = task.status === 'RUNNING' && failoverClaim;
+  if (!claimableFreshTask && !claimableStaleWorkerTask) {
+    if (task.status === 'RUNNING' && isFlixo10(requestedFlixoAgent)) throw new Error('FLIXO_ACTIVE_WORKER_GUARD_RUNNING_TASK_REQUIRES_STALE_FAILOVER');
+    throw new Error(`Task not claimable: ${task.status}`);
+  }
+  if (!isCouncilPriorityTask(task) && hasPendingCouncilPriorityTask()) throw new Error('COORDINATION_COUNCIL_PRIORITY_BLOCK');
+  for (const dep of task.dependsOn ?? []) if (state.tasks[dep]?.status !== 'DONE') throw new Error(`DEPENDENCY_BLOCK=${dep}`);
+  assertOpenVisibility(task, sessionId, agentId);
+  const visibility = readVisibility(sessionId);
+  let inboundMessage = null;
+  const requestedMessageId = optional('message-id');
+  const sessionMessageId = visibility.messageId ?? null;
+  const messageId = requestedMessageId || sessionMessageId;
+  if (messageId) {
+    inboundMessage = getAgentMessage(messageId);
+    if (!['READ','CONSUMED'].includes(inboundMessage.status)) throw new Error('COORDINATION_MESSAGE_NOT_READ=' + inboundMessage.status);
+    if (inboundMessage.entrySha !== sha()) throw new Error('COORDINATION_MESSAGE_SHA_STALE');
+    if (!(inboundMessage.recipient === 'ALL_AGENTS' || inboundMessage.recipient === agentId)) throw new Error('COORDINATION_MESSAGE_RECIPIENT_MISMATCH');
+    if (inboundMessage.taskId !== taskId) throw new Error('COORDINATION_MESSAGE_TASK_MISMATCH');
+    if (!overlap(task.scope ?? [], new Set(inboundMessage.scope ?? []))) throw new Error('COORDINATION_MESSAGE_SCOPE_MISMATCH');
+  }
+  if (failoverClaim) {
+    const previousSessionId = activeWorkerSeatRecord()?.sessionId ?? null;
+    const previousSession = previousSessionId ? state.activeSessions[previousSessionId] : null;
+    if (previousSession) staleSessionRecord(previousSessionId, previousSession, 'ACTIVE_WORKER_HEARTBEAT_STALE_FAILOVER');
+  }
+  initializeChairState({targetSha:sha()});
+  reconcileDeadLeases({targetSha:sha()});
+  let lockId = lock(sessionId, agentId, task.rca, task.scope);
+  let chairLease = null;
+  const selectedChair = optional('chair', activeChairForAgent({agentId,targetSha:sha()})?.chairId ?? 'chair_1');
+  assertChairRole(selectedChair, visibility.role);
+  try {
+    const existingChair = activeChairForAgent({agentId,targetSha:sha()});
+    if (existingChair) {
+      if (existingChair.chairId !== selectedChair) throw new Error('CHAIR_SESSION_ALREADY_BOUND_TO_OTHER_CHAIR');
+      chairLease = { chairs: { [existingChair.chairId]: { lease_id: existingChair.leaseId, status: 'OCCUPIED' } }, repository_state: 'ACTIVE', reused: true };
+    } else {
+      chairLease = acquireChair({
+        agentId,
+        chairId: selectedChair,
+        reviewId: optional('review-id') || null,
+        scope: task.scope ?? null,
+        workPackageId: task.workPackageId ?? taskId,
+        taskId
+      });
+    }
+    if (inboundMessage) inboundMessage = consumeAgentMessage(inboundMessage.messageId, agentId, sha(), true);
+    if (activeWorkerAdmission) {
+      state.activeWorkerSeat = buildActiveWorkerSeat({
+        taskId,
+        sessionId,
+        agentId: requestedFlixoAgent,
+        targetSha: sha(),
+        previousSeat: activeWorkerSeatRecord(),
+        takeover: activeWorkerAdmission.action === 'FAILOVER_CLAIM',
+      });
+    }
+  } catch (error) {
+    try { if (chairLease) releaseChair({ chairId: selectedChair, agentId, reason: 'CLAIM_ROLLBACK', sessionId, taskId }); } catch { /* rollback cleanup is best-effort */ }
+    unlock(sessionId);
+    throw error;
+  }
+  task.status = 'RUNNING'; task.claimedBy = agentId; task.sessionId = sessionId; task.claimedAt = now(); task.entrySha = sha(); task.lockId = lockId; task.chairId = selectedChair;
+  state.activeSessions[sessionId] = { sessionId, agentId, taskId, lockId, chairId: selectedChair, chairLeaseId: chairLease?.chairs?.[selectedChair]?.lease_id ?? null, entrySha: sha(), governanceFingerprint: currentGovernanceFingerprint, protocolHash: assertProtocolDefinition().protocolHash, ...(inboundMessage ? { messageId: inboundMessage.messageId, messageEntrySha: inboundMessage.entrySha } : {}), updatedAt: now() };
+  const packetFile = packetPath(taskId); const packet = readJson(packetFile, task); packet.claim = { sessionId, agentId, lockId, claimedAt: now(), entrySha: sha(), ...(inboundMessage ? { messageId: inboundMessage.messageId, messageEntrySha: inboundMessage.entrySha } : {}) }; writeJson(packetFile, packet); save(); console.log(JSON.stringify(task, null, 2));
+}
+
+if (command === 'push-seat-claim') {
+  const taskId = requireArg('task'); const sessionId = requireArg('session'); const agentId = requireArg('agent').toUpperCase();
+  if (!isFlixo10(agentId)) throw new Error('FLIXO10_PUSH_SEAT_AGENT_REQUIRED');
+  const task = state.tasks[taskId]; if (!task) throw new Error('Unknown task: ' + taskId);
+  if (task.sessionId !== sessionId || task.claimedBy !== agentId) throw new Error('FLIXO10_PUSH_SEAT_TASK_OWNER_MISMATCH');
+  if (task.entrySha !== sha()) throw new Error('FLIXO10_PUSH_SEAT_STALE_SHA');
+  const existing = pushSeatRecord(taskId);
+  if (existing) {
+    if (existing.agentId !== agentId || existing.sessionId !== sessionId || existing.targetSha !== sha()) throw new Error('FLIXO10_PUSH_SEAT_ALREADY_OWNED');
+    existing.lastSeenAt = now(); existing.heartbeatAt = now(); save();
+    console.log(JSON.stringify({status:'ALREADY_OWNER',pushSeat:existing}, null, 2)); process.exit(0);
+  }
+  const seat = {schemaVersion:1,protocol:'FLIXO10-PUSH-SEAT-v1',taskId,sessionId,agentId,targetSha:sha(),claimedAt:now(),lastSeenAt:now(),heartbeatAt:now(),state:'LOCKED',immutableOwner:true,takeoverAllowed:false,peerTakeoverAllowed:false,automaticReassignmentAllowed:false,abandonmentForbidden:true,mergeParallelProposals:true,publicationPath:'ASSISTANT_CONTROLLER_GUARDED_PUBLICATION',canonicalBranch:'execution'};
+  state.pushSeats[taskId] = seat;
+  task.pushSeat = {agentId,sessionId,targetSha:sha(),status:'LOCKED'};
+  save(); console.log(JSON.stringify({status:'CLAIMED',pushSeat:seat}, null, 2));
+}
+
+if (command === 'worker-seat-heartbeat') {
+  const taskId = requireArg('task'); const sessionId = requireArg('session'); const agentId = requireArg('agent').toUpperCase();
+  const seat = activeWorkerSeatRecord();
+  if (!seat) throw new Error('FLIXO_ACTIVE_WORKER_GUARD_NOT_CLAIMED');
+  if (seat.taskId !== taskId || seat.sessionId !== sessionId || seat.agentId !== agentId) throw new Error('FLIXO_ACTIVE_WORKER_GUARD_OWNER_MISMATCH');
+  if (seat.targetSha !== sha()) throw new Error('FLIXO_ACTIVE_WORKER_GUARD_STALE_SHA');
+  seat.lastSeenAt = now(); seat.heartbeatAt = now(); state.activeWorkerSeat = seat; save();
+  console.log(JSON.stringify({status:'HEARTBEAT',activeWorkerSeat:seat}, null, 2));
+}
+
+if (command === 'worker-seat-status') {
+  console.log(JSON.stringify({status: activeWorkerSeatRecord() ? 'ACTIVE' : 'UNCLAIMED', activeWorkerSeat: activeWorkerSeatRecord(), targetSha:sha()}, null, 2));
+}
+
+if (command === 'push-seat-heartbeat') {
+  const taskId = requireArg('task'); const sessionId = requireArg('session'); const agentId = requireArg('agent').toUpperCase();
+  const seat = pushSeatRecord(taskId); if (!seat) throw new Error('FLIXO10_PUSH_SEAT_NOT_CLAIMED');
+  if (seat.agentId !== agentId || seat.sessionId !== sessionId) throw new Error('FLIXO10_PUSH_SEAT_OWNER_MISMATCH');
+  if (seat.targetSha !== sha()) throw new Error('FLIXO10_PUSH_SEAT_STALE_SHA');
+  seat.lastSeenAt = now(); seat.heartbeatAt = now(); save();
+  console.log(JSON.stringify({status:'HEARTBEAT',pushSeat:seat}, null, 2));
+}
+
+if (command === 'push-seat-status') {
+  const taskId = requireArg('task'); const seat = pushSeatRecord(taskId);
+  if (!seat) { console.log(JSON.stringify({status:'UNCLAIMED',taskId,targetSha:sha()}, null, 2)); process.exit(0); }
+  if (seat.targetSha !== sha()) throw new Error('FLIXO10_PUSH_SEAT_STALE_SHA');
+  console.log(JSON.stringify({status:'LOCKED',pushSeat:seat}, null, 2));
+}
+
+if (command === 'task-release') {
+  const taskId = requireArg('task'); const sessionId = requireArg('session'); const task = state.tasks[taskId]; if (!task) throw new Error(`Unknown task: ${taskId}`); if (task.sessionId !== sessionId) throw new Error('TASK_OWNER_MISMATCH');
+  const visibility = readVisibility(sessionId); if (visibility.taskId !== taskId) throw new Error('AGENT_VISIBILITY_TASK_MISMATCH'); if (!['VERIFIED','BLOCKED'].includes(visibility.finalStatus)) throw new Error('TASK_RELEASE_REQUIRES_CLOSED_AGENT_STATUS');
+  if (state.pushSeats[taskId]) throw new Error('FLIXO10_PUSH_SEAT_TASK_RELEASE_BLOCKED');
+  if (state.activeWorkerSeat?.taskId === taskId && state.activeWorkerSeat?.sessionId === sessionId) state.activeWorkerSeat = null;
+  task.status = optional('status', 'READY').toUpperCase(); task.releasedAt = now(); task.remainingWork = list('remaining-work'); task.openRcas = list('open-rcas'); const activeReleaseChair = activeChairForAgent({agentId: task.claimedBy,targetSha:sha()}); if (activeReleaseChair) { releaseChair({ chairId: activeReleaseChair.chairId, agentId: task.claimedBy, reason: 'TASK_RELEASE', successful: visibility.finalStatus === 'VERIFIED', sessionId, taskId }); markSessionChairReleased(sessionId, activeReleaseChair.chairId, 'TASK_RELEASE'); } const cellLearning = visibility.finalStatus === 'BLOCKED' ? recordCellTaskKnowledge(task, { outcome: 'blocked', verification: 'task-blocked', sessionId }) : null; unlock(sessionId); delete state.activeSessions[sessionId]; save(); console.log(JSON.stringify({ task, cellLearning }, null, 2));
+}
+
+if (command === 'task-complete') {
+  const taskId = requireArg('task'); const sessionId = requireArg('session'); const task = state.tasks[taskId]; if (!task) throw new Error(`Unknown task: ${taskId}`); if (task.sessionId !== sessionId) throw new Error('TASK_OWNER_MISMATCH');
+  const openRcas = list('open-rcas'); const remainingWork = list('remaining-work'); if (openRcas.length || remainingWork.length) throw new Error('TASK_COMPLETION_BLOCKED_BY_UNRESOLVED_WORK');
+  const visibility = readVisibility(sessionId);
+  const handoffFile = path.join(HANDOFF_DIR, `${storageKey(sessionId)}.json`);
+  if (!fs.existsSync(handoffFile)) throw new Error('TASK_COMPLETION_REQUIRES_AGENT_HANDOFF');
+  const handoff = JSON.parse(fs.readFileSync(handoffFile, 'utf8'));
+  if (handoff.status !== 'VERIFIED' || visibility.finalStatus !== 'VERIFIED') throw new Error('TASK_COMPLETION_REQUIRES_VERIFIED_AGENT_STATUS');
+  if (handoff.taskId !== taskId || visibility.taskId !== taskId) throw new Error('TASK_COMPLETION_TASK_MISMATCH');
+  if (handoff.exitSha !== sha() || visibility.exitSha !== sha()) throw new Error('TASK_COMPLETION_STALE_EXIT_SHA');
+  if (!visibility.finalSummary) throw new Error('TASK_COMPLETION_FINAL_SUMMARY_MISSING');
+  const cellLearning = recordCellTaskKnowledge(task, { outcome: 'success', verification: 'canonical-task-verified', sessionId });
+  task.status = 'DONE'; task.completedAt = now(); task.exitSha = sha(); task.evidence = list('evidence'); task.findings = list('findings'); task.finalStatus = visibility.finalStatus; task.finalSummary = visibility.finalSummary; task.visibilityPath = path.relative(ROOT, visibilityPath(sessionId));
+  const ledgerNext = selectNextLedgerTask(taskId);
+  if (ledgerNext) {
+    const nextTask = materializeLedgerTask(ledgerNext);
+    task.nextTask = {
+      taskId: nextTask.taskId,
+      status: nextTask.status,
+      sourceOfTruth: 'المهام.md',
+      ledgerLine: ledgerNext.line,
+      ledgerStatus: ledgerNext.status,
+      priority: ledgerNext.priority,
+      assignedAgent: nextTask.ownerAgent ?? null,
+      assignedRole: nextTask.ownerRole ?? null,
+      councilRole: nextTask.councilRole ?? null,
+      entrySha: sha(),
+      requiresNewSession: true,
+      requiresPresidentAssignment: !nextTask.ownerRole || !nextTask.ownerAgent,
+      dispatchReason: 'PREVIOUS_TASK_VERIFIED'
+    };
+    state.nextDispatch = {
+      dispatchId: `TASK-NEXT:${taskId}:${sha()}`,
+      completedTaskId: taskId,
+      nextTaskId: nextTask.taskId,
+      recipient: nextTask.ownerAgent ?? 'assistantController',
+      sourceOfTruth: 'المهام.md',
+      entrySha: sha(),
+      status: nextTask.ownerRole && nextTask.ownerAgent ? 'READY' : 'PENDING_ASSIGNMENT',
+      createdAt: now()
+    };
+  } else {
+    task.nextTask = null;
+    state.nextDispatch = null;
+  }
+  if (state.activeWorkerSeat?.taskId === taskId && state.activeWorkerSeat?.sessionId === sessionId) state.activeWorkerSeat = null;
+  const activeCompleteChair = activeChairForAgent({agentId: task.claimedBy,targetSha:sha()}); if (activeCompleteChair) { releaseChair({ chairId: activeCompleteChair.chairId, agentId: task.claimedBy, reason: 'TASK_COMPLETE', successful: true, sessionId, taskId }); markSessionChairReleased(sessionId, activeCompleteChair.chairId, 'TASK_COMPLETE'); } unlock(sessionId); delete state.activeSessions[sessionId]; save(); console.log(JSON.stringify({ completedTask: task, cellLearning, nextTask: task.nextTask, councilDispatch: state.nextDispatch }, null, 2));
+}
+
+
+if (command === 'chair-heartbeat') {
+  const sessionId = requireArg('session'); const agentId = requireArg('agent'); const chairId = optional('chair', 'chair_1');
+  const session = state.activeSessions[sessionId]; if (!session || session.agentId !== agentId || session.chairId !== chairId) throw new Error('CHAIR_HEARTBEAT_SESSION_MISMATCH');
+  if (session.entrySha !== sha()) throw new Error('STALE_CONTEXT');
+  initializeChairState({targetSha:sha()});
+  const result = heartbeatChair({chairId,agentId,targetSha:sha()});
+  session.updatedAt = now(); session.lastHeartbeatAt = result.heartbeatAt; save();
+  console.log(JSON.stringify(result, null, 2));
+}
+
+if (command === 'chair-reconcile') {
+  initializeChairState({targetSha:sha()});
+  const result = reconcileDeadLeases({targetSha:sha()});
+  save();
+  console.log(JSON.stringify(result, null, 2));
+}
+
+if (command === 'chair-speculate') {
+  const sessionId = requireArg('session'); const taskId = requireArg('task'); const chairId = optional('chair', 'chair_2'); const role = requireArg('role');
+  if (!['chair_2','chair_3'].includes(chairId)) throw new Error('CHAIR_SPECULATION_SEAT_DENIED');
+  assertChairRole(chairId, role);
+  if (!state.activeSessions[sessionId] || state.activeSessions[sessionId].taskId !== taskId) throw new Error('CHAIR_SPECULATION_SESSION_MISMATCH');
+  const currentSha = sha();
+  const pendingDiff = (()=>{const f=optional('pending-diff-file'); if(!f)return optional('pending-diff'); const normalized=String(f).replace(/\\/g,'/'); if(normalized.startsWith('/')||normalized.includes('..')) throw new Error('CHAIR_SPECULATION_PATH_INVALID'); const abs=path.resolve(ROOT,normalized); if(!abs.startsWith(ROOT+path.sep)||!fs.existsSync(abs)) throw new Error('CHAIR_SPECULATION_PATH_INVALID'); return fs.readFileSync(abs,'utf8');})();
+  const testPlan = list('test-plan',';');
+  const cache = writeSpeculativeContext({sessionId,taskId,chairId,role,targetSha:currentSha,pendingDiff,testPlan});
+  console.log(JSON.stringify({readOnly:true,warm:true,cache}, null, 2));
+}
+
+if (command === 'task-next') {
+  const completedTaskId = optional('completed-task') || null;
+  const ledgerTask = selectNextLedgerTask(completedTaskId);
+  if (!ledgerTask) {
+    console.log(JSON.stringify({
+      schemaVersion: 1,
+      authority: 'TASK_LEDGER_COUNCIL_BRIDGE',
+      readSha: sha(),
+      sourceOfTruth: 'المهام.md',
+      status: 'NO_ELIGIBLE_TASK',
+      nextTask: null
+    }, null, 2));
+  } else {
+    const task = materializeLedgerTask(ledgerTask);
+    const dispatch = {
+      dispatchId: `TASK-NEXT:${completedTaskId ?? 'IDLE'}:${sha()}:${task.taskId}`,
+      completedTaskId,
+      nextTaskId: task.taskId,
+      recipient: task.ownerAgent ?? optional('agent', 'assistantController'),
+      sourceOfTruth: 'المهام.md',
+      ledgerLine: ledgerTask.line,
+      ledgerStatus: ledgerTask.status,
+      priority: ledgerTask.priority,
+      ownerRole: task.ownerRole ?? null,
+      councilRole: task.councilRole ?? null,
+      entrySha: sha(),
+      status: task.ownerRole && task.ownerAgent ? 'READY' : 'PENDING_ASSIGNMENT',
+      requiresNewSession: true,
+      requiresPresidentAssignment: !task.ownerRole || !task.ownerAgent,
+      createdAt: now()
+    };
+    state.nextDispatch = dispatch;
+    save();
+    console.log(JSON.stringify({ authority: 'TASK_LEDGER_COUNCIL_BRIDGE', sourceOfTruth: 'المهام.md', readSha: sha(), nextTask: task, dispatch }, null, 2));
+  }
+}
+
+if (command === 'ingest-handoff') {
+  const previous = requireArg('from-session');
+  const file = path.join(HANDOFF_DIR, `${storageKey(previous)}.json`);
+  if (!fs.existsSync(file)) throw new Error(`HANDOFF_NOT_FOUND=${previous}`);
+  const report = JSON.parse(fs.readFileSync(file, 'utf8'));
+  if (!['VERIFIED', 'BLOCKED'].includes(report.status)) throw new Error('PREDECESSOR_NOT_CLOSED');
+  const currentSha = sha();
+  if (!/^[a-f0-9]{40}$/u.test(String(report.exitSha ?? '')) || report.exitSha !== currentSha) throw new Error('HANDOFF_STALE_EXIT_SHA');
+  const sessionId = requireArg('session');
+  const agentId = requireArg('agent');
+  const role = optional('role', 'implementation');
+  assertAgentAdmission({ actor: role, branch: gitBranch(), mutation: false });
+  const taskId = optional('task', String(report.taskId ?? ''));
+  if (!taskId || report.taskId !== taskId) throw new Error('HANDOFF_TASK_MISMATCH');
+  if (state.activeSessions[sessionId]) throw new Error('SESSION_ALREADY_ACTIVE');
+  const requestedScope = list('scope');
+  const predecessorScope = new Set(report.scope ?? []);
+  if (requestedScope.some((item) => !predecessorScope.has(item))) throw new Error('HANDOFF_SCOPE_EXPANSION_BLOCKED');
+  state.activeSessions[sessionId] = {
+    sessionId,
+    agentId,
+    role,
+    taskId,
+    continuationFrom: previous,
+    inheritedExitSha: report.exitSha,
+    entrySha: currentSha,
+    governanceFingerprint: currentGovernanceFingerprint,
+    protocolHash: assertProtocolDefinition().protocolHash,
+    inheritedRemainingWork: report.remainingWork ?? [],
+    inheritedOpenRcas: report.openRcas ?? [],
+    inheritedNextPlan: report.executionPlanNext ?? [],
+    updatedAt: now(),
+  };
+  save();
+  console.log(JSON.stringify(state.activeSessions[sessionId], null, 2));
+}
+if (command === 'visible') { console.log(JSON.stringify(visibleAgents(), null, 2)); }
+if (command === 'state') {
+  const readSha = sha();
+  if (state.authoritativeSha && state.authoritativeSha !== readSha) throw new Error('COORDINATION_READ_SHA_STALE');
+  console.log(JSON.stringify({ ...state, visibleAgents: visibleAgents(), readSha }, null, 2));
+}
+if (command === 'brief') {
+  const readSha = sha();
+  if (state.authoritativeSha && state.authoritativeSha !== readSha) throw new Error('COORDINATION_READ_SHA_STALE');
+  if (Number(locks.revision ?? state.revision ?? 0) !== Number(state.revision ?? 0) || (locks.transactionId ?? null) !== (state.transactionId ?? null)) {
+    throw new Error('COORDINATION_READ_STATE_MISMATCH');
+  }
+  const tasks = Object.values(state.tasks ?? {});
+  const summarize = (status) => tasks
+    .filter((task) => task.status === status)
+    .sort((left, right) => Number(left.priority ?? 50) - Number(right.priority ?? 50))
+    .slice(0, 8)
+    .map((task) => ({ taskId: task.taskId, priority: task.priority, lane: task.lane, scope: task.scope ?? [], status: task.status }));
+  const activeLocks = Object.values(locks.locks ?? {}).filter((item) => item.status === 'ACTIVE');
+  const activeSessions = Object.values(state.activeSessions ?? {});
+  console.log(JSON.stringify({
+    schemaVersion: 1,
+    authority: 'AGENT_COORDINATION_FAST_READ_PATH',
+    readOnly: true,
+    readSha,
+    revision: state.revision ?? 0,
+    transactionId: state.transactionId ?? null,
+    counts: {
+      ready: tasks.filter((task) => task.status === 'READY').length,
+      queued: tasks.filter((task) => task.status === 'QUEUED').length,
+      running: tasks.filter((task) => task.status === 'RUNNING').length,
+      stale: tasks.filter((task) => task.status === 'STALE').length,
+      done: tasks.filter((task) => task.status === 'DONE').length,
+      activeSessions: activeSessions.length,
+      activeLocks: activeLocks.length,
+    },
+    readyTasks: summarize('READY'),
+    queuedTasks: summarize('QUEUED'),
+    runningTasks: summarize('RUNNING'),
+    activeAgents: activeSessions.map((session) => ({ sessionId: session.sessionId, agentId: session.agentId, taskId: session.taskId, entrySha: session.entrySha, updatedAt: session.updatedAt })),
+    conflicts: activeLocks.map((item) => ({ lockId: item.lockId, sessionId: item.sessionId, agentId: item.agentId, scope: item.scope ?? [], rca: item.rca ?? null })),
+    nextLedgerTask: selectNextLedgerTask(null),
+    taskLedger: { sourceOfTruth: 'المهام.md', path: path.relative(ROOT, TASK_LEDGER_FILE) },
+  }, null, 2));
+}
+
+````
+
+### 19.3 `scripts/ci/cell-lab-consensus.mjs`
+
+Source blob SHA: `558d71a12956a8acf52a04a5043db30ba0675d2a`
+
+````javascript
+#!/usr/bin/env node
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+
+export const CELL_LAB_PROTOCOL_ID = 'CELL-LAB-COLLABORATIVE-CONSENSUS';
+export const CELL_LAB_PROTOCOL_VERSION = '1.0.0';
+export const CELL_LAB_ROOT = 'diagnostics/agents/cell-lab';
+export const CELL_LAB_CONSENSUS_DIR = path.join(CELL_LAB_ROOT, 'consensus');
+export const REQUIRED_CORE_PARTICIPANTS = Object.freeze(['MASTER-1','MASTER-2','MASTER-3']);
+
+const ROOT = process.cwd();
+const abs = (p) => path.resolve(ROOT, p);
+const readJson = (file) => JSON.parse(fs.readFileSync(file, 'utf8'));
+const shaOk = (value) => /^[0-9a-f]{40}$/u.test(String(value ?? ''));
+const nonEmpty = (value, name) => {
+  if (typeof value !== 'string' || !value.trim()) throw new Error('CELL_LAB_REQUIRED_' + name.toUpperCase());
+  return value.trim();
+};
+const arr = (value, name) => {
+  if (!Array.isArray(value) || value.length === 0) throw new Error('CELL_LAB_' + name.toUpperCase() + '_REQUIRED');
+  return value;
+};
+
+export function consensusPath(taskId) {
+  const safe = String(taskId ?? '').trim().replace(/[^A-Za-z0-9._-]/gu, '_');
+  if (!safe) throw new Error('CELL_LAB_TASK_ID_REQUIRED');
+  return path.join(CELL_LAB_CONSENSUS_DIR, safe + '.json');
+}
+
+export function validateCellLabConsensus(packet, { taskId, exactSha, mutationOwner = null } = {}) {
+  if (!packet || typeof packet !== 'object' || Array.isArray(packet)) throw new Error('CELL_LAB_PACKET_INVALID');
+  if (packet.protocolId !== CELL_LAB_PROTOCOL_ID || packet.protocolVersion !== CELL_LAB_PROTOCOL_VERSION) throw new Error('CELL_LAB_PROTOCOL_INVALID');
+  if (!packet.labId || !String(packet.labId).startsWith('CELL-LAB-')) throw new Error('CELL_LAB_ID_INVALID');
+  if (packet.taskId !== taskId) throw new Error('CELL_LAB_TASK_MISMATCH');
+  if (!shaOk(packet.exactSha) || packet.exactSha !== exactSha) throw new Error('CELL_LAB_EXACT_SHA_MISMATCH');
+  nonEmpty(packet.objective, 'objective');
+  nonEmpty(packet.integratedPlan, 'integrated_plan');
+  nonEmpty(packet.planHash, 'plan_hash');
+  const expectedPlanHash = crypto.createHash('sha256').update(packet.integratedPlan, 'utf8').digest('hex');
+  if (packet.planHash !== expectedPlanHash) throw new Error('CELL_LAB_PLAN_HASH_MISMATCH');
+  if (packet.status !== 'AGREED') throw new Error('CELL_LAB_CONSENSUS_NOT_AGREED');
+  if (packet.executionReady !== true) throw new Error('CELL_LAB_EXECUTION_NOT_READY');
+  if (packet.discussionClosed !== true) throw new Error('CELL_LAB_DISCUSSION_NOT_CLOSED');
+
+  const participants = arr(packet.participants, 'participants');
+  for (const required of REQUIRED_CORE_PARTICIPANTS) {
+    if (!participants.some((item) => item?.id === required)) throw new Error('CELL_LAB_CORE_PARTICIPANT_MISSING=' + required);
+  }
+  if (mutationOwner && !participants.some((item) => item?.id === mutationOwner || item?.agentId === mutationOwner)) {
+    throw new Error('CELL_LAB_MUTATION_OWNER_MISSING');
+  }
+
+  const communication = packet.communicationEvidence;
+  if (!communication || communication.channel !== 'CANONICAL_AGENT_COMMUNICATION') throw new Error('CELL_LAB_COMMUNICATION_EVIDENCE_REQUIRED');
+  arr(communication.messageIds ?? [], 'communication_message_ids');
+  const discussions = arr(packet.discussions, 'discussions');
+  const validKinds = new Set(['OPINION','QUESTION','CHALLENGE','DECISION']);
+  for (const item of discussions) {
+    if (!item || !validKinds.has(item.kind)) throw new Error('CELL_LAB_DISCUSSION_ITEM_INVALID');
+    nonEmpty(String(item.actor ?? ''), 'discussion_actor');
+    nonEmpty(String(item.text ?? ''), 'discussion_text');
+    nonEmpty(String(item.messageId ?? ''), 'discussion_message_id');
+    if (!communication.messageIds.includes(item.messageId)) throw new Error('CELL_LAB_DISCUSSION_MESSAGE_NOT_REGISTERED');
+    arr(item.responses ?? [], 'responses');
+    arr(item.responseMessageIds ?? [], 'response_message_ids');
+    if (item.responseMessageIds.some((id) => !communication.messageIds.includes(id))) throw new Error('CELL_LAB_RESPONSE_MESSAGE_NOT_REGISTERED');
+    nonEmpty(String(item.resolution ?? ''), 'resolution');
+  }
+
+  for (const participant of participants) {
+    if (!participant?.id) throw new Error('CELL_LAB_PARTICIPANT_ID_INVALID');
+    if (!['AGREED','DISSENT_RESOLVED'].includes(participant.status)) throw new Error('CELL_LAB_PARTICIPANT_STATUS_INVALID=' + participant.id);
+    nonEmpty(String(participant.basis ?? ''), 'participant_basis');
+  }
+
+  const questions = discussions.filter((item) => item.kind === 'QUESTION');
+  if (questions.some((item) => item.status !== 'ANSWERED' && item.status !== 'ACCEPTED_AS_RISK')) throw new Error('CELL_LAB_UNRESOLVED_QUESTION');
+  if (!Array.isArray(packet.dissentResolved)) throw new Error('CELL_LAB_DISSENT_REGISTER_REQUIRED');
+  for (const dissent of packet.dissentResolved) {
+    if (!dissent?.participant || !dissent?.resolution) throw new Error('CELL_LAB_DISSENT_UNRESOLVED');
+  }
+
+  const decisions = discussions.filter((item) => item.kind === 'DECISION');
+  if (!decisions.length) throw new Error('CELL_LAB_FINAL_DECISION_REQUIRED');
+  if (decisions.some((item) => item.status !== 'AGREED')) throw new Error('CELL_LAB_DECISION_NOT_AGREED');
+
+  if (packet.remainingQuestions?.length) throw new Error('CELL_LAB_REMAINING_QUESTIONS');
+  if (packet.unresolvedConflicts?.length) throw new Error('CELL_LAB_UNRESOLVED_CONFLICTS');
+  if (!Array.isArray(packet.proofObligations) || packet.proofObligations.length === 0) throw new Error('CELL_LAB_PROOF_OBLIGATIONS_REQUIRED');
+  if (!Array.isArray(packet.stopConditions) || packet.stopConditions.length === 0) throw new Error('CELL_LAB_STOP_CONDITIONS_REQUIRED');
+  return Object.freeze({
+    protocolId: CELL_LAB_PROTOCOL_ID,
+    protocolVersion: CELL_LAB_PROTOCOL_VERSION,
+    labId: packet.labId,
+    taskId: packet.taskId,
+    exactSha: packet.exactSha,
+    status: packet.status,
+    executionReady: true,
+    participantCount: participants.length,
+    discussionCount: discussions.length,
+    planHash: packet.planHash,
+  });
+}
+
+export function loadAndValidateCellLabConsensus({ file, taskId, exactSha, mutationOwner = null } = {}) {
+  const resolved = abs(file || consensusPath(taskId));
+  if (!fs.existsSync(resolved)) throw new Error('CELL_LAB_CONSENSUS_FILE_MISSING=' + path.relative(ROOT, resolved));
+  return validateCellLabConsensus(readJson(resolved), { taskId, exactSha, mutationOwner });
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const command = String(process.argv[2] ?? '').trim().toLowerCase();
+  const getArg = (name) => {
+    const prefix = '--' + name + '=';
+    const item = process.argv.find((value) => value.startsWith(prefix));
+    return item ? item.slice(prefix.length) : '';
+  };
+  if (command !== 'validate') throw new Error('Usage: cell-lab-consensus.mjs validate --task=<id> --sha=<exactSha> [--file=<path>] [--owner=<agent>]');
+  const result = loadAndValidateCellLabConsensus({
+    file: getArg('file') || undefined,
+    taskId: getArg('task'),
+    exactSha: getArg('sha'),
+    mutationOwner: getArg('owner') || null,
+  });
+  console.log(JSON.stringify({ status: 'PASS', ...result }, null, 2));
+}
+
+````
+
+### 19.4 دلالة المصادر
+
+هذه المصادر هي الطبقة التنفيذية التاريخية لرسائل الوكلاء، ملكية المهام، وحوكمة قرارات المعمل. تم حفظها داخل الخلية الجديدة كـsource memory؛ إعادة الاستخدام تتطلب إعادة التحقق على SHA الحالي ولا تمنح أي سلطة تلقائية.
+
+---
+
+## 20. النموذج الجديد للخلية — 14 وكيلًا، عقل مشترك، فروع ذرّية
+
+CURRENT DESIGN / TARGET ARCHITECTURE
+
+هذا القسم يعرّف النموذج المستهدف للخلية الجديدة. الهدف التشغيلي للوكلاء هو تطوير المنتج الخارجي FLIXO وتحسين الجودة والسرعة وتجربة المستخدم، وليس تحسين المستودع لذاته.
+
+### 20.1 هوية الوكيل دائمة، والمهمة مؤقتة
+الوكيل كيان معرفي دائم. هويته وخبرته وذاكرته وسجل استراتيجياته ونقاط ضعفه وموثوقيته تستمر عبر الزمن. المهمة والخطوة والتجربة والفرع حالات مؤقتة.
+Agent identity = persistent
+Task context = ephemeral
+
+### 20.2 عقل وذاكرة مشتركان
+الوكلاء الأساسيون الأربعة عشر يستخدمون نفس Cognitive Substrate: World Model، Context، Reasoning، Planning، Discovery، Hypothesis Generation، Execution، Measurement، Falsification، Red Team، Learning، Strategy Reuse، Security وGovernance.
+الاختلاف بينهم يكون في Agent ID والمهمة الحالية والخطوة والسياق المحلي ودور التجربة والتخصص وسجل الموثوقية، وليس في امتلاك عقول منفصلة.
+يمكن تكليف الوكيل نفسه بمهمات مختلفة جذريًا دون فقدان الخبرة.
+
+### 20.3 Shared Cognitive Bus
+14 Agents → Shared Cognitive Bus → Shared World Model + Shared Memory → New Questions / Plans / Experiments
+أي نتيجة موثوقة تصبح متاحة للوكلاء الآخرين كخبرة قابلة لإعادة الاستخدام.
+Observation → Evidence → Validation → Experience → Lesson → Shared Memory → Reuse → Re-test when stakes change
+
+### 20.4 فصل التعلم عن السلطة
+LEARNING PLANE ≠ AUTHORITY PLANE
+التعلم والذاكرة يستطيعان تغيير الاختيارات والاستراتيجيات والفرضيات، لكنهما لا يمنحان صلاحية mutation أو merge أو dispatch أو certification أو production.
+
+### 20.5 ذاكرة متعددة الطبقات
+L0 Constitution
+L1 Canonical Project Knowledge
+L2 Shared Skill / Strategy Knowledge
+L3 Agent Experience / Personal Memory
+L4 Current Mission / Step Memory
+وتنقسم الذاكرة وظيفيًا إلى Working Memory وEpisodic Memory وFailure/Anti-Lesson Memory وSemantic Memory وProcedural Memory وWorld Model.
+المعلومة الجديدة لا تصبح حقيقة بمجرد تسجيلها؛ تحتاج إلى corroboration وvalidation قبل أن تصبح معرفة موثوقة.
+
+### 20.6 التعلم الأسرع والأكثر شراسة
+الهدف هو تعظيم Validated Knowledge Gain per Unit Time.
+الحلقة: OBSERVE → QUESTION → HYPOTHESIZE → MICRO-EXPERIMENT → ADVERSARIAL CHALLENGE → MEASURE → LEARN → SHARE → REPLAN → REPEAT
+يجب اختيار التجارب بحسب Information Gain، وتقليل إعادة اكتشاف ما هو موجود في الذاكرة، وإطلاق عدة فرضيات مستقلة بالتوازي ضمن حدود الأمان.
+الشراسة تعني كثافة الاستكشاف، لا تخفيف الحوكمة.
+Blind retry وfalse green وscope drift وevidence fabrication وunsafe mutation ممنوعة.
+
+### 20.7 الأدوار ديناميكية
+كل وكيل يمكن أن يعمل كـ EXECUTOR أو INVESTIGATOR أو CHALLENGER أو REVIEWER أو SIMULATOR أو META-REVIEWER أو OPTIMIZER أو EXPERIMENT_DESIGNER.
+تغير الدور لا يغيّر هوية الوكيل ولا يمحو ذاكرته.
+
+### 20.8 قاعدة الفرع الذري
+ONE AGENT — ONE STEP — ONE BRANCH — ONE EXPERIMENT — ONE RESULT
+الصيغة: agent/<AGENT_ID>/<STEP_ID>
+كل branch مربوط إلزاميًا بـ agentId وstepId وexperimentId وstartSha وproductObjective وhypothesisId وfalsifierId وtestPlanId.
+الخطوة الواحدة قد تحتوي عدة ملفات وcommits واختبارات ومحاولات، لكنها لا تحتوي مهمتين أو تجربتين مستقلتين.
+
+### 20.9 عدم إعادة استخدام الفرع
+PASS → freeze → close → delete
+FAIL → record learning → freeze → close → delete
+STALE → invalidate → close → delete
+same agent + new step = new branch
+old branch + new task = forbidden
+
+### 20.10 خريطة الفروع
+main = production truth
+basic = stable integration / validation truth
+experimental = governed laboratory
+agent/<AGENT_ID>/<STEP_ID> = temporary atomic experiment branch
+مسار الترقية: agent → experimental → basic → main
+لا يوجد انتقال مباشر من Agent branch إلى Basic أو Main.
+
+### 20.11 منع divergence
+كل Agent branch يبدأ من exact current SHA لفرع experimental.
+branch.startSha = experimental.headSha
+عند تحرك experimental أثناء تجربة مفتوحة تصبح الأدلة المرتبطة بـSHA السابق stale ما لم تتم إعادة تأهيلها.
+No fresh SHA → No fresh evidence
+
+### 20.12 Admission قبل إنشاء الفرع
+لا ينشأ branch إلا بعد نجاح: Agent validation، Product Objective validation، Atomic Step، Explicit Hypothesis، Explicit Falsifier، Measurement، Red-Team Plan، Exact Start SHA، Isolated Scope، Valid Lineage.
+أي فشل في شرط admission = لا branch.
+
+### 20.13 بوابات الترقية
+Gate 1 Agent → Experimental: هل التجربة مسموح بها؟
+Gate 2 Experimental → Basic: هل التجربة نجحت فعلًا على baseline مع falsification وregression وexact-SHA evidence؟
+Gate 3 Basic → Main: هل التغيير صالح للإنتاج بعد CI وSecurity وBrowser/Product Verification وGovernance وDeployment Readiness وExact-SHA Certification؟
+
+### 20.14 Builder + Falsifier
+كل تجربة مهمة تحتوي مسارين: Builder/Solver وFalsifier/Red Team.
+لا يكفي نجاح metric الرئيسي. يجب البحث عن counterexamples وregressions وoverfitting وtrade-offs الخفية وحالات لم تدخل baseline.
+
+### 20.15 التعلم من الفشل
+الفشل الصادق أصل معرفي وليس عقوبة: What was tried → Why it failed → Conditions → Evidence → Anti-Lesson → Changed Hypothesis → Next Experiment.
+False-green أو تزوير الأدلة أو تجاوز النطاق المتكرر يؤدي إلى warning ثم quota reduction ثم write suspension ثم quarantine ثم diagnostic mission ثم revalidation.
+
+### 20.16 إعادة استخدام المعرفة
+LEARN ONCE — REUSE MANY TIMES — VERIFY WHEN STAKES CHANGE
+يجب ربط كل تجربة بذاكرة الخبرة السابقة والنتائج المضادة، وتقليل Duplicate Discovery Rate.
+
+### 20.17 مقاييس نظام التعلم
+Learning Velocity
+Experiment Throughput
+Knowledge Reuse
+Discovery Yield
+Falsification Rate
+Regression Rate
+Duplicate Discovery Rate
+Evidence Freshness
+False-Green Rate
+Information Gain per Experiment
+المؤشر الأعلى هو validated useful knowledge per unit time، وليس عدد commits.
+
+### 20.18 Experiment Contract
+كل تجربة تربط منطقيًا: experimentId، agentId، stepId، productObjective، hypothesisId، falsifierId، startSha، candidateSha، metric، baseline، tests، redTeam، result، resultHash، evidence، learningRef، status.
+
+### 20.19 دورة التجربة
+PRODUCT GOAL → RESEARCH QUESTION → AGENT ASSIGNMENT → HYPOTHESIS → EXPERIMENT → ADVERSARIAL CHALLENGE → MEASUREMENT → LEARNING → CANDIDATE → EXPERIMENTAL GATE → BASIC → MAIN
+
+### 20.20 الثوابت الجديدة
+INV-22: هوية الوكيل دائمة ومستقلة عن branch/task.
+INV-23: جميع الوكلاء الأساسيين يشتركون في Cognitive Substrate وShared Memory.
+INV-24: كل Agent branch مرتبط بخطوة واحدة وتجربة واحدة فقط.
+INV-25: الفرع المغلق لا يعاد استخدامه لخطوة جديدة.
+INV-26: كل تجربة تربط agent_id + step_id + experiment_id + start_sha.
+INV-27: تغير SHA الأساس يبطل الأدلة حتى إعادة التأهيل.
+INV-28: التعلم والذاكرة لا يمنحان السلطة.
+INV-29: false-green أو evidence fabrication يؤديان إلى quarantine.
+INV-30: المعرفة المشتركة تحتاج مستوى ثقة قبل اعتمادها كحقيقة.
+INV-31: وحدة العمل Product Objective قابلة للقياس.
+INV-32: لا Agent → Basic/Main مباشر.
+INV-33: كل تجربة تحتاج Admission Contract ناجحًا.
+INV-34: Micro-Experiments يجب أن تفضّل أعلى Information Gain ضمن الأمان.
+INV-35: التجارب المهمة تحتاج Falsifier / Red Team.
+INV-36: المعرفة المشتركة قابلة لإعادة الاستخدام مع التحقق المحلي عندما ترتفع المخاطر.
+
+### 20.21 المبدأ النهائي
+AGENT = persistent intelligence
+BRANCH = temporary experiment
+STEP = atomic objective
+MEMORY = shared knowledge substrate
+EVIDENCE = exact-SHA bound proof
+AUTHORITY = independent governance
+النتيجة: الوكيل نفسه يستطيع تنفيذ عدد غير محدود عمليًا من المهام عبر الزمن، بينما كل branch لا يحمل إلا خطوة واحدة وتجربة واحدة ونتيجة واحدة، ويستفيد جميع الوكلاء من التعلم الجماعي دون أن تتحول الذاكرة إلى سلطة.
+
+
+## 20.23 CURRENT-REALITY RECONCILIATION
+
+هذا القسم يعلو على أي target architecture غير المتوافقة مع المصادر القانونية الحالية.
+
+```text
+CURRENT PRINCIPAL AGENTS = الوكلاء.md canonical count
+TARGET AGENT SCALE = 14+ only after registration/benchmark/verification
+CURRENT OPERATIONAL BRANCHES = main + execution
+TARGET/CONCEPTUAL EXPERIMENT LANES ≠ permission to create a third operational branch
+CURRENT DISPATCH AUTHORITY = المهام.md
+```
+
+الـ14-agent model والـmastery/XP وSkill Graph وTask Auction وShadow Planning هي Target capabilities. لا تُوصف كـRuntime reality قبل دليل حي.
+
+الـbranch atomicity المقصودة في التصميم تعني **logical execution isolation** ما لم تسمح سياسة المستودع الحالية صراحةً بفرع مؤقت. لا تتغلب هذه الوثيقة على `CONTRIBUTING.md` أو `AGENTS.md`.
+
+### Native Opposition
+
+في التكليف المرجعي يمكن أن يكون لكل Task فريق:
+
+```text
+SOLVER
+BACKUP SOLVER
+OPPONENT
+BACKUP OPPONENT
+VERIFIER (risk-based)
+ESCALATION TARGET
+```
+
+وجود Opponent لا يلغي استقلال Verifier. في المهام عالية/حرجة المخاطر، تبقى Verification وRed Team وCertification طبقات منفصلة.
+
+### Mastery / XP
+
+`XP` و`REPUTATION` و`CURRENT FORM` و`MASTERY` إشارات Routing/Learning فقط.
+
+```text
+XP ≠ Authority
+Mastery ≠ Certification
+Reputation ≠ Truth
+Performance ≠ Permission
+```
+
+### Conflict Resolution
+
+أي Target architecture يتعارض مع Current Canonical Policy يذهب إلى:
+
+`PROPOSED → CONFLICT DETECTED → EVIDENCE → EXPERIMENT → ADOPTION GATE`.
+
+لا يتحول إلى Current State بمجرد إضافته إلى `CELL.md`.
+
+---
+## 21. ACTIVE CELL — DISTINCTIVE AGENTS, ADAPTIVE ROUTING & MASTERY
+
+هذا القسم يضيف طبقة التشغيل النشط للتميز فوق Cognitive Substrate والـShared Memory وBuilder/Falsifier والـVerification Plane الموجودة أصلًا. لا يغيّر مصادر الحقيقة القانونية ولا ينشئ Authority ثانية، ولا يحوّل الخلية إلى لعبة نقاط.
+
+### 21.1 المبدأ المركب
+ONE SHARED COGNITIVE SUBSTRATE + INDIVIDUAL AGENT IDENTITY + SKILLS / SPECIALTIES + XP / RANK + RELIABILITY HISTORY + ADVERSARIAL EVALUATION
+المعرفة الأساسية مشتركة، لكن الوزن التشغيلي لكل وكيل مختلف.
+
+مثال ملف وكيل:
+```text
+Agent-07
+Specialties: Security / Falsification / Race Conditions
+Mastery: Security=Expert, Falsification=Master, Coding=Strong
+XP: 1840
+Reliability: 0.94
+Evidence Quality: 0.97
+Current Form: 0.91
+Best At: critical/high-risk tasks
+Weak At: UI / localization
+```
+
+القاعدة: Knowledge is shared → Performance is individual → Authority is governed
+
+### 21.2 XP ليس سلطة
+يجب فصل الإشارات التالية صراحة:
+XP ≠ Authority Rank ≠ Certification Experience ≠ Truth Popularity ≠ Correctness
+الـXP يعبّر عن تراكم الخبرة ويمكن استعماله لتحسين التوجيه، لكنه لا يمنح حقًا في MERGE / DEPLOY / CERTIFY / OVERRIDE / BYPASS.
+العلاقة التشغيلية: XP → Routing Preference → Capability Confidence
+
+### 21.3 مكافأة القيمة المثبتة لا النشاط الشكلي
+تُحتسب مكافآت الخبرة أساسًا على القيمة المثبتة بالأدلة، لا على عدد المهام أو الـcommits:
+```text
++ اكتشاف Bug حقيقي
++ Counterexample مهم
++ حل يمر بالتحقق المستقل
++ تقليل تكلفة التنفيذ المثبت
++ منع Regression
++ اكتشاف فرضية صحيحة لاحقًا
++ تحسين Strategy ثبت نجاحها
++ إنقاذ مهمة متعثرة بمعلومة قابلة لإعادة الاستخدام
+
+- False Positive متكرر
+- False Green
+- Scope Drift
+- Evidence ضعيف/غير مكتمل
+- تكرار استراتيجية فاشلة بلا تعلم
+- إخفاء Blocker
+```
+الفشل الصادق ليس عقوبة تلقائية.
+Honest Failure + Useful Information → XP
+أما السلوك غير الموثوق أو منخفض الجودة فيخضع لتصحيح تدريجي: warning → quota reduction → write suspension → quarantine → revalidation
+
+### 21.4 XP للخصومة أيضًا
+لا تُكافأ الخلية للـSolver وحده. يجب أن يحصل الـOpponent والـRed Team على رصيد تعلم يتناسب مع قيمة العيب أو الـcounterexample المثبت الذي اكتشفاه.
+BUILD BETTER → BREAK BETTER → VERIFY BETTER → LEARN BETTER
+وليس FINISH TASKS → FARM XP.
+
+### 21.5 ملف موثوقية متعدد الأبعاد
+لا يوجد ترتيب خطي واحد للوكيل. يحتفظ النظام بدرجات مستقلة على الأقل لـ:
+```text
+General Reliability
+Security
+Coding
+Research
+Falsification
+Verification
+Performance
+Recovery
+```
+وبحسب المهمة يمكن توسيع Skill Graph بدل Capability عامة فقط.
+
+### 21.6 Reputation + Current Form + Specialty + Evidence
+الفصل الإلزامي:
+XP = accumulated experience
+REPUTATION = quality-adjusted historical performance
+CURRENT FORM = recent performance
+SPECIALTY SCORE = performance by task class
+EVIDENCE QUALITY = strength / freshness / corroboration
+
+إشارة التوجيه المفاهيمية:
+Assignment Score = Capability Fit × Reputation × Current Form × Task Fit × Evidence Quality × Recovery Reliability × Exploration Weight ÷ Expected Cost
+هذه معادلة توجيه، وليست مصدرًا للسلطة النهائية.
+
+### 21.7 Mastery متعددة الأبعاد
+مسار التطور:
+NOVICE → PRACTICED → VERIFIED → SPECIALIST → EXPERT → MASTER
+لا ترتفع Mastery بالـXP وحده؛ يلزم Repeated Success + Independent Verification + Low False-Positive Rate + Strong Recovery + Cross-Task Consistency.
+وMastery قابلة للانخفاض: Expert → repeated false greens → reliability decay → Specialist.
+لا توجد رتبة أبدية.
+
+### 21.8 Assignment Routing — Solver + Best Opponent + Backup
+التوجيه القياسي:
+TASK ↓ REQUIRED CAPABILITIES ↓ SHARED MEMORY ↓ AGENT RANKING ↓ BEST SOLVER + BEST OPPONENT + BACKUP
+لكن Best Solver ≠ Best Opponent.
+الـOpponent يختار أساسًا حسب القدرة على الاختلاف والتفنيد، لا حسب تكرار ملف الـSolver.
+
+### 21.9 Diversity-Aware Routing
+لا تختار أفضل وكيل خطيًا دائمًا. المطلوب: Best Agent + Sufficiently Different Agent.
+يمكن للتوجيه المتنوع أن يفضّل وكيلًا ثانيًا مختلفًا معرفيًا عندما تكون قيمة الاستقلال أو احتمال اكتشاف counterexample أعلى من الزيادة الهامشية في السرعة.
+محاور الاختلاف: Specialty / Strategy History / Failure Pattern Experience / Role / Risk Perspective / Recent Hypothesis.
+
+### 21.10 Exploration Quota ومنع احتكار المسار
+الخطر: HIGH XP → MORE TASKS → MORE XP → MONOPOLY.
+لذلك يستخدم Scheduler توازنًا Adaptive بين:
+```text
+EXPLOIT proven reliability
+EXPLORE emerging specialists
+EXPLORE under-tested agents
+```
+وتُعدّل النسب حسب uncertainty + task risk + agent concentration + frontier novelty + routing regret.
+يجب قياس Agent Concentration لمنع وكيل مهيمن من قتل Explore.
+
+### 21.11 Task Auction / Agent Market
+عندما تكبر الخلية، يمكن للمرشحين تقديم capability fit وestimated cost وestimated time وconfidence وrisk وverification burden وrecovery expectation.
+ثم يختار Assignment Engine أفضل تركيب وفق المنفعة المتوقعة لا أعلى XP.
+Utility = Expected Validated Value × Probability of Useful Success ÷ Total Cost
+ويشمل Total Cost التنفيذ والتحقق والاسترداد وتكلفة الفرصة.
+
+### 21.12 Assignment Learning Loop
+يتعلم النظام ليس فقط: من هو الوكيل الجيد؟ بل: من هو الوكيل الجيد لهذا النوع من المهام، في هذا السياق، مع هذا الخصم، وتحت هذا budget؟
+TASK CLASS → AGENT OUTCOME HISTORY → ROUTING OUTCOME → UPDATE ROUTING MODEL → BETTER FUTURE ASSIGNMENT
+بهذا يصبح Assignment Engine نفسه مكوّنًا متعلمًا داخل CELL.
+
+### 21.13 Claim Graph وEpistemic Diversity
+يجب منع تحويل المعرفة المشتركة إلى رأي مشترك تلقائي.
+SHARED KNOWLEDGE ≠ SHARED CONCLUSION ≠ SHARED DECISION
+التمثيل المفضل:
+```text
+CLAIM
+├── supporters
+├── opponents
+├── evidence
+├── confidence
+├── contradictions
+└── unresolved questions
+```
+يمكن للخلية الاحتفاظ بـ Agent A believes X / Agent B believes Y / Agent C is uncertain إلى أن تصل الأدلة إلى مستوى يسمح بالحسم.
+
+### 21.14 Skill Graph لا قائمة Capabilities
+الـAgent يسجل Skill Graph قابلًا للتحديث، والمهمة قد تحتاج تركيبًا متعدد الوكلاء:
+```text
+Task
+├── Solver   → Media + TypeScript
+├── Opponent → Performance + Browser Runtime
+├── Red Team → Security + Abuse Testing
+└── Verifier → Reproducibility + Evidence
+```
+هذا يفضّل أفضل تركيب على أفضل Agent منفرد.
+
+### 21.15 Cognitive Substrate مع ذاكرة محلية
+```text
+CELL COGNITIVE SUBSTRATE
+├── World Model
+├── Shared Knowledge
+├── Mission State
+├── Hypothesis Graph
+├── Failure Patterns
+├── Strategy Library
+├── Risk Model
+├── Agent Reputation
+└── Open Questions
+
+Per Agent
+└── GLOBAL COGNITION + LOCAL WORKING MEMORY
+```
+الجميع يصلون إلى نفس المعرفة الموثوقة، لكن التفكير المحلي والفرضيات والاعتراضات لا تُسحق لمجرد وجود Memory مشتركة.
+
+### 21.16 Knowledge Consolidation + Cognitive Garbage Collection
+RAW EVENTS → CLUSTER → GENERALIZE → DUPLICATE REDUCTION → PATTERN → RULE → RETIRE / SUPERSEDE
+دورة الذاكرة: STALE → LOW UTILITY → COMPRESSED → ARCHIVED، مع الحفاظ على provenance وإمكانية المراجعة.
+يجب قياس Knowledge Utility / Reuse Rate / Staleness / Conflict Rate / Retrieval Value / Duplicate Discovery Rate.
+
+### 21.17 Knowledge / Skill Quarantine
+أي تعلم جديد يمر عبر: PROVISIONAL → SHARED VISIBILITY → CHALLENGE → VALIDATION → TRUSTED.
+الجميع يستطيع رؤية التعلم المقترح، لكن ليس كل Learning Truth. المعلومة الجديدة لا تصبح قاعدة ملزمة قبل corroboration وvalidation.
+
+### 21.18 Constitutional Kernel + Policy Compiler
+يبقى Kernel حاكم غير قابل للتفاوض:
+```text
+CONSTITUTIONAL KERNEL
+├── Authority Rules
+├── Scope Rules
+├── Security Rules
+├── Evidence Rules
+├── Promotion Rules
+├── Resource Limits
+└── Mission Invariants
+```
+وتحوّل السياسات إلى Runtime Enforcement، مثل WRITE_SCOPE / FORBIDDEN_PATHS / MAX_COST / MAX_DELEGATION_DEPTH / REQUIRED_REVIEW / EVIDENCE_REQUIREMENTS.
+الـPolicy ليست documentation فقط؛ بل يجب أن تتحول إلى checks قابلة للإنفاذ.
+
+### 21.19 Mission Simulation / Shadow Planning
+للمهام عالية المخاطر: TASK → SIMULATE → ESTIMATE PATHS → IDENTIFY BLOCKERS → ESTIMATE COST → CHOOSE STRATEGY.
+يمكن مقارنة Plan A / Plan B / Plan C في Simulation أو Shadow Mode قبل mutation حقيقية متى كان ذلك ممكنًا.
+
+### 21.20 Anti-Thrashing Engine
+STRATEGY FINGERPRINT → COMPARE PRIOR ATTEMPTS → DETECT REPEATED STRATEGY → BLOCK BLIND REATTEMPT
+أي تكرار يحتاج إلى new evidence أو new hypothesis أو new experimental condition أو new falsifier أو new cost/risk rationale؛ وإلا يسجل كـthrashing.
+
+### 21.21 دورة النشاط الداخلية للخلية
+```text
+MISSION
+ ↓
+TASK CLASSIFICATION
+ ↓
+CAPABILITY / SKILL MATCH
+ ↓
+BEST SOLVER + DIFFERENT OPPONENT + BACKUP
+ ↓
+MICRO-EXPERIMENT
+ ↓
+ADVERSARIAL CHALLENGE
+ ↓
+MEASUREMENT
+ ↓
+VERIFICATION
+ ↓
+LEARNING / REPUTATION UPDATE / MASTERY UPDATE
+ ↓
+KNOWLEDGE CONSOLIDATION
+ ↓
+ROUTING UPDATE
+ ↓
+NEXT FRONTIER
+```
+بهذا تصبح الخلية نشيطة بسبب كثافة التعلم الموثق، لا بسبب زيادة عدد الوكلاء أو عدد الـcommits.
+
+### 21.22 مؤشرات حيوية جديدة
+```text
+Agent Concentration
+Exploration Rate
+Routing Regret
+Diversity Gain
+Opponent Yield
+Red-Team Yield
+Learning Quality
+Mastery Stability
+False-Green Rate
+Honest-Failure Yield
+Strategy Thrashing Rate
+Knowledge Conflict Rate
+```
+المؤشر الأعلى يبقى: VALIDATED USEFUL KNOWLEDGE GAIN / UNIT TIME.
+
+### 21.23 الثوابت المضافة
+```text
+INV-37: XP never grants authority.
+INV-38: Routing uses multidimensional fit, not linear rank.
+INV-39: Best Solver and Best Opponent are independently selected.
+INV-40: Honest failure with useful information is not automatically penalized.
+INV-41: False-green, evidence fabrication, and repeated low-quality behavior cause reliability decay and possible quarantine.
+INV-42: Mastery requires repeated independently verified evidence and can decay.
+INV-43: Shared knowledge does not force shared conclusions or shared decisions.
+INV-44: Exploration must remain active and concentration must be bounded.
+INV-45: Assignment learns from task-class/context outcomes.
+INV-46: New learning is provisional until challenged and validated.
+INV-47: Skill Graph may require multi-agent composition.
+INV-48: Policies governing authority/scope/security/evidence must be runtime-enforced.
+INV-49: Blind strategy repetition is blocked unless new information or conditions justify it.
+INV-50: Shared Cognitive Substrate is compatible with isolated local working memory.
+```
+
+### 21.24 المبدأ النهائي للتميز
+لا تجعل CELL: 10 identical minds، ولا N independent competitors.
+النموذج المستهدف:
+ONE SHARED MIND + MANY DISTINCT SPECIALTIES + DYNAMIC REPUTATION + XP/MASTERY + ADVERSARIAL ROLES + EXPLORATION + HARD GOVERNANCE
+
+النتيجة المطلوبة:
+```text
+SAME KNOWLEDGE
+SAME WORLD MODEL
+SAME MEMORY PROVENANCE
++
+DIFFERENT PERSPECTIVES
+DIFFERENT SPECIALTIES
+DIFFERENT ATTACK ANGLES
+```
+هذا يجعل الخلية عقلًا معرفيًا جماعيًا دون أن يجعلها نسخة واحدة من الخطأ نفسه.
+
+
+## 20.22 Native Opposition Assignment — الخصم القرين منذ إنشاء المهمة
+
+هذه الطبقة توسّع نموذج المهمة من Task → Agent → Result إلى **مهمة ذات خصومة أصلية منذ لحظة القبول**. الخصم ليس Agent يُستدعى بعد انتهاء المنفذ، وليس تابعًا للـSolver، بل قرين مستقل يُعيَّن مع المهمة ويبدأ من نفس تعريف الهدف والقيود ومعايير القبول.
+
+### 20.22.1 البنية المعيارية
+
+```
+TASK
+  │
+  ├── SOLVER / BUILDER
+  │
+  └── OPPONENT / FALSIFIER
+          │
+          └── مستقل منذ لحظة Admission
+```
+
+الدورة:
+
+```
+MISSION
+→ TASK ADMISSION
+→ ASSIGNMENT PAIR
+   ├─ Solver
+   └─ Opponent
+→ Parallel Work
+→ Solver Result
++ Opponent Findings
+→ Reconciliation
+→ Independent Verification
+→ Certification
+```
+
+المبدأ:
+
+```
+ONE TASK
+=
+ONE SOLVER
++
+ONE OPPONENT
+```
+
+هذا المبدأ ينطبق على كل مهمة قابلة للتنفيذ. مستوى قوة الخصومة يتغير حسب riskClass، لكن وجود الطرف المقابل جزء من هوية التكليف وليس مرحلة اختيارية لاحقة.
+
+### 20.22.2 لماذا الخصم قرين أصلي؟
+
+عند معرفة الخصم بالمهمة الأصلية قبل تشكل «نجاح» المنفذ، يستطيع بناء Counterexamples وفحوص التفنيد من:
+
+```
+OBJECTIVE
+CONSTRAINTS
+ACCEPTANCE CRITERIA
+VERIFICATION POLICY
+FALSIFICATION POLICY
+```
+
+بدل أن يتأثر بنتيجة Solver ثم يحاول تبريرها أو البحث عن عيب بعد اكتمالها.
+
+الخصومة تصبح بذلك **خاصية تصميم للمهمة**:
+
+```
+TASK ID
+SOLVER ID
+OPPONENT ID
+VERIFICATION POLICY
+FALSIFICATION POLICY
+```
+
+### 20.22.3 استقلال السياق
+
+يشترك Solver وOpponent في الحد الأدنى الذي يحتاجه الطرفان للحكم المستقل:
+
+```
+SHARED
+- Task
+- Objective
+- Constraints
+- Acceptance Criteria
+- Relevant Evidence
+```
+
+ولا يشارك Opponent تلقائيًا سياق Solver الخاص:
+
+```
+NOT SHARED
+- Solver private reasoning
+- Unverified hypotheses
+- Temporary plans
+- Internal working context
+```
+
+إذا احتاج Opponent إلى نتيجة أو artifact محدد من Solver، تصل إليه كـEvidence/Artifact typed ومحدد المصدر، لا كسياق تفكير مفتوح.
+
+الهدف هو:
+
+```
+SHARED FACTS
++
+INDEPENDENT JUDGMENT
+```
+
+وليس:
+
+```
+SHARED FACTS
++
+SHARED CONCLUSION
+```
+
+### 20.22.4 الخصومة كحلقة ضغط مستمرة
+
+Opponent ليس «اختبارًا بعديًا». يستطيع التأثير على مسار المهمة أثناء استمرارها:
+
+```
+Solver:
+"هذه الاستراتيجية تبدو مناسبة."
+
+Opponent:
+"هناك افتراضان غير مثبتين."
+
+→ MICRO-EXPERIMENT
+
+Solver:
+"تم تعديل الفرضية."
+
+Opponent:
+"الآن أبحث عن Counterexample جديد."
+```
+
+إذن:
+
+```
+SOLVE ⇄ FALSIFY
+```
+
+وليس:
+
+```
+SOLVE → FINISH → TEST
+```
+
+### 20.22.5 قوة الخصومة حسب المخاطر
+
+وجود Opponent إلزامي، لكن عمق وقوة المسار تتدرج:
+
+```
+LOW RISK
+→ lightweight opponent
+
+MEDIUM RISK
+→ independent opponent
+
+HIGH RISK
+→ strong opponent + Red Team at handoff
+
+CRITICAL
+→ independent opponent
++ Red Team
++ second independent verifier
++ certification
+```
+
+الـlightweight opponent لا يعني إلغاء الخصومة؛ بل يعني تقليل عمق البحث والموارد مع بقاء هدف التفنيد ومخرجاته.
+
+### 20.22.6 تثبيت الخصم مع المهمة
+
+عند Admission تُنشأ Association ثابتة:
+
+```
+Task T-123
+Solver   = Agent-04
+Opponent = Agent-07
+```
+
+ولا يجوز للـSolver:
+- اختيار خصمه لنفسه.
+- استبداله بخصم موثوق لديه.
+- إلغاء الخصومة.
+- تخفيف Falsification Policy ذاتيًا.
+- اعتبار إنجاز المهمة سببًا لإزالة الخصم.
+
+الاستبدال فقط عبر Assignment Engine:
+
+```
+Opponent unavailable
+→ select authorized backup opponent
+→ preserve independence
+→ record replacement + reason
+```
+
+ويجب أن يكون backupOpponentId جزءًا من Execution/Assignment Envelope للمهام التي تتطلب استمرارية مرتفعة.
+
+### 20.22.7 مهمة Opponent ليست «رفض كل شيء»
+
+وظيفة Opponent:
+
+```
+TRY TO BREAK THE CLAIM
+```
+
+وليست:
+
+```
+TRY TO BLOCK THE TASK
+```
+
+لذلك مخرجاته المعيارية:
+
+```
+CONFIRMED
+REFUTED
+COUNTEREXAMPLE_FOUND
+INSUFFICIENT_EVIDENCE
+RISK_ACCEPTED
+UNKNOWN
+```
+
+ولا تختزل إلى PASS/FAIL فقط.
+
+### 20.22.8 Opposition Plan شرط Admission
+
+لا تدخل المهمة التنفيذ إلا إذا كان لديها Opposition Plan:
+
+```
+No Task Admission
+unless its Opposition Plan exists
+```
+
+ويجب تحديد قبل بدء التنفيذ:
+
+```
+Who solves?
+Who attacks?
+What will be attacked?
+What evidence would falsify success?
+What is the independence requirement?
+What happens if the opponent disappears?
+What backup is authorized?
+What escalation occurs on unresolved disagreement?
+```
+
+أي نقص في خطة الخصومة المطلوبة للمخاطر المحددة:
+
+```
+→ ADMISSION BLOCK
+```
+
+### 20.22.9 Reconciliation لا يمحو الاختلاف
+
+بعد انتهاء العمل المتوازي:
+
+```
+Solver Result
++
+Opponent Findings
+→ Reconciliation
+```
+
+لكن Reconciliation لا يسمح بإسقاط اعتراض لمجرد أن Solver يرفضه. يجب أن يحتفظ النظام بسجل:
+
+```
+CLAIM
+COUNTERCLAIM
+EVIDENCE
+DISPOSITION
+UNRESOLVED QUESTION
+```
+
+إذا تعذر حسم الخلاف بالدليل:
+
+```
+→ REQUEST_MORE_EVIDENCE
+or
+→ REPLAN
+or
+→ ESCALATE
+```
+
+ولا يتحول الخلاف إلى Green تلقائيًا.
+
+### 20.22.10 Red Team عند التسليم
+
+الـRed Team يبقى طبقة مستقلة عن Opponent، ويُفعّل عند تسليم Candidate حسب سياسة المهمة:
+
+```
+TASK
+→ Solver + Opponent
+→ Candidate
+→ HANDOFF
+→ RED TEAM
+→ Independent Verification
+→ Certification
+```
+
+الفصل:
+
+```
+OPPONENT
+= يمنع بناء حل غير مدعوم ويضغط على الفرضيات أثناء العمل
+
+RED TEAM
+= يحاول كسر Candidate النهائي عند التسليم من منظور هجومي مستقل
+
+VERIFIER
+= يثبت النتيجة مقابل العقد والدليل
+```
+
+وبذلك لا يصبح Red Team مجرد نسخة متأخرة من Opponent.
+
+### 20.22.11 قاعدة المهام المهمة والحرجة
+
+```
+ONE IMPORTANT TASK
+=
+ONE SOLVER
++
+ONE OPPONENT
++
+ONE VERIFICATION PATH
+```
+
+وللمهام الحرجة:
+
+```
+ONE CRITICAL TASK
+=
+SOLVER
++
+OPPONENT
++
+RED TEAM
++
+INDEPENDENT VERIFIER
++
+CERTIFIER
+```
+
+### 20.22.12 واجهة Assignment Pair المعيارية
+
+يجب أن يحمل قرار التكليف الثنائي، عند الحاجة، على الأقل:
+
+```
+assignmentId
+taskId
+missionId
+solverId
+opponentId
+backupSolverId
+backupOpponentId
+riskClass
+verificationPolicy
+falsificationPolicy
+independencePolicy
+sharedContextRefs
+restrictedContextRules
+startingSha
+scope
+handoffPolicy
+redTeamPolicy
+```
+
+الـAssignment Pair مشتق من:
+
+```
+Task Contract
++
+Agent Contract
++
+Capability Registry
++
+Risk Policy
++
+Current Agent Reliability
+```
+
+ولا ينشئ Dispatch Authority ثانية.
+
+### 20.22.13 دورة الحياة النهائية للمهمة
+
+```
+TASK ADMISSION
+→ OPPOSITION PLAN
+→ PAIR ASSIGNMENT
+→ PARALLEL / INTERLEAVED SOLVE + FALSIFY
+→ RECONCILIATION
+→ CANDIDATE
+→ HANDOFF
+→ RED TEAM
+→ INDEPENDENT VERIFICATION
+→ CERTIFICATION
+→ PROMOTION / REPLAN
+```
+
+وفي حالات الفشل:
+
+```
+AGENT LOST
+→ preserve Task
+→ preserve Opposition Plan
+→ reassign authorized backup
+→ resume with exact-SHA lineage
+```
+
+### 20.22.14 الثوابت الجديدة
+
+```
+INV-37: كل Task قابل للتنفيذ يملك Solver وOpponent منذ Admission.
+INV-38: Opponent مستقل عن Solver في الهوية والقرار.
+INV-39: Opponent لا يستلزم مشاركة Solver private reasoning.
+INV-40: Solver لا يملك اختيار خصمه أو إلغاء الخصومة.
+INV-41: غياب Opposition Plan يمنع Task Admission.
+INV-42: قوة Opposition تتدرج حسب riskClass ولا تُلغى بسبب انخفاض المخاطر.
+INV-43: Opponent يستطيع التأثير في مسار المهمة أثناء التنفيذ عبر اعتراضات وEvidence وMicro-Experiments.
+INV-44: Reconciliation يجب أن يحفظ Claim/Counterclaim/Evidence/Disposition.
+INV-45: Red Team هو Gate مستقل عند handoff وليس بديلًا عن Opponent.
+INV-46: Opponent وRed Team لا يمنحان Certification أو Merge Authority.
+INV-47: فقدان Opponent لا يسقط المهمة؛ يعاد الإسناد مع حفظ الاستقلال والتسلسل.
+INV-48: كل تغيير في Solver/Opponent Assignment يسجل بسبب الاستبدال والـSHA والسياق.
+INV-49: أي محاولة لتوسيع أو تخفيف Opposition Policy من داخل Solver تفشل مغلقًا.
+INV-50: المهمة لا تُعتبر ناجحة لمجرد توافق Solver وOpponent؛ يلزم Verification/Certification وفق مستوى المخاطر.
+```
+
+### 20.22.15 المبدأ النهائي
+
+```
+EVERY TASK HAS AN ADVERSARIAL COUNTERPART.
+
+SOLVER = BUILD THE BEST CLAIM
+OPPONENT = TRY TO BREAK THE CLAIM
+RED TEAM = TRY TO BREAK THE CANDIDATE
+VERIFIER = PROVE THE OUTCOME
+CERTIFIER = AUTHORIZE CLOSURE
+```
+
+التحول المعماري المطلوب هو:
+
+```
+EXECUTE → TEST
+```
+
+إلى:
+
+```
+SOLVE ⇄ FALSIFY
+       ↓
+   RECONCILE
+       ↓
+     RED TEAM
+       ↓
+     VERIFY
+       ↓
+    CERTIFY
+```
+
+وبذلك تصبح الخصومة جزءًا أصيلًا من **هوية المهمة، قرار التكليف، مسار التنفيذ، ومسار التسليم** بدل أن تكون رد فعل متأخرًا على نتيجة المنفذ.
+
+
+## 20.23 Agent Pipeline — Isolation, Deterministic Validation, Idempotency, and Release Evidence
+
+> **STATUS: ADOPTED DESIGN / EVIDENCE-DRIVEN / EXECUTION SEPARATE**
+>
+> هذا المخطط يربط مسار `agent-pipeline` بمبادئ CELL ويجعل العزل والتحقق الحتمي ومنع التكرار واستعادة البيئة جزءًا من عقد الخلية، دون إنشاء سلطة حوكمة ثانية. المرجع التفصيلي للثوابت التشغيلية هو `docs/DESIGN.md`؛ أما `الخلية.md` فيحفظ النموذج المعماري والعلاقة بين هذه الطبقة وبقية الخلية.
+>
+> **قاعدة المرحلة الحالية:** هذا قسم تخطيطي/معياري. وجود الكود أو نتيجة متوقعة لا يُعامل كدليل تشغيل فعلي ما لم تُسجَّل نتيجة تشغيل قابلة لإعادة التحقق.
+
+### 20.23.1 الهدف المعماري
+
+المسار المستهدف:
+
+```
+TASK / PATCH
+    ↓
+ISOLATED WORKTREE
+    ↓
+PATCH APPLY
+    ↓
+DETERMINISTIC VALIDATION
+    ├── go vet ./...
+    ├── golangci-lint run ./...
+    ├── vulnerability check
+    └── go test -race -count=1 ./...
+    ↓
+RESULT CONTRACT
+    ↓
+IDEMPOTENT PR CREATION
+    ↓
+AUDIT / ARTIFACTS
+    ↓
+CLEANUP / RECOVERY
+```
+
+المؤشر الأعلى:
+
+`VALIDATED USEFUL KNOWLEDGE GAIN / UNIT TIME`
+
+وليس عدد الـPRs أو عدد مرات تشغيل الوكلاء.
+
+### 20.23.2 SSOT وعلاقة الطبقات
+
+```
+CELL / MASTER BLUEPRINT
+        │
+        ├── Mission / Task / Agent Governance
+        ├── Shared Cognition / Memory
+        └── Agent Pipeline Design
+                    │
+                    ▼
+              docs/DESIGN.md
+                    │
+                    ├── 8 mandatory invariants
+                    ├── Phase Enum
+                    └── Release Gate contract
+                    │
+                    ▼
+             Runtime + Scripts + CI
+```
+
+القواعد:
+
+```
+CELL = architectural intent
+DESIGN.md = operational contract
+IMPLEMENTATION = executable enforcement
+EVIDENCE = proof of observed behavior
+```
+
+لا يجوز أن تتحول أي طبقة تنفيذية إلى Authority بديلة عن الحوكمة الموجودة في CELL.
+
+### 20.23.3 الثوابت التشغيلية المطلوبة
+
+**Isolation.** المستودع الأساسي لا يُعدّل أثناء معالجة المهمة. جميع الطفرات داخل worktree/sandbox مؤقت.
+
+**Deterministic validation.** ترتيب الحزمة ثابت، ويجب تشغيل `-race -count=1` لمنع اعتماد التخزين المؤقت على أنه دليل سباق.
+
+**Idempotency.** الهوية التشغيلية للمخرَج مبنية على:
+
+```
+task_id + normalized_patch_hash
+```
+
+ويجب أن يعيد الطلب المتكرر نفس النتيجة المنطقية بدل إنشاء PR جديد.
+
+**Atomic audit.** الكتابة إلى `.agent-audit.jsonl` تتم بصورة ذرية ومحمية بقفل مناسب مثل `flock`.
+
+**Empty patch rejection.** الرقعة التي لا تنتج تغييرًا فعليًا تُرفض قبل إنشاء branch أو PR.
+
+**Failure containment.** فشل أي phase يوقف المسار، يحفظ `phase` و`exit_code` والأدلة المتاحة، ولا يسمح بتجاوز الفشل إلى promotion.
+
+**Output contract.** `result.json` عقد قابل للآلة ويحتوي على الأقل على:
+
+```
+success
+phase
+exit_code
+passed_packages
+failed_packages
+failed_tests
+duration_ms
+output
+patch_hash
+truncated
+timed_out
+git_diff
+```
+
+**Least privilege.** صلاحيات CI هي الحد الأدنى المطلوب فقط، مع Draft PR افتراضيًا وConcurrency مرتبطة بـ`task-id`.
+
+### 20.23.4 تطبيع الـPatch والهوية
+
+الـ`patch_hash` يجب أن يحسب من diff مطبع، وليس من الملف الخام.
+
+التطبيع المعياري:
+
+```
+RAW GIT DIFF
+ → remove / normalize index identifiers
+ → normalize timestamps after --- / +++
+ → normalize LF / UTF-8
+ → SHA-256
+ → short hash for display
+```
+
+المبدأ الأفضل:
+
+```
+full_sha256 = canonical internal identity
+short_hash  = first 12 chars for logs / UX
+```
+
+ويجب أن يكون تنفيذ التطبيع في Go وShell متكافئًا دلاليًا، مع اختبارات parity تشمل اختلاف line endings والطوابع الزمنية والمسافات النهائية.
+
+### 20.23.5 أدوار مكونات Agent Pipeline
+
+```
+scripts/lib/common.sh
+├── normalized_patch_hash()
+├── audit_log()
+├── safe_truncate()
+└── assert_repo_clean()
+
+scripts/sandbox.sh
+├── isolated worktree
+├── patch application
+├── deterministic validation
+├── result.json
+└── cleanup
+
+scripts/create_pr.sh
+├── independent PR worktree
+├── task_id + patch_hash idempotency
+├── Draft PR by default
+└── audit record
+
+scripts/attach_artifacts.sh
+└── atomic artifact/audit recording
+
+scripts/janitor.sh
+├── stale temporary resource cleanup
+└── git worktree prune
+
+.github/workflows/agent-pipeline.yml
+├── least privilege
+├── concurrency
+├── validation orchestration
+└── PR publication
+```
+
+لا يُسمح بإضافة منطق متكرر لمصدر الحقيقة المشترك إذا كان يمكن استدعاؤه من `common.sh`.
+
+### 20.23.6 Release Gate Matrix
+
+البوابات الأساسية:
+
+```
+PATCH-FAIL
+→ invalid patch must stop at apply_failed
+
+RACE-FAIL
+→ injected race must fail under go test -race
+
+AUDIT-CONCURRENCY
+→ concurrent writers must preserve complete audit records
+
+EMPTY-PATCH
+→ no-op patch must stop with empty_patch / exit 10
+```
+
+Evidence إضافي:
+
+```
+CLEANUP-ALL-PATHS
+→ success
+→ apply failure
+→ validation failure
+→ SIGTERM
+→ SIGINT
+→ stale-resource janitor recovery
+```
+
+قاعدة الأدلة:
+
+```
+IMPLEMENTED ≠ VERIFIED
+EXPECTED OUTPUT ≠ OBSERVED OUTPUT
+DOCUMENTED GATE ≠ PASSED GATE
+```
+
+كل Gate تُغلق فقط بنتيجة تشغيل محفوظة قابلة لإعادة التحقق.
+
+### 20.23.7 Cleanup / Recovery Model
+
+المسار الطبيعي:
+
+```
+RUN
+ → EXIT
+ → cleanup()
+ → assert_repo_clean
+```
+
+مسارات الإيقاف القابلة للالتقاط:
+
+```
+SIGINT / SIGTERM
+ → trap
+ → cleanup()
+ → assert_repo_clean
+```
+
+المسار غير القابل للاعتراض:
+
+```
+SIGKILL
+ → no trap possible
+ → stale resources remain temporarily
+ → janitor detects age threshold
+ → remove stale resources
+ → git worktree prune
+```
+
+الـjanitor آلية Recovery وليست بديلًا عن cleanup. ويجب تضييق أنماط الحذف إلى الموارد التي تنشئها المنظومة قدر الإمكان لتجنب حذف ملفات غير تابعة لها.
+
+### 20.23.8 E2E — البرهان المتكامل
+
+السيناريو المرجعي:
+
+```
+VALID PATCH
+ → temporary worktree
+ → apply
+ → vet
+ → lint
+ → vuln
+ → test -race -count=1
+ → result.json
+ → patch_hash
+ → create_pr
+ → repeated create_pr with same task_id + hash
+ → reused=true
+ → cleanup
+ → clean repository
+```
+
+ويجب أن يحتوي الـPR body، عند إنشائه، على:
+
+```
+passed_packages
+duration_ms
+truncated output / result summary
+task identity
+patch identity
+```
+
+ولا يصبح المسار Release-Ready إلا بعد جمع Evidence للـE2E نفسه، لا بمجرد نجاح Gate منفردة.
+
+### 20.23.9 Concurrent Idempotency
+
+إلى جانب `AUDIT-CONCURRENCY` يجب أن يختبر النظام الحالة الأقوى:
+
+```
+create_pr(TASK-X, HASH-Y)
+       ∥
+create_pr(TASK-X, HASH-Y)
+```
+
+الشرط:
+
+```
+at most one logical PR
++
+deterministic reuse outcome
++
+atomic audit history
+```
+
+وإذا تطلب التنفيذ lock إضافيًا حول قرار إنشاء PR نفسه، فيجب تسجيله في العقد بدل الاعتماد على ترتيب الصدفة بين العمليات.
+
+### 20.23.10 Phase / Failure Semantics
+
+كل فشل يجب أن يكون قابلًا للتصنيف:
+
+```
+apply_failed
+empty_patch
+validation_failed
+timed_out
+cleanup_failed
+reused
+success
+```
+
+ويجب عدم تثبيت رقم exit code واحد لفشل Git إلا إذا كان العقد يفرضه صراحة. القاعدة العامة لفشل `git apply`:
+
+```
+phase = apply_failed
+exit_code != 0
+```
+
+### 20.23.11 علاقة Pipeline بالخلية
+
+Agent Pipeline ليست نظامًا مستقلًا عن CELL؛ هي طبقة تنفيذية داخل دورة المهمة:
+
+```
+MISSION
+ ↓
+TASK ADMISSION
+ ↓
+SOLVER + OPPONENT
+ ↓
+PATCH / ARTIFACT
+ ↓
+AGENT PIPELINE
+ ↓
+VALIDATION / EVIDENCE
+ ↓
+CANDIDATE / RECONCILIATION
+ ↓
+RED TEAM
+ ↓
+INDEPENDENT VERIFICATION
+ ↓
+CERTIFICATION
+ ↓
+PROMOTION
+```
+
+ويظل:
+
+```
+TEST PASS ≠ SELECTED ≠ CERTIFIED ≠ MERGED
+```
+
+نجاح الـsandbox يسمح بالانتقال إلى Candidate/Evidence، ولا يمنح Merge أو Certification Authority.
+
+### 20.23.12 معايير الإغلاق
+
+يُعتبر تصميم Agent Pipeline مكتملًا عندما تكون:
+
+```
+SSOT contract
++ executable enforcement
++ mandatory failure gates
++ cleanup/recovery evidence
++ E2E evidence
++ concurrent idempotency evidence
+```
+
+كلها موجودة ومترابطة.
+
+حالة التخطيط لا تُرفع إلى `PRODUCTION-READY` اعتمادًا على نسبة تقديرية؛ يجب أن تعتمد على Evidence قابل لإعادة التشغيل.
+
+### 20.23.13 المبدأ النهائي
+
+```
+ISOLATE
+→ VERIFY
+→ HASH
+→ DEDUPLICATE
+→ RECORD
+→ CLEAN
+→ PROVE
+→ PROMOTE ONLY THROUGH GOVERNANCE
+```
+
+وبذلك يصبح Agent Pipeline جزءًا من عقل CELL التشغيلي: سريع بما يكفي للتجريب، صارم بما يكفي للتفنيد، وقابلًا للاستعادة دون أن يتحول إلى سلطة مستقلة.
+
+
+# PRESERVED ORIGINAL CELL CONTENT — END
+

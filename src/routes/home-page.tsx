@@ -6,6 +6,7 @@ import { getAuthoritativeToolSeoName } from '@/config/tool-seo-name-resolver';
 import { localizeMsUkCategory, localizeMsUkDescription } from '@/lib/i18n/ms-uk-category';
 import { LOCALE_METADATA, LOCALES } from '@/lib/i18n';
 import { localizeToolCategory, localizeToolDescription } from '@/lib/i18n/tool-localization';
+import { localizeToolUiValue } from '@/lib/i18n/tool-ui-runtime-completeness';
 import type { HomeCopy } from '../data/home-locales';
 import type { Locale } from '@/lib/i18n';
 import type { ToolDefinition } from '../config/canonical-tool-definition';
@@ -67,7 +68,7 @@ export function HomePage({ locale = 'en' as Locale }: { locale?: Locale }) {
       <nav className="home-nav" aria-label={copy.ariaPrimary}>
         <div className="home-container home-nav-inner">
           <Link className="home-brand" to="/" aria-label={copy.ariaHome}>FLIXO Hub</Link>
-          <div className="home-nav-links"><a href="#tools">{locale === 'ar' ? 'أدوات الصور' : copy.nav.tools}</a><Link to="/$locale/$tool" params={{ locale, tool: 'filter-mask' }}>{FILTER_LABELS[locale] ?? copy.nav.categories}</Link></div>
+          <div className="home-nav-links"><a href="#tools">{locale === 'ar' ? 'أدوات الصور' : copy.nav.tools}</a><Link to="/$locale/$tool" params={{ locale, tool: 'filter-mask' }}>{FILTER_LABELS[locale] ?? copy.nav.categories}</Link><Link to={locale === 'ar' ? '/developer' : '/en/developer'}>{localizeToolUiValue(locale, 'Developer Platform', '')}</Link></div>
           <label className="sr-only" htmlFor="home-language">{copy.nav.switch}</label>
           <select id="home-language" className="home-nav-language" value={locale} aria-label={copy.nav.switch} onChange={(event) => { const nextLocale = event.target.value as Locale; void navigate(nextLocale === 'en' ? { to: '/' } : { to: '/$locale', params: { locale: nextLocale } }); }}>
             {LOCALES.map((code) => <option key={code} value={code}>{LANGUAGE_LABELS[code] ?? code}</option>)}

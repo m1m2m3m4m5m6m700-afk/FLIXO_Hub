@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
+import { analyzeWorkflowAuthority } from './verify-branch-policy.mjs';
 
 const EXACT_HEAD_SELECTOR = "github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha";
 const EXACT_HEAD_EXPRESSION = '${{ ' + EXACT_HEAD_SELECTOR + ' }}';
@@ -25,7 +26,7 @@ test('candidate diagnostics stay bound to the exact PR head SHA', async () => {
     !workflow.includes('    EXPECTED_SHA: ${{ github.sha }}'),
     'bare github.sha must not label PR-head diagnostics',
   );
-  const expectedRedTeamGroup = "  group: flixo-final-red-team-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.ref }}";
+  const expectedRedTeamGroup = "  group: flixo-final-red-team-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref_name }}";
   assert.ok(
     workflow.includes(expectedRedTeamGroup),
     'final Red Team concurrency must deduplicate promotion PR runs by PR identity',
@@ -47,8 +48,19 @@ test('candidate diagnostics stay bound to the exact PR head SHA', async () => {
 test('FLIXO CI protects every candidate-sensitive checkout and identity stamp', async () => {
   const workflow = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
 
+  assert.match(
+    workflow,
+    /group:\s*flixo-ci-\$\{\{ github\.event_name \}\}-\$\{\{ github\.event\.pull_request\.number \|\| github\.ref_name \}\}/u,
+    'CI concurrency must be stable within an event lane',
+  );
+  assert.doesNotMatch(
+    workflow,
+    /group:[^\n]*\$\{\{ github\.sha \}\}/u,
+    'CI concurrency group must not include commit SHA',
+  );
+
   const exactRefCount = workflow.split('          ref: ' + EXACT_HEAD_EXPRESSION).length - 1;
-  assert.equal(exactRefCount, 6, 'all six candidate-sensitive CI checkouts must use the exact PR head SHA');
+  assert.equal(exactRefCount, 9, 'all nine candidate-sensitive CI checkouts must use the exact PR head SHA');
 
   assert.ok(
     workflow.includes('          BUILD_SHA: ' + EXACT_HEAD_EXPRESSION),
@@ -64,42 +76,46 @@ test('execution-only assurance lanes deduplicate by branch while promotion lanes
   const redTeam = await readFile(new URL('../../.github/workflows/final-red-team.yml', import.meta.url), 'utf8');
   const video = await readFile(new URL('../../.github/workflows/video-assurance.yml', import.meta.url), 'utf8');
 
-  assert.match(redTeam, /group:\s*flixo-final-red-team-\$\{\{ github\.event_name == 'pull_request' && github\.event\.pull_request\.number \|\| github\.ref \}\}/u);
-  assert.match(video, /group:\s*flixo-video-assurance-\$\{\{ github\.event_name == 'pull_request' && github\.event\.pull_request\.number \|\| github\.ref \}\}/u);
+  assert.match(redTeam, /group:\s*flixo-final-red-team-\$\{\{ github\.event_name \}\}-\$\{\{ github\.event\.pull_request\.number \|\| github\.ref_name \}\}/u);
+  assert.match(video, /group:\s*flixo-video-assurance-\$\{\{ github\.event_name \}\}-\$\{\{ github\.ref_name \}\}/u);
   assert.match(redTeam, /cancel-in-progress:\s*\$\{\{ github\.event_name == 'push' && github\.ref == 'refs\/heads\/execution' \}\}/u);
   assert.match(video, /cancel-in-progress: true/u);
 });
 
-test('canonical CI security workflows do not trigger on execution worker PRs', async () => {
-  const files = [
-    '.github/workflows/ci.yml',
-    '.github/workflows/codeql.yml',
-    '.github/workflows/secret-scan.yml',
-  ];
-
-  for (const path of files) {
-    const workflow = await readFile(new URL('../../' + path, import.meta.url), 'utf8');
-    assert.doesNotMatch(workflow, /pull_request:\s*\n\s*branches:\s*\[main, execution\]/u);
-    assert.match(workflow, /pull_request:\s*\n\s*branches:\s*\[main\]/u);
-  }
+test('canonical CI verifies candidate and execution pushes plus the canonical execution-to-main promotion PR', async () => {
+  const workflow = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
+  assert.match(workflow, /push:\s*\n\s*branches:\s*\[main, execution, 'agent\/\*\*'\]/u);
+  assert.match(workflow, /pull_request:\s*\n\s*branches:\s*\[main, execution\]/u);
+  assert.match(workflow, /startsWith\(github\.event\.pull_request\.head\.ref, 'chore\/oss-'\)/u);
+  assert.match(workflow, /github\.event\.pull_request\.head\.repo\.full_name == github\.repository/u);
 });
 
-test('worker pull requests are filtered out of canonical release jobs', async () => {
-  const files = [
+test('canonical CI consumes security assurance as reusable jobs', async () => {
+  const workflow = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
+  assert.match(workflow, /name: FLIXO CodeQL \/ reusable/u);
+  assert.match(workflow, /uses: \.\/\.github\/workflows\/codeql\.yml/u);
+  assert.match(workflow, /name: FLIXO Secret Scan \/ reusable/u);
+  assert.match(workflow, /uses: \.\/\.github\/workflows\/secret-scan\.yml/u);
+  assert.match(workflow, /name: Agent Watchdog \/ reusable/u);
+  assert.match(workflow, /uses: \.\/\.github\/workflows\/agent-watchdog\.yml/u);
+});
+
+test('OSS readiness PRs run verification while promotion proof remains execution-only', async () => {
+  const ossPrGate = "if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && (github.event.pull_request.base.ref == 'execution' || github.event.pull_request.head.ref == 'execution' || startsWith(github.event.pull_request.head.ref, 'chore/oss-'))) }}";
+
+  for (const path of [
     '.github/workflows/ci.yml',
     '.github/workflows/codeql.yml',
     '.github/workflows/secret-scan.yml',
-    '.github/workflows/final-red-team.yml',
-  ];
-
-  for (const path of files) {
+  ]) {
     const workflow = await readFile(new URL('../../' + path, import.meta.url), 'utf8');
-    assert.match(
-      workflow,
-      /if:\s*\$\{\{ github\.event_name != 'pull_request' \|\| \(github\.event\.pull_request\.head\.ref == 'execution' && github\.event\.pull_request\.head\.repo\.full_name == github\.repository\) \}\}/u,
-      path + ' must gate PR jobs to the canonical execution branch',
-    );
+    assert.ok(workflow.includes(ossPrGate), path + ' must allow canonical OSS readiness PRs');
   }
+
+  const ci = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
+  const promotionProofGate =
+    "if: ${{ always() && ((github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/execution')) || (github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'execution' && github.event.pull_request.base.ref == 'main' && github.event.pull_request.head.repo.full_name == github.repository)) }}";
+  assert.ok(ci.includes(promotionProofGate), 'promotion proof must be limited to canonical execution-to-main promotion PRs and protected branch pushes');
 });
 
 test('final Red Team security wait is promotion-only after execution security deduplication', async () => {
@@ -113,7 +129,8 @@ test('final Red Team security wait is promotion-only after execution security de
     block,
     /if:\s*github\.event_name == 'pull_request' && github\.event\.pull_request\.base\.ref == 'main'/u,
   );
-  assert.match(block, /event=push/u);
+  assert.match(block, /event=pull_request/u);
+  assert.doesNotMatch(block, /event=push/u);
   assert.match(block, /FLIXO CodeQL/u);
   assert.match(block, /FLIXO Secret Scan/u);
 });
@@ -129,10 +146,67 @@ test('promotion lineage checkout retains full history for merge-base verificatio
   assert.match(checkoutBlock, /fetch-depth: 0/u);
 });
 
+test('all candidate-sensitive CI checkouts explicitly disable credential persistence', async () => {
+  const workflow = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
+  const blocks = workflow.split(/\n[ ]{6}- (?:name:[^\n]+\n[ ]{8})?uses: actions\/checkout@/u).slice(1);
+  const candidateBlocks = blocks.filter((block) => block.includes('ref: ' + EXACT_HEAD_EXPRESSION));
+  assert.equal(candidateBlocks.length, 9, 'all nine candidate-sensitive CI checkouts must remain identifiable');
+  for (const block of candidateBlocks) {
+    assert.match(block, /persist-credentials:\s*false\b/u);
+    assert.doesNotMatch(block, /persist-credentials:\s*true\b/u);
+  }
+});
+
+test('branch policy rejects implicit checkout credential persistence on execution-triggered workflows', () => {
+  const vulnerable = [
+    'name: vulnerable',
+    'on:',
+    '  push:',
+    '    branches: [execution]',
+    'permissions:',
+    '  contents: read',
+    'jobs:',
+    '  build:',
+    '    steps:',
+    '      - uses: actions/checkout@v5',
+    '      - run: npm test',
+  ].join('\n');
+  const safe = vulnerable.replace('      - uses: actions/checkout@v5', '      - uses: actions/checkout@v5\n        with:\n          persist-credentials: false');
+  assert.equal(analyzeWorkflowAuthority('.github/workflows/vulnerable.yml', vulnerable).pass, false);
+  assert.equal(analyzeWorkflowAuthority('.github/workflows/safe.yml', safe).pass, true);
+});
+
+test('execution push branch-policy checkout never persists Git credentials', async () => {
+  const workflow = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
+
+  const marker = '      - name: Validate branch policy for the current ref';
+  const markerIndex = workflow.indexOf(marker);
+  assert.ok(markerIndex >= 0, 'branch-policy validation step must exist');
+
+  const checkoutStart = workflow.lastIndexOf('      - uses: actions/checkout@', markerIndex);
+  assert.ok(checkoutStart >= 0, 'branch-policy checkout must exist');
+
+  const checkoutBlock = workflow.slice(checkoutStart, markerIndex);
+  assert.match(checkoutBlock, /persist-credentials:\s*false\b/u);
+  assert.doesNotMatch(checkoutBlock, /persist-credentials:\s*true\b/u);
+});
+
+test('post-merge reporting workflows remain exact-merge-SHA and credential isolated', async () => {
+  const agentReport = await readFile(new URL('../../.github/workflows/post-merge-agent-report.yml', import.meta.url), 'utf8');
+  const integrationReport = await readFile(new URL('../../.github/workflows/post-merge-report.yml', import.meta.url), 'utf8');
+
+  for (const workflow of [agentReport, integrationReport]) {
+    assert.match(workflow, /ref:\s*\$\{\{\s*github\.event\.pull_request\.merge_commit_sha\s*\}\}/u);
+    assert.match(workflow, /persist-credentials:\s*false\b/u);
+    assert.match(workflow, /git rev-parse HEAD/u);
+    assert.doesNotMatch(workflow, /persist-credentials:\s*true\b/u);
+  }
+});
+
 test('promotion and production gates remain fail-closed and exact-SHA bound', async () => {
   const workflow = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
 
-  assert.ok(workflow.includes('needs: [trust-gate]'), 'promotion proof must depend on trust-gate');
+  assert.match(workflow, /needs:\s*\[trust-gate,\s*codeql,\s*secret-scan\]/u, 'promotion proof must depend on trust-gate and same-run exact-SHA security results');
   assert.ok(
     workflow.includes('if: ${{ always() }}'),
     'promotion proof must still execute as a fail-closed assertion when upstream fails',
@@ -141,10 +215,23 @@ test('promotion and production gates remain fail-closed and exact-SHA bound', as
     workflow.includes("if: github.event_name == 'push' && github.ref == 'refs/heads/main'"),
     'production deployment must remain main-push only',
   );
+
+  assert.doesNotMatch(workflow, /preview-deployment:/u, 'deployment secrets must stay out of the execution-push CI workflow');
+
+  const previewWorkflow = await readFile(new URL('../../.github/workflows/ui-preview.yml', import.meta.url), 'utf8');
+  assert.match(previewWorkflow, /on:\s*\n\s*workflow_dispatch:/u, 'preview deployment must be explicitly dispatched');
   assert.ok(
-    workflow.includes('          ref: ${{ github.sha }}'),
-    'post-merge production deployment must checkout the immutable main SHA',
+    previewWorkflow.includes("github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/execution' && github.repository == 'm1m2m3m4m5m6m700-afk/FLIXO_Hub' && github.actor == 'm1m2m3m4m5m6m700-afk'"),
+    'preview deployment must use the governed manual execution gate',
   );
+  assert.ok(previewWorkflow.includes('CANONICAL_PUSH_GATES_NOT_GREEN'), 'preview must fail closed without green same-SHA canonical CI');
+  assert.ok(previewWorkflow.includes('Exact-SHA promotion proof'), 'preview requires canonical promotion-proof PASS');
+  assert.ok(previewWorkflow.includes('flixo-build-${{ steps.canonical-run.outputs.upstream_run_id }}'), 'preview must consume the verified canonical run artifact');
+  assert.ok(previewWorkflow.includes('test "$identity_header" = "$EXPECTED_SHA"'), 'preview identity must verify the exact-SHA response header');
+  assert.ok(previewWorkflow.includes('test "$root_status" = "200"'), 'preview identity evidence must require HTTP 200 at root');
+  assert.ok(previewWorkflow.includes('PREVIEW_DEPLOYMENT=BLOCKED_MISSING_CLOUDFLARE_CREDENTIALS'), 'missing Cloudflare credentials must fail closed and be explicit');
+  assert.ok(previewWorkflow.includes('name flixoai-preview'), 'preview deployment must target the allowlisted preview Worker, not production');
+
   assert.ok(
     workflow.includes('          DEPLOYMENT_SHA: ${{ github.sha }}'),
     'production identity must be bound to the immutable main SHA',
@@ -156,3 +243,65 @@ test('promotion and production gates remain fail-closed and exact-SHA bound', as
   assert.ok(workflow.includes('git rev-parse HEAD'), 'production deployment must inspect the checked-out commit SHA');
   assert.ok(workflow.includes('$DEPLOYMENT_SHA'), 'production deployment must retain immutable SHA binding');
 });
+
+
+test('specialized execution gates are path-gated and TestSprite concurrency is commit-independent', async () => {
+  const testsprite = await readFile(new URL('../../.github/workflows/testsprite-execution.yml', import.meta.url), 'utf8');
+  const video = await readFile(new URL('../../.github/workflows/video-assurance.yml', import.meta.url), 'utf8');
+  const learning = await readFile(new URL('../../.github/workflows/agent-self-learning.yml', import.meta.url), 'utf8');
+  const knowledge = await readFile(new URL('../../.github/workflows/repository-knowledge.yml', import.meta.url), 'utf8');
+  const scout = await readFile(new URL('../../.github/workflows/scout-boundary.yml', import.meta.url), 'utf8');
+  const discovery = await readFile(new URL('../../.github/workflows/continuous-discovery.yml', import.meta.url), 'utf8');
+
+  assert.match(testsprite, /push:\s*\n\s*branches:\s*\n\s*- execution\s*\n\s*paths:/u);
+  assert.match(testsprite, /group:\s*testsprite-fallback-\$\{\{ github\.ref_name \}\}/u);
+  assert.doesNotMatch(testsprite, /group:[^\n]*\$\{\{ github\.sha \}\}/u);
+  assert.match(video, /push:\s*\n\s*branches:\s*\[execution\]\s*\n\s*paths:/u);
+  assert.match(learning, /paths:\s*\r?\n(?:\s+- .+\r?\n){4,}/u);
+  assert.match(knowledge, /paths:\s*\r?\n(?:\s+- .+\r?\n){4,}/u);
+  assert.match(scout, /paths:\s*\r?\n(?:\s+- .+\r?\n){4,}/u);
+  assert.match(discovery, /paths:\s*\r?\n(?:\s+- .+\r?\n){4,}/u);
+});
+
+test('workflow_dispatch sensitive-path classification uses a real execution merge base', async () => {
+  const workflow = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
+  const start = workflow.indexOf('      - name: Classify changed paths');
+  const end = workflow.indexOf('      - name: Ordinary path fast path', start);
+  assert.ok(start >= 0 && end > start, 'sensitive-path classifier block must exist');
+  const classifier = workflow.slice(start, end);
+  assert.ok(classifier.includes('elif [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ];'));
+  assert.ok(classifier.includes('git fetch --no-tags origin refs/heads/execution:refs/remotes/origin/execution'));
+  assert.ok(classifier.includes('base="$(git merge-base origin/execution "$EXPECTED_SHA")"'));
+  assert.ok(classifier.includes('files="$(git diff --name-only "$base" "$EXPECTED_SHA")"'));
+});
+
+test('execution-targeted same-repository PRs must satisfy all execution trust gates', async () => {
+  const workflow = await readFile(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
+  const start = workflow.indexOf('  trust-gate:');
+  const end = workflow.indexOf('\n  promotion-proof:', start);
+  assert.ok(start >= 0 && end > start, 'trust gate block must exist');
+  const gate = workflow.slice(start, end);
+
+  assert.ok(gate.includes("PR_BASE_REF: ${{ github.event.pull_request.base.ref || '' }}"), 'trust gate must inspect the PR base branch');
+  assert.ok(gate.includes("PR_HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name || '' }}"), 'trust gate must inspect the PR source repository');
+  assert.ok(
+    gate.includes('if [ "$EVENT_NAME" = "pull_request" ] && [ "$PR_BASE_REF" = "execution" ] && [ "$PR_HEAD_REPO" = "$GITHUB_REPOSITORY" ]; then'),
+    'same-repository PRs targeting execution must use the full required-gate path',
+  );
+  for (const result of [
+    'VERIFY_RESULT', 'HUB_STAGE1_RESULT', 'BROWSER_RESULT', 'COVERAGE_RESULT',
+    'RED_TEAM_RESULT', 'BRANCH_RESULT', 'CODEQL_RESULT', 'SECRET_SCAN_RESULT',
+    'AGENT_WATCHDOG_RESULT', 'SENSITIVE_RESULT',
+  ]) {
+    assert.ok(gate.includes(`test "$${result}" = success`), `execution trust gate must require ${result}=success`);
+  }
+  assert.ok(
+    gate.includes('[ "$PR_BASE_REF" != "execution" ]'),
+    'worker/diagnostic PR skip policy must not swallow execution-targeted PRs',
+  );
+  assert.ok(
+    gate.includes("echo 'TRUST_GATE=PASS_EXECUTION_PR'"),
+    'execution-targeted PR success must be explicit and auditable',
+  );
+});
+

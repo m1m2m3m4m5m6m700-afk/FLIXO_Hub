@@ -1,13 +1,22 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process';
-import { readFileSync, statSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync, mkdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join, extname, posix } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { REQUIRED_SNAPSHOT_LAYERS, validateKnowledgeSnapshot, writeImmutableFile } from './agent-learning/world-model-contract.mjs';
+export { REQUIRED_SNAPSHOT_LAYERS, validateKnowledgeSnapshot, writeImmutableFile } from './agent-learning/world-model-contract.mjs';
 import ts from 'typescript';
 
 const root = process.cwd();
-const REPORT_DIR = 'الوكلاء/المستكشف AI/تقارير المستكشف';
+const REPORT_DIR = 'الوكلاء AI/المستكشف AI/تقارير المستكشف';
+const MODEL_VERSION = 'flixo-world-model-v1';
+function stableGeneratedAt(worldModelPath) {
+  if (!existsSync(worldModelPath)) return new Date().toISOString();
+  const existing = JSON.parse(readFileSync(worldModelPath, 'utf8'));
+  if (typeof existing.generated_at !== 'string' || !Number.isFinite(Date.parse(existing.generated_at))) throw new Error('existing world model has invalid generated_at');
+  return existing.generated_at;
+}
 
 export function sh(command, args = [], options = {}) {
   return execFileSync(command, args, {
@@ -228,32 +237,6 @@ export function extractAstFacts(path, content) {
   return { parser: 'typescript-compiler-api', parseDiagnostics: sourceFile.parseDiagnostics.length, declarations, imports, exports, callExpressions, callTargets: Array.from(callTargets).sort(), controlFlow };
 }
 
-function resolveMainRef(preferred = 'refs/remotes/origin/main') {
-  const candidates = [
-    preferred,
-    'origin/main',
-    'refs/heads/main',
-    'main',
-  ];
-  for (const candidate of candidates) {
-    try {
-      return sh('git', ['rev-parse', '--verify', candidate + '^{commit}']);
-    } catch {
-      // Try the next known local/remote ref without turning an absent ref into a false snapshot.
-    }
-  }
-
-  // On a push directly to main, HEAD is the exact main SHA even when checkout
-  // does not materialize a remote-tracking ref. Preserve that exact identity.
-  if (process.env.GITHUB_REF === 'refs/heads/main') {
-    const head = sh('git', ['rev-parse', '--verify', 'HEAD^{commit}']);
-    const eventSha = process.env.GITHUB_SHA || '';
-    if (/^[0-9a-f]{40}$/u.test(eventSha) && head === eventSha) return head;
-  }
-
-  return null;
-}
-
 function collectGitRefIndex(ref) {
   const resolvedRef = sh('git', ['rev-parse', ref]);
   const rows = sh('git', ['ls-tree', '-r', '-z', resolvedRef]).split('\0').filter(Boolean);
@@ -270,6 +253,31 @@ function setDiff(before, after) {
   const a = new Set(before);
   const b = new Set(after);
   return { added: Array.from(b).filter(value => !a.has(value)).sort(), removed: Array.from(a).filter(value => !b.has(value)).sort() };
+}
+
+function resolveMainRef(preferred = 'refs/remotes/origin/main') {
+  const candidates = [preferred, 'origin/main', 'refs/heads/main', 'main'];
+  for (const candidate of candidates) {
+    try {
+      return sh('git', ['rev-parse', '--verify', candidate + '^{commit}']);
+    } catch {
+      // Try the next exact local/remote ref without turning absence into a false snapshot.
+    }
+  }
+  const configuredMainSha = process.env.FLIXO_KNOWLEDGE_MAIN_SHA || '';
+  if (/^[0-9a-f]{40}$/.test(configuredMainSha)) {
+    try {
+      return sh('git', ['rev-parse', '--verify', configuredMainSha + '^{commit}']);
+    } catch {
+      // A configured SHA is evidence only when its commit object is present locally.
+    }
+  }
+  if (process.env.GITHUB_REF === 'refs/heads/main') {
+    const head = sh('git', ['rev-parse', '--verify', 'HEAD^{commit}']);
+    const eventSha = process.env.GITHUB_SHA || '';
+    if (/^[0-9a-f]{40}$/.test(eventSha) && head === eventSha) return head;
+  }
+  return null;
 }
 
 export function collectSemanticDiff(mainRef = 'refs/remotes/origin/main', executionRef = 'HEAD') {
@@ -311,18 +319,56 @@ export function collectSemanticDiff(mainRef = 'refs/remotes/origin/main', execut
     return { readable: false, mainSha: null, executionSha: null, changedFiles: [], sourceChanges: [], summary: { added: 0, removed: 0, modified: 0, semanticSourceChanges: 0 }, error: String(error) };
   }
 }
-export function collectGitRefSnapshot(ref = 'refs/remotes/origin/main') {
+function readGitBlobBatch(objectIds) {
+  const buffers = [];
+  for (let offset = 0; offset < objectIds.length; offset += 64) {
+    const chunk = objectIds.slice(offset, offset + 64);
+    const output = execFileSync('git', ['cat-file', '--batch'], {
+      cwd: root,
+      input: Buffer.from(chunk.join('\n') + '\n', 'utf8'),
+      maxBuffer: 128 * 1024 * 1024,
+    });
+    let cursor = 0;
+    for (const expectedId of chunk) {
+      const headerEnd = output.indexOf(0x0a, cursor);
+      if (headerEnd < 0) throw new Error('git cat-file batch returned a truncated header');
+      const header = output.subarray(cursor, headerEnd).toString('ascii');
+      const match = header.match(/^([0-9a-f]{40}) blob (\d+)$/);
+      if (!match || match[1] !== expectedId) throw new Error('git cat-file batch returned an unexpected object header');
+      const size = Number(match[2]);
+      const contentStart = headerEnd + 1;
+      const contentEnd = contentStart + size;
+      if (!Number.isSafeInteger(size) || size < 0 || contentEnd > output.length) {
+        throw new Error('git cat-file batch returned an invalid object size');
+      }
+      buffers.push(output.subarray(contentStart, contentEnd));
+      cursor = contentEnd;
+      if (output[cursor] === 0x0a) cursor++;
+    }
+    if (cursor !== output.length) throw new Error('git cat-file batch returned unexpected trailing data');
+  }
+  return buffers;
+}
+
+export function collectGitRefSnapshot(
+  ref = process.env.GITHUB_REF === 'refs/heads/main' ? 'HEAD' : 'refs/remotes/origin/main',
+) {
   try {
     const resolvedRef = resolveMainRef(ref);
     if (!resolvedRef) throw new Error('main-ref-unavailable');
-    const paths = sh('git', ['ls-tree', '-r', '-z', '--name-only', resolvedRef]).split('\0').filter(Boolean);
+    const treeEntries = sh('git', ['ls-tree', '-r', '-z', resolvedRef]).split('\0').filter(Boolean);
+    const objectIds = treeEntries.map(entry => {
+      const match = entry.match(/^\d+ blob ([0-9a-f]{40})\t/);
+      if (!match) throw new Error('git ls-tree returned an invalid blob entry');
+      return match[1];
+    });
+    const blobs = readGitBlobBatch(objectIds);
     let textFiles = 0;
     let binaryFiles = 0;
     let textLines = 0;
     let bytes = 0;
 
-    for (const path of paths) {
-      const buffer = Buffer.from(sh('git', ['show', `${resolvedRef}:${path}`]), 'utf8');
+    for (const buffer of blobs) {
       bytes += buffer.length;
       if (!looksText(buffer)) {
         binaryFiles++;
@@ -337,7 +383,7 @@ export function collectGitRefSnapshot(ref = 'refs/remotes/origin/main') {
       ref,
       resolvedRef,
       sha: resolvedRef,
-      trackedFiles: paths.length,
+      trackedFiles: treeEntries.length,
       textFiles,
       binaryFiles,
       textLines,
@@ -405,10 +451,182 @@ export function buildKnowledgeModel(entries) {
   return { sourceEntries, dependencyEdges, symbolIndex, signalMap };
 }
 
+
+const AUTHORITY_SYMBOL_PATTERN = /(?:^|_)(REGISTRY|CATALOG|MANIFEST|AUTHORITY|DEFINITION|DEFINITIONS|CAPABILITY|CAPABILITIES|SOURCE_OF_TRUTH)(?:$|_)/u;
+
+export function detectAuthorityCollisions(entries) {
+  const bySymbol = new Map();
+  for (const entry of entries) {
+    if (entry?.category && entry.category !== 'runtime') continue;
+    if (entry?.path === 'src/config/tool-platform/loader.ts') continue;
+    if (!entry?.signals?.canonicalAuthority) continue;
+    for (const symbol of entry.symbols || []) {
+      if (symbol?.kind && !['variable', 'arrow-function'].includes(symbol.kind)) continue;
+      if (!symbol?.exported || typeof symbol.name !== 'string' || symbol.name.length === 0) continue;
+      if (!AUTHORITY_SYMBOL_PATTERN.test(symbol.name)) continue;
+      const paths = bySymbol.get(symbol.name) || new Set();
+      paths.add(entry.path);
+      bySymbol.set(symbol.name, paths);
+    }
+  }
+  return Array.from(bySymbol.entries())
+    .filter(([, paths]) => paths.size > 1)
+    .map(([symbol, paths]) => ({ symbol, paths: Array.from(paths).sort() }))
+    .sort((a, b) => a.symbol.localeCompare(b.symbol));
+}
+
+export function buildAuthorityGraph(entries, dependencyEdges) {
+  const authorityNodes = entries
+    .filter(entry => entry.ast || entry.signals?.canonicalAuthority || entry.signals?.securityBoundary)
+    .filter(entry => entry.signals?.canonicalAuthority || /(?:canonical|registry|manifest|authorit(?:y|ative)|source of truth|permission|scope|certif)/i.test(entry.path))
+    .map(entry => ({
+      id: entry.path,
+      category: entry.category,
+      authoritySignals: Object.entries(entry.signals || {}).filter(([, value]) => value).map(([key]) => key),
+    }));
+  const nodeIds = new Set(authorityNodes.map(node => node.id));
+  const edges = dependencyEdges
+    .filter(edge => nodeIds.has(edge.from) || (edge.target && nodeIds.has(edge.target)))
+    .map(edge => ({
+      from: edge.from,
+      to: edge.target || edge.resolution,
+      relationship: 'depends-on',
+      line: edge.line,
+    }));
+  return { nodes: authorityNodes, edges, collisions: detectAuthorityCollisions(entries) };
+}
+
+export function buildCallGraph(entries) {
+  return entries.flatMap(entry => {
+    const targets = entry.ast?.callTargets || [];
+    const localNames = new Set((entry.symbols || []).map(symbol => symbol.name));
+    return targets.map(target => ({
+      from: entry.path,
+      to: target,
+      relationship: 'static-call-target',
+      resolution: localNames.has(target) ? 'LOCAL_SYMBOL' : 'UNRESOLVED_STATIC_TARGET',
+    }));
+  });
+}
+
+export function buildControlFlowGraph(entries) {
+  return entries
+    .filter(entry => entry.ast?.controlFlow)
+    .map(entry => ({
+      path: entry.path,
+      controlFlow: entry.ast.controlFlow,
+    }));
+}
+
+export function buildTaskGraph(entries) {
+  const nodes = [];
+  for (const entry of entries) {
+    const lines = readFileSync(join(root, entry.path), 'utf8').replace(/\r\n/g, '\n').split('\n');
+    for (let index = 0; index < lines.length; index++) {
+      const kind = classifyTaskSignal(lines[index]);
+      if (!kind) continue;
+      nodes.push({
+        id: entry.path + ':L' + (index + 1),
+        path: entry.path,
+        line: index + 1,
+        kind,
+        text: lines[index].trim().slice(0, 240),
+      });
+    }
+  }
+  const edges = [];
+  const byPath = new Map();
+  for (const node of nodes) {
+    const list = byPath.get(node.path) || [];
+    if (list.length) {
+      edges.push({ from: list[list.length - 1].id, to: node.id, relationship: 'same-file-order' });
+    }
+    list.push(node);
+    byPath.set(node.path, list);
+  }
+  return { nodes, edges };
+}
+
+export function buildKnowledgeSnapshot({
+  sha,
+  branch,
+  entries,
+  model,
+  mainSnapshot,
+  semanticDiff,
+  changed,
+  authorityGraph,
+  callGraph,
+  controlFlowGraph,
+  taskGraph,
+  generatedAt,
+}) {
+  const fileIndex = entries.map(entry => ({
+    path: entry.path,
+    category: entry.category,
+    bytes: entry.bytes,
+    sha256: entry.sha256,
+    binary: entry.binary,
+    generated: entry.generated,
+    language: entry.language || 'other',
+    lineCount: entry.lineCount,
+  }));
+  const repositoryState = {
+    branch,
+    execution_sha: sha,
+    main_sha: semanticDiff.mainSha || mainSnapshot.sha || null,
+    tracked_files: fileIndex.length,
+    source_text_files: entries.filter(entry => !entry.binary && !entry.generated).length,
+    generated_text_files: entries.filter(entry => !entry.binary && entry.generated).length,
+    binary_files: entries.filter(entry => entry.binary).length,
+    working_tree_readable: true,
+  };
+  return {
+    model_version: MODEL_VERSION,
+    snapshot_id: MODEL_VERSION + ':' + sha,
+    exact_sha: sha,
+    generated_at: generatedAt,
+    repository_state: repositoryState,
+    file_index: fileIndex,
+    symbol_index: model.symbolIndex,
+    dependency_graph: model.dependencyEdges,
+    call_graph: callGraph,
+    control_flow_graph: controlFlowGraph,
+    authority_graph: authorityGraph,
+    task_graph: taskGraph,
+    semantic_diff: semanticDiff,
+    changed_files: changed.files,
+    unknowns: {
+      semantic_review_lines: entries.reduce((sum, entry) => sum + (entry.lineLedger || []).filter(line => line.includes('semantic review required')).length, 0),
+      unresolved_local_imports: model.dependencyEdges.filter(edge => edge.resolution === 'UNRESOLVED_LOCAL').length,
+    },
+    evidence_catalog: {
+      static_analysis: { available: true, exact_sha: sha, class: 'STATIC_ANALYSIS' },
+      main_snapshot: { available: Boolean(mainSnapshot.readable), exact_sha: mainSnapshot.sha || null },
+      semantic_diff: { available: Boolean(semanticDiff.readable), main_sha: semanticDiff.mainSha || null, execution_sha: semanticDiff.executionSha || sha },
+      changed_files: { available: true, base: changed.base || null, count: changed.files.length },
+      stale_evidence: [],
+    },
+    integrity: {
+      immutable_by_identity: true,
+      identity: MODEL_VERSION + ':' + sha,
+      authority_collisions: authorityGraph.collisions || [],
+      required_layers: [...REQUIRED_SNAPSHOT_LAYERS],
+    },
+    constraints: {
+      evidence_class: 'STATIC_ANALYSIS',
+      mutation_authority: false,
+      task_authority: 'المهام.md',
+      certification_authority: 'external-verification-gates',
+    },
+  };
+}
+
 export function collect() {
   const sha = sh('git', ['rev-parse', 'HEAD']);
   const branch = sh('git', ['branch', '--show-current']) || 'detached';
-  const files = sh('git', ['ls-files', '-z']).split('\0').filter(Boolean);
+  const files = sh('git', ['ls-files', '-z']).split('\0').filter(Boolean)
+    .filter(path => existsSync(join(root, path)));
   const fileSet = new Set(files);
   const entries = [];
   let sourceTextFiles = 0;
@@ -501,14 +719,36 @@ export function collect() {
   const mainSnapshot = collectGitRefSnapshot();
   const semanticDiff = collectSemanticDiff();
   const changed = collectChangedFiles();
+  const authorityGraph = buildAuthorityGraph(model.sourceEntries, model.dependencyEdges);
+  const callGraph = buildCallGraph(model.sourceEntries);
+  const controlFlowGraph = buildControlFlowGraph(model.sourceEntries);
+  const taskGraph = buildTaskGraph(model.sourceEntries);
+  const reportDir = join(root, REPORT_DIR);
+  mkdirSync(reportDir, { recursive: true });
+  const worldModelPath = join(reportDir, sha + '.json');
+  const generatedAt = stableGeneratedAt(worldModelPath);
   const unresolved = model.dependencyEdges.filter(edge => edge.resolution === 'UNRESOLVED_LOCAL');
   const status = unknownSourceLines === 0 && unresolved.length === 0
     ? 'CAN_COMPLETE'
     : 'CAN_COMPLETE_WITH_LIMITATIONS';
 
-  const reportDir = join(root, REPORT_DIR);
-  mkdirSync(reportDir, { recursive: true });
   const reportPath = join(reportDir, sha + '.md');
+  const worldModel = buildKnowledgeSnapshot({
+    sha,
+    branch,
+    entries,
+    model,
+    mainSnapshot,
+    semanticDiff,
+    changed,
+    authorityGraph,
+    callGraph,
+    controlFlowGraph,
+    taskGraph,
+    generatedAt,
+  });
+  validateKnowledgeSnapshot(worldModel, { currentSha: sha, now: Date.now() });
+  writeImmutableFile(worldModelPath, JSON.stringify(worldModel, null, 2) + '\n');
 
   const taskFindings = [];
   for (const entry of model.sourceEntries) {
@@ -571,7 +811,7 @@ export function collect() {
     '',
     '## Repository knowledge map',
     '- Task authority: المهام.md',
-    '- Knowledge authority: الوكلاء/المستكشف AI/تقارير المستكشف/<EXACT-SHA>.md',
+    '- Knowledge authority: الوكلاء AI/المستكشف AI/تقارير المستكشف/<EXACT-SHA>.md',
     '- This report is knowledge, not task authority and not certification evidence.',
     '',
     '## Semantic comparison: main vs execution',
@@ -599,6 +839,28 @@ export function collect() {
     '- Changed files since base: ' + changed.files.length,
     ...(changed.files.length ? changed.files.slice(0, 500).map(item => '- ' + item.status + ': ' + item.path) : ['- No commit delta available.']),
     '',
+    '## World Model',
+    '- Model version: ' + MODEL_VERSION,
+    '- Snapshot JSON: ' + REPORT_DIR + '/' + sha + '.json',
+    '- Repository world model layers: file index, symbols, imports/dependencies, calls, control flow, authority graph, task graph, semantic main↔execution diff.',
+    '- Authority graph nodes/edges: ' + authorityGraph.nodes.length + '/' + authorityGraph.edges.length,
+    '- Call graph edges: ' + callGraph.length,
+    '- Control-flow nodes: ' + controlFlowGraph.length,
+    '- Task graph nodes/edges: ' + taskGraph.nodes.length + '/' + taskGraph.edges.length,
+    '',
+    '## Authority graph',
+    ...(authorityGraph.nodes.length ? authorityGraph.nodes.slice(0, 1000).map(node => '- ' + node.id + ' — ' + node.category + ' — signals=' + node.authoritySignals.join(', ')) : ['- No authority nodes detected.']),
+    '',
+    '## Call graph',
+    ...(callGraph.length ? callGraph.slice(0, 4000).map(edge => '- ' + edge.from + ' -> ' + edge.to + ' [' + edge.resolution + ']') : ['- No static call targets detected.']),
+    '',
+    '## Control-flow graph',
+    ...(controlFlowGraph.length ? controlFlowGraph.slice(0, 4000).map(node => '- ' + node.path + ' — ' + JSON.stringify(node.controlFlow)) : ['- No control-flow facts detected.']),
+    '',
+    '## Task graph',
+    ...(taskGraph.nodes.length ? taskGraph.nodes.slice(0, 4000).map(node => '- ' + node.id + ' — ' + node.kind + ' — ' + node.text) : ['- No task graph nodes detected.']),
+    ...(taskGraph.edges.length ? taskGraph.edges.slice(0, 4000).map(edge => '- ' + edge.from + ' -> ' + edge.to + ' [' + edge.relationship + ']') : []),
+    '',
     '## Dependency graph',
     ...(dependencyLines.length ? dependencyLines : ['- No import relationships detected by configured static rules.']),
     '',
@@ -619,7 +881,7 @@ export function collect() {
     '## Unknowns / limitations',
     ...(unknownSourceLines ? ['- ' + unknownSourceLines + ' repository-authored lines require semantic review under the classifier.'] : ['- No line-level semantic-review markers under the classifier.']),
     ...(unresolved.length ? ['- ' + unresolved.length + ' local imports could not be resolved.'] : ['- No unresolved local imports detected.']),
-    '- Generated knowledge artifacts under الوكلاء/المستكشف AI/تقارير المستكشف/ are excluded from recursive analysis to prevent report self-growth.',
+    '- Generated knowledge artifacts under الوكلاء AI/المستكشف AI/تقارير المستكشف/ are excluded from recursive analysis to prevent report self-growth.',
     '',
     '## Complete file inventory',
   ];
@@ -660,7 +922,7 @@ export function collect() {
     }
   }
 
-  writeFileSync(reportPath, sections.join('\n') + '\n', 'utf8');
+  writeImmutableFile(reportPath, sections.join('\n') + '\n');
   return {
     sha,
     branch,
@@ -678,14 +940,23 @@ export function collect() {
     taskSignals,
     changedFiles: changed.files.length,
     status,
+    modelVersion: MODEL_VERSION,
+    generatedAt,
     reportPath: REPORT_DIR + '/' + sha + '.md',
+    worldModelPath: REPORT_DIR + '/' + sha + '.json',
+    authorityNodeCount: authorityGraph.nodes.length,
+    authorityEdgeCount: authorityGraph.edges.length,
+    callGraphEdgeCount: callGraph.length,
+    controlFlowNodeCount: controlFlowGraph.length,
+    taskGraphNodeCount: taskGraph.nodes.length,
+    taskGraphEdgeCount: taskGraph.edges.length,
   };
 }
 
 function main() {
   const result = collect();
   if (process.argv.includes('--verify') &&
-      (result.uncoveredSourceLines !== 0 || !result.reportPath || !result.sha) &&
+      (result.uncoveredSourceLines !== 0 || !result.reportPath || !result.worldModelPath || !result.sha) &&
       process.env.ALLOW_KNOWLEDGE_LIMITATIONS !== '1') {
     process.exitCode = 2;
   }

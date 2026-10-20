@@ -4,7 +4,9 @@ import { applyBasicImageEffect, cropResizeImage, flipImage, imageInfo, rasterToS
 import { executeCanonicalTool } from '../../lib/execution/canonical-executor';
 import { recognizeWithOcrWorker } from './ocr-worker-client';
 import { assertImageCropperOutputIntegrity } from '../image-cropper/output-integrity';
-import { validateFileSafety } from '../../lib/contracts/file-safety';
+import { readRasterHeaderDimensions, validateFileSafety } from '../../lib/contracts/file-safety';
+import { assertToolOutputContract } from '../../lib/contracts/tool-output';
+import { getToolOutputContract } from '../../lib/contracts/tool-output-contracts';
 import { validateUploadBoundary } from '../../lib/contracts/upload-boundary';
 import { LOCALE_METADATA, isLocale } from '../../lib/i18n';
 import { getToolSeo } from '../../lib/seo/tool-seo';
@@ -93,9 +95,12 @@ async function validateSharedImageInput(file: File, toolId: SharedImageToolId) {
     const boundary = validateUploadBoundary({ name: file.name, mime: file.type, bytes }, { ...basePolicy, allowedExtensions: rasterPolicy.extensions, signatures: rasterPolicy.signatures });
     if (!boundary.safe) throw new Error(`Input rejected by Upload Security Boundary: ${boundary.failures.join('; ')}`);
   }
-  const sourceInfo = await imageInfo(file);
-  const dimensionCheck = validateFileSafety({ name: file.name, mime: file.type, bytes: file.size, width: sourceInfo.width, height: sourceInfo.height }, basePolicy);
-  if (!dimensionCheck.safe) throw new Error(`Input rejected by File Safety: ${dimensionCheck.failures.join('; ')}`);
+  if (rasterPolicy) {
+    const headerDimensions = await readRasterHeaderDimensions(file, file.type);
+    if (!headerDimensions) throw new Error('Input rejected by File Safety: raster dimensions could not be determined before decode.');
+    const dimensionCheck = validateFileSafety({ name: file.name, mime: file.type, bytes: file.size, width: headerDimensions.width, height: headerDimensions.height }, basePolicy);
+    if (!dimensionCheck.safe) throw new Error(`Input rejected by File Safety: ${dimensionCheck.failures.join('; ')}`);
+  }
 }
 
 async function preprocessForOcr(file: File): Promise<Blob> {
@@ -156,17 +161,7 @@ export function ImageToolPage({ toolId }: Props) {
     setBusy(true); setError(''); replaceResult(null);
     try {
       if (toolId === 'ai-image-generator') {
-        if (!prompt.trim()) throw new Error(ui.promptRequired);
-        const body = new FormData();
-        body.append('capability', 'generate-image');
-        body.append('prompt', prompt.trim());
-        const response = await fetch(import.meta.env.VITE_FLIXO_AI_IMAGE_ENDPOINT || '/api/ai/image', { method: 'POST', body });
-        if (!response.ok) throw new Error('AI image endpoint is not configured or returned an error.');
-        const blob = await response.blob();
-        if (!blob.type.startsWith('image/')) throw new Error('AI endpoint did not return an image.');
-        const info = await imageInfo(blob);
-        replaceResult(await createResult(blob, `flixo-ai-${info.width}x${info.height}.png`, info));
-        return;
+        throw new Error('Image generation is unavailable in the model-free initial release.');
       }
       if (toolId === 'image-upscaler') { const factor = Number(scale); if (!Number.isFinite(factor) || factor < 1 || factor > 8) throw new Error('Scale must be between 1 and 8.'); }
       if (!file) throw new Error(ui.chooseImageFirst);
@@ -196,11 +191,33 @@ export function ImageToolPage({ toolId }: Props) {
         fileName = output.fileName;
       }
       else { blob = await rasterToSvg(file, Number(columns) || 48); fileName += '.svg'; }
-      if (blob.type.startsWith('image/') && !info) info = await imageInfo(blob);
+      if (blob.type.startsWith('image/')) {
+        if (!info) info = await imageInfo(blob);
+        const contractId = toolId === 'crop-resize' ? 'image-cropper' : toolId;
+        const contract = getToolOutputContract(contractId);
+        if (contract) {
+          const header = new Uint8Array(await blob.slice(0, 64).arrayBuffer());
+          assertToolOutputContract(contract, { mimeType: blob.type, byteLength: blob.size, bytes: header, filename: fileName, dimensions: info });
+        }
+      }
       replaceResult(await createResult(blob, fileName, info));
     } catch (caught) { setError(caught instanceof Error ? caught.message : 'Tool failed.'); }
     finally { setBusy(false); }
   };
+
+  if (isGenerator) {
+    const message = localeMetadata.languageTag.startsWith('ar')
+      ? 'ميزة إنشاء الصور بالذكاء الاصطناعي غير متاحة في الإصدار الأول الذي يعمل بلا نموذج.'
+      : 'Image generation is unavailable in the model-free initial release.';
+    return (
+      <div lang={localeMetadata.languageTag} dir={localeMetadata.direction} className="image-tool-shell">
+        <div className="image-tool-container">
+          <header className="image-tool-header"><div><p className="image-tool-eyebrow">FLIXO · AI TOOLS</p><h2>AI Image Generator</h2></div></header>
+          <section className="compressor-card" aria-label="AI Image Generator"><p role="status">{message}</p></section>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div lang={localeMetadata.languageTag} dir={localeMetadata.direction} className="image-tool-shell">

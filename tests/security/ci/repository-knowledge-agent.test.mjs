@@ -13,18 +13,25 @@ import {
   collectGitRefSnapshot,
   extractAstFacts,
   collectSemanticDiff,
+  buildAuthorityGraph,
+  buildCallGraph,
+  buildControlFlowGraph,
+  buildTaskGraph,
+  detectAuthorityCollisions,
+  validateKnowledgeSnapshot,
+  writeImmutableFile,
 } from '../../../scripts/repository-knowledge-scan.mjs';
 
 const repoRoot = process.cwd();
-const profilePath = 'الوكلاء/المستكشف AI/المستكشف.md';
+const profilePath = '.github/agents/المستكشف-ai.md';
 const scannerPath = 'scripts/repository-knowledge-scan.mjs';
 const workflowPath = '.github/workflows/repository-knowledge.yml';
-const reportDir = 'الوكلاء/المستكشف AI/تقارير المستكشف';
+const reportDir = 'الوكلاء AI/المستكشف AI/تقارير المستكشف';
 
 test('knowledge agent profile declares bounded read-only mission', () => {
   const profile = readFileSync(profilePath, 'utf8');
 
-  assert.match(profile, /report_path: الوكلاء\/المستكشف AI\/تقارير المستكشف\//);
+  assert.match(profile, /report_path: الوكلاء\/التقارير\/AGENT-01 — المستكشف AI\//);
   assert.match(profile, /READ-ONLY reconnaissance and knowledge agent/);
   assert.match(profile, /must never invent missing information/);
   assert.match(profile, /CAN_COMPLETE/);
@@ -76,9 +83,9 @@ test('import extraction and local resolution produce dependency edges', () => {
 });
 
 test('generated reports are inventoried but excluded from recursive semantic analysis', () => {
-  assert.equal(isGeneratedKnowledgeArtifact('الوكلاء/المستكشف AI/تقارير المستكشف/abc.md'), true);
+  assert.equal(isGeneratedKnowledgeArtifact('الوكلاء AI/المستكشف AI/تقارير المستكشف/abc.md'), true);
   assert.equal(isGeneratedKnowledgeArtifact('src/example.ts'), false);
-  assert.equal(classifyPath('الوكلاء/المستكشف AI/تقارير المستكشف/abc.md'), 'generated-knowledge-artifact');
+  assert.equal(classifyPath('الوكلاء AI/المستكشف AI/تقارير المستكشف/abc.md'), 'generated-knowledge-artifact');
   assert.equal(classifyPath('src/example.ts'), 'runtime');
 });
 
@@ -134,8 +141,102 @@ test('main/execution semantic diff detects source-shape changes', () => {
   }
 });
 
+test('world model exposes authority, call, control-flow, and task graph layers', () => {
+  const entries = [
+    {
+      path: 'src/authority.ts',
+      category: 'runtime',
+      symbols: [{ name: 'registry', kind: 'variable', line: 1, exported: true }],
+      signals: { canonicalAuthority: true, securityBoundary: true },
+      ast: { callTargets: ['execute'], controlFlow: { if: 1, switch: 0, loops: 0, try: 0, conditional: 0 } },
+    },
+    {
+      path: 'src/consumer.ts',
+      category: 'runtime',
+      symbols: [{ name: 'execute', kind: 'function', line: 1, exported: false }],
+      signals: { canonicalAuthority: false, securityBoundary: false },
+      ast: { callTargets: ['registry'], controlFlow: { if: 0, switch: 0, loops: 1, try: 0, conditional: 0 } },
+    },
+  ];
+  const dependencyEdges = [
+    { from: 'src/consumer.ts', target: 'src/authority.ts', line: 1, specifier: './authority', resolution: 'RESOLVED' },
+  ];
+  const authority = buildAuthorityGraph(entries, dependencyEdges);
+  const calls = buildCallGraph(entries);
+  const control = buildControlFlowGraph(entries);
+  const tasks = buildTaskGraph([]);
+  assert.ok(authority.nodes.some(node => node.id === 'src/authority.ts'));
+  assert.ok(authority.edges.some(edge => edge.from === 'src/consumer.ts' && edge.to === 'src/authority.ts'));
+  assert.ok(calls.some(edge => edge.from === 'src/authority.ts' && edge.to === 'execute'));
+  assert.equal(control.length, 2);
+  assert.deepEqual(tasks, { nodes: [], edges: [] });
+});
+
+test('world model integrity is SHA-bound and rejects future timestamps', () => {
+  const sha = '0'.repeat(40);
+  const snapshot = {
+    model_version: 'flixo-world-model-v1',
+    snapshot_id: 'flixo-world-model-v1:' + sha,
+    exact_sha: sha,
+    generated_at: new Date(0).toISOString(),
+    repository_state: { execution_sha: sha },
+    file_index: [], symbol_index: [], dependency_graph: [], call_graph: [], control_flow_graph: [],
+    authority_graph: { nodes: [], edges: [], collisions: [] },
+    task_graph: { nodes: [], edges: [] }, semantic_diff: {}, unknowns: {},
+    evidence_catalog: { static_analysis: { available: true } },
+    integrity: { authority_collisions: [], required_layers: ['file_index','symbol_index','dependency_graph','call_graph','control_flow_graph','authority_graph','task_graph','semantic_diff'] },
+    constraints: { mutation_authority: false },
+  };
+  assert.equal(validateKnowledgeSnapshot(snapshot, { currentSha: sha, now: 1 }).valid, true);
+  assert.throws(() => validateKnowledgeSnapshot({ ...snapshot, exact_sha: '1'.repeat(40) }, { currentSha: sha, now: 1 }), /WORLD_MODEL_SHA_MISMATCH/);
+  assert.throws(() => validateKnowledgeSnapshot({ ...snapshot, generated_at: new Date(86400000).toISOString() }, { currentSha: sha, now: 1 }), /WORLD_MODEL_TIMESTAMP_IN_FUTURE/);
+});
+
+test('duplicate canonical authority symbols are detected', () => {
+  const entries = [
+    { path: 'src/one.ts', generated: false, binary: false, signals: { canonicalAuthority: true }, symbols: [{ name: 'TOOL_REGISTRY', exported: true }] },
+    { path: 'src/two.ts', generated: false, binary: false, signals: { canonicalAuthority: true }, symbols: [{ name: 'TOOL_REGISTRY', exported: true }] },
+  ];
+  assert.deepEqual(detectAuthorityCollisions(entries), [{ symbol: 'TOOL_REGISTRY', paths: ['src/one.ts', 'src/two.ts'] }]);
+});
+
+test('world model identity is immutable by snapshot path', async () => {
+  const { mkdtempSync, rmSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const dir = mkdtempSync(tmpdir() + '/flixo-world-model-');
+  try {
+    const path = dir + '/snapshot.json';
+    assert.equal(writeImmutableFile(path, '{"exact_sha":"same"}\n').created, true);
+    assert.equal(writeImmutableFile(path, '{"exact_sha":"same"}\n').identical, true);
+    assert.throws(() => writeImmutableFile(path, '{"exact_sha":"different"}\n'), /IMMUTABLE_KNOWLEDGE_SNAPSHOT_COLLISION/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('scanner passes syntax validation', () => {
   execFileSync(process.execPath, ['--check', scannerPath], { cwd: repoRoot, stdio: 'pipe' });
+});
+
+test('knowledge output contract includes an exact-SHA world model snapshot', () => {
+  const output = execFileSync(process.execPath, [scannerPath, '--verify'], {
+    cwd: repoRoot,
+    env: { ...process.env },
+    encoding: 'utf8',
+  });
+  const result = JSON.parse(output);
+  assert.match(result.modelVersion, /^flixo-world-model-/);
+  assert.equal(typeof result.generatedAt, 'string');
+  assert.ok(result.generatedAt.includes('T'));
+  assert.equal(result.worldModelPath, reportDir + '/' + result.sha + '.json');
+  assert.ok(existsSync(result.worldModelPath));
+  const worldModel = JSON.parse(readFileSync(result.worldModelPath, 'utf8'));
+  assert.equal(worldModel.model_version, result.modelVersion);
+  assert.equal(worldModel.exact_sha, result.sha);
+  assert.equal(worldModel.repository_state.execution_sha, result.sha);
+  for (const key of ['file_index','symbol_index','dependency_graph','call_graph','control_flow_graph','authority_graph','task_graph','semantic_diff']) {
+    assert.ok(worldModel[key] !== undefined, 'missing world model layer: ' + key);
+  }
 });
 
 test('scanner produces an exact-SHA report with zero uncovered authored lines', () => {
@@ -148,8 +249,7 @@ test('scanner produces an exact-SHA report with zero uncovered authored lines', 
 
   assert.match(result.sha, /^[0-9a-f]{40}$/);
   assert.equal(result.uncoveredSourceLines, 0);
-  const normalizedReportPath = result.reportPath.replace(repoRoot + '/', '');
-  assert.equal(normalizedReportPath, reportDir + '/' + result.sha + '.md');
+  assert.equal(result.reportPath, reportDir + '/' + result.sha + '.md');
   assert.ok(result.trackedFiles > 0);
   assert.ok(result.sourceTextFiles > 0);
   assert.ok(result.symbolCount > 0);
@@ -172,25 +272,19 @@ test('scanner produces an exact-SHA report with zero uncovered authored lines', 
   assert.match(report, /Generated knowledge artifacts/);
 });
 
-test('workflow wakes on execution changes and ignores only its own report directory', () => {
+test('workflow wakes on execution changes and publishes evidence without mutation authority', () => {
   const workflow = readFileSync(workflowPath, 'utf8');
-
   assert.match(workflow, /branches: \[execution\]/);
-  assert.match(workflow, /paths-ignore:/);
-  assert.match(workflow, /الوكلاء\/المستكشف AI\/تقارير المستكشف\/\*\*/);
-  assert.match(workflow, /ref: \$\{\{ github\.sha \}\}/);
-  assert.match(workflow, /persist-credentials: true/);
-  assert.match(workflow, /test "\$\(git rev-parse HEAD\)" = "\$\{GITHUB_SHA\}"/);
-  assert.match(workflow, /Uncovered repository-authored text lines: 0/);
-  assert.match(workflow, /git fetch origin execution/);
-  assert.match(workflow, /git add 'الوكلاء\/المستكشف AI\/تقارير المستكشف\//);
-  assert.match(workflow, /git push origin "HEAD:knowledge"/);
-  assert.doesNotMatch(workflow, /git push origin "HEAD:execution"/);
-  assert.doesNotMatch(workflow, /reports\/repository-knowledge/);
+  assert.match(workflow, /الوكلاء AI\/المستكشف AI\/تقارير المستكشف\/\$\{GITHUB_SHA\}\.md/);
+  assert.match(workflow, /persist-credentials: false/);
+  assert.match(workflow, /contents: read/);
+  assert.match(workflow, /Upload SHA-bound knowledge artifact/);
+  assert.doesNotMatch(workflow, /contents: write/);
+  assert.doesNotMatch(workflow, /git push origin/);
 });
 
 test('scanner does not re-ingest legacy English report directory', () => {
   const scanner = readFileSync(scannerPath, 'utf8');
   assert.doesNotMatch(scanner, /reports\/repository-knowledge/);
-  assert.match(scanner, /الوكلاء\/المستكشف AI\/تقارير المستكشف/);
+  assert.match(scanner, /الوكلاء AI\/المستكشف AI\/تقارير المستكشف/);
 });

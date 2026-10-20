@@ -3,17 +3,25 @@ name: FLIXO Final Clean-Clone Red Team
 on:
   push:
     branches: [execution]
-  pull_request:
-    branches: [main]
+    paths:
+      - 'packages/contracts/**'
+      - 'src/**'
+      - 'tests/**'
+      - 'scripts/ci/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'vite.config.ts'
+      - 'tsconfig.json'
+      - 'wrangler.jsonc'
+      - '.gitleaks.toml'
   workflow_dispatch:
 
 permissions:
   contents: read
   actions: read
-  pull-requests: write
 
 concurrency:
-  group: flixo-final-red-team-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.ref }}
+  group: flixo-final-red-team-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref_name }}
   cancel-in-progress: ${{ github.event_name == 'push' && github.ref == 'refs/heads/execution' }}
 
 jobs:
@@ -35,6 +43,7 @@ jobs:
         with:
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 1
+          persist-credentials: false
 
       - name: Verify exact identity before tests
         shell: bash
@@ -102,7 +111,6 @@ jobs:
       - name: Publish browser failure diagnostics
         if: failure()
         env:
-          GH_TOKEN: ${{ github.token }}
           EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
         shell: bash
         run: |
@@ -153,19 +161,14 @@ jobs:
           process.stdout.write(lines.join('\\n'));
           NODE
           printf '\\n\\nThis diagnostic is emitted only because Browser E2E failed; no PASS is inferred from it.\\n' >> /tmp/flixo-browser-failure.md
-          PR_NUMBER="$(gh pr list --state open --head execution --json number --jq '.[0].number // empty')"
-          if [ -n "$PR_NUMBER" ]; then
-            gh pr comment "$PR_NUMBER" --body-file /tmp/flixo-browser-failure.md
-          else
-            cat /tmp/flixo-browser-failure.md
-          fi
+          cat /tmp/flixo-browser-failure.md
       - name: Wait for exact-SHA security workflows on promotion PRs
         if: github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main'
         shell: bash
         run: |
           set -euo pipefail
           for attempt in $(seq 1 30); do
-            runs="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$EXPECTED_SHA&event=push&per_page=100")"
+            runs="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$EXPECTED_SHA&event=pull_request&per_page=100")"
             all_ok=true
             for workflow in "FLIXO CodeQL" "FLIXO Secret Scan"; do
               state="$(printf '%s' "$runs" | WORKFLOW="$workflow" EXPECTED_SHA="$EXPECTED_SHA" node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const x=(JSON.parse(s).workflow_runs||[]).filter(r=>r.head_sha===process.env.EXPECTED_SHA&&r.name===process.env.WORKFLOW);const r=x[0];console.log(r?`${r.status}:${r.conclusion||"null"}`:"MISSING")})')"

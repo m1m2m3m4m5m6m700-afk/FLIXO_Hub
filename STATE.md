@@ -1,11 +1,32 @@
-# STATE.md
+# FLIXO Agent Runtime State
+
+Observed source SHA: `64587c0a20075a352ff2617785f6739009f413ee`
+Observed at: 2026-10-08T14:21:07Z
+
+## Current state
+
+- Canonical integration lane: `execution`.
+- Level 3 semantic memory is implemented through the existing Supabase `pgvector` substrate and a service-role semantic retrieval RPC.
+- Level 4 economy substrate is implemented as internal credits, staking, exact-SHA settlement, independent-verifier enforcement, and an append-only SHA-256 ledger.
+- Memory and economy state do not grant execution, promotion, deployment, or certification authority.
+- The canonical promotion path remains `execution → protected PR → main`.
+- Release certification is determined only by current exact-SHA CI and promotion evidence.
+
+## Evidence boundary
+
+These statements record observations made against the referenced source SHA. Any SHA drift requires revalidation before reuse as current evidence.
+
+
+## Imported protected-main governance state (historical snapshot 2026-10-08)
+
+These facts retain historical context and must not be treated as current release state.
 
 ## Current Governance State
 - Contract version: 1.4.1
 - Mission: EXEC-LEAD-MEMORY-001
 - Repository: m1m2m3m4m5m6m700-afk/FLIXO_Hub
 - Production truth branch: main
-- Current main SHA: 508b5f9f9314deb7cbfd6d6592450b7d5f39141e
+- Historical main SHA observed 2026-10-08: 508b5f9f9314deb7cbfd6d6592450b7d5f39141e
 - Bootstrap implementation PR: #1257
 - PR #1257: MERGED
 - Merge commit: 508b5f9f9314deb7cbfd6d6592450b7d5f39141e
@@ -20,7 +41,7 @@
 1. Repository default branch is main. Source: GitHub repository metadata observed 2026-10-08.
 2. PR #1257 was merged into main. Source: GitHub PR metadata observed 2026-10-08.
 3. The merge commit is 508b5f9f9314deb7cbfd6d6592450b7d5f39141e. Source: GitHub PR and commit metadata observed 2026-10-08.
-4. main now points to 508b5f9f9314deb7cbfd6d6592450b7d5f39141e. Source: GitHub ref metadata observed 2026-10-08.
+4. main pointed to `508b5f9f9314deb7cbfd6d6592450b7d5f39141e` as observed on 2026-10-08.
 5. The merge commit is GitHub-verified. This proves commit verification, not an independent PR approval review.
 6. CODEOWNERS lists @m1m2m3m4m5m6m700-afk as owner. Source: .github/CODEOWNERS on main.
 7. The merged bootstrap payload contains the v1.4.1 governance implementation, including Admission, telemetry, blocked-channel verification, and exact-SHA contracts. Source: PR #1257 and merged tree.

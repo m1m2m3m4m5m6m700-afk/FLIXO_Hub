@@ -5,6 +5,8 @@ import { installScopedRuntimeObserver } from './scoped-runtime-observer';
 type LocaleMap = Partial<Record<CanonicalLocale, string>>;
 
 const UI: Readonly<Record<string, LocaleMap>> = {
+  'Developer Platform': { ar: 'منصة البرمجة', es: 'Plataforma para desarrolladores', fr: 'Plateforme pour les développeurs', de: 'Entwicklerplattform', hi: 'डेवलपर प्लेटफ़ॉर्म', id: 'Platforma Pengembang', it: 'Piattaforma per sviluppatori', ja: '開発者プラットフォーム', ko: '개발자 플랫폼', ms: 'Platform Pembangun', nl: 'Ontwikkelaarsplatform', pl: 'Platforma dla programistów', pt: 'Plataforma para desenvolvedores', ru: 'Платформа разработчика', sv: 'Utvecklarplattform', th: 'แพลตฟอร์มนักพัฒนา', tr: 'Geliştirici Platformu', uk: 'Платформа розробника', vi: 'Nền tảng dành cho nhà phát triển' },
+
   'Filters': { nl: 'Filters' },
   'Local processing': { ar: 'معالجة محلية', es: 'Procesamiento local', fr: 'Traitement local', de: 'Lokale Verarbeitung', hi: 'स्थानीय प्रोसेसिंग', id: 'Pemrosesan lokal', it: 'Elaborazione locale', ja: 'ローカル処理', ko: '로컬 처리', ms: 'Pemprosesan setempat', nl: 'Lokale verwerking', pl: 'Przetwarzanie lokalne', pt: 'Processamento local', ru: 'Локальная обработка', sv: 'Lokal bearbetning', th: 'การประมวลผลในเครื่อง', tr: 'Yerel işleme', uk: 'Локальна обробка', vi: 'Xử lý cục bộ' },
   'Choose a file': { ar: 'اختر ملفًا', es: 'Elige un archivo', fr: 'Choisissez un fichier', de: 'Datei auswählen', hi: 'फ़ाइल चुनें', id: 'Pilih file', it: 'Scegli un file', ja: 'ファイルを選択', ko: '파일 선택', ms: 'Pilih fail', nl: 'Kies een bestand', pl: 'Wybierz plik', pt: 'Escolha um ficheiro', ru: 'Выберите файл', sv: 'Välj en fil', th: 'เลือกไฟล์', tr: 'Bir dosya seçin', uk: 'Виберіть файл', vi: 'Chọn tệp' },

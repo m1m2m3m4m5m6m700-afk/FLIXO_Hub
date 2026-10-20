@@ -4,8 +4,10 @@ import {
   ArrowUpRight,
   Check,
   ChevronDown,
+  Cloud,
   Moon,
   ShieldCheck,
+  Search,
   Sparkles,
   Sun,
   X,
@@ -42,14 +44,6 @@ function homeLocale(): string {
   return window.location.pathname.match(/^\/([a-z]{2})(?:\/|$)/u)?.[1] ?? 'en';
 }
 
-const FEATURED_IDS = [
-  'background-remover',
-  'image-upscaler',
-  'image-cropper',
-  'image-compressor',
-  'image-converter',
-  'image-effects',
-] as const;
 
 const CATEGORY_FAMILY_MAP: Readonly<Record<string, string>> = {
   image: 'images',
@@ -127,34 +121,81 @@ function assistantMessage(result: AssistantResult): string {
 
 export function OfficialHome() {
   const [query, setQuery] = useState('');
+  const [toolQuery, setToolQuery] = useState('');
+  const [toolFamily, setToolFamily] = useState<'all' | 'image' | 'video' | 'audio' | 'ai' | 'editor'>('all');
   const [requestOpen, setRequestOpen] = useState(false);
   const [requestText, setRequestText] = useState('');
   const [assistantResult, setAssistantResult] = useState<AssistantResult | null>(null);
   const [thinking, setThinking] = useState(false);
-  const [dark, setDark] = useState(() => {
-    if (typeof window === 'undefined') return true;
+  type FlixoTheme = 'light' | 'dark' | 'system';
+  type EffectiveTheme = 'light' | 'dark';
+  const [theme, setTheme] = useState<FlixoTheme>(() => {
+    if (typeof window === 'undefined') return 'system';
     try {
-      return window.localStorage.getItem('flixo-official-theme') !== 'light';
+      const saved = window.localStorage.getItem('flixo-theme');
+      if (saved === 'light' || saved === 'dark' || saved === 'system') return saved;
+      const legacy = window.localStorage.getItem('flixo-official-theme');
+      if (legacy === 'light' || legacy === 'dark') return legacy;
+      if (legacy === 'night' || legacy === 'black') return 'dark';
+      return 'system';
     } catch {
-      return true;
+      return 'system';
     }
   });
+  const [systemTheme, setSystemTheme] = useState<EffectiveTheme>(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return 'light';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  });
+  const effectiveTheme: EffectiveTheme = theme === 'system' ? systemTheme : theme;
+  const dark = effectiveTheme === 'dark';
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return;
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const updateSystemTheme = () => setSystemTheme(mediaQuery.matches ? 'dark' : 'light');
+    updateSystemTheme();
+    mediaQuery.addEventListener('change', updateSystemTheme);
+    return () => mediaQuery.removeEventListener('change', updateSystemTheme);
+  }, []);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', dark);
+    document.documentElement.dataset.flixoTheme = effectiveTheme;
+    document.documentElement.dataset.flixoThemeMode = theme;
     try {
-      window.localStorage.setItem('flixo-official-theme', dark ? 'dark' : 'light');
+      window.localStorage.setItem('flixo-theme', theme);
+      window.localStorage.setItem('flixo-official-theme', effectiveTheme);
     } catch {
       // Browser storage is optional.
     }
-  }, [dark]);
+  }, [theme, effectiveTheme, dark]);
 
-  const featuredTools = useMemo(
-    () =>
-      FEATURED_IDS.map((id) => TOOL_CATALOG.ready.find((tool) => tool.id === id))
-        .filter((tool): tool is (typeof TOOL_CATALOG.ready)[number] => Boolean(tool)),
-    [],
-  );
+  const toolFamilies = useMemo(() => [
+    { id: 'all' as const, label: 'الكل' },
+    { id: 'image' as const, label: 'الصور' },
+    { id: 'video' as const, label: 'الفيديو' },
+    { id: 'audio' as const, label: 'الصوت' },
+    { id: 'ai' as const, label: 'الذكاء الاصطناعي' },
+    { id: 'editor' as const, label: 'التحرير' },
+  ], []);
+
+  const filteredReadyTools = useMemo(() => {
+    const normalized = toolQuery.trim().toLocaleLowerCase();
+    return TOOL_CATALOG.ready.filter((tool) => {
+      const familyMatch = toolFamily === 'all' || tool.family === toolFamily;
+      if (!familyMatch) return false;
+      if (!normalized) return true;
+      const haystack = [tool.id, tool.title, tool.description, tool.category, tool.family].join(' ').toLocaleLowerCase();
+      return haystack.includes(normalized);
+    });
+  }, [toolFamily, toolQuery]);
+
+  const quickToolQueries = [
+    { label: 'إزالة الخلفية', query: 'background remover' },
+    { label: 'ضغط الصور', query: 'image compressor' },
+    { label: 'تكبير الصور', query: 'image upscaler' },
+    { label: 'قص الصور', query: 'image cropper' },
+  ];
 
   const runAssistant = () => {
     const prompt = query.trim();
@@ -180,7 +221,7 @@ export function OfficialHome() {
   };
 
   return (
-    <div className={dark ? 'official-home official-dark' : 'official-home'} dir="rtl">
+    <div className={dark ? 'official-home official-dark' : 'official-home'} data-theme={effectiveTheme} data-theme-mode={theme} dir="rtl">
       <header className="official-nav">
         <div className="official-nav-inner">
           <a className="official-brand" href="/" aria-label="FLIXO">
@@ -195,11 +236,11 @@ export function OfficialHome() {
           <div className="official-nav-actions">
             <button
               className="official-icon-button"
-              onClick={() => setDark((value) => !value)}
-              aria-label={dark ? 'استخدام المظهر الفاتح' : 'استخدام المظهر الداكن'}
-              title={dark ? 'المظهر الفاتح' : 'المظهر الداكن'}
+              onClick={() => setTheme((value) => value === 'light' ? 'dark' : value === 'dark' ? 'system' : 'light')}
+              aria-label={theme === 'light' ? 'المظهر الفاتح، اضغط للتبديل' : theme === 'dark' ? 'المظهر الداكن، اضغط للتبديل' : 'المظهر حسب إعدادات النظام، اضغط للتبديل'}
+              title={theme === 'light' ? 'المظهر الفاتح' : theme === 'dark' ? 'المظهر الداكن' : 'حسب إعدادات النظام'}
             >
-              {dark ? <Sun size={17} /> : <Moon size={17} />}
+              {theme === 'light' ? <Sun size={17} /> : theme === 'dark' ? <Moon size={17} /> : <Cloud size={17} />}
             </button>
             <button className="official-request-button" onClick={openRequestWithQuery}>
               طلب أداة
@@ -311,6 +352,31 @@ export function OfficialHome() {
           </div>
         </section>
 
+        <section className="official-discovery" aria-label="اكتشاف الأدوات">
+          <div className="official-container">
+            <div className="official-discovery-shell">
+              <div className="official-discovery-heading">
+                <div>
+                  <small>اكتشف أسرع</small>
+                  <h2>ابحث عن الأداة قبل أن تتصفح الكتالوج.</h2>
+                </div>
+                <span>{TOOL_CATALOG.ready.length} أداة جاهزة</span>
+              </div>
+              <div className="official-discovery-input">
+                <Search size={19} aria-hidden="true" />
+                <input value={toolQuery} onChange={(event) => setToolQuery(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') document.getElementById('official-tools')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} placeholder="ابحث باسم الأداة أو نوع المهمة…" aria-label="ابحث عن أداة" />
+                {toolQuery && <button type="button" onClick={() => setToolQuery('')} aria-label="مسح البحث"><X size={16} /></button>}
+              </div>
+              <div className="official-quick-tags" aria-label="عمليات بحث سريعة">
+                {quickToolQueries.map((item) => <button key={item.query} type="button" onClick={() => setToolQuery(item.query)}>{item.label}</button>)}
+              </div>
+              <div className="official-tool-filters" role="tablist" aria-label="تصفية الأدوات">
+                {toolFamilies.map((family) => <button key={family.id} type="button" role="tab" aria-selected={toolFamily === family.id} className={toolFamily === family.id ? 'is-active' : ''} onClick={() => setToolFamily(family.id)}>{family.label}</button>)}
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section className="official-section" id="official-categories">
           <div className="official-container">
             <div className="official-heading">
@@ -359,23 +425,18 @@ export function OfficialHome() {
                 <p>لا توجد إضافة لأدوات جديدة هنا؛ هذه البطاقات مرتبطة بالأدوات المسجلة والجاهزة حاليًا.</p>
               </div>
               <div className="official-tool-count">
-                <strong>{TOOL_CATALOG.ready.length}</strong>
-                <span>أداة جاهزة في السجل</span>
+                <strong>{filteredReadyTools.length}</strong>
+                <span>{toolQuery || toolFamily !== 'all' ? 'أداة مطابقة' : 'أداة جاهزة في السجل'}</span>
               </div>
             </div>
 
             <div className="official-featured-grid">
-              {featuredTools.map((tool) => {
-                const copy = FEATURED_COPY[tool.id] ?? {
-                  name: tool.title,
-                  description: tool.description,
-                };
+              {filteredReadyTools.slice(0, 12).map((tool) => {
+                const copy = FEATURED_COPY[tool.id] ?? { name: tool.title, description: tool.description };
+                const familyLabel = tool.family === 'image' ? 'صور' : tool.family === 'video' ? 'فيديو' : tool.family === 'audio' ? 'صوت' : tool.family === 'ai' ? 'AI' : 'تحرير';
                 return (
                   <a key={tool.id} className="official-featured-card" href={routeForTool(tool)}>
-                    <div className="official-card-top">
-                      <span>متاح الآن</span>
-                      <ArrowUpRight size={16} />
-                    </div>
+                    <div className="official-card-top"><span>{familyLabel}</span><ArrowUpRight size={16} /></div>
                     <h3>{copy.name}</h3>
                     <p>{copy.description}</p>
                     <small>{tool.title}</small>
@@ -383,6 +444,11 @@ export function OfficialHome() {
                 );
               })}
             </div>
+            {filteredReadyTools.length === 0 ? (
+              <div className="official-tools-empty"><strong>لا توجد أداة مطابقة لهذا البحث.</strong><button type="button" onClick={openRequestWithQuery}>طلب أداة جديدة <ArrowUpLeft size={15} /></button></div>
+            ) : (
+              <p className="official-tools-result-count">عرض {Math.min(filteredReadyTools.length, 12)} من {filteredReadyTools.length} أداة مطابقة.</p>
+            )}
           </div>
         </section>
 

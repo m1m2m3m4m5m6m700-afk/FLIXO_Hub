@@ -1,5 +1,6 @@
 const STORAGE_KEY = 'flixo:runtime-diagnostics';
 const MAX_ENTRIES = 20;
+const MAX_FIELD_LENGTH = 4096;
 
 type StartupDiagnostic = {
   kind: 'error' | 'unhandledrejection';
@@ -10,13 +11,22 @@ type StartupDiagnostic = {
   timestamp: string;
 };
 
+function redactText(value: string): string {
+  return value
+    .replace(/(?:token|access_token|refresh_token|authorization|code|secret|password|key)=([^&\s#]+)/giu, '$1=[REDACTED]')
+    .slice(0, MAX_FIELD_LENGTH);
+}
+function safeRoute(): string {
+  return redactText(window.location.pathname);
+}
+
 function capture(kind: StartupDiagnostic['kind'], error: unknown): void {
   const diagnostic: StartupDiagnostic = {
     kind,
-    message: error instanceof Error ? error.message : String(error),
-    stack: error instanceof Error ? error.stack : undefined,
-    route: `${window.location.pathname}${window.location.search}`,
-    userAgent: navigator.userAgent,
+    message: redactText(error instanceof Error ? error.message : String(error)),
+    stack: error instanceof Error && error.stack ? redactText(error.stack) : undefined,
+    route: safeRoute(),
+    userAgent: redactText(navigator.userAgent),
     timestamp: new Date().toISOString(),
   };
 

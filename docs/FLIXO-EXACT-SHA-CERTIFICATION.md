@@ -1,22 +1,20 @@
 # FLIXO Exact-SHA Certification Record
 
-STATUS: POLICY-ALIGNED / LIVE-GOVERNANCE-BLOCKED
+STATUS: POLICY-ALIGNED / MAIN-RULESET-VERIFIED / PROMOTION-AND-DEPLOYMENT-BLOCKED
 
-This file is an evidence-policy index, not a substitute for live GitHub state and not a self-certifying record.
+This file indexes evidence policy. It never substitutes for live GitHub state.
 
 ## Authority chain
 
-1. Current `execution` ref is the candidate source.
-2. PR #1002 is the integration path to `main`.
-3. Required CI/security/browser/Red-Team evidence must be generated on the exact current candidate SHA.
-4. GitHub rulesets and branch protection are external enforcement and must be queried live.
-5. Human Authority remains the final promotion authority.
-
-This document intentionally does not embed a historical candidate SHA as current certification evidence. Any SHA mentioned by an older release record is historical and cannot certify a newer candidate.
+1. Current `execution` is the integration candidate source.
+2. The promotion path is the protected `execution -> main` pull request.
+3. Required CI, security, browser, Red-Team, and exact-SHA evidence must match the candidate SHA.
+4. GitHub rulesets are live external enforcement.
+5. Legitimate independent governance approval remains part of final promotion policy.
 
 ## Canonical governance target
 
-The release governance target for `main` is:
+For `main`:
 - at least 1 approving review;
 - dismiss stale approvals on push;
 - require Code Owner review;
@@ -26,33 +24,38 @@ The release governance target for `main` is:
 - require `trust-gate`;
 - require `Exact-SHA promotion proof`.
 
-## Current live governance observation
+Direct writes to the `main` ref remain forbidden.
 
-The active GitHub ruleset is `FLIXO-MAIN-PROTECTION` (ID `23854302`) targeting `refs/heads/main`.
+## Live main ruleset snapshot (read-only verification)
 
-At the last live reconciliation, the ruleset did not satisfy the target controls. The verifier therefore correctly fails closed. Repository documents must not describe the live ruleset as hardened until GitHub Administration reflects the target state.
+Observed 2026-10-18 through the GitHub repository rulesets API:
+- Ruleset: `FLIXO-MAIN-PROTECTION`, ID `23854302`, enforcement `active`.
+- Target: `refs/heads/main`.
+- Required pull-request controls: 1 approving review, stale-review dismissal on push, Code Owner review, latest-push approval, review-thread resolution, and extra approval for unattributed changes.
+- Required status checks: strict policy with `trust-gate` and `Exact-SHA promotion proof`.
+- Deletion and non-fast-forward rules are enabled; no bypass actors are configured, and the API reports `current_user_can_bypass: never`.
+- Read-only source: https://api.github.com/repos/m1m2m3m4m5m6m700-afk/FLIXO_Hub/rulesets/23854302
 
-The `execution` branch must likewise be verified through GitHub's live protection/ruleset APIs before being treated as protected. Absence of a repository-side assertion is not proof of protection.
+This snapshot verifies the configured repository ruleset at observation time. It does not approve the current release PR, establish that the required independent review has been given, or prove production deployment. Recheck the ruleset if its configuration or enforcement changes.
+ 
+## Current promotion lineage (observed 2026-10-18)
 
-## Open Agent Execution Mode
-
-Authorized agents may implement, test, harden, document, and coordinate broadly on the canonical `execution` lane. This does not grant merge, promotion, certification, self-approval, or governance-bypass authority.
+- Implementation PR #1335 was merged to `execution` at SHA `47be48c1bccdc282f85e45fe3e6371f6914b48be`.
+- Promotion PR #1308 is open from `execution` to `main`; the observed main SHA remains `29f2e0fe045689337a1483ed98d087b736ff6afc`.
+- Execution push CI run [39145752548](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/39145752548) passed, including trust-gate and exact-SHA promotion proof for the execution push. Production deployment correctly did not run on that event.
+- Main PR CI run [39145757343](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/39145757343) completed with failure at exact-SHA promotion proof because the workflow searched for separate `FLIXO CodeQL` and `FLIXO Secret Scan` runs even though those checks are jobs inside the same CI run. The proposed correction uses same-run `needs.codeql.result` and `needs.secret-scan.result`, but it is not yet merged or reverified.
+- Owner stated that review was complete in the conversation, but the GitHub review API returned zero submitted review events for PR #1308 at last observation. The active ruleset's approving-review requirement is not considered fulfilled by a conversational statement alone.
+- The first autonomous promotion-controller run [39145752543](https://github.com/m1m2m3m4m5m6m700-afk/FLIXO_Hub/actions/runs/39145752543) failed while attempting to enable auto-merge with `GITHUB_TOKEN`. The workflow correction is prepared to document status without performing merge or auto-merge mutation; until that correction is merged and its tests pass, retain this evidence as a controller failure.
+- No production deployment ID, deployed SHA, immutable production identity, provenance receipt, or post-deployment smoke receipt exists for this candidate.
 
 ## Evidence rule
 
-Any mutation to `execution` creates a new candidate SHA and invalidates prior SHA-specific evidence. Pending, skipped, cancelled, neutral, stale, or mismatched evidence is not PASS.
+Every mutation to `execution` creates a new candidate SHA and invalidates older candidate-specific evidence. Pending, skipped, cancelled, neutral, stale, or mismatched evidence is not PASS.
+
+## Post-merge record
+
+A merge report is generated only after a PR is actually merged into `main`. The report is bound to the merge commit and source head SHA and is observational, not an approval gate.
 
 ## Certification state
 
-Final certification remains `NOT READY` until:
-- exact-SHA technical/security/browser/Red-Team evidence is current;
-- Prompt 18 freeze and Prompt 19 evidence are satisfied;
-- live GitHub governance satisfies the target policy;
-- legitimate approval/promotion conditions are satisfied;
-- post-merge identity and production verification pass where applicable.
-
-No documentation mutation may be used to convert a live governance blocker into a certification PASS.
-
-
-## Governance Modes
-Development uses FAST governance to minimize agent latency while preserving exact-SHA, security, privacy, and production-boundary controls. Final certification uses STRICT governance and does not inherit development shortcuts. A FAST pass is never a certification pass.
+Final product/production claims still require their own exact-SHA evidence. The live main ruleset was observed active and aligned with the configured required controls, but review, promotion, production deployment, and post-deployment evidence remain separate release gates.

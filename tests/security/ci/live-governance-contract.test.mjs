@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { validateGovernance } from '../../../scripts/ci/verify-live-governance.mjs';
 
@@ -40,4 +41,15 @@ test('rejects main when stale approvals or latest-push approval are disabled', (
   assert.equal(result.ok, false);
   assert.ok(result.errors.includes('main:dismiss-stale'));
   assert.ok(result.errors.includes('main:last-push-approval'));
+});
+
+
+test('autonomous promotion controller verifies the protected PR without merging or enabling auto-merge', async () => {
+  const workflow = await readFile(new URL('../../../.github/workflows/autonomous-promotion.yml', import.meta.url), 'utf8');
+  assert.ok(workflow.includes('bash scripts/ci/check-governance.sh'));
+  assert.ok(workflow.includes('Record protected promotion state without merging'));
+  assert.ok(workflow.includes('WAITING_FOR_PROTECTED_REVIEW_AND_REQUIRED_CHECKS'));
+  assert.ok(workflow.includes('headRefOid'));
+  assert.equal(workflow.includes('gh pr merge'), false);
+  assert.equal(workflow.includes('AUTO_MERGE_ENABLED=true'), false);
 });

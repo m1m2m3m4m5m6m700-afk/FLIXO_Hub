@@ -1,72 +1,5 @@
 import { expect, test } from '../fixtures/universal-runtime-evidence';
-
-async function buildVideoFixture(page: Parameters<Parameters<typeof test>[2]>[0]['page']): Promise<Buffer> {
-  const base64 = await page.evaluate(async () => {
-    if (typeof MediaRecorder === 'undefined') throw new Error('VIDEO_FIXTURE_MEDIARECORDER_UNAVAILABLE');
-    const canvas = document.createElement('canvas');
-    canvas.width = 320;
-    canvas.height = 180;
-    const context = canvas.getContext('2d');
-    if (!context) throw new Error('VIDEO_FIXTURE_CANVAS_UNAVAILABLE');
-
-    const candidates = [
-      'video/webm;codecs=vp8',
-      'video/webm',
-    ];
-    const mimeType = candidates.find((candidate) =>
-      typeof MediaRecorder.isTypeSupported !== 'function' || MediaRecorder.isTypeSupported(candidate),
-    );
-    if (!mimeType) throw new Error('VIDEO_FIXTURE_WEBM_UNAVAILABLE');
-
-    const stream = canvas.captureStream(15);
-    const recorder = new MediaRecorder(stream, { mimeType });
-    const chunks: Blob[] = [];
-
-    const finished = new Promise<void>((resolve, reject) => {
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) chunks.push(event.data);
-      };
-      recorder.onerror = () => reject(new Error('VIDEO_FIXTURE_RECORDING_FAILED'));
-      recorder.onstop = () => resolve();
-    });
-
-    recorder.start();
-    const started = performance.now();
-    await new Promise<void>((resolve) => {
-      const draw = () => {
-        const elapsed = performance.now() - started;
-        context.fillStyle = '#111827';
-        context.fillRect(0, 0, canvas.width, canvas.height);
-        context.fillStyle = elapsed < 400 ? '#22c55e' : '#3b82f6';
-        context.fillRect(30, 30, 120 + Math.min(120, elapsed / 5), 120);
-        context.fillStyle = '#ffffff';
-        context.font = '24px sans-serif';
-        context.fillText('FLIXO VIDEO FIXTURE', 25, 165);
-        if (elapsed >= 2400) {
-          recorder.stop();
-          resolve();
-          return;
-        }
-        requestAnimationFrame(draw);
-      };
-      draw();
-    });
-
-    await finished;
-    stream.getTracks().forEach((track) => track.stop());
-
-    const blob = new Blob(chunks, { type: 'video/webm' });
-    const bytes = new Uint8Array(await blob.arrayBuffer());
-    let binary = '';
-    const batch = 0x8000;
-    for (let index = 0; index < bytes.length; index += batch) {
-      binary += String.fromCharCode(...bytes.subarray(index, index + batch));
-    }
-    return btoa(binary);
-  });
-
-  return Buffer.from(base64, 'base64');
-}
+import { buildVideoFixture, VIDEO_FIXTURE_MIN_DURATION_MS } from '../video/shared-video-fixture';
 
 const VIDEO_CASES = [
   { id: 'video-trimmer', title: 'Video Trimmer' },
@@ -83,6 +16,7 @@ test.describe('MVP video capability individual acceptance', () => {
       await expect(page.getByRole('heading', { name: 'Local video processing' })).toBeVisible();
 
       const fixture = await buildVideoFixture(page);
+      expect(VIDEO_FIXTURE_MIN_DURATION_MS).toBeGreaterThanOrEqual(2_000);
       expect(fixture.length).toBeGreaterThan(10_000);
 
       await page.getByLabel('Choose video').setInputFiles({

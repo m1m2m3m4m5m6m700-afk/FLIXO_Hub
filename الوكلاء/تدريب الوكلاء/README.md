@@ -39,11 +39,15 @@
 
 المجموع: 100.
 
-## الوكلاء المدربون رسميًا
+## مصفوفة التدريب الرسمية
 
-المستكشف AI، المستكشف 2، المطور AI، i18n Agent، Maintainer Agent، QA Agent، Red Team 1، Red Team 2.
+العدد الرسمي هو **10 وكلاء رئيسيين** كما يحدد `الوكلاء.md`، وكل واحد منها يملك الآن deterministic role drill مستقلًا.  
+`المستكشف 2` يبقى supporting sub-role ولا يدخل في العدد الرسمي.
 
-لكل وكيل تعريف رسمي، نطاق كتابة مستقل، وبوابات دورية قابلة للاختبار.
+المصفوفة الرئيسية:
+المستكشف AI، المطور AI، i18n Agent، Maintainer Agent، QA Agent، Red Team 1، Red Team 2، Architecture Scout، Technology Scout، Ecosystem Scout.
+
+لكل وكيل رئيسي امتحان موجب، ثلاث إعادات موجبة لاختبار الحتمية، ومصفوفة سلبية/Adversarial تمنع SHA الخاطئ، تجاوز السلطة، أو ادعاء الشهادة.
 
 ## الأدوار
 
@@ -55,6 +59,9 @@
 - QA Agent: الاختبار والتحقق والأدلة.
 - Red Team 1: اختبار هجومي أمني مستقل.
 - Red Team 2: هجوم مضاد/تفنيد هجومي مستقل.
+- Architecture Scout: بحث معماري raw إلى `.agent-intelligence/inbox/` فقط.
+- Technology Scout: بحث تقني raw إلى `.agent-intelligence/inbox/` فقط.
+- Ecosystem Scout: بحث منظومي مع provenance إلى `.agent-intelligence/inbox/` فقط.
 
 لكل دور عقد خاص واختبارات خاصة. لا يوجد وكيل يقرر لنفسه أنه 100/100.
 
@@ -76,8 +83,11 @@
 | FLIXO QA Agent | أوامر التحقق ورفض الدليل القديم |
 | Red Team 1 | فرضية هجوم وإعادة إنتاج آمنة |
 | Red Team 2 | حالة مضادة وتفنيد نتيجة هجومية |
+| FLIXO Architecture Scout | Proposal Schema v4، fit، boundary risk، rollback |
+| FLIXO Technology Scout | lifecycle، security، licensing، compatibility، migration cost |
+| FLIXO Ecosystem Scout | provenance، maturity، source dating، independent signals، rollback |
 
-يُقبل امتحان الدور فقط عندما ينجح السيناريو الصحيح ويرفض السيناريو المضاد. ثم يبقى `Behavioral Evidence` منفصلًا حتى توجد تجربة تشغيل حقيقية للوكيل نفسه.
+يُقبل امتحان الدور فقط عندما ينجح السيناريو الصحيح، تتطابق النتائج عبر ثلاث إعادات، وترفض المصفوفة السلبية كل حالة تمثل SHA قديمًا أو تجاوزًا للسلطة أو كسرًا لعقد الدور. ثم يبقى `Behavioral Evidence` منفصلًا حتى توجد تجربة تشغيل حقيقية للوكيل نفسه.
 
 ## التدريب التصاعدي
 
@@ -94,3 +104,7 @@
 عند فشل تمرين، يسجل النظام: `failed_gate` → `root_cause` → `remediation` → `retest`.
 إذا تكرر نفس الفشل مرتين، يجب ترقية الحالة من مجرد إعادة المحاولة إلى إنشاء Regression Test جديد قبل اعتبار المهمة مستقرة.
 إذا اختلفت النتيجة بين وكيلين، تحفظ النتيجتان ولا يتم إلغاء إحداهما بالتصويت؛ يلزم دليل تفنيد مستقل.
+
+## المصدر الرسمي للهوية
+
+`الوكلاء.md` هو المصدر canonical لعدد الوكلاء الرئيسيين وهويتهم. لا يعتبر أي رقم آخر في وثيقة تدريب رقمًا رسميًا للـprincipal agents.

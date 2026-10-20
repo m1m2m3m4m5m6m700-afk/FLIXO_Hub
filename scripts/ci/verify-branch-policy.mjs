@@ -117,11 +117,76 @@ function hasMainOnlyPushTrigger(workflow) {
 
   return triggerCount === 1 && mainPush;
 }
+
+function hasExecutionPushTrigger(workflow) {
+  const lines = workflow.split('\n');
+  let inOn = false;
+  let inPush = false;
+  let inPushBranches = false;
+
+  for (const line of lines) {
+    if (/^on:\s*$/u.test(line)) {
+      inOn = true;
+      continue;
+    }
+    if (inOn && /^\S/u.test(line)) break;
+    if (!inOn) continue;
+
+    const triggerMatch = /^\x20{2}([A-Za-z0-9_-]+):\s*$/u.exec(line);
+    if (triggerMatch) {
+      inPush = triggerMatch[1] === 'push';
+      inPushBranches = false;
+      continue;
+    }
+    if (!inPush) continue;
+
+    const inlineBranches = /^\x20{4}branches:\s*\[([^\]]*)\]\s*$/u.exec(line);
+    if (inlineBranches) {
+      if (inlineBranches[1].split(",").some((item) => item.trim() === "execution")) return true;
+      continue;
+    }
+    if (/^\x20{4}branches:\s*$/u.test(line)) {
+      inPushBranches = true;
+      continue;
+    }
+    if (inPushBranches) {
+      const branchItem = /^\x20{6}-\s*([^\s#]+)\s*$/u.exec(line);
+      if (branchItem?.[1] === "execution") return true;
+      if (/^\x20{4}\S/u.test(line)) inPushBranches = false;
+    }
+  }
+
+  return false;
+}
+
+function hasExecutionPushGate(jobText) {
+  const compact = jobText.replace(/\s+/gu, ' ');
+  return /github\.event_name\s*==\s*['"]push['"]/u.test(compact) && /github\.ref\s*==\s*['"]refs\/heads\/execution['"]/u.test(compact);
+}
+
+function hasManualExecutionGate(jobText) {
+  const compact = jobText.replace(/\s+/gu, ' ');
+  return /github\.event_name\s*==\s*['"]workflow_dispatch['"]/u.test(compact) &&
+    /github\.ref\s*==\s*['"]refs\/heads\/execution['"]/u.test(compact) &&
+    /github\.repository\s*==\s*['"]m1m2m3m4m5m6m700-afk\/FLIXO_Hub['"]/u.test(compact) &&
+    /github\.actor\s*==\s*['"]m1m2m3m4m5m6m700-afk['"]/u.test(compact);
+}
+
+function hasExecutionOnlyMutationTarget(jobText) {
+  const compact = jobText.replace(/\s+/gu, ' ');
+  const executionPush = /git\s+push\s+origin\s+["']?HEAD:execution["']?/u.test(compact);
+  const executionRef = /ref:\s*execution\b/u.test(compact) ||
+    /GITHUB_REF_NAME["']?\s*[=:\s]+["']?execution["']?/u.test(compact) ||
+    /github\.ref\s*==\s*['"]refs\/heads\/execution['"]/u.test(compact);
+  return executionPush && executionRef;
+}
+
 export function analyzeWorkflowAuthority(path, workflow) {
   const findings = [];
   const jobs = jobBlocks(workflow);
   const workflowContentsWrite = hasTopLevelContentsWrite(workflow);
   const workflowMainOnlyPush = hasMainOnlyPushTrigger(workflow);
+  const workflowExecutionPush = hasExecutionPushTrigger(workflow);
 
   if (workflowContentsWrite && jobs.length === 0) {
     findings.push(`${path}: top-level contents:write has no job boundary to constrain mutation authority.`);
@@ -129,17 +194,37 @@ export function analyzeWorkflowAuthority(path, workflow) {
 
   for (const job of jobs) {
     const jobText = job.lines.join('\n');
-    const mainPushGate = hasMainPushGate(jobText);
+    if (
+      workflowExecutionPush &&
+      /uses:\s*actions\/checkout@/u.test(jobText) &&
+      !/persist-credentials:\s*false\b/iu.test(jobText)
+    ) {
+      findings.push(`${path}#${job.id}: execution-triggered workflow checkout must set persist-credentials:false explicitly.`);
+    }    const mainPushGate = hasMainPushGate(jobText);
     const executionTarget =
       /FLIXO_TARGET_BRANCH:\s*execution\b/u.test(jobText) &&
-      /\bref:\s*execution\b/u.test(jobText);
+      (/\bref:\s*execution\b/u.test(jobText) || /git\s+push\s+(?:origin|https?:[^\s]+)\s+["']?HEAD:refs\/heads\/execution["']?/u.test(jobText));
     const isolatedKnowledgeTarget =
       /FLIXO_TARGET_BRANCH:\s*knowledge\b/u.test(jobText) &&
       /git\s+push\s+origin\s+"?HEAD:knowledge"?/u.test(jobText);
+    const isolatedDiscoveryTarget =
+      /git\s+switch\s+--create\s+"?scout\/discovery-\$GITHUB_RUN_ID"?/u.test(jobText) &&
+      /git\s+push\s+origin\s+"?HEAD:scout\/discovery-\$GITHUB_RUN_ID"?/u.test(jobText);
+    const trustedControllerTarget =
+      path.endsWith('/patch-capsule-controller.yml') &&
+      /FLIXO_TARGET_BRANCH:\s*execution\b/u.test(jobText) &&
+      /ref:\s*main\b/u.test(jobText);
+    const executionPreviewTarget =
+      path.endsWith('/ui-preview.yml') &&
+      /PREVIEW_WORKER_NAME:/u.test(jobText) &&
+      (hasExecutionPushGate(jobText) || hasManualExecutionGate(jobText));
+    const nonMutatingDryRun = /\b(?:wrangler|vercel|supabase|flyctl|kubectl|terraform)\s+(?:deploy|apply|push|publish)\b[^\n]*(?:^|\s)--dry-run\b/ium.test(jobText) && !/\b(?:--prod|--production)\b/iu.test(jobText);
 
     if (
       (PRODUCTION_DEPLOYMENT_COMMAND.test(jobText) || PRODUCTION_DEPLOYMENT_ACTION.test(jobText)) &&
-      !mainPushGate
+      !mainPushGate &&
+      !executionPreviewTarget &&
+      !nonMutatingDryRun
     ) {
       findings.push(
         `${path}#${job.id}: production/deployment authority is not gated to a push of refs/heads/main.`,
@@ -152,10 +237,21 @@ export function analyzeWorkflowAuthority(path, workflow) {
       );
     }
 
+    const autonomousPromotionController = path.endsWith('/autonomous-promotion.yml') && hasExecutionPushGate(jobText) && /gh\s+pr\s+(?:list|create|merge)\b/iu.test(jobText) && !/git\s+push\b/iu.test(jobText);
     const jobContentsWrite = /contents:\s*write\b/iu.test(jobText);
+    const executionPush = hasExecutionPushGate(jobText);
+    if (executionPush && (jobContentsWrite || workflowContentsWrite) && !autonomousPromotionController) {
+      findings.push(`${path}#${job.id}: execution-push job may not expose contents:write to mutable execution code.`);
+    }
+    if (executionPush && /\bsecrets\.[A-Za-z0-9_]+/u.test(jobText)) {
+      findings.push(`${path}#${job.id}: execution-push job may not expose repository secrets.`);
+    }
+    if (executionPush && /persist-credentials:\s*true\b/iu.test(jobText)) {
+      findings.push(`${path}#${job.id}: execution-push job may not persist Git credentials.`);
+    }
     if (jobContentsWrite || workflowContentsWrite) {
       const safeMainWrite = mainPushGate || workflowMainOnlyPush;
-      const safeExecutionWrite = executionTarget || isolatedKnowledgeTarget;
+      const safeExecutionWrite = executionTarget || isolatedKnowledgeTarget || isolatedDiscoveryTarget || trustedControllerTarget || autonomousPromotionController || hasExecutionOnlyMutationTarget(jobText);
       if (!safeMainWrite && !safeExecutionWrite) {
         findings.push(
           `${path}#${job.id}: contents:write has neither an explicit main-push gate nor an execution-only mutation target.`,

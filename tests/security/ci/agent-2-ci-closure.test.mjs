@@ -94,20 +94,57 @@ test('CI promotion workflow contains live lineage and exact security-gate semant
   const workflow = await readFile(path.join(ROOT, '.github/workflows/ci.yml'), 'utf8');
   for (const token of [
     'GITHUB_EVENT_PATH:', 'verify-promotion-lineage.mjs', 'EXPECTED_SHA:',
-    'head_sha=$EXPECTED_SHA', 'event=pull_request', 'FLIXO CodeQL', 'FLIXO Secret Scan',
+    'FLIXO CodeQL', 'FLIXO Secret Scan',
   ]) assert.ok(workflow.includes(token), 'missing CI token: ' + token);
+  assert.match(workflow, /pull_request:\s*\n\s*branches:\s*\[main, execution\]/u);
+  assert.match(workflow, /github\.event\.pull_request\.head\.ref == 'execution'/u);
+  assert.match(workflow, /github\.event\.pull_request\.head\.repo\.full_name == github\.repository/u);
+  assert.ok(workflow.includes('needs: [trust-gate, codeql, secret-scan]'));
+  assert.ok(workflow.includes('CODEQL_RESULT: ${{ needs.codeql.result }}'));
+  assert.ok(workflow.includes('SECRET_SCAN_RESULT: ${{ needs.secret-scan.result }}'));
+  assert.ok(!workflow.includes('name: Wait for exact-head security workflows'));
+  assert.ok(workflow.includes('test "$CODEQL_RESULT" = success'));
+  assert.ok(workflow.includes('test "$SECRET_SCAN_RESULT" = success'));
+  assert.ok(workflow.includes('test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"'));
 });
 
-test('TestSprite privileged execution is canonical-source-only', async () => {
+test('model-free initial release is explicit while model-backed release admission remains strict', async () => {
+  const workflow = await readFile(path.join(ROOT, '.github/workflows/ci.yml'), 'utf8');
+  assert.match(workflow, /^\x20{2}model-admission:\r?\n/mu);
+  assert.ok(workflow.includes('node scripts/model-license-gate.mjs --allow-model-free-release'));
+  const packageJson = JSON.parse(await readFile(path.join(ROOT, 'package.json'), 'utf8'));
+  assert.equal(packageJson.scripts['test:model-license:release'], 'node scripts/model-license-gate.mjs --require-entry');
+  assert.ok(workflow.includes('needs: [verify, hub-stage1, browser, branch-policy, coverage, red-team, codeql, secret-scan, agent-watchdog, sensitive-path-gate, model-admission]'));
+  assert.ok(workflow.includes('MODEL_ADMISSION_RESULT: ${{ needs.model-admission.result }}'));
+  assert.ok(workflow.includes('test "$MODEL_ADMISSION_RESULT" = success'));
+  assert.match(workflow, /MODEL_ADMISSION_REQUIRED:.*inputs\.strict_governance == true/u);
+});
+
+test('execution TestSprite lane is unprivileged and exact-SHA', async () => {
   const workflow = await readFile(path.join(ROOT, '.github/workflows/testsprite-execution.yml'), 'utf8');
-  assert.ok(workflow.includes("github.repository == 'm1m2m3m4m5m6m700-afk/FLIXO_Hub'"));
-  assert.ok(workflow.includes("github.ref == 'refs/heads/execution'"));
-  assert.ok(!workflow.includes('pull_request:'), 'privileged TestSprite workflow must not run on PR events');
-  const trustIndex = workflow.indexOf('Fail-closed trusted TestSprite execution boundary');
-  const secretIndex = workflow.indexOf('TESTSPRITE_API_KEY');
-  assert.ok(trustIndex >= 0 && secretIndex > trustIndex, 'trust boundary must precede secret use');
-  assert.ok(workflow.includes('ref: ${{ github.sha }}'));
-  assert.ok(workflow.includes('test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"'));
+  assert.doesNotMatch(workflow, /TESTSPRITE_API_KEY|TESTSPRITE_PROJECT_ID|\$\{\{\s*secrets\./u);
+  assert.match(workflow, /persist-credentials: false/u);
+  assert.match(workflow, /npm ci --ignore-scripts/u);
+  assert.match(workflow, /testsprite-fallback\.mjs/u);
+});
+
+test('privileged controller is schedule-only and main-anchored', async () => {
+  const workflow = await readFile(path.join(ROOT, '.github/workflows/patch-capsule-controller.yml'), 'utf8');
+  assert.doesNotMatch(workflow, /\n\s+push:\s*\n/u);
+  assert.match(workflow, /ref: main/u);
+  assert.match(workflow, /persist-credentials: false/u);
+  assert.match(workflow, /permissions:\s*\n\s*contents: read/u);
+  assert.match(workflow, /^permissions:\r?\n\x20{2}contents: read$/mu);
+  assert.match(workflow, /^\x20{2}reconcile-and-publish:\r?\n(?:[^\n]*\r?\n){0,5}\x20{4}permissions:\r?\n\x20{6}contents: write$/mu);
+  assert.equal([...workflow.matchAll(/^[\x20\t]*contents:[\x20\t]*write[\x20\t]*$/gmu)].length, 1);
+});
+
+test('controller isolates mutable execution from privileged verification', async () => {
+  const script = await readFile(path.join(ROOT, 'scripts/ci/controller-reconcile-and-publish.mjs'), 'utf8');
+  assert.match(script, /sanitizeUntrustedEnv/u);
+  assert.match(script, /--ignore-scripts/u);
+  assert.match(script, /CONTROLLER_SENSITIVE_PATH_FORBIDDEN/u);
+  assert.match(script, /CANONICAL_GIT_REMOTE/u);
 });
 
 test('Secret Scan is exact-SHA, full-history, and does not mask findings', async () => {
@@ -134,7 +171,7 @@ test('CodeQL persists exact-SHA SARIF as durable evidence when GitHub default se
   assert.ok(!workflow.includes('wait-for-processing: true'));
 });
 
-test('production deployment keeps source immutable and artifact-bound', async () => {
+test('production deployment keeps source immutable and verifies live exact-SHA provenance', async () => {
   const workflow = await readFile(path.join(ROOT, '.github/workflows/ci.yml'), 'utf8');
   assert.ok(workflow.includes('RELEASE_SOURCE_PURITY=PASS'));
   assert.ok(workflow.includes('build-provenance.json'));
@@ -142,6 +179,16 @@ test('production deployment keeps source immutable and artifact-bound', async ()
   assert.ok(!workflow.includes('path.write_text('));
   assert.ok(!workflow.includes("EMBEDDED_DEPLOYMENT_SHA = '$DEPLOYMENT_SHA'"));
   assert.ok(workflow.includes('FLIXO_DEPLOYMENT_SHA:${{ github.sha }}'));
+  const marker = '      - name: Verify deployed build provenance for exact SHA';
+  const markerIndex = workflow.indexOf(marker);
+  assert.ok(markerIndex >= 0, 'production must verify the live provenance endpoint');
+  const nextStep = workflow.indexOf('      - name:', markerIndex + marker.length);
+  const block = workflow.slice(markerIndex, nextStep > 0 ? nextStep : workflow.length);
+  assert.ok(block.includes('/__flixo/build-provenance.json'), 'production probe must use the canonical provenance path');
+  assert.ok(block.includes('PRODUCTION_BUILD_PROVENANCE=PASS'), 'provenance verification must emit durable pass evidence');
+  assert.ok(block.includes('application/json*'), 'HTML SPA fallback must not satisfy JSON provenance');
+  assert.ok(block.includes('.candidateSha == $sha'), 'live candidate SHA must match the deployed SHA');
+  assert.ok(block.includes('.sourceTreeSha'), 'live provenance must validate source tree identity');
 });
 
 async function collectWorkflowFiles(dir, output = []) {

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 import { test } from 'node:test';
@@ -7,6 +7,15 @@ import { evaluateMainGovernance } from '../../../scripts/ci/verify-main-ruleset.
 
 const root = process.cwd();
 const cli = join(root, 'scripts/ci/check-governance.sh');
+const bash = process.platform === 'win32'
+  ? process.env.FLIXO_BASH_EXECUTABLE ?? [
+      join(process.env.ProgramFiles ?? 'C:\\Program Files', 'Git', 'bin', 'bash.exe'),
+      join(process.env.LOCALAPPDATA ?? '', 'hermes', 'tools', 'git-2.53.0+3-win32-x64', 'usr', 'bin', 'bash.exe'),
+    ].find(existsSync) ?? 'bash'
+  : 'bash';
+const cliArgument = process.platform === 'win32'
+  ? `/${cli[0].toLowerCase()}${cli.slice(2).replaceAll(String.fromCharCode(92), '/')}`
+  : cli;
 
 function ruleset(overrides = {}) {
   return [{
@@ -64,7 +73,7 @@ test('governance CLI accepts an explicit mock without pretending it is live evid
   writeFileSync(mock, JSON.stringify(ruleset()), 'utf8');
 
   try {
-    const output = execFileSync('bash', [cli], {
+    const output = execFileSync(bash, [cliArgument], {
       cwd: root,
       env: { ...process.env, GOVERNANCE_MOCK_FILE: mock, GOVERNANCE_MODE: 'strict', GOVERNANCE_BRANCH: 'main' },
       encoding: 'utf8',
@@ -79,7 +88,7 @@ test('governance CLI accepts an explicit mock without pretending it is live evid
 
 test('governance CLI refuses live mode when evidence credentials are absent', () => {
   assert.throws(
-    () => execFileSync('bash', [cli], {
+    () => execFileSync(bash, [cliArgument], {
       cwd: root,
       env: { PATH: process.env.PATH, GOVERNANCE_MODE: 'strict', GOVERNANCE_BRANCH: 'main' },
       encoding: 'utf8',

@@ -3,7 +3,7 @@
 ## Current production line
 - `main`: production truth.
 - `execution`: controlled integration/release lane.
-- Current release candidate: PR #1002.
+- Current release candidate: PR #1214.
 
 ## Active product line
 - FLIXO Hub browser-first local media tools.
