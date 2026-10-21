@@ -12,6 +12,11 @@ on:
         required: false
         default: false
         type: boolean
+      deploy_preview:
+        description: 'Deploy the exact workflow SHA to the isolated flixoai-preview Worker'
+        required: false
+        default: false
+        type: boolean
   merge_group:
     types: [checks_requested]
 
@@ -29,11 +34,13 @@ env:
 
 jobs:
   verify:
-    # Only the canonical execution->main promotion PR consumes pull-request CI; worker PRs are implementation lanes, not release candidates.
+    # Canonical release-verification job remains restricted to execution->main PRs; other same-repository PRs use candidate-validation.
     if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.ref == 'execution' && github.event.pull_request.head.repo.full_name == github.repository) }}
     name: Typecheck, lint, core contracts, build
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      FLIXO_DEPLOYMENT_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
         with:
@@ -102,9 +109,89 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  candidate-validation:
+    name: Same-repository candidate build validation
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref != 'execution' && github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      BUILD_SHA: ${{ github.event.pull_request.head.sha }}
+      FLIXO_DEPLOYMENT_SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - name: Checkout exact candidate commit
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Fetch and verify read-only main branch snapshot for contract tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin refs/heads/main:refs/heads/main
+          git fetch --no-tags --depth=1 origin refs/heads/main:refs/remotes/origin/main
+          remote_main="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          test -n "$remote_main"
+          test "$(git rev-parse main)" = "$remote_main"
+          test "$(git rev-parse refs/remotes/origin/main)" = "$remote_main"
+      - name: Three-critic local contract tests
+        run: |
+          set -euo pipefail
+          python3 scripts/three_critic_review.py --self-test
+          python3 tests/three_critic_review.test.py
+      - name: Exact-SHA workflow contract tests
+        run: node --test scripts/ci/test-workflow-exact-sha-contract.mjs
+      - name: Agent 2 CI security contract tests
+        run: node --test tests/security/ci/*.test.mjs
+      - name: Model license and admission gate
+        run: npm run test:model-license
+      - name: Run npm test
+        shell: bash
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee npm-test.log
+      - name: Upload npm test failure evidence
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: flixo-npm-test-failure-${{ github.run_id }}
+          path: npm-test.log
+          if-no-files-found: error
+          retention-days: 14
+      - run: npm audit --omit=dev --audit-level=high
+      - run: npm run build
+      - name: Stamp exact build identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$BUILD_SHA"
+          SOURCE_TREE_SHA="$(git rev-parse "$BUILD_SHA^{tree}")"
+          test -z "$(git diff --name-only)"
+          mkdir -p dist/__flixo
+          printf '{"repository":"%s","candidateSha":"%s","sourceTreeSha":"%s","buildRunId":"%s"}\n' \
+            "$GITHUB_REPOSITORY" "$BUILD_SHA" "$SOURCE_TREE_SHA" "$GITHUB_RUN_ID" \
+            > dist/__flixo/build-provenance.json
+          printf '%s\n' "$BUILD_SHA" > dist/flixo-head-sha.txt
+          printf '%s\n' "$BUILD_SHA" > "dist/__flixo-identity-$BUILD_SHA.txt"
+          printf '%s\n' "$BUILD_SHA" > dist/__flixo-identity.txt
+          mkdir -p "dist/__flixo/identity/$BUILD_SHA"
+          printf '%s\n' "$BUILD_SHA" > "dist/__flixo/identity/$BUILD_SHA/index.txt"
+      - name: Upload build artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: flixo-build-${{ github.run_id }}
+          path: dist
+          if-no-files-found: error
+          retention-days: 7
+
   browser:
     name: Chromium browser smoke
-    needs: verify
+    needs: [verify, candidate-validation]
+    if: ${{ always() && (needs.verify.result == 'success' || needs.candidate-validation.result == 'success') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -137,8 +224,8 @@ jobs:
 
   coverage:
     name: Exact-SHA internal coverage
-    needs: verify
-    if: ${{ needs.verify.result == 'success' }}
+    needs: [verify, candidate-validation]
+    if: ${{ always() && (needs.verify.result == 'success' || needs.candidate-validation.result == 'success') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -209,8 +296,7 @@ jobs:
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 1
           persist-credentials: true
-      - name: Validate branch policy for the current ref
-        if: ${{ github.event_name != 'pull_request' }}
+      - name: Validate workflow authority and branch policy for the current ref
         run: node scripts/ci/verify-branch-policy.mjs
       - name: Verify canonical PR source identity
         if: ${{ github.event_name == 'pull_request' }}
@@ -244,14 +330,14 @@ jobs:
 
   trust-gate:
     name: trust-gate
-    needs: [verify, browser, branch-policy, coverage, red-team]
+    needs: [verify, candidate-validation, browser, branch-policy, coverage, red-team]
     if: ${{ always() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Assert canonical CI gates are GREEN
         env:
-          VERIFY_RESULT: ${{ needs.verify.result }}
+          VERIFY_RESULT: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref != 'execution' && needs.candidate-validation.result || needs.verify.result }}
           BROWSER_RESULT: ${{ needs.browser.result }}
           COVERAGE_RESULT: ${{ needs.coverage.result }}
           RED_TEAM_RESULT: ${{ needs.red-team.result }}
@@ -263,12 +349,12 @@ jobs:
           # Worker/implementation PRs are intentionally outside the canonical execution -> main
           # promotion topology. Their release-only lanes are skipped and must not fail trust.
           if [ "$EVENT_NAME" = "pull_request" ] && [ "$PR_HEAD_REF" != "execution" ]; then
-            test "$VERIFY_RESULT" = skipped
-            test "$BROWSER_RESULT" = skipped
-            test "$COVERAGE_RESULT" = skipped
+            test "$VERIFY_RESULT" = success
+            test "$BROWSER_RESULT" = success
+            test "$COVERAGE_RESULT" = success
             test "$RED_TEAM_RESULT" = success
             test "$BRANCH_RESULT" = success
-            echo 'TRUST_GATE=PASS_WORKER_PR'
+            echo 'TRUST_GATE=PASS_WORKER_PR_FULL_CI'
             exit 0
           fi
 
@@ -282,7 +368,7 @@ jobs:
   promotion-proof:
     name: Exact-SHA promotion proof
     needs: [trust-gate]
-    if: ${{ always() }}
+    if: ${{ always() && github.event_name != 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -498,5 +584,129 @@ jobs:
         with:
           name: flixoai-production-evidence-${{ github.sha }}
           path: flixoai-production-evidence.json
+          if-no-files-found: error
+          retention-days: 30
+  
+  preview-deployment:
+    name: Preview exact-SHA deployment
+    needs: [red-team, branch-policy, trust-gate]
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.red-team.result == 'success' && needs.branch-policy.result == 'success' && needs.trust-gate.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+    env:
+      DEPLOYMENT_SHA: ${{ github.sha }}
+      FLIXO_DEPLOYMENT_SHA: ${{ github.sha }}
+      FLIXO_ENV: preview
+      PREVIEW_ORIGIN: https://flixoai-preview.m1m2m3m4m5m6m700.workers.dev
+    steps:
+      - name: Checkout exact candidate SHA
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Verify exact source SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$DEPLOYMENT_SHA"
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install dependencies and run release tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          npm test
+          npm run build
+      - name: Stamp and verify exact-SHA build identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$DEPLOYMENT_SHA"
+          SOURCE_TREE_SHA="$(git rev-parse "$DEPLOYMENT_SHA^{tree}")"
+          mkdir -p dist/__flixo
+          printf '{"repository":"%s","candidateSha":"%s","sourceTreeSha":"%s","buildRunId":"%s"}\n' "$GITHUB_REPOSITORY" "$DEPLOYMENT_SHA" "$SOURCE_TREE_SHA" "$GITHUB_RUN_ID" > dist/__flixo/build-provenance.json
+          printf '%s\n' "$DEPLOYMENT_SHA" > dist/flixo-head-sha.txt
+          printf '%s\n' "$DEPLOYMENT_SHA" > "dist/__flixo-identity-$DEPLOYMENT_SHA.txt"
+          printf '%s\n' "$DEPLOYMENT_SHA" > dist/__flixo-identity.txt
+          mkdir -p "dist/__flixo/identity/$DEPLOYMENT_SHA"
+          printf '%s\n' "$DEPLOYMENT_SHA" > "dist/__flixo/identity/$DEPLOYMENT_SHA/index.txt"
+          test -s dist/index.html
+          test "$(cat "dist/__flixo-identity-$DEPLOYMENT_SHA.txt")" = "$DEPLOYMENT_SHA"
+          sha256sum "dist/__flixo-identity-$DEPLOYMENT_SHA.txt"
+      - name: Preview-only strict target allowlist
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq '"name": "flixoai"' wrangler.jsonc
+          grep -Fq '"name": "flixoai-preview"' wrangler.jsonc
+          test "$PREVIEW_ORIGIN" = "https://flixoai-preview.m1m2m3m4m5m6m700.workers.dev"
+          if grep -qE 'flixotoolscom|flixotools\b' wrangler.jsonc; then exit 1; fi
+      - name: Validate Cloudflare credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+      - name: Dry-run preview deployment
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4.141.0"
+          command: deploy --dry-run --config wrangler.jsonc --env preview --var FLIXO_DEPLOYMENT_SHA:${{ github.sha }}
+      - name: Deploy exact SHA to preview only
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4.141.0"
+          command: deploy --config wrangler.jsonc --env preview --var FLIXO_DEPLOYMENT_SHA:${{ github.sha }}
+      - name: Verify immutable preview identity and runtime protections
+        shell: bash
+        run: |
+          set -euo pipefail
+          identity_url="$PREVIEW_ORIGIN/__flixo-identity-$DEPLOYMENT_SHA.txt?__flixo_sha=$DEPLOYMENT_SHA&__flixo_verify=$GITHUB_RUN_ID"
+          status="$(curl --silent --show-error --location --compressed --retry 10 --retry-delay 3 --retry-all-errors --max-time 30 -H 'Cache-Control: no-cache, no-store' -o /tmp/flixo-preview-identity.txt -w '%{http_code}' "$identity_url")"
+          body="$(tr -d '\r\n' < /tmp/flixo-preview-identity.txt)"
+          echo "IDENTITY_HTTP=$status BODY=$body"
+          test "$status" = "200"
+          test "$body" = "$DEPLOYMENT_SHA"
+          for route in / /robots.txt /sitemap.xml; do
+            code="$(curl --silent --show-error --location --compressed --retry 5 --retry-delay 2 --retry-all-errors --max-time 30 -o /tmp/flixo-route-body -w '%{http_code}' "$PREVIEW_ORIGIN$route?__flixo_sha=$DEPLOYMENT_SHA&__flixo_verify=$GITHUB_RUN_ID")"
+            echo "ROUTE=$route HTTP=$code"
+            test "$code" = "200"
+          done
+          api_status="$(curl --silent --show-error --location --compressed --max-time 30 -o /tmp/flixo-preview-api.txt -w '%{http_code}' "$PREVIEW_ORIGIN/api/test")"
+          echo "API_HTTP=$api_status"
+          test "$api_status" = "404"
+          headers="$(curl --silent --show-error --location --compressed --max-time 30 -D - -o /dev/null "$PREVIEW_ORIGIN/")"
+          printf '%s\n' "$headers" | grep -Eiq '^x-frame-options:[[:space:]]*DENY'
+          printf '%s\n' "$headers" | grep -Eiq '^strict-transport-security:'
+          printf '%s\n' "$headers" | grep -Eiq '^content-security-policy:'
+          printf '%s\n' "$headers" | grep -Eiq "^x-flixo-deployment-sha:[[:space:]]*$DEPLOYMENT_SHA"
+          echo "PREVIEW_RUNTIME_CHECKS=PASS"
+      - name: Write preview deployment evidence
+        if: always()
+        shell: bash
+        env:
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          set -euo pipefail
+          printf '{"worker":"flixoai-preview","origin":"%s","sha":"%s","status":"%s"}\n' "$PREVIEW_ORIGIN" "$DEPLOYMENT_SHA" "$JOB_STATUS" > flixoai-preview-evidence.json
+      - name: Upload preview deployment evidence
+        if: always()
+        uses: actions/upload-artifact@615b319bd27bb32c3d64dca6b6ed6974d5fbe653 # v6.0.0
+        with:
+          name: flixoai-preview-evidence-${{ github.sha }}
+          path: flixoai-preview-evidence.json
           if-no-files-found: error
           retention-days: 30
