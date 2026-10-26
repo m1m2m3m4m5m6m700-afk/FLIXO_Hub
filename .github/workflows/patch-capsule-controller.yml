@@ -30,13 +30,13 @@ jobs:
       FLIXO_TARGET_BRANCH: execution
     steps:
       - name: Checkout the sole mutation line
-        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v5.0.0
         with:
           ref: execution
           fetch-depth: 0
           persist-credentials: true
 
-      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -88,7 +88,7 @@ jobs:
 
       - name: Upload controller evidence
         if: always() && steps.capsule.outputs.QUEUE_EMPTY != 'true'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: flixo-patch-capsule-controller-${{ github.run_id }}
           path: controller-patch-capsule-evidence.json
